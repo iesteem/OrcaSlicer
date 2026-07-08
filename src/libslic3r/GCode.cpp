@@ -2306,7 +2306,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
             file.write_format("; first_layer_bed_temperature = %d\n", first_layer_bed_temperature);
             file.write_format("; first_layer_temperature = %d\n", print.config().nozzle_temperature_initial_layer.get_at(0));
             file.write("; CONFIG_BLOCK_END\n\n");
-        } else if (thumbnail_cb != nullptr) {
+        }
+        if (thumbnail_cb != nullptr) {
             // generate the thumbnails
             auto [thumbnails, errors] = GCodeThumbnails::make_and_check_thumbnail_list(print.full_print_config());
 
