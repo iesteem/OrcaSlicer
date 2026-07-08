@@ -5902,7 +5902,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             for (unsigned int index = 0; index < thumbnail_data.size(); index++)
             {
-                if (thumbnail_data[index]->is_valid())
+                if (thumbnail_data[index] && thumbnail_data[index]->is_valid())
                 {
                     if (!_add_thumbnail_file_to_archive(archive, *thumbnail_data[index], "Metadata/plate", index, true)) {
                         return false;
@@ -5914,7 +5914,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
 
             for (unsigned int index = 0; index < no_light_thumbnail_data.size(); index++) {
-                if (no_light_thumbnail_data[index]->is_valid()) {
+                if (no_light_thumbnail_data[index] && no_light_thumbnail_data[index]->is_valid()) {
                     if (!_add_thumbnail_file_to_archive(archive, *no_light_thumbnail_data[index], "Metadata/plate_no_light", index)) {
                         return false;
                     }
@@ -5926,7 +5926,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             // Adds the file Metadata/top_i.png and Metadata/pick_i.png
             for (unsigned int index = 0; index < top_thumbnail_data.size(); index++)
             {
-                if (top_thumbnail_data[index]->is_valid())
+                if (top_thumbnail_data[index] && top_thumbnail_data[index]->is_valid())
                 {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(",add top thumbnail %1%'s data into 3mf")%(index+1);
                     if (!_add_thumbnail_file_to_archive(archive, *top_thumbnail_data[index], "Metadata/top", index)) {
@@ -5935,7 +5935,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     top_thumbnail_status[index] = true;
                 }
 
-                if (pick_thumbnail_data[index]->is_valid())
+                if (pick_thumbnail_data[index] && pick_thumbnail_data[index]->is_valid())
                 {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(",add pick thumbnail %1%'s data into 3mf")%(index+1);
                     if (!_add_thumbnail_file_to_archive(archive, *pick_thumbnail_data[index], "Metadata/pick", index)) {
@@ -6009,7 +6009,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         return false;
                 }
 
-                if (calibration_data[index]->is_valid())
+                if (calibration_data[index] && calibration_data[index]->is_valid())
                 {
                     if (!_add_calibration_file_to_archive(archive, *calibration_data[index], index)) {
                         close_zip_writer(&archive);
@@ -6025,7 +6025,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             for (unsigned int index = 0; index < id_bboxes.size(); index++)
             {
                 // BBS: save bounding box to json
-                if (id_bboxes[index]->is_valid()) {
+                if (id_bboxes[index] && id_bboxes[index]->is_valid()) {
                     if (!_add_bbox_file_to_archive(archive, *id_bboxes[index], index)) {
                         close_zip_writer(&archive);
                         return false;

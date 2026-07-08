@@ -1125,7 +1125,9 @@ int PresetBundle::validate_presets(const std::string &file_name, DynamicPrintCon
         if (!validated) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(":file_name %1%, found the filament %2% preset not inherit from system") % file_name %(index+1);
             different_gcodes.emplace(filament_preset);
-            ret = VALIDATE_PRESETS_FILAMENTS_NOT_FOUND;
+            // Preserve higher-severity return codes (PRINTER_NOT_FOUND beats FILAMENTS_NOT_FOUND).
+            if (ret == VALIDATE_PRESETS_SUCCESS)
+                ret = VALIDATE_PRESETS_FILAMENTS_NOT_FOUND;
         }
     }
 
