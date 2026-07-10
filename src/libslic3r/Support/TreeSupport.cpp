@@ -875,7 +875,7 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
         }
     ); // end tbb::parallel_for
 
-    BOOST_LOG_TRIVIAL(info) << "max_cantilever_dist=" << max_cantilever_dist;
+    BOOST_LOG_TRIVIAL(debug) << "max_cantilever_dist=" << max_cantilever_dist;
     if (check_support_necessity)
         return;
 

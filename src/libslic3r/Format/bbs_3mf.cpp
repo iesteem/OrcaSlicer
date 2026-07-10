@@ -1503,7 +1503,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 std::string name(stat.m_filename);
                 std::replace(name.begin(), name.end(), '\\', '/');
 
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("extract %1%th file %2%, total=%3%\n")%(i+1)%name%num_entries;
+                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":" << __LINE__ << " " << boost::format("extract %1%th file %2%, total=%3%") % (i + 1) % name % num_entries;
 
                 if (boost::algorithm::iequals(name, BBS_PROJECT_CONFIG_FILE)) {
                     // extract slic3r print config file
@@ -1628,7 +1628,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         }
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("import 3mf IMPORT_STAGE_OPEN, m_load_restore=%1%\n")%m_load_restore;
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":" << __LINE__ << " " << boost::format("import 3mf IMPORT_STAGE_OPEN, m_load_restore=%1%") % m_load_restore;
         if (proFn) {
             proFn(IMPORT_STAGE_OPEN, 0, 1, cb_cancel);
             if (cb_cancel)
@@ -1664,7 +1664,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         m_name = boost::filesystem::path(filename).stem().string();
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("import 3mf IMPORT_STAGE_READ_FILES\n");
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":" << __LINE__ << " " << boost::format("import 3mf IMPORT_STAGE_READ_FILES");
         if (proFn) {
             proFn(IMPORT_STAGE_READ_FILES, 0, 3, cb_cancel);
             if (cb_cancel)
@@ -1815,7 +1815,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 std::string name(stat.m_filename);
                 std::replace(name.begin(), name.end(), '\\', '/');
 
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("extract %1%th file %2%, total=%3%")%(i+1)%name%num_entries;
+                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":" << __LINE__ << " " << boost::format("extract %1%th file %2%, total=%3%") % (i + 1) % name % num_entries;
 
                 if (name.find("/../") != std::string::npos) {
                     BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", find file path including /../, not valid, skip it\n");
@@ -1964,7 +1964,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
         }
 
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", process group colors, size %1%\n")%m_group_id_to_color.size();
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":" << __LINE__ << boost::format(", process group colors, size %1%") % m_group_id_to_color.size();
         std::map<int, int> color_group_id_to_extruder_id_map;
         std::map<std::string, int> color_to_extruder_id_map;
         int extruder_id = 0;
@@ -1979,7 +1979,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
         }
 
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format(", begin to assemble objects, size %1%\n")%m_objects.size();
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":" << __LINE__ << boost::format(", begin to assemble objects, size %1%") % m_objects.size();
         //only load objects in plate_id
         PlateData* current_plate_data = nullptr;
         if ((plate_id > 0) && (plate_id <= m_plater_data.size())) {
@@ -2178,7 +2178,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 //        model.adjust_min_z();
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("import 3mf IMPORT_STAGE_LOADING_PLATES, m_plater_data size %1%, m_backup_path %2%\n")%m_plater_data.size() %m_backup_path;
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":" << __LINE__ << " " << boost::format("import 3mf IMPORT_STAGE_LOADING_PLATES, m_plater_data size %1%, m_backup_path %2%") % m_plater_data.size() % m_backup_path;
         if (proFn) {
             proFn(IMPORT_STAGE_LOADING_PLATES, 0, 1, cb_cancel);
             if (cb_cancel)
@@ -2281,7 +2281,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         }
 
         //BBS progress point
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << boost::format("import 3mf IMPORT_STAGE_FINISH\n");
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":" << __LINE__ << " " << boost::format("import 3mf IMPORT_STAGE_FINISH");
         if (proFn) {
             proFn(IMPORT_STAGE_FINISH, 0, 1, cb_cancel);
             if (cb_cancel)
@@ -2550,7 +2550,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::string dest_file = temp_path + std::string("/") + "_temp_3.config";;
             std::string dest_zip_file = encode_path(dest_file.c_str());
             mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_file % stat.m_filename % res;
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%") % dest_file % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract project config file to file");
                 return;
@@ -2579,7 +2579,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::string dest_file = m_backup_path + std::string("/") + "_temp_2.config";;
             std::string dest_zip_file = encode_path(dest_file.c_str());
             mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_file % stat.m_filename % res;
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%") % dest_file % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract auxiliary file to file");
                 return;
@@ -2696,7 +2696,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             dest_file = dir.string() + std::string("/") + dest_file;
             std::string dest_zip_file = encode_path(dest_file.c_str());
             mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_file % stat.m_filename % res;
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%") % dest_file % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract auxiliary file to file");
                 return;
@@ -2713,7 +2713,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             boost::filesystem::path dest_path = boost::filesystem::path(m_backup_path + "/" + src_file);
             std::string dest_zip_file = encode_path(dest_path.string().c_str());
             mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_path % stat.m_filename % res;
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", extract %1% from 3mf %2%, ret %3%") % dest_path % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract file to temp directory");
                 return;
@@ -3866,7 +3866,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             ;
         }
         if (!m_curr_metadata_name.empty()) {
-            BOOST_LOG_TRIVIAL(info) << "load_3mf found metadata key = " << m_curr_metadata_name << ", value = " << xml_unescape(m_curr_characters);
+            if (!m_curr_characters.empty()) {
+                BOOST_LOG_TRIVIAL(debug) << "load_3mf found metadata key = " << m_curr_metadata_name << ", value = " << xml_unescape(m_curr_characters);
+            }
             model_info.metadata_items[m_curr_metadata_name] = xml_unescape(m_curr_characters);
         }
 
@@ -4715,7 +4717,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         //add the shared mesh logic
                         shared_mesh_id = ::atoi(metadata.value.c_str());
                         found_count++;
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": line %1%, shared_mesh_id %2%")%__LINE__%shared_mesh_id;
+                        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": line %1%, shared_mesh_id %2%")%__LINE__%shared_mesh_id;
                     }
 
                     if (found_count >= 2)
@@ -4729,12 +4731,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             ModelVolume* volume = nullptr;
             ModelVolume *shared_volume = nullptr;
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": line %1%, subobject_id %2%, shared_mesh_id %3%")%__LINE__ %sub_object->id %shared_mesh_id;
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": line %1%, subobject_id %2%, shared_mesh_id %3%") % __LINE__ % sub_object->id % shared_mesh_id;
             if (shared_mesh_id != -1) {
                 std::map<int, ModelVolume*>::iterator iter = m_shared_meshes.find(shared_mesh_id);
                 if (iter != m_shared_meshes.end()) {
                     shared_volume = iter->second;
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": line %1%, found shared mesh, id %2%, mesh %3%")%__LINE__%shared_mesh_id%shared_volume;
+                    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": line %1%, found shared mesh, id %2%, mesh %3%")%__LINE__%shared_mesh_id%shared_volume;
                 }
             }
             else {
@@ -4742,7 +4744,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 std::map<int, ModelVolume*>::iterator iter = m_shared_meshes.find(sub_object->id);
                 if (iter != m_shared_meshes.end()) {
                     shared_volume = iter->second;
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": line %1%, already loaded copy-share mesh before, id %2%, mesh %3%")%__LINE__%sub_object->id%shared_volume;
+                    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": line %1%, already loaded copy-share mesh before, id %2%, mesh %3%")%__LINE__%sub_object->id%shared_volume;
                 }
             }
 
@@ -4806,7 +4808,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             else {
                 //create volume to use shared mesh
                 volume = object.add_volume_with_shared_mesh(*shared_volume);
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": line %1%, create volume using shared_mesh %2%")%__LINE__%shared_volume;
+                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": line %1%, create volume using shared_mesh %2%")%__LINE__%shared_volume;
             }
             // stores the volume matrix taken from the metadata, if present
             if (has_transform)
@@ -6621,7 +6623,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             // store metadata info
             for (auto item : metadata_item_map) {
-                BOOST_LOG_TRIVIAL(info) << "bbs_3mf: save key= " << item.first << ", value = " << item.second;
+                BOOST_LOG_TRIVIAL(debug) << "bbs_3mf: save key= " << item.first << ", value = " << item.second;
                 stream << " <" << METADATA_TAG << " name=\"" << item.first << "\">"
                        << xml_escape(item.second) << "</" << METADATA_TAG << ">\n";
             }
@@ -8322,7 +8324,7 @@ private:
     };
 private:
     _BBS_Backup_Manager() {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inital and interval = " << m_interval;
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << " initial, interval = " << m_interval;
         m_next_backup = boost::get_system_time() + boost::posix_time::seconds(m_interval);
         boost::unique_lock lock(m_mutex);
         m_thread = std::move(boost::thread(boost::ref(*this)));

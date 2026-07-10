@@ -678,7 +678,7 @@ unsigned int Model::update_print_volume_state(const BuildVolume &build_volume)
         num_printable += model_object->update_instances_print_volume_state(build_volume);
     //BBS: add logs for build_volume
     const BoundingBoxf3& print_volume = build_volume.bounding_volume();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", print_volume {%1%, %2%, %3%} to {%4%, %5%, %6%}, got %7% printable istances")\
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", print_volume {%1%, %2%, %3%} to {%4%, %5%, %6%}, got %7% printable instances")\
         %print_volume.min.x() %print_volume.min.y() %print_volume.min.z()%print_volume.max.x() %print_volume.max.y() %print_volume.max.z() %num_printable;
     return num_printable;
 }
