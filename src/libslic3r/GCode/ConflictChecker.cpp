@@ -3,6 +3,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/concurrent_vector.h>
 
+#include <algorithm>
 #include <map>
 #include <functional>
 #include <atomic>
@@ -256,6 +257,11 @@ ConflictResultOpt ConflictChecker::find_inter_of_lines_in_diff_objs(PrintObjectP
     });
 
     if (find) {
+        // Sort by bottomZ ascending so the earliest (lowest) conflict layer
+        // is always reported deterministically, regardless of tbb thread
+        // scheduling order in the parallel_for above.
+        std::sort(conflict.begin(), conflict.end(),
+                  [](const auto& a, const auto& b) { return a.second < b.second; });
         const void *ptr1           = conflict[0].first._obj1;
         const void *ptr2           = conflict[0].first._obj2;
         float       conflictPrintZ = conflict[0].second;
