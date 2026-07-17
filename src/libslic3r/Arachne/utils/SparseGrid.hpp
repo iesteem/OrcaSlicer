@@ -1,6 +1,6 @@
-//Copyright (c) 2016 Scott Lenser
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿//Copyright (c) 2016 Scott Lenser
+//// Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #ifndef UTILS_SPARSE_GRID_H
 #define UTILS_SPARSE_GRID_H
@@ -14,12 +14,12 @@
 
 namespace Slic3r::Arachne {
 
-/*! \brief Sparse grid which can locate spatially nearby elements efficiently.
- * 
- * \note This is an abstract template class which doesn't have any functions to insert elements.
+/*! \brief 可以高效定位空间附近元素的稀疏网格。
+ *
+ * \note 这是一个抽象模板类，没有任何插入元素的函数。
  * \see SparsePointGrid
  *
- * \tparam ElemT The element type to store.
+ * \tparam ElemT 要存储的元素类型。
  */
 template<class ElemT> class SparseGrid : public SquareGrid
 {
@@ -33,12 +33,12 @@ public:
     using iterator       = typename GridMap::iterator;
     using const_iterator = typename GridMap::const_iterator;
 
-    /*! \brief Constructs a sparse grid with the specified cell size.
+    /*! \brief 使用指定的单元格大小构造稀疏网格。
      *
-     * \param[in] cell_size The size to use for a cell (square) in the grid.
-     *    Typical values would be around 0.5-2x of expected query radius.
-     * \param[in] elem_reserve Number of elements to research space for.
-     * \param[in] max_load_factor Maximum average load factor before rehashing.
+     * \param[in] cell_size 网格中一个单元格（正方形）的大小。
+     *    典型值约为预期查询半径的 0.5-2 倍。
+     * \param[in] elem_reserve 预预留空间的元素数量。
+     * \param[in] max_load_factor 重新哈希前的最大平均负载因子。
      */
     SparseGrid(coord_t cell_size, size_t elem_reserve=0U, float max_load_factor=1.0f);
 
@@ -47,55 +47,53 @@ public:
     const_iterator begin() const { return m_grid.begin(); }
     const_iterator end() const { return m_grid.end(); }
 
-    /*! \brief Returns all data within radius of query_pt.
+    /*! \brief 返回 query_pt 半径内的所有数据。
      *
-     * Finds all elements with location within radius of \p query_pt.  May
-     * return additional elements that are beyond radius.
+     * 查找所有位置在 \p query_pt 的 \p radius 范围内的元素。可能
+     * 返回超出 radius 的额外元素。
      *
-     * Average running time is a*(1 + 2 * radius / cell_size)**2 +
-     * b*cnt where a and b are proportionality constance and cnt is
-     * the number of returned items.  The search will return items in
-     * an area of (2*radius + cell_size)**2 on average.  The max range
-     * of an item from the query_point is radius + cell_size.
+     * 平均运行时间为 a*(1 + 2 * radius / cell_size)**2 +
+     * b*cnt，其中 a 和 b 是比例常数，cnt 是返回项的数量。
+     * 搜索平均返回面积为 (2*radius + cell_size)**2 的区域内的项。
+     * 项距 query_point 的最大距离为 radius + cell_size。
      *
-     * \param[in] query_pt The point to search around.
-     * \param[in] radius The search radius.
-     * \return Vector of elements found
+     * \param[in] query_pt 搜索中心点。
+     * \param[in] radius 搜索半径。
+     * \return 找到的元素向量
      */
     std::vector<Elem> getNearby(const Point &query_pt, coord_t radius) const;
 
-    /*! \brief Process elements from cells that might contain sought after points.
+    /*! \brief 处理可能包含目标点的单元格中的元素。
      *
-     * Processes elements from cell that might have elements within \p
-     * radius of \p query_pt.  Processes all elements that are within
-     * radius of query_pt.  May process elements that are up to radius +
-     * cell_size from query_pt.
+     * 处理可能包含在 \p radius 范围内、距 \p query_pt 有元素的单元格中的元素。
+     * 处理所有在 query_pt 的 radius 范围内的元素。可能
+     * 处理距 query_pt 最远为 radius + cell_size 的元素。
      *
-     * \param[in] query_pt The point to search around.
-     * \param[in] radius The search radius.
-     * \param[in] process_func Processes each element.  process_func(elem) is
-     *    called for each element in the cell. Processing stops if function returns false.
-     * \return Whether we need to continue processing after this function
+     * \param[in] query_pt 搜索中心点。
+     * \param[in] radius 搜索半径。
+     * \param[in] process_func 处理每个元素。对每个单元格中的元素
+     *    调用 process_func(elem)。如果函数返回 false，则停止处理。
+     * \return 是否需要在处理此函数后继续处理
      */
     bool processNearby(const Point &query_pt, coord_t radius, const std::function<bool(const ElemT &)> &process_func) const;
 
 protected:
-    /*! \brief Process elements from the cell indicated by \p grid_pt.
+    /*! \brief 处理 \p grid_pt 指示的单元格中的元素。
      *
-     * \param[in] grid_pt The grid coordinates of the cell.
-     * \param[in] process_func Processes each element.  process_func(elem) is
-     *    called for each element in the cell. Processing stops if function returns false.
-     * \return Whether we need to continue processing a next cell.
+     * \param[in] grid_pt 单元格的网格坐标。
+     * \param[in] process_func 处理每个元素。对每个单元格中的元素
+     *    调用 process_func(elem)。如果函数返回 false，则停止处理。
+     * \return 是否需要继续处理下一个单元格。
      */
     bool processFromCell(const GridPoint &grid_pt, const std::function<bool(const Elem &)> &process_func) const;
 
-    /*! \brief Map from grid locations (GridPoint) to elements (Elem). */
+    /*! \brief 从网格位置（GridPoint）到元素（Elem）的映射。 */
     GridMap m_grid;
 };
 
 template<class ElemT> SparseGrid<ElemT>::SparseGrid(coord_t cell_size, size_t elem_reserve, float max_load_factor) : SquareGrid(cell_size)
 {
-    // Must be before the reserve call.
+    //// 必须在 reserve 调用之前设置。
     m_grid.max_load_factor(max_load_factor);
     if (elem_reserve != 0U)
         m_grid.reserve(elem_reserve);

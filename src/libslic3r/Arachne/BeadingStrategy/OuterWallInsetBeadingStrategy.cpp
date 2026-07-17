@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿//Copyright (c) 2022 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #include "OuterWallInsetBeadingStrategy.hpp"
 
@@ -45,16 +45,16 @@ BeadingStrategy::Beading OuterWallInsetBeadingStrategy::compute(coord_t thicknes
 {
     Beading ret = parent->compute(thickness, bead_count);
 
-    // Actual count and thickness as represented by extant walls. Don't count any potential zero-width 'signaling' walls.
+    // 现存壁表示的实际数量和厚度。不计算任何潜在的零宽度"信号"壁。
     bead_count = std::count_if(ret.bead_widths.begin(), ret.bead_widths.end(), [](const coord_t width) { return width > 0; });
 
-    // No need to apply any inset if there is just a single wall.
+    // 如果只有单个壁，则无需应用任何内缩。
     if (bead_count < 2)
     {
         return ret;
     }
 
-    // Actually move the outer wall inside. Ensure that the outer wall never goes beyond the middle line.
+    // 实际将外壁向内移动。确保外壁不超过中间线。
     ret.toolpath_locations[0] = std::min(ret.toolpath_locations[0] + outer_wall_offset, thickness / 2);
     return ret;
 }

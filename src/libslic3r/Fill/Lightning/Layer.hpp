@@ -28,9 +28,9 @@ struct GroundingLocation
 };
 
 /*!
- * A layer of the lightning fill.
+ * 闪电填充的一层。
  *
- * Contains the trees to be printed and propagated to the next layer below.
+ * 包含要打印并传播到下一层的树。
  */
 class Layer
 {
@@ -48,8 +48,8 @@ public:
         const std::function<void()> &throw_on_cancel_callback
     );
 
-    /*! Determine & connect to connection point in tree/outline.
-     * \param min_dist_from_boundary_for_tree If the unsupported point is closer to the boundary than this then don't consider connecting it to a tree
+    /*! 确定并连接到树/轮廓中的连接点。
+     * \param min_dist_from_boundary_for_tree 如果未支撑点距边界的距离小于此值，则不将其连接到树
      */
     GroundingLocation getBestGroundingLocation
     (
@@ -64,9 +64,9 @@ public:
     );
 
     /*!
-     * \param[out] new_child The new child node introduced
-     * \param[out] new_root The new root node if one had been made
-     * \return Whether a new root was added
+     * \param[out] new_child 引入的新子节点
+     * \param[out] new_root 如果创建了新根节点
+     * \return 是否添加了新根
      */
     bool attach(const Point& unsupported_location, const GroundingLocation& ground, NodeSPtr& new_child, NodeSPtr& new_root);
 

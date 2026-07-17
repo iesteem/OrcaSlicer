@@ -1,4 +1,4 @@
-#ifndef slic3r_ExtrusionEntityCollection_hpp_
+﻿#ifndef slic3r_ExtrusionEntityCollection_hpp_
 #define slic3r_ExtrusionEntityCollection_hpp_
 
 #include "libslic3r.h"
@@ -26,10 +26,10 @@ class ExtrusionEntityCollection : public ExtrusionEntity
 {
 public:
     ExtrusionEntity* clone() const override;
-    // Create a new object, initialize it with this object using the move semantics.
+    // 创建新对象，使用移动语义用此对象初始化它。
 	ExtrusionEntity* clone_move() override { return new ExtrusionEntityCollection(std::move(*this)); }
 
-    ExtrusionEntitiesPtr entities;     // we own these entities
+    ExtrusionEntitiesPtr entities;     // 我们拥有这些实体
     bool no_sort;
     ExtrusionEntityCollection(): no_sort(false) {}
     ExtrusionEntityCollection(const ExtrusionEntityCollection &other) : no_sort(other.no_sort), is_reverse(other.is_reverse) { this->append(other.entities); }
@@ -140,7 +140,7 @@ public:
     double min_mm3_per_mm() const override;
     double total_volume() const override { double volume=0.; for (const auto& ent : entities) volume+=ent->total_volume(); return volume; }
 
-    // Following methods shall never be called on an ExtrusionEntityCollection.
+    // 以下方法绝不应在 ExtrusionEntityCollection 上调用。
     Polyline as_polyline() const override {
         throw Slic3r::RuntimeError("Calling as_polyline() on a ExtrusionEntityCollection");
         return Polyline();

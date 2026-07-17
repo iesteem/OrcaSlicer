@@ -12,33 +12,32 @@
 
 namespace boost { namespace polygon {
 
-// The following code for the visualization of the boost Voronoi diagram is based on:
+// 以下用于可视化boost Voronoi图的代码基于：
 //
-// Boost.Polygon library voronoi_graphic_utils.hpp header file
+// Boost.Polygon库 voronoi_graphic_utils.hpp 头文件
 //          Copyright Andrii Sydorchuk 2010-2012.
-// Distributed under the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE_1_0.txt or copy at
-//          http://www.boost.org/LICENSE_1_0.txt)
+// 根据 Boost Software License, Version 1.0 分发。
+//    （参见附带的 LICENSE_1_0.txt 文件或访问
+//          http://www.boost.org/LICENSE_1_0.txt）
 template <typename CT>
 class voronoi_visual_utils {
  public:
-  // Discretize parabolic Voronoi edge.
-  // Parabolic Voronoi edges are always formed by one point and one segment
-  // from the initial input set.
+  // 离散化抛物线Voronoi边。
+  // 抛物线Voronoi边总是由初始输入集合中的一个点和一个线段构成。
   //
-  // Args:
-  //   point: input point.
-  //   segment: input segment.
-  //   max_dist: maximum discretization distance.
-  //   discretization: point discretization of the given Voronoi edge.
+  // 参数:
+  //   point: 输入点。
+  //   segment: 输入线段。
+  //   max_dist: 最大离散化距离。
+  //   discretization: 给定Voronoi边的点离散化结果。
   //
-  // Template arguments:
-  //   InCT: coordinate type of the input geometries (usually integer).
-  //   Point: point type, should model point concept.
-  //   Segment: segment type, should model segment concept.
+  // 模板参数:
+  //   InCT: 输入几何体的坐标类型（通常为整数）。
+  //   Point: 点类型，应建模点概念。
+  //   Segment: 线段类型，应建模线段概念。
   //
-  // Important:
-  //   discretization should contain both edge endpoints initially.
+  // 重要:
+  //   discretization 应初始包含边的两个端点。
   template <class InCT1, class InCT2,
             template<class> class Point,
             template<class> class Segment>
@@ -62,61 +61,57 @@ class voronoi_visual_utils {
       const Segment<InCT2>& segment,
       const CT max_dist,
       std::vector< Point<CT> >* discretization) {
-    // Apply the linear transformation to move start point of the segment to
-    // the point with coordinates (0, 0) and the direction of the segment to
-    // coincide the positive direction of the x-axis.
+    // 应用线性变换，将线段的起点移动到坐标(0, 0)，
+    // 并将线段的方向与x轴正方向重合。
     CT segm_vec_x = cast(x(high(segment))) - cast(x(low(segment)));
     CT segm_vec_y = cast(y(high(segment))) - cast(y(low(segment)));
     CT sqr_segment_length = segm_vec_x * segm_vec_x + segm_vec_y * segm_vec_y;
 
-    // Compute x-coordinates of the endpoints of the edge
-    // in the transformed space.
+    // 在变换空间中计算边端点的x坐标。
     CT projection_start = sqr_segment_length *
         get_point_projection((*discretization)[0], segment);
     CT projection_end = sqr_segment_length *
         get_point_projection((*discretization)[1], segment);
     assert(projection_start != projection_end);
 
-    // Compute parabola parameters in the transformed space.
-    // Parabola has next representation:
-    // f(x) = ((x-rot_x)^2 + rot_y^2) / (2.0*rot_y).
+    // 在变换空间中计算抛物线参数。
+    // 抛物线具有以下表示形式：
+    // f(x) = ((x-rot_x)^2 + rot_y^2) / (2.0*rot_y)。
     CT point_vec_x = cast(x(point)) - cast(x(low(segment)));
     CT point_vec_y = cast(y(point)) - cast(y(low(segment)));
     CT rot_x = segm_vec_x * point_vec_x + segm_vec_y * point_vec_y;
     CT rot_y = segm_vec_x * point_vec_y - segm_vec_y * point_vec_x;
 
-    // Save the last point.
+    // 保存最后一个点。
     Point<CT> last_point = (*discretization)[1];
     discretization->pop_back();
 
-    // Use stack to avoid recursion.
+    // 使用栈来避免递归。
     std::stack<CT> point_stack;
     point_stack.push(projection_end);
     CT cur_x = projection_start;
     CT cur_y = parabola_y(cur_x, rot_x, rot_y);
 
-    // Adjust max_dist parameter in the transformed space.
+    // 在变换空间中调整max_dist参数。
     const CT max_dist_transformed = max_dist * max_dist * sqr_segment_length;
     while (!point_stack.empty()) {
       CT new_x = point_stack.top();
       CT new_y = parabola_y(new_x, rot_x, rot_y);
 
-      // Compute coordinates of the point of the parabola that is
-      // furthest from the current line segment.
+      // 计算抛物线上距当前线段最远的点的坐标。
       CT mid_x = (new_y - cur_y) / (new_x - cur_x) * rot_y + rot_x;
       CT mid_y = parabola_y(mid_x, rot_x, rot_y);
       assert(mid_x != cur_x || mid_y != cur_y);
       assert(mid_x != new_x || mid_y != new_y);
 
-      // Compute maximum distance between the given parabolic arc
-      // and line segment that discretize it.
+      // 计算给定抛物线弧与离散化它的线段之间的最大距离。
       CT dist = (new_y - cur_y) * (mid_x - cur_x) -
           (new_x - cur_x) * (mid_y - cur_y);
       CT div = (new_y - cur_y) * (new_y - cur_y) + (new_x - cur_x) * (new_x - cur_x);
       assert(div != 0);
       dist = dist * dist / div;
       if (dist <= max_dist_transformed) {
-        // Distance between parabola and line segment is less than max_dist.
+        // 抛物线与线段之间的距离小于max_dist。
         point_stack.pop();
         CT inter_x = (segm_vec_x * new_x - segm_vec_y * new_y) /
             sqr_segment_length + cast(x(low(segment)));
@@ -130,23 +125,22 @@ class voronoi_visual_utils {
       }
     }
 
-    // Update last point.
+    // 更新最后一个点。
     discretization->back() = last_point;
   }
 
  private:
-  // Compute y(x) = ((x - a) * (x - a) + b * b) / (2 * b).
+  // 计算 y(x) = ((x - a) * (x - a) + b * b) / (2 * b)。
   static CT parabola_y(CT x, CT a, CT b) {
     return ((x - a) * (x - a) + b * b) / (b + b);
   }
 
-  // Get normalized length of the distance between:
-  //   1) point projection onto the segment
-  //   2) start point of the segment
-  // Return this length divided by the segment length. This is made to avoid
-  // sqrt computation during transformation from the initial space to the
-  // transformed one and vice versa. The assumption is made that projection of
-  // the point lies between the start-point and endpoint of the segment.
+  // 获取以下距离的归一化长度：
+  //   1) 点到线段的投影
+  //   2) 线段的起点
+  // 返回该长度除以线段长度。这样做是为了避免
+  // 在初始空间与变换空间之间相互转换时进行sqrt计算。
+  // 假设点的投影位于线段的起点和终点之间。
   template <class InCT,
             template<class> class Point,
             template<class> class Segment>
@@ -189,13 +183,13 @@ class voronoi_visual_utils {
 namespace Slic3r
 {
 
-// The following code for the visualization of the boost Voronoi diagram is based on:
+// 以下用于可视化boost Voronoi图的代码基于：
 //
-// Boost.Polygon library voronoi_visualizer.cpp file
+// Boost.Polygon库 voronoi_visualizer.cpp 文件
 //          Copyright Andrii Sydorchuk 2010-2012.
-// Distributed under the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE_1_0.txt or copy at
-//          http://www.boost.org/LICENSE_1_0.txt)
+// 根据 Boost Software License, Version 1.0 分发。
+//    （参见附带的 LICENSE_1_0.txt 文件或访问
+//          http://www.boost.org/LICENSE_1_0.txt）
 namespace Voronoi { namespace Internal {
 
     using VD = Geometry::VoronoiDiagram;
@@ -250,7 +244,7 @@ namespace Voronoi { namespace Internal {
 
         const cell_type& cell1 = *edge.cell();
         const cell_type& cell2 = *edge.twin()->cell();
-        // Infinite edges could not be created by two segment sites.
+        // 无限边不能由两个线段站点创建。
         assert(cell1.contains_point() || cell2.contains_point());
         if (! cell1.contains_point() && ! cell2.contains_point()) {
             printf("Error! clip_infinite_edge - infinite edge separates two segment cells\n");
@@ -350,27 +344,27 @@ static inline void dump_voronoi_to_svg(
 
     ::Slic3r::SVG svg(path, bbox);
 
-    // For clipping of half-lines to some reasonable value.
-    // The line will then be clipped by the SVG viewer anyway.
+    // 将半线裁剪到合理的值。
+    // 然后SVG查看器无论如何都会裁剪该线。
     const double bbox_dim_max = double(std::max(bbox.size().x(), bbox.size().y()));
-    // For the discretization of the Voronoi parabolic segments.
+    // 用于Voronoi抛物线段的离散化。
     const double discretization_step = 0.0002 * bbox_dim_max;
 
-    // Make a copy of the input segments with the double type.
+    // 使用double类型复制输入线段。
     std::vector<Voronoi::Internal::segment_type> segments;
     for (Lines::const_iterator it = lines.begin(); it != lines.end(); ++ it)
         segments.push_back(Voronoi::Internal::segment_type(
             Voronoi::Internal::point_type(double(it->a(0)), double(it->a(1))),
             Voronoi::Internal::point_type(double(it->b(0)), double(it->b(1)))));
 
-    // Color exterior edges.
+    // 对外部边着色。
     if (internalEdgesOnly) {
         for (boost::polygon::voronoi_diagram<double>::const_edge_iterator it = vd.edges().begin(); it != vd.edges().end(); ++it)
             if (!it->is_finite())
                 Voronoi::Internal::color_exterior(&(*it));
     }
 
-    // Draw the end points of the input polygon.
+    // 绘制输入多边形的端点。
     for (Lines::const_iterator it = lines.begin(); it != lines.end(); ++it) {
         svg.draw(it->a, inputSegmentPointColor, inputSegmentPointRadius);
         svg.draw(it->b, inputSegmentPointColor, inputSegmentPointRadius);

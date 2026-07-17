@@ -1,7 +1,7 @@
 // PchipInterpolatorHelper.cpp
 // Snapmaker_Orca
 //
-// Implementation file for the PchipInterpolatorHelper class
+// PchipInterpolatorHelper类的实现文件
 
 #include "PchipInterpolatorHelper.hpp"
 #include <stdexcept>
@@ -9,23 +9,23 @@
 #include <algorithm>
 
 /**
- * @brief Constructs the PCHIP interpolator with given data points.
- * @param x The x-coordinates of the data points.
- * @param y The y-coordinates of the data points.
+ * @brief 使用给定数据点构造PCHIP插值器。
+ * @param x 数据点的x坐标。
+ * @param y 数据点的y坐标。
  */
 PchipInterpolatorHelper::PchipInterpolatorHelper(const std::vector<double>& x, const std::vector<double>& y) {
     setData(x, y);
 }
 
 /**
- * @brief Sets the data points for the interpolator.
- * @param x The x-coordinates of the data points.
- * @param y The y-coordinates of the data points.
- * @throw std::invalid_argument if x and y have different sizes or if they contain fewer than two points.
+ * @brief 为插值器设置数据点。
+ * @param x 数据点的x坐标。
+ * @param y 数据点的y坐标。
+ * @throw std::invalid_argument 如果x和y大小不同或包含少于两个点。
  */
 void PchipInterpolatorHelper::setData(const std::vector<double>& x, const std::vector<double>& y) {
     if (x.size() != y.size() || x.size() < 2) {
-        throw std::invalid_argument("Input vectors must have the same size and contain at least two points.");
+        throw std::invalid_argument("输入向量必须具有相同的大小且至少包含两个点。");
     }
     x_ = x;
     y_ = y;
@@ -34,7 +34,7 @@ void PchipInterpolatorHelper::setData(const std::vector<double>& x, const std::v
 }
 
 /**
- * @brief Sorts the data points by x-coordinate.
+ * @brief 按x坐标对数据点排序。
  */
 void PchipInterpolatorHelper::sortData() {
     std::vector<std::pair<double, double>> data;
@@ -50,7 +50,7 @@ void PchipInterpolatorHelper::sortData() {
 }
 
 /**
- * @brief Computes the PCHIP coefficients.
+ * @brief 计算PCHIP系数。
  */
 void PchipInterpolatorHelper::computePCHIP() {
     size_t n = x_.size() - 1;
@@ -77,7 +77,7 @@ void PchipInterpolatorHelper::computePCHIP() {
 }
 
 /**
- * @brief Interpolates the value at a given point.
+ * @brief 在给定点处插值。
  */
 double PchipInterpolatorHelper::interpolate(double xi) const {
     if (xi <= x_.front()) return y_.front();

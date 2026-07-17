@@ -58,12 +58,12 @@ Layer::~Layer()
     m_regions.clear();
 }
 
-// Test whether whether there are any slices assigned to this layer.
+// 测试此图层是否有任何切片分配。
 bool Layer::empty() const
 {
 	for (const LayerRegion *layerm : m_regions)
         if (layerm != nullptr && ! layerm->slices.empty())
-            // Non empty layer.
+            // 非空图层。
             return false;
     return true;
 }
@@ -74,12 +74,12 @@ LayerRegion* Layer::add_region(const PrintRegion *print_region)
     return m_regions.back();
 }
 
-// merge all regions' slices to get islands
+// 合并所有区域的切片以获得岛屿
 void Layer::make_slices()
 {
     ExPolygons slices;
     if (m_regions.size() == 1) {
-        // optimization: if we only have one region, take its slices
+        // 优化：如果只有一个区域，直接取它的切片
         slices = to_expolygons(m_regions.front()->slices.surfaces);
     } else {
         Polygons slices_p;
@@ -91,16 +91,16 @@ void Layer::make_slices()
     this->lslices.clear();
     this->lslices.reserve(slices.size());
     
-    // prepare ordering points
+    // 准备排序点
     Points ordering_points;
     ordering_points.reserve(slices.size());
     for (const ExPolygon &ex : slices)
         ordering_points.push_back(ex.contour.first_point());
     
-    // sort slices
+    // 排序切片
     std::vector<Points::size_type> order = chain_points(ordering_points);
     
-    // populate slices vector
+    // 填充切片向量
     for (size_t i : order)
         this->lslices.emplace_back(std::move(slices[i]));
 }
@@ -157,7 +157,7 @@ void Layer::restore_untyped_slices_no_extra_perimeters()
 ExPolygons Layer::merged(float offset_scaled) const
 {
 	assert(offset_scaled >= 0.f);
-    // If no offset is set, apply EPSILON offset before union, and revert it afterwards.
+    // 如果没有设置偏移，在并集之前应用EPSILON偏移，之后恢复。
 	float offset_scaled2 = 0;
 	if (offset_scaled == 0.f) {
 		offset_scaled  = float(  EPSILON);
@@ -166,7 +166,7 @@ ExPolygons Layer::merged(float offset_scaled) const
     Polygons polygons;
 	for (LayerRegion *layerm : m_regions) {
 		const PrintRegionConfig &config = layerm->region().config();
-		// Our users learned to bend Slic3r to produce empty volumes to act as subtracters. Only add the region if it is non-empty.
+		// 我们的用户学会了弯曲Slic3r来产生空体积作为减法器。仅当区域非空时添加。
 		if (config.bottom_shell_layers > 0 || config.top_shell_layers > 0 || config.sparse_infill_density > 0. || config.wall_loops > 0)
 			append(polygons, offset(layerm->slices.surfaces, offset_scaled));
 	}
@@ -212,14 +212,14 @@ bool Layer::is_perimeter_compatible(const PrintRegion& a, const PrintRegion& b)
         && config.seam_slope_inner_walls  == other_config.seam_slope_inner_walls;
 }
 
-// Here the perimeters are created cummulatively for all layer regions sharing the same parameters influencing the perimeters.
-// The perimeter paths and the thin fills (ExtrusionEntityCollection) are assigned to the first compatible layer region.
-// The resulting fill surface is split back among the originating regions.
+// 对于所有共享相同影响周长参数的图层区域，累积创建周长。
+// 周长路径和薄填充（ExtrusionEntityCollection）被分配给第一个兼容的图层区域。
+// 生成的填充表面被分割回原始区域。
 void Layer::make_perimeters()
 {
     BOOST_LOG_TRIVIAL(trace) << "Generating perimeters for layer " << this->id();
     
-    // keep track of regions whose perimeters we have already generated
+    // 跟踪已经生成了周长的区域
     std::vector<unsigned char> done(m_regions.size(), false);
     
     for (LayerRegionPtrs::iterator layerm = m_regions.begin(); layerm != m_regions.end(); ++ layerm) 
@@ -235,7 +235,7 @@ void Layer::make_perimeters()
 	        done[region_id] = true;
 	        const PrintRegion &this_region = (*layerm)->region();
 	        
-	        // find compatible regions
+	        // 查找兼容的区域
 	        LayerRegionPtrs layerms;
 	        layerms.push_back(*layerm);
 	        for (LayerRegionPtrs::const_iterator it = layerm + 1; it != m_regions.end(); ++it)
@@ -252,16 +252,16 @@ void Layer::make_perimeters()
 		            }
 		        }
 	        
-	        if (layerms.size() == 1) {  // optimization
+	        if (layerms.size() == 1) {  // 优化
 	            (*layerm)->fill_surfaces.surfaces.clear();
                 (*layerm)->make_perimeters((*layerm)->slices, {*layerm}, &(*layerm)->fill_surfaces, &(*layerm)->fill_no_overlap_expolygons);
 	            (*layerm)->fill_expolygons = to_expolygons((*layerm)->fill_surfaces.surfaces);
 	        } else {
 	            SurfaceCollection new_slices;
-	            // Use the region with highest infill rate, as the make_perimeters() function below decides on the gap fill based on the infill existence.
+	            // 使用填充率最高的区域，因为下面的 make_perimeters() 函数根据填充是否存在来决定间隙填充。
 	            LayerRegion *layerm_config = layerms.front();
 	            {
-	                // Keep surface typing intact when compatible regions are merged for perimeter generation.
+	                // 当兼容区域合并以生成周长时，保持表面类型完整。
 	                std::map<SliceMergeKey, Surfaces> slices;
 	                for (LayerRegion *layerm : layerms) {
 	                    for (const Surface &surface : layerm->slices.surfaces)
@@ -269,25 +269,25 @@ void Layer::make_perimeters()
 	                    if (layerm->region().config().sparse_infill_density > layerm_config->region().config().sparse_infill_density)
 	                    	layerm_config = layerm;
 	                }
-	                // merge the surfaces assigned to each group
+	                // 合并分配给每个组的表面
 	                for (auto &entry : slices)
 	                    new_slices.append(offset_ex(entry.second, ClipperSafetyOffset), entry.second.front());
 	            }
 	            
-	            // make perimeters
+	            // 生成周长
 	            SurfaceCollection fill_surfaces;
                 //BBS
                 ExPolygons fill_no_overlap;
 	            layerm_config->make_perimeters(new_slices, layerms, &fill_surfaces, &fill_no_overlap);
 
-	            // assign fill_surfaces to each layer
+	            // 将填充表面分配给每个图层
 	            if (!fill_surfaces.surfaces.empty()) { 
 	                for (LayerRegionPtrs::iterator l = layerms.begin(); l != layerms.end(); ++l) {
-	                    // Separate the fill surfaces.
+	                    // 分离填充表面。
                         SurfaceCollection split_fill_surfaces = split_fill_surfaces_by_region(fill_surfaces, (*l)->slices);
 	                    (*l)->fill_expolygons = to_expolygons(split_fill_surfaces.surfaces);
 	                    (*l)->fill_surfaces = std::move(split_fill_surfaces);
-                        //BBS: Separate fill_no_overlap
+                        //BBS: 分离 fill_no_overlap
                         (*l)->fill_no_overlap_expolygons = intersection_ex((*l)->slices.surfaces, fill_no_overlap, ApplySafetyOffset::Yes);
 	                }
 	            }
@@ -424,7 +424,7 @@ coordf_t Layer::get_sparse_infill_max_void_area()
         if (density == 0.)
             return -1;
 
-        //BBS: rough estimation and need to be optimized
+        //BBS: 粗略估计，需要优化
         double spacing = flow.scaled_spacing() * (100 - density) / density;
         switch (pattern) {
             case ipConcentric:

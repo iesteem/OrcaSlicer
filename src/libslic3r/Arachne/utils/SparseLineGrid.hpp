@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 
 #ifndef UTILS_SPARSE_LINE_GRID_H
@@ -56,7 +56,7 @@ template<class ElemT, class Locator> void SparseLineGrid<ElemT, Locator>::insert
     const std::pair<Point, Point> line = m_locator(elem);
     using GridMap                      = std::unordered_multimap<GridPoint, Elem, PointHash>;
     // below is a workaround for the fact that lambda functions cannot access private or protected members
-    // first we define a lambda which works on any GridMap and then we bind it to the actual protected GridMap of the parent class
+    //// 第一个 we 定义 a lambda 其 works on 任何 GridMap and 则 we bind it to the actual 保护 GridMap of the parent 类
     std::function<bool(GridMap *, const GridPoint)> process_cell_func_ = [&elem](GridMap *m_grid, const GridPoint grid_loc) {
         m_grid->emplace(grid_loc, elem);
         return true;

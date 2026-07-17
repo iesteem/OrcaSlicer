@@ -18,16 +18,15 @@ Polygon convex_hull(const Polygons &polygons);
 Polygon convex_hull(const ExPolygons &expolygons);
 Polygon convex_hulll(const Polylines &polylines);
 
-// Returns true if the intersection of the two convex polygons A and B
-// is not an empty set.
+// 如果两个凸多边形A和B的交集不是空集，则返回true。
 bool convex_polygons_intersect(const Polygon &A, const Polygon &B);
 
-// Decompose source convex hull points into top / bottom chains with monotonically increasing x,
-// creating an implicit trapezoidal decomposition of the source convex polygon.
-// The source convex polygon has to be CCW oriented. O(n) time complexity.
+// 将源凸包点分解为x单调递增的上/下链，
+// 创建源凸多边形的隐式梯形分解。
+// 源凸多边形必须为CCW方向。O(n)时间复杂度。
 std::pair<std::vector<Vec2d>, std::vector<Vec2d>> decompose_convex_polygon_top_bottom(const std::vector<Vec2d> &src);
 
-// Convex polygon check using a top / bottom chain decomposition with O(log n) time complexity.
+// 使用上下链分解的凸多边形检查，O(log n)时间复杂度。
 bool inside_convex_polygon(const std::pair<std::vector<Vec2d>, std::vector<Vec2d>> &top_bottom_decomposition, const Vec2d &pt);
 
 } } // namespace Slicer::Geometry

@@ -53,10 +53,9 @@ struct SupportTreeConfig
     // Only generate pillars that can be routed to ground
     bool ground_facing_only = false;
 
-    // TODO: unimplemented at the moment. This coefficient will have an impact
-    // when bridges and pillars are merged. The resulting pillar should be a bit
-    // thicker than the ones merging into it. How much thicker? I don't know
-    // but it will be derived from this value.
+    // TODO: 目前未实现。当桥和柱合并时，此系数将产生影响。
+    // 生成的柱应比合并到其中的柱稍粗。粗多少？我不知道，
+    // 但将从该值推导出来。
     double pillar_widening_factor = 0.5;
 
     // Radius in mm of the pillar base.
@@ -90,13 +89,13 @@ struct SupportTreeConfig
     }
 
     // /////////////////////////////////////////////////////////////////////////
-    // Compile time configuration values (candidates for runtime)
+    // 编译时配置值（运行时候选）
     // /////////////////////////////////////////////////////////////////////////
 
-    // The max Z angle for a normal at which it will get completely ignored.
+    // 法线的最大 Z 角度，超过该角度将被完全忽略。
     static const double constexpr normal_cutoff_angle = 150.0 * M_PI / 180.0;
 
-    // The shortest distance of any support structure from the model surface
+    // 任何支撑结构到模型表面的最短距离
     static const double constexpr safety_distance_mm = 0.5;
 
     static const double constexpr max_solo_pillar_height_mm = 15.0;
@@ -107,9 +106,9 @@ struct SupportTreeConfig
     
 };
 
-// TODO: Part of future refactor
+// TODO: 未来重构的一部分
 //class SupportConfig {
-//    std::optional<SupportTreeConfig> tree_cfg {std::in_place_t{}}; // fill up
+//    std::optional<SupportTreeConfig> tree_cfg {std::in_place_t{}}; // 填充
 //    std::optional<PadConfig>         pad_cfg;
 //};
 
@@ -135,7 +134,7 @@ struct SupportableMesh
     {}
 };
 
-/// The class containing mesh data for the generated supports.
+/// 包含生成支撑的网格数据的类。
 class SupportTree
 {
     JobController m_ctl;
@@ -149,11 +148,10 @@ public:
 
     virtual const indexed_triangle_set &retrieve_mesh(MeshType meshtype) const = 0;
 
-    /// Adding the "pad" under the supports.
-    /// modelbase will be used according to the embed_object flag in PoolConfig.
-    /// If set, the plate will be interpreted as the model's intrinsic pad. 
-    /// Otherwise, the modelbase will be unified with the base plate calculated
-    /// from the supports.
+    /// 在支撑下方添加"垫"。
+    /// modelbase 将根据 PoolConfig 中的 embed_object 标志使用。
+    /// 如果设置，基板将被解释为模型的内置垫。
+    /// 否则，modelbase 将与从支撑计算的基板合并。
     virtual const indexed_triangle_set &add_pad(const ExPolygons &modelbase,
                                                 const PadConfig & pcfg) = 0;
 

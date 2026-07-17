@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿//Copyright (c) 2022 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #include "RedistributeBeadingStrategy.hpp"
 
@@ -67,14 +67,14 @@ BeadingStrategy::Beading RedistributeBeadingStrategy::compute(coord_t thickness,
 {
     Beading ret;
 
-    // Take care of all situations in which no lines are actually produced:
+    // 处理所有实际上不产生线的情况：
     if (bead_count == 0 || thickness < minimum_variable_line_ratio * optimal_width_outer) {
         ret.left_over       = thickness;
         ret.total_thickness = thickness;
         return ret;
     }
 
-    // Compute the beadings of the inner walls, if any:
+    // 计算内壁的 beading（如果有）：
     const coord_t inner_bead_count = bead_count - 2;
     const coord_t inner_thickness  = thickness - 2 * optimal_width_outer;
     if (inner_bead_count > 0 && inner_thickness > 0) {
@@ -82,7 +82,7 @@ BeadingStrategy::Beading RedistributeBeadingStrategy::compute(coord_t thickness,
         for (auto &toolpath_location : ret.toolpath_locations) toolpath_location += optimal_width_outer;
     }
 
-    // Insert the outer wall(s) around the previously computed inner wall(s), which may be empty:
+    // 在先前计算的内壁（可能为空）周围插入外壁：
     const coord_t actual_outer_thickness = bead_count > 2 ? std::min(thickness / 2, optimal_width_outer) : thickness / bead_count;
     ret.bead_widths.insert(ret.bead_widths.begin(), actual_outer_thickness);
     ret.toolpath_locations.insert(ret.toolpath_locations.begin(), actual_outer_thickness / 2);
@@ -91,7 +91,7 @@ BeadingStrategy::Beading RedistributeBeadingStrategy::compute(coord_t thickness,
         ret.toolpath_locations.push_back(thickness - actual_outer_thickness / 2);
     }
 
-    // Ensure correct total and left over thickness.
+    // 确保正确的总厚度和剩余厚度。
     ret.total_thickness = thickness;
     ret.left_over       = thickness - std::accumulate(ret.bead_widths.cbegin(), ret.bead_widths.cend(), static_cast<coord_t>(0));
     return ret;

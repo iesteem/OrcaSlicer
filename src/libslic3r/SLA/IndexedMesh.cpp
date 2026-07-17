@@ -24,7 +24,7 @@ public:
     {
         m_triangle_ray_epsilon = 0.000001;
         if (calculate_epsilon) {
-            // Calculate epsilon from average triangle edge length.
+            // 根据平均三角形边长计算 epsilon。
             double l = its_average_edge_length(its);
             if (l > 0)
                 m_triangle_ray_epsilon = 0.000001 * l * l;
@@ -73,7 +73,7 @@ template<class M> void IndexedMesh::init(const M &mesh, bool calculate_epsilon)
     BoundingBoxf3 bb = bounding_box(mesh);
     m_ground_level += bb.min(Z);
 
-    // Build the AABB accelaration tree
+    // 构建 AABB 加速树
     m_aabb->init(*m_tm, calculate_epsilon);
 }
 
@@ -178,19 +178,19 @@ IndexedMesh::query_ray_hits(const Vec3d &s, const Vec3d &dir) const
     std::vector<igl::Hit> hits;
     m_aabb->intersect_ray(*m_tm, s, dir, hits);
 
-    // The sort is necessary, the hits are not always sorted.
+    // 排序是必要的，命中结果不总是有序的。
     std::sort(hits.begin(), hits.end(),
               [](const igl::Hit& a, const igl::Hit& b) { return a.t < b.t; });
 
-    // Remove duplicates. They sometimes appear, for example when the ray is cast
-    // along an axis of a cube due to floating-point approximations in igl (?)
-    // BBS: STUDIO-2591 A mesh with overlapping faces cannot be painted
+    // 移除重复项。它们有时会出现，例如当射线沿立方体轴投射时，
+    // 由于 igl (?) 中的浮点近似导致。
+    // BBS: STUDIO-2591 具有重叠面的网格无法被涂色
     //hits.erase(std::unique(hits.begin(), hits.end(),
     //                       [](const igl::Hit& a, const igl::Hit& b)
     //                       { return a.t == b.t; }),
     //           hits.end());
 
-    //  Convert the igl::Hit into hit_result
+    //  将 igl::Hit 转换为 hit_result
     outs.reserve(hits.size());
     for (const igl::Hit& hit : hits) {
         outs.emplace_back(IndexedMesh::hit_result(*this));
@@ -220,7 +220,7 @@ IndexedMesh::hit_result IndexedMesh::filter_hits(
     const Vec3d& s = object_hits.front().source();
     const Vec3d& dir = object_hits.front().direction();
 
-    // A helper struct to save an intersetion with a hole
+    // 一个辅助结构体，用于保存与孔洞的交点
     struct HoleHit {
         HoleHit(float t_p, const Vec3d& normal_p, bool entry_p) :
             t(t_p), normal(normal_p), entry(entry_p) {}
@@ -234,25 +234,24 @@ IndexedMesh::hit_result IndexedMesh::filter_hits(
     auto sf = s.cast<float>();
     auto dirf = dir.cast<float>();
 
-    // Collect hits on all holes, preserve information about entry/exit
+    // 收集所有孔洞上的命中，保留入口/出口信息
     for (const sla::DrainHole& hole : m_holes) {
         std::array<std::pair<float, Vec3d>, 2> isects;
         if (hole.get_intersections(sf, dirf, isects)) {
-            // Ignore hole hits behind the source
+            // 忽略源点后面的孔洞命中
             if (isects[0].first > 0.f) hole_isects.emplace_back(isects[0].first, isects[0].second, true);
             if (isects[1].first > 0.f) hole_isects.emplace_back(isects[1].first, isects[1].second, false);
         }
     }
 
-    // Holes can intersect each other, sort the hits by t
+    // 孔洞可能相互相交，按 t 对命中结果排序
     std::sort(hole_isects.begin(), hole_isects.end(),
               [](const HoleHit& a, const HoleHit& b) { return a.t < b.t; });
 
-    // Now inspect the intersections with object and holes, in the order of
-    // increasing distance. Keep track how deep are we nested in mesh/holes and
-    // pick the correct intersection.
-    // This needs to be done twice - first to find out how deep in the structure
-    // the source is, then to pick the correct intersection.
+    // 按距离递增的顺序检查与物体和孔洞的交点。
+    // 跟踪我们在网格/孔洞中的嵌套深度，并选择正确的交点。
+    // 这需要执行两次 - 首先找出源点在结构中的深度，
+    // 然后选择正确的交点。
     int hole_nested = 0;
     int object_nested = 0;
     for (int dry_run=1; dry_run>=0; --dry_run) {
@@ -265,21 +264,21 @@ IndexedMesh::hit_result IndexedMesh::filter_hits(
         const hit_result* next_mesh_hit = &object_hits.front();
 
         while (next_hole_hit || next_mesh_hit) {
-            if (next_hole_hit && next_mesh_hit) // still have hole and obj hits
+            if (next_hole_hit && next_mesh_hit) // 仍然有孔洞和物体命中
                 is_hole = (next_hole_hit->t < next_mesh_hit->m_t);
             else
-                is_hole = next_hole_hit; // one or the other ran out
+                is_hole = next_hole_hit; // 其中一个已耗尽
 
-            // Is this entry or exit hit?
+            // 这是入口还是出口命中？
             is_entry = is_hole ? next_hole_hit->entry : ! next_mesh_hit->is_inside();
 
             if (! dry_run) {
                 if (! is_hole && hole_nested == 0) {
-                    // This is a valid object hit
+                    // 这是一个有效的物体命中
                     return *next_mesh_hit;
                 }
                 if (is_hole && ! is_entry && object_nested != 0) {
-                    // This holehit is the one we seek
+                    // 这个孔洞命中正是我们要找的
                     out.m_t = next_hole_hit->t;
                     out.m_normal = next_hole_hit->normal;
                     out.m_source = s;
@@ -288,10 +287,10 @@ IndexedMesh::hit_result IndexedMesh::filter_hits(
                 }
             }
 
-            // Increase/decrease the counter
+            // 增加/减少计数器
             (is_hole ? hole_nested : object_nested) += (is_entry ? 1 : -1);
 
-            // Advance the respective pointer
+            // 移动相应的指针
             if (is_hole && next_hole_hit++ == &hole_isects.back())
                 next_hole_hit = nullptr;
             if (! is_hole && next_mesh_hit++ == &object_hits.back())
@@ -299,7 +298,7 @@ IndexedMesh::hit_result IndexedMesh::filter_hits(
         }
     }
 
-    // if we got here, the ray ended up in infinity
+    // 如果执行到这里，射线最终走向无穷远
     return out;
 }
 #endif
@@ -359,17 +358,14 @@ PointSet normals(const PointSet& points,
             const Vec3d &p2 = mesh.vertices(trindex(1)).cast<double>();
             const Vec3d &p3 = mesh.vertices(trindex(2)).cast<double>();
 
-            // We should check if the point lies on an edge of the hosting
-            // triangle. If it does then all the other triangles using the
-            // same two points have to be searched and the final normal should
-            // be some kind of aggregation of the participating triangle
-            // normals. We should also consider the cases where the support
-            // point lies right on a vertex of its triangle. The procedure is
-            // the same, get the neighbor triangles and calculate an average
-            // normal.
+            // 我们应该检查点是否位于所属三角形的边上。
+            // 如果是，则必须搜索使用相同两个点的所有其他三角形，
+            // 最终法线应该是参与三角形法线的某种聚合。
+            // 我们还应该考虑支撑点正好位于三角形顶点的情况。
+            // 过程相同，获取相邻三角形并计算平均法线。
 
-            // mark the vertex indices of the edge. ia and ib marks and edge
-            // ic will mark a single vertex.
+            // 标记边的顶点索引。ia 和 ib 标记一条边，
+            // ic 标记单个顶点。
             int ia = -1, ib = -1, ic = -1;
 
             if (std::abs((p - p1).norm()) < eps) {
@@ -389,17 +385,17 @@ PointSet normals(const PointSet& points,
                 ib = trindex(2);
             }
 
-            // vector for the neigboring triangles including the detected one.
+            // 相邻三角形（包括检测到的那个）的向量。
             std::vector<size_t> neigh;
-            if (ic >= 0) { // The point is right on a vertex of the triangle
+            if (ic >= 0) { // 点正好位于三角形的顶点上
                 for (size_t n = 0; n < mesh.indices().size(); ++n) {
                     thr();
                     Vec3i32 ni = mesh.indices(n);
                     if ((ni(X) == ic || ni(Y) == ic || ni(Z) == ic))
                         neigh.emplace_back(n);
                 }
-            } else if (ia >= 0 && ib >= 0) { // the point is on and edge
-                // now get all the neigboring triangles
+            } else if (ia >= 0 && ib >= 0) { // 点在边上
+                // 现在获取所有相邻三角形
                 for (size_t n = 0; n < mesh.indices().size(); ++n) {
                     thr();
                     Vec3i32 ni = mesh.indices(n);
@@ -409,16 +405,15 @@ PointSet normals(const PointSet& points,
                 }
             }
 
-            // Calculate the normals for the neighboring triangles
+            // 计算相邻三角形的法线
             std::vector<Vec3d> neighnorms;
             neighnorms.reserve(neigh.size());
             for (size_t &tri_id : neigh)
                 neighnorms.emplace_back(mesh.normal_by_face_id(tri_id));
 
-            // Throw out duplicates. They would cause trouble with summing. We
-            // will use std::unique which works on sorted ranges. We will sort
-            // by the coefficient-wise sum of the normals. It should force the
-            // same elements to be consecutive.
+            // 剔除重复项。它们会在求和时引起问题。
+            // 我们将使用 std::unique，它适用于已排序的范围。
+            // 我们按法线的分量和进行排序，这应使相同元素连续出现。
             std::sort(neighnorms.begin(), neighnorms.end(),
                       [](const Vec3d &v1, const Vec3d &v2) {
                           return v1.sum() < v2.sum();
@@ -426,8 +421,8 @@ PointSet normals(const PointSet& points,
 
             auto lend = std::unique(neighnorms.begin(), neighnorms.end(),
                                     [](const Vec3d &n1, const Vec3d &n2) {
-                                        // Compare normals for equivalence.
-                                        // This is controvers stuff.
+                                        // 比较法线的等价性。
+                                        // 这是有争议的。
                                         auto deq = [](double a, double b) {
                                             return std::abs(a - b) < 1e-3;
                                         };
@@ -436,14 +431,14 @@ PointSet normals(const PointSet& points,
                                                deq(n1(Z), n2(Z));
                                     });
 
-            if (!neighnorms.empty()) { // there were neighbors to count with
-                // sum up the normals and then normalize the result again.
-                // This unification seems to be enough.
+            if (!neighnorms.empty()) { // 有相邻法线可以计算
+                // 求和法线，然后再次归一化结果。
+                // 这种统一似乎已经足够。
                 Vec3d sumnorm(0, 0, 0);
                 sumnorm = std::accumulate(neighnorms.begin(), lend, sumnorm);
                 sumnorm.normalize();
                 ret.row(long(ridx)) = sumnorm;
-            } else { // point lies safely within its triangle
+            } else { // 点安全地位于其三角形内部
                 Eigen::Vector3d U   = p2 - p1;
                 Eigen::Vector3d V   = p3 - p1;
                 ret.row(long(ridx)) = U.cross(V).normalized();

@@ -10,7 +10,7 @@ class PrintObject;
 namespace FillLightning {
 
 class Generator;
-// To keep the definition of Octree opaque, we have to define a custom deleter.
+// 为了保持 Octree 定义的不透明性，我们必须定义自定义删除器。
 struct GeneratorDeleter { void operator()(Generator *p); };
 using  GeneratorPtr = std::unique_ptr<Generator, GeneratorDeleter>;
 
@@ -32,7 +32,7 @@ protected:
                               ExPolygon                      expolygon,
                               Polylines &polylines_out) override;
 
-    // Let the G-code export reoder the infill lines.
+    // 让 G 代码导出器重新排序填充线。
 	bool no_sort() const override { return false; }
 };
 

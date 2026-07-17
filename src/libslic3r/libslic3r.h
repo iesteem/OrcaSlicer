@@ -7,7 +7,7 @@
 #define GCODEVIEWER_APP_KEY  "Snapmaker_OrcaGcodeViewer"
 #define GCODEVIEWER_BUILD_ID std::string("Snapmaker_Orca G-code Viewer-") + std::string(SLIC3R_VERSION) + std::string("-RC")
 
-// this needs to be included early for MSVC (listing it in Build.PL is not enough)
+// 这需要为MSVC早期包含（仅在Build.PL中列出是不够的）
 #include <memory>
 #include <array>
 #include <algorithm>
@@ -26,9 +26,9 @@
 #include <optional>
 
 #ifdef _WIN32
-// On MSVC, std::deque degenerates to a list of pointers, which defeats its purpose of reducing allocator load and memory fragmentation.
+// 在MSVC上，std::deque退化为指针列表，这违背了其减少分配器负载和内存碎片的目的。
 // https://github.com/microsoft/STL/issues/147#issuecomment-1090148740
-// Thus it is recommended to use boost::container::deque instead.
+// 因此建议使用boost::container::deque代替。
 #include <boost/container/deque.hpp>
 #endif // _WIN32
 
@@ -36,27 +36,27 @@
 #include "Semver.hpp"
 
 #if 0
-// Saves around 32% RAM after slicing step, 6.7% after G-code export (tested on PrusaSlicer 2.2.0 final).
+// 切片步骤后节省约32% RAM，G-code导出后节省6.7%（在PrusaSlicer 2.2.0正式版上测试）。
 using coord_t = int32_t;
 #else
-//FIXME At least FillRectilinear2 and std::boost Voronoi require coord_t to be 32bit.
+//FIXME 至少FillRectilinear2和std::boost Voronoi要求coord_t为32位。
 using coord_t = int64_t;
 #endif
 
 using coordf_t = double;
 
-//FIXME This epsilon value is used for many non-related purposes:
-// For a threshold of a squared Euclidean distance,
-// for a trheshold in a difference of radians,
-// for a threshold of a cross product of two non-normalized vectors etc.
+//FIXME 这个epsilon值用于许多不相关的目的：
+// 作为欧几里得距离平方的阈值，
+// 作为弧度差的阈值，
+// 作为两个非归一化向量叉积的阈值等。
 static constexpr double EPSILON = 1e-4;
-// Scaling factor for a conversion from coord_t to coordf_t: 10e-6
-// This scaling generates a following fixed point representation with for a 32bit integer:
-// 0..4294mm with 1nm resolution
-// int32_t fits an interval of (-2147.48mm, +2147.48mm)
-// with int64_t we don't have to worry anymore about the size of the int.
+// 从coord_t到coordf_t转换的缩放因子：10e-6
+// 此缩放为32位整数生成以下定点表示：
+// 0..4294mm，1nm分辨率
+// int32_t适合(-2147.48mm, +2147.48mm)的区间
+// 使用int64_t我们不必再担心int的大小。
 
-// Orca todo: might be better to use 1e-5 for all, namometer resolution is not needed for 3D printing
+// Orca todo: 可能最好全部使用1e-5，3D打印不需要纳米级分辨率
 static constexpr double SCALING_FACTOR_INTERNAL = 0.000001;
 static constexpr double SCALING_FACTOR_INTERNAL_LARGE_PRINTER = 0.00001;
 static constexpr double LARGE_BED_THRESHOLD = 2147;
@@ -73,8 +73,8 @@ static constexpr float MAX_LINE_WIDTH_MULTIPLIER = 5;
 extern double SCALING_FACTOR;
 static constexpr double PI = 3.141592653589793238;
 #define POLY_SIDE_COUNT 24 // for brim ear circle
-// When extruding a closed loop, the loop is interrupted and shortened a bit to reduce the seam.
-// SoftFever: replaced by seam_gap now
+// 挤出闭合回路时，回路会被打断并缩短一点以减少接缝。
+// SoftFever: 现已被seam_gap替代
 // static constexpr double LOOP_CLIPPING_LENGTH_OVER_NOZZLE_DIAMETER = 0.15;
 static constexpr double RESOLUTION = 0.0125;
 #define                 SCALED_RESOLUTION (RESOLUTION / SCALING_FACTOR)
@@ -83,15 +83,15 @@ static constexpr double SPARSE_INFILL_RESOLUTION = 0.04;
 
 static constexpr double SUPPORT_RESOLUTION = 0.0375;
 #define                 SCALED_SUPPORT_RESOLUTION (SUPPORT_RESOLUTION / SCALING_FACTOR)
-// Maximum perimeter length for the loop to apply the small perimeter speed. 
+// 回路应用小周长速度的最大周长长度。 
 #define                 SMALL_PERIMETER_LENGTH(LENGTH)  (((LENGTH) / SCALING_FACTOR) * 2 * PI)
 static constexpr double INSET_OVERLAP_TOLERANCE = 0.4;
-// 3mm ring around the top / bottom / bridging areas.
-//FIXME This is quite a lot.
+// 顶部/底部/桥接区域周围的3mm环。
+//FIXME 这相当多。
 static constexpr double EXTERNAL_INFILL_MARGIN = 3;
 static constexpr double BRIDGE_INFILL_MARGIN = 1;
 static constexpr double WIPE_TOWER_MARGIN = 1.;
-//FIXME Better to use an inline function with an explicit return type.
+//FIXME 最好使用具有显式返回类型的内联函数。
 //inline coord_t scale_(coordf_t v) { return coord_t(floor(v / SCALING_FACTOR + 0.5f)); }
 #define scale_(val) ((val) / SCALING_FACTOR)
 #define unscale_(val) ((val) * SCALING_FACTOR)

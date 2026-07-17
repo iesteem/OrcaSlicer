@@ -42,20 +42,17 @@ public:
 };
 
 /**
-  * The function should find the best rotation for SLA upside down printing.
+  * 该函数应找到 SLA 倒置打印的最佳旋转角度。
   *
-  * @param modelobj The model object representing the 3d mesh.
-  * @param accuracy The optimization accuracy from 0.0f to 1.0f. Currently,
-  * the nlopt genetic optimizer is used and the number of iterations is
-  * accuracy * 100000. This can change in the future.
-  * @param statuscb A status indicator callback called with the int
-  * argument spanning from 0 to 100. May not reach 100 if the optimization finds
-  * an optimum before max iterations are reached. It should return a boolean
-  * signaling if the operation may continue (true) or not (false). A status
-  * value lower than 0 shall not update the status but still return a valid
-  * continuation indicator.
+  * @param modelobj 表示 3D 网格的模型对象。
+  * @param accuracy 优化精度，范围从 0.0f 到 1.0f。当前，
+  * 使用 nlopt 遗传优化器，迭代次数为 accuracy * 100000。未来可能改变。
+  * @param statuscb 状态指示回调函数，参数为 0 到 100 的整数。
+  * 如果优化在达到最大迭代次数前找到最优解，可能不会达到 100。
+  * 应返回布尔值，指示操作是否可以继续（true）或停止（false）。
+  * 低于 0 的状态值不应更新状态，但仍返回有效的继续指示。
   *
-  * @return Returns the rotations around each axis (x, y, z)
+  * @return 返回绕每个轴（x, y, z）的旋转角度
   */
 Vec2d find_best_misalignment_rotation(const ModelObject &modelobj,
                                       const RotOptimizeParams & = {});

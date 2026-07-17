@@ -12,7 +12,7 @@ namespace Slic3r {
 
 namespace {
 
-// Read an ini file into boost property tree
+// 将ini文件读入boost属性树
 boost::property_tree::ptree read_ini(const mz_zip_archive_file_stat &entry,
                                      MZ_Archive                     &zip)
 {
@@ -28,7 +28,7 @@ boost::property_tree::ptree read_ini(const mz_zip_archive_file_stat &entry,
     return tree;
 }
 
-// Read an arbitrary file into EntryBuffer
+// 将任意文件读入EntryBuffer
 EntryBuffer read_entry(const mz_zip_archive_file_stat &entry,
                        MZ_Archive                     &zip,
                        const std::string              &name)
@@ -50,7 +50,7 @@ ZipperArchive read_zipper_archive(const std::string &zipfname,
 {
     ZipperArchive arch;
 
-    // Little RAII
+    // 轻量级RAII
     struct Arch : public MZ_Archive
     {
         Arch(const std::string &fname)
@@ -115,25 +115,23 @@ std::pair<DynamicPrintConfig, ConfigSubstitutions> extract_profile(
         profile_in.load(arch.profile,
                         ForwardCompatibilitySubstitutionRule::Enable);
 
-    if (profile_in.empty()) { // missing profile... do guess work
-        // try to recover the layer height from the config.ini which was
-        // present in all versions of sl1 files.
+    if (profile_in.empty()) { // 缺少配置文件...进行猜测工作
+        // 尝试从所有版本sl1文件都包含的config.ini中恢复层高
         if (auto lh_opt = arch.config.find("layerHeight");
             lh_opt != arch.config.not_found()) {
             auto lh_str = lh_opt->second.data();
 
             size_t pos = 0;
             double lh = string_to_double_decimal_point(lh_str, &pos);
-            if (pos) { // TODO: verify that pos is 0 when parsing fails
+            if (pos) { // TODO: 验证解析失败时pos是否为0
                 profile_out.set("layer_height", lh);
                 profile_out.set("initial_layer_height", lh);
             }
         }
     }
 
-    // If the archive contains an empty profile, use the one that was passed
-    // as output argument then replace it with the readed profile to report
-    // that it was empty.
+    // 如果存档包含空配置文件，则使用作为输出参数传递的配置文件，
+    // 然后将其替换为读取的配置文件以报告其为空。
     profile_use = profile_in.empty() ? profile_out : profile_in;
     profile_out = profile_in;
 

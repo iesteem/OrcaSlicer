@@ -14,7 +14,7 @@ namespace Slic3r {
 
 namespace Geometry {
 
-// Generic result of an orientation predicate.
+// 方向谓词的通用结果。
 enum Orientation
 {
     ORIENTATION_CCW = 1,
@@ -22,13 +22,13 @@ enum Orientation
     ORIENTATION_COLINEAR = 0
 };
 
-// Return orientation of the three points (clockwise, counter-clockwise, colinear)
-// The predicate is exact for the coord_t type, using 64bit signed integers for the temporaries.
-// which means, the coord_t types must not have some of the topmost bits utilized.
-// As the points are limited to 30 bits + signum,
-// the temporaries u, v, w are limited to 61 bits + signum,
-// and d is limited to 63 bits + signum and we are good.
-//note: now coord_t is int64_t, so the algorithm is now adjusted to fallback to double is too big.
+// 返回三个点的方向（顺时针、逆时针、共线）
+// 该谓词对于 coord_t 类型是精确的，使用 64 位有符号整数作为临时变量。
+// 这意味着 coord_t 类型不能使用一些最高位。
+// 由于点被限制为 30 位 + 符号位，
+// 临时变量 u, v, w 被限制为 61 位 + 符号位，
+// 而 d 被限制为 63 位 + 符号位，这样就足够了。
+// 注意：现在 coord_t 是 int64_t，因此算法现在调整为在太大时回退到 double。
 static inline Orientation orient(const Point &a, const Point &b, const Point &c) {
     //static_assert(sizeof(coord_t) * 2 == sizeof(int64_t), "orient works with 32 bit coordinates");
     // BOOST_STATIC_ASSERT(sizeof(coord_t) == sizeof(int64_t));
@@ -48,17 +48,16 @@ static inline Orientation orient(const Point &a, const Point &b, const Point &c)
     }
 }
 
-// Return orientation of the polygon by checking orientation of the left bottom corner of the polygon
-// using exact arithmetics. The input polygon must not contain duplicate points
-// (or at least the left bottom corner point must not have duplicates).
+// 通过检查多边形左下角的方向并使用精确算术返回多边形方向。
+// 输入多边形不能包含重复点（或者至少左下角点不能有重复）。
 static inline bool is_ccw(const Polygon &poly)
 {
-    // The polygon shall be at least a triangle.
+    // 多边形至少应为三角形。
     assert(poly.points.size() >= 3);
     if (poly.points.size() < 3)
         return true;
 
-    // 1) Find the lowest lexicographical point.
+    // 1）找到字典序最低的点。
     unsigned int imin = 0;
     for (unsigned int i = 1; i < poly.points.size(); ++ i) {
         const Point &pmin = poly.points[imin];
@@ -67,12 +66,11 @@ static inline bool is_ccw(const Polygon &poly)
             imin = i;
     }
 
-    // 2) Detect the orientation of the corner imin.
+    // 2）检测角 imin 的方向。
     size_t iPrev = ((imin == 0) ? poly.points.size() : imin) - 1;
     size_t iNext = ((imin + 1 == poly.points.size()) ? 0 : imin + 1);
     Orientation o = orient(poly.points[iPrev], poly.points[imin], poly.points[iNext]);
-    // The lowest bottom point must not be collinear if the polygon does not contain duplicate points
-    // or overlapping segments.
+    // 如果多边形不包含重复点或重叠线段，则最低底部点不能共线。
     assert(o != ORIENTATION_COLINEAR);
     return o == ORIENTATION_CCW;
 }

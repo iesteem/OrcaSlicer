@@ -12,8 +12,8 @@ namespace Slic3r {
 class PrintObject;
 class SupportLayer;
 
-// Remove bridges from support contact areas.
-// To be called if PrintObjectConfig::dont_support_bridges.
+// 从支撑接触区域移除桥接。
+// 在PrintObjectConfig::dont_support_bridges时调用。
 void remove_bridges_from_contacts(
     const PrintConfig   &print_config, 
     const Layer         &lower_layer,
@@ -21,25 +21,23 @@ void remove_bridges_from_contacts(
     float                fw, 
     Polygons            &contact_polygons);
 
-// Turn some of the base layers into base interface layers.
-// For soluble interfaces with non-soluble bases, print maximum two first interface layers with the base
-// extruder to improve adhesion of the soluble filament to the base.
-// For Organic supports, merge top_interface_layers & top_base_interface_layers with the interfaces
-// produced by this function.
+// 将部分基础层转换为基础界面层。
+// 对于可溶性界面与非可溶性基础，使用基础挤出机最多打印前两个界面层，
+// 以改善可溶性耗材与基础的附着力。
+// 对于Organic支撑，将top_interface_layers和top_base_interface_layers与此函数生成的界面合并。
 std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interface_layers(
     const PrintObjectConfig           &config,
     const SupportParameters           &support_params,
     const SupportGeneratorLayersPtr   &bottom_contacts,
     const SupportGeneratorLayersPtr   &top_contacts,
-    // Input / output, will be merged with output
+    // 输入/输出，将与输出合并
     SupportGeneratorLayersPtr         &top_interface_layers,
     SupportGeneratorLayersPtr         &top_base_interface_layers,
-    // Input, will be trimmed with the newly created interface layers.
+    // 输入，将使用新创建的界面层进行修剪。
     SupportGeneratorLayersPtr         &intermediate_layers,
     SupportGeneratorLayerStorage      &layer_storage);
 
-// Generate raft layers, also expand the 1st support layer
-// in case there is no raft layer to improve support adhesion.
+// 生成筏层，如果没有筏层则扩展第一层支撑层以改善支撑附着力。
 SupportGeneratorLayersPtr generate_raft_base(
 	const PrintObject				&object,
 	const SupportParameters			&support_params,
@@ -55,7 +53,7 @@ void tree_supports_generate_paths(ExtrusionEntitiesPtr &dst, const Polygons &pol
 void fill_expolygons_with_sheath_generate_paths(
     ExtrusionEntitiesPtr &dst, const Polygons &polygons, Fill *filler, float density, ExtrusionRole role, const Flow &flow, const SupportParameters& support_params, bool with_sheath, bool no_sort);
 
-// returns sorted layers
+// 返回排序后的层
 SupportGeneratorLayersPtr generate_support_layers(
 	PrintObject							&object,
     const SupportGeneratorLayersPtr     &raft_layers,
@@ -65,8 +63,8 @@ SupportGeneratorLayersPtr generate_support_layers(
     const SupportGeneratorLayersPtr     &interface_layers,
     const SupportGeneratorLayersPtr     &base_interface_layers);
 
-// Produce the support G-code.
-// Used by both classic and tree supports.
+// 生成支撑G代码。
+// 同时用于经典支撑和树状支撑。
 void generate_support_toolpaths(
 	SupportLayerPtrs    				&support_layers,
 	const PrintObjectConfig 			&config,
@@ -79,11 +77,11 @@ void generate_support_toolpaths(
 	const SupportGeneratorLayersPtr   	&interface_layers,
     const SupportGeneratorLayersPtr   	&base_interface_layers);
 
-// FN_HIGHER_EQUAL: the provided object pointer has a Z value >= of an internal threshold.
-// Find the first item with Z value >= of an internal threshold of fn_higher_equal.
-// If no vec item with Z value >= of an internal threshold of fn_higher_equal is found, return vec.size()
-// If the initial idx is size_t(-1), then use binary search.
-// Otherwise search linearly upwards.
+// FN_HIGHER_EQUAL: 提供的对象指针的Z值 >= 内部阈值。
+// 查找第一个Z值 >= fn_higher_equal内部阈值的项目。
+// 如果未找到Z值 >= fn_higher_equal内部阈值的vec项目，则返回vec.size()。
+// 如果初始idx为size_t(-1)，则使用二分搜索。
+// 否则线性向上搜索。
 template<typename IteratorType, typename IndexType, typename FN_HIGHER_EQUAL>
 IndexType idx_higher_or_equal(IteratorType begin, IteratorType end, IndexType idx, FN_HIGHER_EQUAL fn_higher_equal)
 {
@@ -91,7 +89,7 @@ IndexType idx_higher_or_equal(IteratorType begin, IteratorType end, IndexType id
     if (size == 0) {
         idx = 0;
     } else if (idx == IndexType(-1)) {
-        // First of the batch of layers per thread pool invocation. Use binary search.
+        // 每个线程池调用批次的第一层。使用二分搜索。
         int idx_low  = 0;
         int idx_high = std::max(0, size - 1);
         while (idx_low + 1 < idx_high) {
@@ -104,7 +102,7 @@ IndexType idx_higher_or_equal(IteratorType begin, IteratorType end, IndexType id
         idx =  fn_higher_equal(begin[idx_low])  ? idx_low  :
               (fn_higher_equal(begin[idx_high]) ? idx_high : size);
     } else {
-        // For the other layers of this batch of layers, search incrementally, which is cheaper than the binary search.
+        // 对于该批次的其他层，递增搜索，这比二分搜索更廉价。
         while (int(idx) < size && ! fn_higher_equal(begin[idx]))
             ++ idx;
     }
@@ -116,11 +114,11 @@ IndexType idx_higher_or_equal(const std::vector<T>& vec, IndexType idx, FN_HIGHE
     return idx_higher_or_equal(vec.begin(), vec.end(), idx, fn_higher_equal);
 }
 
-// FN_LOWER_EQUAL: the provided object pointer has a Z value <= of an internal threshold.
-// Find the first item with Z value <= of an internal threshold of fn_lower_equal.
-// If no vec item with Z value <= of an internal threshold of fn_lower_equal is found, return -1.
-// If the initial idx is < -1, then use binary search.
-// Otherwise search linearly downwards.
+// FN_LOWER_EQUAL: 提供的对象指针的Z值 <= 内部阈值。
+// 查找第一个Z值 <= fn_lower_equal内部阈值的项目。
+// 如果未找到Z值 <= fn_lower_equal内部阈值的vec项目，则返回-1。
+// 如果初始idx < -1，则使用二分搜索。
+// 否则线性向下搜索。
 template<typename IT, typename FN_LOWER_EQUAL>
 int idx_lower_or_equal(IT begin, IT end, int idx, FN_LOWER_EQUAL fn_lower_equal)
 {
@@ -128,7 +126,7 @@ int idx_lower_or_equal(IT begin, IT end, int idx, FN_LOWER_EQUAL fn_lower_equal)
     if (size == 0) {
         idx = -1;
     } else if (idx < -1) {
-        // First of the batch of layers per thread pool invocation. Use binary search.
+        // 每个线程池调用批次的第一层。使用二分搜索。
         int idx_low  = 0;
         int idx_high = std::max(0, size - 1);
         while (idx_low + 1 < idx_high) {
@@ -141,7 +139,7 @@ int idx_lower_or_equal(IT begin, IT end, int idx, FN_LOWER_EQUAL fn_lower_equal)
         idx =  fn_lower_equal(begin[idx_high]) ? idx_high :
               (fn_lower_equal(begin[idx_low ]) ? idx_low  : -1);
     } else {
-        // For the other layers of this batch of layers, search incrementally, which is cheaper than the binary search.
+        // 对于该批次的其他层，递增搜索，这比二分搜索更廉价。
         while (idx >= 0 && ! fn_lower_equal(begin[idx]))
             -- idx;
     }

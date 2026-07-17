@@ -1,4 +1,4 @@
-// Orca: WipeTower2 for all non bbl printers, support all MMU device and toolchanger.
+// Orca: 适用于所有非BBL打印机的WipeTower2，支持所有MMU设备和工具更换器。
 #include "WipeTower2.hpp"
 
 #include <cassert>
@@ -251,7 +251,7 @@ std::pair<bool, Vec2f> ray_intersetion_line(const Vec2f& a, const Vec2f& v1, con
     double      t1     = nume_a / denom;
     double      t2     = nume_b / denom;
     if (t1 >= 0 && t2 >= 0 && t2 <= 1.) {
-        // Get the intersection point.
+        // 获取交点
         Vec2f res = a + t1 * v1;
         return std::pair<bool, Vec2f>(true, res);
     }
@@ -549,7 +549,7 @@ Polygon generate_rectange_polygon(const Vec2f& wt_box_min, const Vec2f& wt_box_m
     return res;
 }
 
-// Calculates length of extrusion line to extrude given volume
+// 计算挤出给定体积所需的挤出线长度
 static float volume_to_length(float volume, float line_width, float layer_height)
 {
     return std::max(0.f, volume / (layer_height * (line_width - layer_height * (1.f - float(M_PI) / 4.f))));
@@ -580,10 +580,10 @@ public:
         , m_filpar(filament_parameters)
         , m_printer_model(printer_model)
     {
-        // ORCA: This class is only used by non BBL printers, so set the parameter appropriately.
-        // This fixes an issue where the wipe tower was using BBL tags resulting in statistics for purging in the purge tower not being displayed.
+        // ORCA: 此类仅用于非BBL打印机，因此适当设置参数。
+        // 这修复了擦拭塔使用BBL标签导致清洗塔中的清洗统计数据无法显示的问题。
         GCodeProcessor::s_IsBBLPrinter = false;
-        // adds tag for analyzer:
+        // 为分析器添加标签：
         std::ostringstream str;
         str << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) << m_layer_height
             << "\n"; // don't rely on GCodeAnalyzer knowing the layer height - it knows nothing at priming
@@ -594,7 +594,7 @@ public:
 
     WipeTowerWriter2& change_analyzer_line_width(float line_width)
     {
-        // adds tag for analyzer:
+        // 为分析器添加标签：
         std::stringstream str;
         str << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width) << line_width << "\n";
         m_gcode += str.str();
@@ -675,9 +675,9 @@ public:
         return *this;
     }
 
-    // Suppress / resume G-code preview in Slic3r. Slic3r will have difficulty to differentiate the various
-    // filament loading and cooling moves from normal extrusion moves. Therefore the writer
-    // is asked to suppres output of some lines, which look like extrusions.
+    // 在Slic3r中抑制/恢复G代码预览。Slic3r将难以区分各种
+    // 丝材加载和冷却移动与正常挤出移动。因此要求写入器
+    // 抑制某些看起来像挤出的行的输出。
     WipeTowerWriter2& suppress_preview()
     {
         m_preview_suppressed = true;
@@ -713,12 +713,12 @@ public:
         return temp;
     }
 
-    // Extrude with an explicitely provided amount of extrusion.
+    // 使用显式提供的挤出量进行挤出。
     WipeTowerWriter2& extrude_explicit(
         float x, float y, float e, float f = 0.f, bool record_length = false, bool limit_volumetric_flow = true)
     {
         if (x == m_current_pos.x() && y == m_current_pos.y() && e == 0.f && (f == 0.f || f == m_current_feedrate))
-            // Neither extrusion nor a travel move.
+            // 既不是挤出也不是行程移动。
             return *this;
 
         float dx  = x - m_current_pos.x();
@@ -727,15 +727,15 @@ public:
         if (record_length)
             m_used_filament_length += e;
 
-        // Now do the "internal rotation" with respect to the wipe tower center
+        // 现在相对于擦拭塔中心进行"内部旋转"
         Vec2f rotated_current_pos(this->pos_rotated());
         Vec2f rot(this->rotate(Vec2f(x, y))); // this is where we want to go
 
         if (!m_preview_suppressed && e > 0.f && len > 0.f) {
-            // Width of a squished extrusion, corrected for the roundings of the squished extrusions.
-            // This is left zero if it is a travel move.
+            // 挤压挤出的宽度，针对挤压挤出的圆角进行了修正。
+            // 如果是行程移动，则保持为零。
             float width = e * m_filpar[0].filament_area / (len * m_layer_height);
-            // Correct for the roundings of a squished extrusion.
+            // 针对挤压挤出的圆角进行修正。
             width += m_layer_height * float(1. - M_PI / 4.);
             if (m_extrusions.empty() || m_extrusions.back().pos != rotated_current_pos)
                 m_extrusions.emplace_back(WipeTower::Extrusion(rotated_current_pos, 0, m_current_tool));
@@ -760,8 +760,8 @@ public:
             m_gcode += set_format_F(f);
         }
 
-        // Append newline if at least one of X,Y,E,F was changed.
-        // Otherwise, remove the "G1".
+        // 如果X、Y、E、F中至少有一个发生变化，则追加换行符。
+        // 否则，删除"G1"。
         if (!boost::ends_with(m_gcode, "G1"))
             m_gcode += "\n";
         else
@@ -770,7 +770,7 @@ public:
         m_current_pos.x() = x;
         m_current_pos.y() = y;
 
-        // Update the elapsed time with a rough estimate.
+        // 使用粗略估计更新经过的时间。
         m_elapsed_time += ((len == 0.f) ? std::abs(e) : len) / m_current_feedrate * 60.f;
         return *this;
     }
@@ -781,12 +781,12 @@ public:
         return extrude_explicit(dest.x(), dest.y(), e, f, record_length);
     }
 
-    // Travel to a new XY position. f=0 means use the current value.
+    // 移动到新的XY位置。f=0表示使用当前值。
     WipeTowerWriter2& travel(float x, float y, float f = 0.f) { return extrude_explicit(x, y, 0.f, f); }
 
     WipeTowerWriter2& travel(const Vec2f& dest, float f = 0.f) { return extrude_explicit(dest.x(), dest.y(), 0.f, f); }
 
-    // Extrude a line from current position to x, y with the extrusion amount given by m_extrusion_flow.
+    // 从当前位置到x、y挤出一条线，挤出量由m_extrusion_flow给出。
     WipeTowerWriter2& extrude(float x, float y, float f = 0.f)
     {
         float dx = x - m_current_pos.x();
@@ -843,7 +843,7 @@ public:
 
     WipeTowerWriter2& retract(float e, float f = 0.f) { return load(-e, f); }
 
-    // Loads filament while also moving towards given points in x-axis (x feedrate is limited by cutting the distance short if necessary)
+    // 加载丝材的同时向x轴上的给定点移动（如有必要，通过缩短距离来限制x进给率）
     WipeTowerWriter2& load_move_x_advanced(float farthest_x, float loading_dist, float loading_speed, float max_x_speed = 50.f)
     {
         float time       = std::abs(loading_dist / loading_speed); // time that the move must take
@@ -851,7 +851,7 @@ public:
         float x_speed    = x_distance / time;                      // x-speed to do it in that time
 
         if (x_speed > max_x_speed) {
-            // Necessary x_speed is too high - we must shorten the distance to achieve max_x_speed and still respect the time.
+            // 必要的x速度太高 - 我们必须缩短距离以达到max_x_speed并仍满足时间要求。
             x_distance = max_x_speed * time;
             x_speed    = max_x_speed;
         }
@@ -879,7 +879,7 @@ public:
         return *this;
     }
 
-    // Elevate the extruder head above the current print_z position.
+    // 将挤出机头抬升至当前print_z位置之上。
     WipeTowerWriter2& z_hop(float hop, float f = 0.f)
     {
         m_gcode += std::string("G1") + set_format_Z(m_current_z + hop);
@@ -889,11 +889,11 @@ public:
         return *this;
     }
 
-    // Lower the extruder head back to the current print_z position.
+    // 将挤出机头降回当前print_z位置。
     WipeTowerWriter2& z_hop_reset(float f = 0.f) { return z_hop(0, f); }
 
-    // Move to x1, +y_increment,
-    // extrude quickly amount e to x2 with feed f.
+    // 移动到x1，增加y_increment，
+    // 以进给率f快速挤出量e到x2。
     WipeTowerWriter2& ram(float x1, float x2, float dy, float e0, float e, float f)
     {
         extrude_explicit(x1, m_current_pos.y() + dy, e0, f, true, false);
@@ -901,9 +901,9 @@ public:
         return *this;
     }
 
-    // Let the end of the pulled out filament cool down in the cooling tube
-    // by moving up and down and moving the print head left / right
-    // at the current Y position to spread the leaking material.
+    // 让拉出的丝材末端在冷却管中冷却，
+    // 通过上下移动和左右移动打印头
+    // 在当前Y位置散布泄漏的材料。
     WipeTowerWriter2& cool(float x1, float x2, float e1, float e2, float f)
     {
         extrude_explicit(x1, m_current_pos.y(), e1, f, false, false);
@@ -917,7 +917,7 @@ public:
         return *this;
     }
 
-    // Set extruder temperature, don't wait by default.
+    // 设置挤出机温度，默认不等待。
     WipeTowerWriter2& set_extruder_temp(int temperature, bool wait = false)
     {
         m_gcode += "G4 S0\n"; // to flush planner queue
@@ -925,7 +925,7 @@ public:
         return *this;
     }
 
-    // Wait for a period of time (seconds).
+    // 等待一段时间（秒）。
     WipeTowerWriter2& wait(float time)
     {
         if (time == 0.f)
@@ -934,17 +934,17 @@ public:
         return *this;
     }
 
-    // Set speed factor override percentage.
+    // 设置速度因子覆盖百分比。
     WipeTowerWriter2& speed_override(int speed)
     {
         m_gcode += "M220 S" + std::to_string(speed) + "\n";
         return *this;
     }
 
-    // Let the firmware back up the active speed override value.
+    // 让固件备份当前速度覆盖值。
     WipeTowerWriter2& speed_override_backup()
     {
-        // This is only supported by Prusa at this point (https://github.com/prusa3d/PrusaSlicer/issues/3114)
+        // 目前仅Prusa支持此功能（https://github.com/prusa3d/PrusaSlicer/issues/3114）
         if (m_gcode_flavor == gcfMarlinLegacy || m_gcode_flavor == gcfMarlinFirmware || is_snapmaker_u1()) {
             // u1 特殊处理
             m_gcode += "M220 B\n";
@@ -952,7 +952,7 @@ public:
         return *this;
     }
 
-    // Let the firmware restore the active speed override value.
+    // 让固件恢复当前速度覆盖值。
     WipeTowerWriter2& speed_override_restore()
     {
         if (m_gcode_flavor == gcfMarlinLegacy || m_gcode_flavor == gcfMarlinFirmware || is_snapmaker_u1()) {
@@ -962,7 +962,7 @@ public:
         return *this;
     }
 
-    // Set digital trimpot motor
+    // 设置数字微调电位器电机
     WipeTowerWriter2& set_extruder_trimpot(int current)
     {
         if (m_gcode_flavor == gcfKlipper)
@@ -981,7 +981,7 @@ public:
         return *this;
     }
 
-    // Reset internal extruder counter.
+    // 重置内部挤出机计数器。
     WipeTowerWriter2& reset_extruder()
     {
         m_gcode += "G92 E0\n";
@@ -1022,7 +1022,7 @@ public:
 
     WipeTowerWriter2& add_wipe_point(float x, float y) { return add_wipe_point(Vec2f(x, y)); }
 
-    // Extrude with an explicitely provided amount of extrusion.
+    // 使用显式提供的挤出量进行挤出。
     WipeTowerWriter2& extrude_arc_explicit(ArcSegment& arc,
                                            float       f             = 0.f,
                                            bool        record_length = false,
@@ -1033,12 +1033,12 @@ public:
         float len = unscaled<float>(arc.length);
         float e   = len * m_extrusion_flow;
         if (len < (float) EPSILON && e == 0.f && (f == 0.f || f == m_current_feedrate))
-            // Neither extrusion nor a travel move.
+            // 既不是挤出也不是行程移动。
             return *this;
         if (record_length)
             m_used_filament_length += e;
 
-        // Now do the "internal rotation" with respect to the wipe tower center
+        // 现在相对于擦拭塔中心进行"内部旋转"
         Vec2f rotated_current_pos(this->pos_rotated());
         Vec2f rot(this->rotate(Vec2f(x, y))); // this is where we want to go
 
@@ -1049,7 +1049,7 @@ public:
        // Width of a squished extrusion, corrected for the roundings of the squished extrusions.
        // This is left zero if it is a travel move.
             float width = e * m_filpar[0].filament_area / (len * m_layer_height);
-            // Correct for the roundings of a squished extrusion.
+            // 针对挤压挤出的圆角进行修正。
             width += m_layer_height * float(1. - M_PI / 4.);
             if (m_extrusions.empty() || m_extrusions.back().pos != rotated_current_pos)
                 m_extrusions.emplace_back(WipeTower::Extrusion(rotated_current_pos, 0, m_current_tool));
@@ -1098,7 +1098,7 @@ public:
         m_current_pos.x() = x;
         m_current_pos.y() = y;
 
-        // Update the elapsed time with a rough estimate.
+        // 使用粗略估计更新经过的时间。
         m_elapsed_time += ((len == 0.f) ? std::abs(e) : len) / m_current_feedrate * 60.f;
         m_gcode += "\n";
         return *this;
@@ -1261,7 +1261,7 @@ private:
     WipeTowerWriter2& operator=(const WipeTowerWriter2& rhs);
 
 public:
-    // Rotate the point around center of the wipe tower about given angle (in degrees)
+    // 绕擦拭塔中心将点旋转给定角度（度）
     Vec2f rotate(Vec2f pt) const
     {
         pt.x() -= m_wipe_tower_width / 2.f;
@@ -1334,9 +1334,8 @@ WipeTower2::WipeTower2(const PrintConfig&                     config,
     , m_extra_rib_length(config.wipe_tower_extra_rib_length)
     , m_wall_type((int) config.wipe_tower_wall_type)
 {
-    // Read absolute value of first layer speed, if given as percentage,
-    // it is taken over following default. Speeds from config are not
-    // easily accessible here.
+    // 读取第一层速度的绝对值，如果以百分比给出，
+    // 则优先使用默认值。配置中的速度在此处不易访问。
     const float default_speed = 60.f;
     m_first_layer_speed       = config.initial_layer_speed;
     if (m_first_layer_speed == 0.f) // just to make sure autospeed doesn't break it.
@@ -1348,8 +1347,8 @@ WipeTower2::WipeTower2(const PrintConfig&                     config,
     if (m_perimeter_speed == 0.f)
         m_perimeter_speed = 80.f;
 
-    // If this is a single extruder MM printer, we will use all the SE-specific config values.
-    // Otherwise, the defaults will be used to turn off the SE stuff.
+    // 如果这是单挤出机MM打印机，我们将使用所有SE特定配置值。
+    // 否则，将使用默认值关闭SE相关功能。
     if (m_semm) {
         m_cooling_tube_retraction = float(config.cooling_tube_retraction);
         m_cooling_tube_length     = float(config.cooling_tube_length);
@@ -1363,7 +1362,7 @@ WipeTower2::WipeTower2(const PrintConfig&                     config,
     // 保存打印机型号信息
     m_printer_model = config.printer_model.value;
 
-    // Calculate where the priming lines should be - very naive test not detecting parallelograms etc.
+    // 计算预挤线应该在哪里 - 非常简单的测试，不检测平行四边形等。
     const std::vector<Vec2d>& bed_points = config.printable_area.values;
     BoundingBoxf              bb(bed_points);
     m_bed_width = float(bb.size().x());
@@ -1397,8 +1396,8 @@ void WipeTower2::set_extruder(size_t idx, const PrintConfig& config)
     m_filpar[idx].filament_minimal_purge_on_wipe_tower = config.filament_minimal_purge_on_wipe_tower.get_at(idx);
     m_filpar[idx].flat_iron_area                       = config.filament_tower_ironing_area.get_at(idx);
 
-    // If this is a single extruder MM printer, we will use all the SE-specific config values.
-    // Otherwise, the defaults will be used to turn off the SE stuff.
+    // 如果这是单挤出机MM打印机，我们将使用所有SE特定配置值。
+    // 否则，将使用默认值关闭SE相关功能。
     if (m_semm) {
         m_filpar[idx].loading_speed                   = float(config.filament_loading_speed.get_at(idx));
         m_filpar[idx].loading_speed_start             = float(config.filament_loading_speed_start.get_at(idx));
@@ -1460,7 +1459,7 @@ void WipeTower2::set_extruder(size_t idx, const PrintConfig& config)
     m_filpar[idx].retract_speed  = config.retraction_speed.get_at(idx);
 }
 
-// Returns gcode to prime the nozzles at the front edge of the print bed.
+// 返回在打印床前缘预挤喷嘴的G代码。
 std::vector<WipeTower::ToolChangeResult> WipeTower2::prime(
     // print_z of the first layer.
     float initial_layer_print_height,
@@ -1473,8 +1472,8 @@ std::vector<WipeTower::ToolChangeResult> WipeTower2::prime(
     this->set_layer(initial_layer_print_height, initial_layer_print_height, tools.size(), true, false);
     m_current_tool = tools.front();
 
-    // The Prusa i3 MK2 has a working space of [0, -2.2] to [250, 210].
-    // Due to the XYZ calibration, this working space may shrink slightly from all directions,
+    // Prusa i3 MK2的工作空间为[0, -2.2]到[250, 210]。
+    // 由于XYZ校准，此工作空间可能从各个方向略微缩小，
     // therefore the homing position is shifted inside the bed by 0.2 in the firmware to [0.2, -2.0].
     //	WipeTower::box_coordinates cleaning_box(xy(0.5f, - 1.5f), m_wipe_tower_width, wipe_area);
 
@@ -1490,7 +1489,7 @@ std::vector<WipeTower::ToolChangeResult> WipeTower2::prime(
 
     std::vector<WipeTower::ToolChangeResult> results;
 
-    // Iterate over all priming toolchanges and push respective ToolChangeResults into results vector.
+    // 遍历所有预挤工具更换并将相应的ToolChangeResults推入结果向量。
     for (size_t idx_tool = 0; idx_tool < tools.size(); ++idx_tool) {
         size_t old_tool = m_current_tool;
 
@@ -1498,7 +1497,7 @@ std::vector<WipeTower::ToolChangeResult> WipeTower2::prime(
         writer.set_extrusion_flow(m_extrusion_flow).set_z(m_z_pos).set_initial_tool(m_current_tool);
         writer.set_is_prime(true);
 
-        // This is the first toolchange - initiate priming
+        // 这是第一个工具更换 - 开始预挤
         if (idx_tool == 0) {
             writer
                 .append(";--------------------\n"
@@ -1506,17 +1505,17 @@ std::vector<WipeTower::ToolChangeResult> WipeTower2::prime(
                 .append(";--------------------\n")
                 .speed_override_backup()
                 .speed_override(100)
-                .set_initial_position(Vec2f::Zero()) // Always move to the starting position
+                .set_initial_position(Vec2f::Zero()) // 始终移动到起始位置
                 .travel(cleaning_box.ld, 7200);
             if (m_set_extruder_trimpot)
-                writer.set_extruder_trimpot(750); // Increase the extruder driver current to allow fast ramming.
+                writer.set_extruder_trimpot(750); // 增加挤出机驱动电流以允许快速夯实。
         } else
             writer.set_initial_position(results.back().end_pos);
 
         unsigned int tool = tools[idx_tool];
         m_left_to_right   = true;
-        toolchange_Change(writer, tool, m_filpar[tool].material); // Select the tool, set a speed override for soluble and flex materials.
-        toolchange_Load(writer, cleaning_box);                    // Prime the tool.
+        toolchange_Change(writer, tool, m_filpar[tool].material); // 选择工具，为可溶性材料和柔性材料设置速度覆盖。
+        toolchange_Load(writer, cleaning_box);                    // 预挤工具。
         if (idx_tool + 1 == tools.size()) {
             // Last tool should not be unloaded, but it should be wiped enough to become of a pure color.
             if (idx_tool == 0)
@@ -1540,7 +1539,7 @@ std::vector<WipeTower::ToolChangeResult> WipeTower2::prime(
         if (m_current_tool < m_used_filament_length.size())
             m_used_filament_length[m_current_tool] += writer.get_and_reset_used_filament_length();
 
-        // This is the last priming toolchange - finish priming
+        // 这是最后一个预挤工具更换 - 完成预挤
         if (idx_tool + 1 == tools.size()) {
             // Reset the extruder current to a normal value.
             if (m_set_extruder_trimpot)

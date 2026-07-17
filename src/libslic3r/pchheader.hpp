@@ -89,9 +89,9 @@
 #include <boost/nowide/iostream.hpp>
 #include <boost/regex.hpp>
 
-// boost/property_tree/json_parser/detail/parser.hpp includes boost/bind.hpp, which is deprecated.
-// Suppress the following boost message:
-// The practice of declaring the Bind placeholders (_1, _2, ...) in the global namespace is deprecated.
+// boost/property_tree/json_parser/detail/parser.hpp包含了boost/bind.hpp，它已被弃用。
+// 抑制以下boost消息：
+// 在全局命名空间中声明Bind占位符(_1, _2, ...)的做法已被弃用。
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>

@@ -1,4 +1,4 @@
-#ifndef slic3r_EmbossShape_hpp_
+﻿#ifndef slic3r_EmbossShape_hpp_
 #define slic3r_EmbossShape_hpp_
 
 #include <string>
@@ -134,7 +134,7 @@ struct EmbossShape
 };
 } // namespace Slic3r
 
-// Serialization through the Cereal library
+// 通过 Cereal 库进行序列化
 namespace cereal {
 template<class Archive> void serialize(Archive &ar, Slic3r::ExPolygonsWithId &o) { ar(o.id, o.expoly, o.is_healed); }
 template<class Archive> void serialize(Archive &ar, Slic3r::HealedExPolygons &o) { ar(o.expolygons, o.is_healed); }

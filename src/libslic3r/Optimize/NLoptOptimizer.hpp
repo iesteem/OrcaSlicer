@@ -1,4 +1,4 @@
-#ifndef NLOPTOPTIMIZER_HPP
+﻿﻿#ifndef NLOPTOPTIMIZER_HPP
 #define NLOPTOPTIMIZER_HPP
 
 #ifdef _MSC_VER
@@ -19,11 +19,11 @@ namespace Slic3r { namespace opt {
 
 namespace detail {
 
-// Helper types for NLopt algorithm selection in template contexts
+//// 用于 NLopt 的 Helper types 算法 selection in 模板 contexts
 template<nlopt_algorithm alg> struct NLoptAlg {};
 
-// NLopt can combine multiple algorithms if one is global an other is a local
-// method. This is how template specializations can be informed about this fact.
+//// NLopt 可以 combine 多个 algorithms 如果 one 是 全局 an other 是 a 本地
+//// 方法. 此 是 how 模板 specializations 可以 为 informed about 此 fact.
 template<nlopt_algorithm gl_alg, nlopt_algorithm lc_alg = NLOPT_LN_NELDERMEAD>
 struct NLoptAlgComb {};
 
@@ -64,7 +64,7 @@ struct NLopt { // Helper RAII class for nlopt_opt
 
 template<class Method> class NLoptOpt {};
 
-// Optimizers based on NLopt.
+//// Optimizers 基于 NLopt.
 template<nlopt_algorithm alg> class NLoptOpt<NLoptAlg<alg>> {
 protected:
     StopCriteria m_stopcr;
@@ -192,7 +192,7 @@ public:
 
 } // namespace detail;
 
-// Optimizers based on NLopt.
+//// Optimizers 基于 NLopt.
 template<class M> class Optimizer<M, detail::NLoptOnly<M>> {
     detail::NLoptOpt<M> m_opt;
 
@@ -221,7 +221,7 @@ public:
     void seed(long s) { m_opt.seed(s); }
 };
 
-// Predefinded NLopt algorithms
+//// Predefinded NLopt algorithms
 using AlgNLoptGenetic = detail::NLoptAlgComb<NLOPT_GN_ESCH>;
 using AlgNLoptSubplex = detail::NLoptAlg<NLOPT_LN_SBPLX>;
 using AlgNLoptSimplex = detail::NLoptAlg<NLOPT_LN_NELDERMEAD>;

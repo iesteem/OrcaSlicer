@@ -21,33 +21,33 @@
 
 namespace Slic3r {
 
-// Calculate infill rotation angle (in radians) for a given layer from a rotation template.
-// Grammar subset handled (rotation only):
+// 根据旋转模板计算给定层的填充旋转角度（弧度）。
+// 处理的语法子集（仅旋转）：
 //   [±]α[*Z or !][joint][-][N|B|T][length][* or !]
-//   [±]α*                    sets an initial angle only (no layer processed)
-// Where:
-// - α: angle in degrees. Without a sign it's absolute; with +/− it's relative. α% means a percentage of 360°.
-// - Runtime: *Z repeats the instruction Z times; bare * is a no-op used for initialization; ! runs once globally and then stops.
-// - Solid signs (D,S,O,M,R) are not processed here; if present they are treated as invalid/non-rotation characters.
-// - Joint signs (shape of the turn across a range):
-//     / linear;
-//     N,n vertical sinus (n = lazy/half amplitude);
-//     Z,z horizontal sinus (z = lazy/half amplitude);
-//     $ arcsin; L quarter circle H→V; l quarter circle V→H;
-//     U,u squared; Q,q cubic; ~ random; ^ pseudorandom; | middle step; # vertical step at end.
-// - Counting / range length:
-//     After the joint (or after α) a count determines duration of the turn:
-//       N = layer count, B = bottom_shell_layers, T = top_shell_layers.
-//     Prefix '-' flips the joint (swap initial/final orientation).
-// - Length modifiers convert the count to a Z range instead of a pure layer count:
-//     mm, cm, m, ' (feet), " (inches), # (standard height of N layers), % (percent of model height).
+//   [±]α*                    仅设置初始角度（不处理层）
+// 其中：
+// - α：角度（度）。无符号表示绝对角度；带 +/- 表示相对角度。α% 表示 360° 的百分比。
+// - 运行时：*Z 重复指令 Z 次；裸 * 是用于初始化的空操作；! 全局运行一次然后停止。
+// - 实体符号（D,S,O,M,R）不在此处理；如果存在，将被视为无效/非旋转字符。
+// - 连接符号（跨越范围的转弯形状）：
+//     / 线性；
+//     N,n 垂直正弦（n = 惰性/半幅）；
+//     Z,z 水平正弦（z = 惰性/半幅）；
+//     $ 反正弦；L 四分之一圆 H→V；l 四分之一圆 V→H；
+//     U,u 平方；Q,q 三次；~ 随机；^ 伪随机；| 中间步；# 末端垂直步。
+// - 计数/范围长度：
+//     连接符号后（或 α 后）的计数决定转弯的持续时间：
+//       N = 层数，B = 底部外壳层数，T = 顶部外壳层数。
+//     前缀 '-' 翻转连接（交换初始/最终方向）。
+// - 长度修饰符将计数转换为 Z 范围而不是纯层数：
+//     mm, cm, m, '（英尺），"（英寸），#（N 层的标准高度），%（模型高度百分比）。
 //
-// Behavior:
-// - The template string is tokenized by commas/whitespace and evaluated cyclically with one or more "ranges" per token.
-// - Absolute α resets the accumulated angle at the start of its range; relative α accumulates.
-// - *Z and ! control repetition and one-time execution of tokens across layers.
-// - If the template contains no metalanguage symbols, it is treated as a simple comma-separated list of angles repeated by modulo.
-// - Returns angle in radians for the requested layer_id. 0° aligns with +X; fillers may internally rotate as needed.
+// 行为：
+// - 模板字符串由逗号/空白分隔，每个标记循环评估一个或多个"范围"。
+// - 绝对 α 在其范围开始时重置累积角度；相对 α 累积。
+// - *Z 和 ! 控制标记在层间的重复和一次性执行。
+// - 如果模板不包含元语言符号，则视为简单的逗号分隔的角度列表，按模重复。
+// - 返回请求的 layer_id 的弧度角度。0° 与 +X 对齐；填充器可根据需要内部旋转。
 double calculate_infill_rotation_angle(const PrintObject* object,
                                        size_t             layer_id,
                                        const double&      fixed_infill_angle,
@@ -59,7 +59,7 @@ double calculate_infill_rotation_angle(const PrintObject* object,
     double             angle = 0.0;
     ConfigOptionFloats rotate_angles;
     const std::string  search_string = "/NnZz$LlUuQq~^|#";
-    if (regex_search(template_string, std::regex("[+\\-%*@\'\"cm" + search_string + "]"))) { // template metalanguage of rotating infill
+    if (regex_search(template_string, std::regex("[+\\-%*@\'\"cm" + search_string + "]"))) { // 旋转填充的模板元语言
         std::regex                 del("[\\s,]+");
         std::sregex_token_iterator it(template_string.begin(), template_string.end(), del, -1);
         std::vector<std::string>   tk;
@@ -84,14 +84,14 @@ double calculate_infill_rotation_angle(const PrintObject* object,
             double fill_z = object->get_layer(i)->bottom_z();
 
             if (limit_fill_z < object->get_layer(i)->slice_z) {
-                if (repeats) { // if repeats >0 then restore parameters for new iteration
+                if (repeats) { // 如果 repeats > 0，则为新迭代恢复参数
                     limit_fill_z += limit_fill_z - start_fill_z;
                     start_fill_z = fill_z;
                     repeats--;
                 } else {
                     start_fill_z = fill_z;
                     limit_fill_z = object->get_layer(i)->print_z;
-                    // Solid handling removed: this function only computes rotation.
+                    // 实体处理已移除：此函数仅计算旋转。
                     fill_form    = std::string::npos;
                     do {
                         if (!stop[t]) {
@@ -102,27 +102,27 @@ double calculate_infill_rotation_angle(const PrintObject* object,
                             angle_add   = 0;
                             angle_steps = 1;
                             repeats     = 1;
-                            if (tk[t].find('!') != std::string::npos) // this is an one-time instruction
+                            if (tk[t].find('!') != std::string::npos) // 这是一次性指令
                                 stop[t] = true;
 
                             char* cs = &tk[t][0];
 
-                            if ((cs[0] >= '0' && cs[0] <= '9') && !(cs[0] == '+' || cs[0] == '-')) // absolute/relative
+                            if ((cs[0] >= '0' && cs[0] <= '9') && !(cs[0] == '+' || cs[0] == '-')) // 绝对/相对
                                 _absolute = true;
 
-                            angle_add = strtod(cs, &cs); // read angle parameter
+                            angle_add = strtod(cs, &cs); // 读取角度参数
 
-                            if (cs[0] == '%') { // percentage of angles
+                            if (cs[0] == '%') { // 角度百分比
                                 angle_add *= 3.6;
                                 cs = &cs[1];
                             }
 
                             int tit = tk[t].find('*');
-                            if (tit != std::string::npos) // overall angle_cycles
+                            if (tit != std::string::npos) // 总角度周期数
                                 repeats = strtol(&tk[t][tit + 1], &cs, 0);
 
-                            if (repeats) {                                // run if overall cycles greater than 0
-                                // Solid signs (D,S,O,M,R) are not handled here; if present they behave as invalid characters.
+                            if (repeats) {                                // 如果总周期数大于 0 则运行
+                                // 实体符号（D,S,O,M,R）不在此处理；如果存在，它们表现为无效字符。
 
                                 if (cs[0] == 'B') {
                                     angle_steps = object->print()->default_region_config().bottom_shell_layers.value;
@@ -133,32 +133,32 @@ double calculate_infill_rotation_angle(const PrintObject* object,
                                     if (fill_form != std::string::npos)
                                         cs = &cs[1];
 
-                                    _negative   = (cs[0] == '-'); // negative parameter
+                                    _negative   = (cs[0] == '-'); // 负参数
                                     angle_steps = abs(strtod(cs, &cs));
 
                                     if (angle_steps && cs[0] != '\0' && cs[0] != '!') {
-                                        if (cs[0] == '%') // value in the percents of fill_z
+                                        if (cs[0] == '%') // 填充 Z 的百分比值
                                             limit_fill_z = angle_steps * object->height() * 1e-8;
-                                        else if (cs[0] == '#') // value in the feet
+                                        else if (cs[0] == '#') // 以英尺为单位的值
                                             limit_fill_z = angle_steps * object->config().layer_height;
-                                        else if (cs[0] == '\'') // value in the feet
+                                        else if (cs[0] == '\'') // 以英尺为单位的值
                                             limit_fill_z = angle_steps * 12 * 25.4;
-                                        else if (cs[0] == '\"') // value in the inches
+                                        else if (cs[0] == '\"') // 以英寸为单位的值
                                             limit_fill_z = angle_steps * 25.4;
-                                        else if (cs[0] == 'c') // value in centimeters
+                                        else if (cs[0] == 'c') // 以厘米为单位的值
                                             limit_fill_z = angle_steps * 10.;
                                         else if (cs[0] == 'm') {
-                                            if (cs[1] == 'm') { // value in the millimeters
+                                            if (cs[1] == 'm') { // 以毫米为单位的值
                                                 limit_fill_z = angle_steps * 1.;
                                             } else{
                                                 limit_fill_z = angle_steps * 1000.;
                                             }
                                         }
                                         limit_fill_z += fill_z;
-                                        angle_steps = 0; // limit_fill_z has already count
+                                        angle_steps = 0; // limit_fill_z 已经计数
                                     }
                                 }
-                                if (angle_steps) { // if limit_fill_z does not setting by lenght method. Get count the layer id above model height
+                                if (angle_steps) { // 如果 limit_fill_z 未通过长度方法设置。获取模型高度上方的层 ID 计数
                                     if (fill_form == std::string::npos && !_absolute)
                                         angle_add *= (int) angle_steps;
                                     int idx      = i + std::max(angle_steps - 1, 0.);
@@ -168,8 +168,8 @@ double calculate_infill_rotation_angle(const PrintObject* object,
                                 }
                                 repeats = std::max(--repeats, 0);
                             } else
-                                _noop = true; // set the dumb cycle
-                            if (_absolute) {  // is absolute
+                                _noop = true; // 设置哑循环
+                            if (_absolute) {  // 是绝对角度
                                 angle_start = angle_add;
                                 angle_add   = 0;
                             }
@@ -178,29 +178,29 @@ double calculate_infill_rotation_angle(const PrintObject* object,
                             t = 0;
                     } while (std::all_of(stop.begin(), stop.end(), [](bool v) { return v; }) ?
                                  false :
-                                 (t ? _noop : false) || stop[t]); // if this is a dumb instruction which never reaprated twice
+                                 (t ? _noop : false) || stop[t]); // 如果这是从未重复两次的哑指令
                 }
             }
             double top_z    = object->get_layer(i)->print_z;
             double negvalue = (_negative ? limit_fill_z - top_z : top_z - start_fill_z) / (limit_fill_z - start_fill_z);
 
             switch (fill_form) {
-            case 0: break;                                                  // /-joint, linear
-            case 1: negvalue -= sin(negvalue * PI * 2.) / (PI * 2.); break; // N-joint, sinus, vertical start
-            case 2: negvalue -= sin(negvalue * PI * 2.) / (PI * 4.); break; // n-joint, sinus, vertical start, lazy
-            case 3: negvalue += sin(negvalue * PI * 2.) / (PI * 2.); break; // Z-joint, sinus, horizontal start
-            case 4: negvalue += sin(negvalue * PI * 2.) / (PI * 4.); break; // z-joint, sinus, horizontal start, lazy
-            case 5: negvalue = asin(negvalue * 2. - 1.) / PI + 0.5; break;  // $-joint, arcsin
-            case 6: negvalue = sin(negvalue * PI / 2.); break;              // L-joint, quarter of circle, horizontal start
-            case 7: negvalue = 1. - cos(negvalue * PI / 2.); break;         // l-joint, quarter of circle, vertical start
-            case 8: negvalue = 1. - pow(1. - negvalue, 2); break;           // U-joint, squared, x2
-            case 9: negvalue = pow(1 - negvalue, 2); break;                 // u-joint, squared, x2 inverse
-            case 10: negvalue = 1. - pow(1. - negvalue, 3); break;          // Q-joint, cubic, x3
-            case 11: negvalue = pow(1. - negvalue, 3); break;               // q-joint, cubic, x3 inverse
-            case 12: negvalue = (double) rand() / RAND_MAX; break;          // ~-joint, random, fill the whole angle
-            case 13: negvalue += (double) rand() / RAND_MAX - 0.5; break;   // ^-joint, pseudorandom, disperse at middle line
-            case 14: negvalue = 0.5; break;                                 // |-joint, like #-joint but placed at middle angle
-            case 15: negvalue = _negative ? 0. : 1.; break;                 // #-joint, vertical at the end angle
+            case 0: break;                                                  // /-连接，线性
+            case 1: negvalue -= sin(negvalue * PI * 2.) / (PI * 2.); break; // N-连接，正弦，垂直起始
+            case 2: negvalue -= sin(negvalue * PI * 2.) / (PI * 4.); break; // n-连接，正弦，垂直起始，惰性
+            case 3: negvalue += sin(negvalue * PI * 2.) / (PI * 2.); break; // Z-连接，正弦，水平起始
+            case 4: negvalue += sin(negvalue * PI * 2.) / (PI * 4.); break; // z-连接，正弦，水平起始，惰性
+            case 5: negvalue = asin(negvalue * 2. - 1.) / PI + 0.5; break;  // $-连接，反正弦
+            case 6: negvalue = sin(negvalue * PI / 2.); break;              // L-连接，四分之一圆，水平起始
+            case 7: negvalue = 1. - cos(negvalue * PI / 2.); break;         // l-连接，四分之一圆，垂直起始
+            case 8: negvalue = 1. - pow(1. - negvalue, 2); break;           // U-连接，平方，x2
+            case 9: negvalue = pow(1 - negvalue, 2); break;                 // u-连接，平方，x2 逆
+            case 10: negvalue = 1. - pow(1. - negvalue, 3); break;          // Q-连接，三次，x3
+            case 11: negvalue = pow(1. - negvalue, 3); break;               // q-连接，三次，x3 逆
+            case 12: negvalue = (double) rand() / RAND_MAX; break;          // ~-连接，随机，填充整个角度
+            case 13: negvalue += (double) rand() / RAND_MAX - 0.5; break;   // ^-连接，伪随机，在中线分散
+            case 14: negvalue = 0.5; break;                                 // |-连接，像 #-连接但放在中间角度
+            case 15: negvalue = _negative ? 0. : 1.; break;                 // #-连接，末端角度处垂直
             }
             angle = Geometry::deg2rad(angle_start + angle_add * negvalue);
         }
@@ -214,13 +214,13 @@ double calculate_infill_rotation_angle(const PrintObject* object,
 
 struct SurfaceFillParams
 {
-	// Zero based extruder ID.
+	// 基于零的挤出机 ID。
     unsigned int 	extruder = 0;
-	// Infill pattern, adjusted for the density etc.
+	// 填充图案，根据密度等调整。
     InfillPattern  	pattern = InfillPattern(0);
 
     // FillBase
-    // in unscaled coordinates
+    // 未缩放坐标
     coordf_t    	spacing = 0.;
     // infill / perimeter overlap, in unscaled coordinates
     coordf_t    	overlap = 0.;
@@ -228,7 +228,7 @@ struct SurfaceFillParams
     float       	angle = 0.f;
     // Orca: is_using_template_angle
     bool        is_using_template_angle = false;
-    // Is bridging used for this fill? Bridging parameters may be used even if this->flow.bridge() is not set.
+    // 此填充是否使用桥接？即使未设置 this->flow.bridge() 也可能使用桥接参数。
     bool 			bridge;
     // Non-negative for a bridge.
     float 			bridge_angle = 0.f;
@@ -346,15 +346,15 @@ struct SurfaceFill {
 };
 
 
-// Detect narrow infill regions
-// Based on the anti-vibration algorithm from PrusaSlicer:
+// 检测狭窄填充区域
+// 基于 PrusaSlicer 的反振动算法：
 // https://github.com/prusa3d/PrusaSlicer/blob/5dc04b4e8f14f65bbcc5377d62cad3e86c2aea36/src/libslic3r/Fill/FillEnsuring.cpp#L37-L273
 
-static coord_t _MAX_LINE_LENGTH_TO_FILTER() // 4 mm.
+static coord_t _MAX_LINE_LENGTH_TO_FILTER() // 4 毫米。
 {
     return scaled<coord_t>(4.);
 }
-const constexpr size_t  MAX_SKIPS_ALLOWED           = 2; // Skip means propagation through long line.
+const constexpr size_t  MAX_SKIPS_ALLOWED           = 2; // 跳过表示通过长线传播。
 const constexpr size_t  MIN_DEPTH_FOR_LINE_REMOVING = 5;
 
 struct LineNode
@@ -603,24 +603,24 @@ void split_solid_surface(size_t layer_id, const SurfaceFill &fill, ExPolygons &n
     case ipMonotonic:
     case ipMonotonicLine:
     case ipAlignedRectilinear:
-        // Only support straight line based infill
+        // 仅支持基于直线的填充
         break;
 
     default:
-        // For all other types, don't split
+        // 对于所有其他类型，不分割
         return;
     }
 
-    Polygons normal_fill_areas;  // Areas that filled with normal infill
+    Polygons normal_fill_areas;  // 使用正常填充填充的区域
 
     constexpr double connect_extrusions = true;
 
     const coord_t scaled_spacing                      = scaled<coord_t>(fill.params.spacing);
     double        distance_limit_reconnection         = 2.0 * double(scaled_spacing);
     double        squared_distance_limit_reconnection = distance_limit_reconnection * distance_limit_reconnection;
-    // Calculate infill direction, see Fill::_infill_direction
+    // 计算填充方向，参见 Fill::_infill_direction
     double        base_angle                          = fill.params.angle + float(M_PI / 2.);
-    // For pattern other than ipAlignedRectilinear, the angle are alternated
+    // 对于 ipAlignedRectilinear 以外的图案，角度会交替
     if (fill.params.pattern != ipAlignedRectilinear) {
         size_t idx = layer_id / fill.surface.thickness_layers;
         base_angle += (idx & 1) ? float(M_PI / 2.) : 0;
@@ -1027,17 +1027,14 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 	        }
 	}
 
-    // we need to detect any narrow surfaces that might collapse
-    // when adding spacing below
-    // such narrow surfaces are often generated in sloping walls
-    // by bridge_over_infill() and combine_infill() as a result of the
-    // subtraction of the combinable area from the layer infill area,
-    // which leaves small areas near the perimeters
-    // we are going to grow such regions by overlapping them with the void (if any)
-    // TODO: detect and investigate whether there could be narrow regions without
-    // any void neighbors
+    // 我们需要检测在下方添加间距时可能崩溃的任何狭窄表面
+    // 这种狭窄表面通常由 bridge_over_infill() 和 combine_infill() 在倾斜壁上生成，
+    // 这是从层填充区域中减去可组合区域的结果，
+    // 在周长附近留下小区域
+    // 我们将通过使这些区域与空隙重叠（如果有）来扩展它们
+    // TODO: 检测并调查是否存在没有任何空隙邻居的狭窄区域
     if (has_internal_voids) {
-    	// Internal voids are generated only if "infill_only_where_needed" or "infill_every_layers" are active.
+    	// 仅当"infill_only_where_needed"或"infill_every_layers"激活时才会生成内部空隙。
         coord_t  distance_between_surfaces = 0;
         Polygons surfaces_polygons;
         Polygons voids;

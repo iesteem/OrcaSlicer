@@ -14,11 +14,11 @@
 
 // instead of #include "slic3r/GUI/I18N.hpp" :
 #ifndef L
-// !!! If you needed to translate some string,
-// !!! please use _L(string)
-// !!! _() - is a standard wxWidgets macro to translate
-// !!! L() is used only for marking localizable string
-// !!! It will be used in "xgettext" to create a Locating Message Catalog.
+// !!! 如果您需要翻译某个字符串，
+// !!! 请使用 _L(string)
+// !!! _() - 是标准的wxWidgets翻译宏
+// !!! L() 仅用于标记可本地化字符串
+// !!! 它将在"xgettext"中用于创建消息目录。
 #define L(s) s
 #endif /* L */
 
@@ -206,7 +206,7 @@ VendorProfile VendorProfile::from_ini(const ptree &tree, const boost::filesystem
 
     VendorProfile res(id);
 
-    // Helper to get compulsory fields
+    // 获取必填字段的辅助函数
     auto get_or_throw = [&](const ptree &tree, const std::string &key) -> ptree::const_assoc_iterator
     {
         auto res = tree.find(key);
@@ -216,7 +216,7 @@ VendorProfile VendorProfile::from_ini(const ptree &tree, const boost::filesystem
         return res;
     };
 
-    // Load the header
+    // 加载头部
     const auto &vendor_section = get_or_throw(tree, "vendor")->second;
     res.name = get_or_throw(vendor_section, "name")->second.data();
 
@@ -228,7 +228,7 @@ VendorProfile VendorProfile::from_ini(const ptree &tree, const boost::filesystem
         res.config_version = std::move(*config_version);
     }
 
-    // Load URLs
+    // 加载URL
     const auto config_update_url = vendor_section.find("config_update_url");
     if (config_update_url != vendor_section.not_found()) {
         res.config_update_url = config_update_url->second.data();
@@ -243,7 +243,7 @@ VendorProfile VendorProfile::from_ini(const ptree &tree, const boost::filesystem
         return res;
     }
 
-    // Load printer models
+    // 加载打印机型号
     for (auto &section : tree) {
         if (boost::starts_with(section.first, printer_model_key)) {
             VendorProfile::PrinterModel model;
@@ -298,7 +298,7 @@ VendorProfile VendorProfile::from_ini(const ptree &tree, const boost::filesystem
         }
     }
 
-    // Load filaments and sla materials to be installed by default
+    // 加载默认安装的耗材和SLA材料
     const auto filaments = tree.find(filaments_section);
     if (filaments != tree.not_found()) {
         for (auto &pair : filaments->second) {
@@ -345,8 +345,8 @@ void Preset::update_suffix_modified(const std::string& new_suffix_modified)
 {
     g_suffix_modified = new_suffix_modified;
 }
-// Remove an optional "(modified)" suffix from a name.
-// This converts a UI name to a unique preset identifier.
+// 从名称中移除可选的"(modified)"后缀。
+// 这将UI名称转换为唯一的预设标识符。
 std::string Preset::remove_suffix_modified(const std::string &name)
 {
     return boost::algorithm::starts_with(name, g_suffix_modified) ?
@@ -354,7 +354,7 @@ std::string Preset::remove_suffix_modified(const std::string &name)
         name;
 }
 
-// Update new extruder fields at the printer profile.
+// 更新打印机配置文件中的新挤出机字段。
 void Preset::normalize(DynamicPrintConfig &config)
 {
     size_t n = 1;
@@ -378,8 +378,8 @@ void Preset::normalize(DynamicPrintConfig &config)
     const auto &defaults = FullPrintConfig::defaults();
 
     if (config.option("filament_diameter") != nullptr) {
-        // This config contains single or multiple filament presets.
-        // Ensure that the filament preset vector options contain the correct number of values.
+        // 此配置包含单个或多个耗材预设。
+        // 确保耗材预设向量选项包含正确数量的值。
         for (const std::string &key : Preset::filament_options()) {
             if (key == "compatible_prints" || key == "compatible_printers")
                 continue;
@@ -400,7 +400,7 @@ void Preset::normalize(DynamicPrintConfig &config)
                 static_cast<ConfigOptionStrings*>(opt)->values.resize(n, std::string());
         }
     } else if (config.option("layer_height") != nullptr) {
-        // Print config: ensure all expected options exist in the loaded profile.
+        // 打印配置：确保加载的配置文件中存在所有预期选项。
         for (const std::string &key : Preset::print_options()) {
             if (!config.has(key)) {
                 const ConfigOption* default_opt = defaults.option(key);
@@ -1190,7 +1190,7 @@ void PresetCollection::load_presets(
         load_presets(dir.string(), "base", substitutions, substitution_rule);
     }
 
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" enter, load presets from %1%, current type %2%")%dir %Preset::get_type_string(m_type);
     //BBS do not parse folder if not exists
     m_dir_path = dir.string();
@@ -1200,7 +1200,7 @@ void PresetCollection::load_presets(
     }
 
     std::string errors_cummulative;
-    // Store the loaded presets into a new vector, otherwise the binary search for already existing presets would be broken.
+    // 将加载的预设存储到新向量中，否则对已存在预设的二分查找将被破坏。
     // (see the "Preset already present, not loading" message).
     std::deque<Preset> presets_loaded;
     //BBS: change to json format
@@ -1323,7 +1323,7 @@ void PresetCollection::load_presets(
                     //BBS: add some workaround for previous incorrect settings
                     if ((!preset.setting_id.empty())&&(preset.setting_id == preset.base_id))
                         preset.setting_id.clear();
-                    //BBS: add config related logs
+                    //BBS: 添加配置相关日志
                     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", preset type %1%, name %2%, path %3%, is_system %4%, is_default %5% is_visible %6%")%Preset::get_type_string(m_type) %preset.name %preset.file %preset.is_system %preset.is_default %preset.is_visible;
                     // add alias for custom filament preset
                     set_custom_preset_alias(preset);
@@ -1359,7 +1359,7 @@ void PresetCollection::load_presets(
     if (presets_loaded.size() > 0)
         m_presets.insert(m_presets.end(), std::make_move_iterator(presets_loaded.begin()), std::make_move_iterator(presets_loaded.end()));
     std::sort(m_presets.begin() + m_num_default_presets, m_presets.end());
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": loaded %1% presets from %2%, type %3%")%presets_loaded.size() %dir %Preset::get_type_string(m_type);
     //this->select_preset(first_visible_idx());
     if (! errors_cummulative.empty())
@@ -1496,7 +1496,7 @@ int PresetCollection::get_differed_values_to_update(Preset& preset, std::map<std
 void PresetCollection::load_project_embedded_presets(std::vector<Preset*>& project_presets, const std::string& type, PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule rule)
 {
     std::string errors_cummulative;
-    // Store the loaded presets into a new vector, otherwise the binary search for already existing presets would be broken.
+    // 将加载的预设存储到新向量中，否则对已存在预设的二分查找将被破坏。
     // (see the "Preset already present, not loading" message).
     std::deque<Preset> presets_loaded;
     std::vector<Preset*>::iterator it;
@@ -1756,7 +1756,7 @@ void PresetCollection::save_user_presets(const std::string& dir_path, const std:
 bool PresetCollection::load_user_preset(std::string name, std::map<std::string, std::string> preset_values, PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule rule)
 {
     std::string errors_cummulative;
-    // Store the loaded presets into a new vector, otherwise the binary search for already existing presets would be broken.
+    // 将加载的预设存储到新向量中，否则对已存在预设的二分查找将被破坏。
     // (see the "Preset already present, not loading" message).
     //std::deque<Preset> presets_loaded;
     int count = 0;
@@ -2081,7 +2081,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
         }
     }
 
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" enter, type %1% , path %2%, name %3%, original_name %4%, inherits %5%")%Preset::get_type_string(m_type) %path %name %original_name %inherits;
     if (select == LoadAndSelect::Never) {
         // Some filament profile has been selected and modified already.
@@ -2089,7 +2089,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
         const Preset &edited = this->get_edited_preset();
         if ((edited.name == original_name || edited.name == inherits) && profile_print_params_same(edited.config, cfg)) {
             // Just point to that already selected and edited profile.
-            //BBS: add config related logs
+            //BBS: 添加配置相关日志
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" Just point to that already selected and edited profile %1%")%edited.name;
             return std::make_pair(&(*this->find_preset_internal(edited.name)), false);
         }
@@ -2113,7 +2113,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             //if (app_config)
             //    app_config->set(AppConfig::SECTION_FILAMENTS, it->name, "1");
         }
-        //BBS: add config related logs
+        //BBS: 添加配置相关日志
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" The preset exists and it matches the values stored inside config. using original_name %1%")%original_name;
         return std::make_pair(&(*it), false);
     }
@@ -2134,7 +2134,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
                 //if (app_config)
                 //    app_config->set(AppConfig::SECTION_FILAMENTS, it->name, "1");
             }
-            //BBS: add config related logs
+            //BBS: 添加配置相关日志
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" The preset exists and it matches the values stored inside config. using inherits %1%")%inherits;
             return std::make_pair(&(*it), false);
         }
@@ -2159,7 +2159,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
                 //if (app_config)
                 //    app_config->set(AppConfig::SECTION_FILAMENTS, it->name, "1");
             }
-            //BBS: add config related logs
+            //BBS: 添加配置相关日志
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" Select the existing preset %1% and override it with new values")%it->name;
             return std::make_pair(&(*it), this->get_edited_preset().is_dirty);
         }
@@ -2220,7 +2220,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             // The preset exists and it matches the values stored inside config.
             if (select == LoadAndSelect::Always)
                 this->select_preset(it - m_presets.begin());
-            //BBS: add config related logs
+            //BBS: 添加配置相关日志
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" The preset %1% exists and it matches the values stored inside config.")%new_name;
             return std::make_pair(&(*it), false);
         }
@@ -2261,7 +2261,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
     if (&this->get_selected_preset() == &preset)
         this->get_edited_preset().is_external = true;
 
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", type %1% added a preset, name %2%, path %3%, is_system %4%, is_default %5% is_external %6%")%Preset::get_type_string(m_type) %preset.name %preset.file %preset.is_system %preset.is_default %preset.is_external;
     return std::make_pair(&preset, false);
 }
@@ -2288,7 +2288,7 @@ Preset& PresetCollection::load_preset(const std::string &path, const std::string
     if (select)
         this->select_preset_by_name(name, true);
     unlock();
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", preset type %1%, name %2%, path %3%, is_system %4%, is_default %5% is_visible %6%")%Preset::get_type_string(m_type) %preset.name %preset.file %preset.is_system %preset.is_default %preset.is_visible;
     return preset;
 }
@@ -2467,7 +2467,7 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
         } else if (is_base_preset(preset)) {
             inherits = old_name;
         }
-        // Orca: check if compatible_printers exists and is not empty, set it to the current printer if it is empty
+        // Orca: 检查compatible_printers是否存在且不为空，如果为空则设置为当前打印机
         if (nullptr != _current_printer && preset.is_system && m_type == Preset::TYPE_FILAMENT) {
             ConfigOptionStrings* compatible_printers = preset.config.option<ConfigOptionStrings>("compatible_printers");
             if (compatible_printers && compatible_printers->values.empty()) {
@@ -2709,7 +2709,7 @@ Preset* PresetCollection::find_preset(const std::string &name, bool first_visibl
 {
     Preset key(m_type, name, false);
     auto it = this->find_preset_internal(name, only_from_library);
-    // Ensure that a temporary copy is returned if the preset found is currently selected.
+    // 确保如果找到的预设当前被选中，则返回临时副本。
     return (it != m_presets.end() && it->name == key.name) ? &this->preset(it - m_presets.begin(), real) :
         first_visible_if_not_found ? &this->first_visible() : nullptr;
 }
@@ -3030,7 +3030,7 @@ std::vector<std::string> PresetCollection::dirty_options_without_option_list(con
 // If the preset with index idx does not exist, a first visible preset is selected.
 Preset& PresetCollection::select_preset(size_t idx)
 {
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": %1% try to select preset %2%")%Preset::get_type_string(m_type) %idx;
     for (Preset &preset : m_presets)
         preset.is_dirty = false;
@@ -3042,14 +3042,14 @@ Preset& PresetCollection::select_preset(size_t idx)
     bool default_visible = ! m_default_suppressed || m_idx_selected < m_num_default_presets;
     for (size_t i = 0; i < m_num_default_presets; ++i)
         m_presets[i].is_visible = default_visible;
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": %1% select success, m_idx_selected %2%, name %3%, is_system %4%, is_default %5%")%Preset::get_type_string(m_type) % m_idx_selected % m_edited_preset.name % m_edited_preset.is_system % m_edited_preset.is_default;
     return m_presets[idx];
 }
 
 bool PresetCollection::select_preset_by_name(const std::string &name_w_suffix, bool force)
 {
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": %1%, try to select by name %2%, force %3%")%Preset::get_type_string(m_type) %name_w_suffix %force;
     std::string name = Preset::remove_suffix_modified(name_w_suffix);
     // 1) Try to find the preset by its name.
@@ -3086,19 +3086,19 @@ bool PresetCollection::select_preset_by_name(const std::string &name_w_suffix, b
     // 2) Select the new preset.
     if (m_idx_selected != idx || force) {
         this->select_preset(idx);
-        //BBS: add config related logs
+        //BBS: 添加配置相关日志
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": %1%, select %2%, success")%Preset::get_type_string(m_type) %name_w_suffix;
         return true;
     }
 
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": %1%, select %2%, failed")%Preset::get_type_string(m_type) %name_w_suffix;
     return false;
 }
 
 bool PresetCollection::select_preset_by_name_strict(const std::string &name)
 {
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": %1%, try to select by name %2%")%Preset::get_type_string(m_type) %name;
     // 1) Try to find the preset by its name.
     auto it = this->find_preset_internal(name);
@@ -3110,12 +3110,12 @@ bool PresetCollection::select_preset_by_name_strict(const std::string &name)
     // 2) Select the new preset.
     if (idx != (size_t)-1) {
         this->select_preset(idx);
-        //BBS: add config related logs
+        //BBS: 添加配置相关日志
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": %1%, select %2%, success")%Preset::get_type_string(m_type) %name;
         return true;
     }
     m_idx_selected = idx;
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": %1%, select %2%, failed")%Preset::get_type_string(m_type) %name;
     return false;
 }
@@ -3682,7 +3682,7 @@ PhysicalPrinter* PhysicalPrinterCollection::find_printer( const std::string& nam
 {
     auto it = this->find_printer_internal(name, case_sensitive_search);
 
-    // Ensure that a temporary copy is returned if the preset found is currently selected.
+    // 确保如果找到的预设当前被选中，则返回临时副本。
     auto is_equal_name = [name, case_sensitive_search](const std::string& in_name) {
         if (case_sensitive_search)
             return in_name == name;

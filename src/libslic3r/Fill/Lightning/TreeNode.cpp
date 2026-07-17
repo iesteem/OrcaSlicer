@@ -63,8 +63,8 @@ void Node::propagateToNextLayer(
         next_trees.push_back(tree_below);
 }
 
-// NOTE: Depth-first, as currently implemented.
-//       Skips the root (because that has no root itself), but all initial nodes will have the root point anyway.
+// 注意：按当前实现，深度优先。
+//       跳过根（因为根本身没有根），但所有初始节点都会拥有根点。
 void Node::visitBranches(const std::function<void(const Point&, const Point&)>& visitor) const
 {
     for (const auto& node : m_children) {
@@ -74,7 +74,7 @@ void Node::visitBranches(const std::function<void(const Point&, const Point&)>& 
     }
 }
 
-// NOTE: Depth-first, as currently implemented.
+// 注意：按当前实现，深度优先。
 void Node::visitNodes(const std::function<void(NodeSPtr)>& visitor)
 {
     visitor(shared_from_this());

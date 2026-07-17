@@ -1,4 +1,4 @@
-#ifndef ARRANGE_HPP
+﻿#ifndef ARRANGE_HPP
 #define ARRANGE_HPP
 
 #include "ExPolygon.hpp"
@@ -13,7 +13,7 @@ class BoundingBox;
 
 namespace arrangement {
 
-/// A geometry abstraction for a circular print bed. Similarly to BoundingBox.
+/// 圆形打印平台的几何抽象。类似于 BoundingBox。
 class CircleBed {
     Point center_;
     double radius_;
@@ -26,7 +26,7 @@ public:
     inline const Point& center() const { return center_; }
 };
 
-/// Representing an unbounded bed.
+/// 表示无边界平台。
 struct InfiniteBed {
     Point center;
     explicit InfiniteBed(const Point &p = {0, 0}): center{p} {}
@@ -47,22 +47,22 @@ static const constexpr int UNARRANGED = -1;
 /// (also the initial state before arrange), 0..N means the index of the bed.
 /// Zero is the physical bed, larger than zero means a virtual bed.
 struct ArrangePolygon {
-    ExPolygon poly;                 /// The 2D silhouette to be arranged
-    Vec2crd   translation{0, 0};    /// The translation of the poly
-    double    rotation{0.0};        /// The rotation of the poly in radians
-    coord_t   inflation = 0;        /// Arrange with inflated polygon
-    int       bed_idx{UNARRANGED};  /// To which logical bed does poly belong...
+    ExPolygon poly;                 /// 待排布的 2D 轮廓
+    Vec2crd   translation{0, 0};    /// 多边形的平移
+    double    rotation{0.0};        /// 多边形的旋转（弧度）
+    coord_t   inflation = 0;        /// 使用膨胀后的多边形进行排布
+    int       bed_idx{UNARRANGED};  /// 多边形属于哪个逻辑平台...
     int       priority{0};
-    //BBS: add locked_plate to indicate whether it is in the locked plate
+    //BBS: 添加 locked_plate 以指示是否在锁定平台上
     int       locked_plate{ -1 };
     bool      is_virt_object{ false };
     bool      is_extrusion_cali_object{ false };
     bool      is_wipe_tower{ false };
     bool      has_tree_support{false};
-    //BBS: add row/col for sudoku-style layout
+    //BBS: 添加行/列用于数独式布局
     int       row{0};
     int       col{0};
-    std::vector<int> extrude_ids{};      /// extruder_id for least extruder switch
+    std::vector<int> extrude_ids{};      /// 用于最少挤出机切换的 extruder_id
     int filament_temp_type{ -1 };
     int       bed_temp{0};         ///bed temperature for different material judge
     int       print_temp{0};      ///print temperature for different material judge
@@ -79,10 +79,10 @@ struct ArrangePolygon {
     // If only a zero is there, no rotation is allowed
     std::vector<double> allowed_rotations = {0.};
 
-    /// Optional setter function which can store arbitrary data in its closure
+    /// 可选的设置器函数，可以在其闭包中存储任意数据
     std::function<void(const ArrangePolygon&)> setter = nullptr;
 
-    /// Helper function to call the setter with the arrange data arguments
+    /// 辅助函数，使用排布数据参数调用设置器
     void apply() {
         if (setter && !is_applied) {
             setter(*this);
@@ -90,7 +90,7 @@ struct ArrangePolygon {
         }
     }
 
-    /// Test if arrange() was called previously and gave a successful result.
+    /// 测试是否先前调用了 arrange() 并给出了成功的结果。
     bool is_arranged() const { return bed_idx != UNARRANGED; }
 
     inline ExPolygon transformed_poly() const
@@ -115,14 +115,14 @@ struct ArrangeParams {
     /// Goes from 0.0 to 1.0 and scales performance as well
     float accuracy = 1.f;
 
-    /// Allow parallel execution.
+    /// 允许并行执行。
     bool parallel = true;
 
     bool allow_rotations = false;
 
     bool do_final_align = true;
 
-    //BBS: add specific arrange params
+    //BBS: 添加特定的排布参数
     bool  allow_multi_materials_on_same_plate = true;
     bool  avoid_extrusion_cali_region         = true;
     bool  is_seq_print                        = false;
@@ -138,8 +138,8 @@ struct ArrangeParams {
     float printable_height = 256.0;
     Vec2d align_center{ 0.5,0.5 };
 
-    ArrangePolygons excluded_regions;   // regions cant't be used
-    ArrangePolygons nonprefered_regions; // regions can be used but not prefered
+    ArrangePolygons excluded_regions;   // 不能使用的区域
+    ArrangePolygons nonprefered_regions; // 可以使用但不优先选择的区域
 
     /// Progress indicator callback called when an object gets packed.
     /// The unsigned argument is the number of items remaining to pack.
@@ -149,7 +149,7 @@ struct ArrangeParams {
 
     std::function<void(const ArrangePolygon &)> on_packed;
 
-    /// A predicate returning true if abort is needed.
+    /// 如果需要中止则返回 true 的谓词。
     std::function<bool(void)>     stopcondition;
 
     ArrangeParams() = default;

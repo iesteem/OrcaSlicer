@@ -33,7 +33,7 @@ void FaceDetector::detect_exterior_face()
 
     std::unordered_set<size_t> hit_face_indices;
 
-    // x-axis rays
+    // x轴射线
     for (double y = bbox.min.y(); y < bbox.max.y(); y += m_sample_interval) {
         for (double z = bbox.min.z(); z < bbox.max.z(); z += m_sample_interval) {
             auto hit_result = indexed_mesh.query_ray_hit({ bbox.min.x(), y, z }, { 1.0, 0.0, 0.0 });
@@ -46,7 +46,7 @@ void FaceDetector::detect_exterior_face()
         }
     }
 
-    // y-axis rays
+    // y轴射线
     for (double x = bbox.min.x(); x < bbox.max.x(); x += m_sample_interval) {
         for (double z = bbox.min.z(); z < bbox.max.z(); z += m_sample_interval) {
             auto hit_result = indexed_mesh.query_ray_hit({ x, bbox.min.y(), z }, { 0.0, 1.0, 0.0 });
@@ -59,7 +59,7 @@ void FaceDetector::detect_exterior_face()
         }
     }
 
-    // z-axis rays
+    // z轴射线
     for (double x = bbox.min.x(); x < bbox.max.x(); x += m_sample_interval) {
         for (double y = bbox.min.y(); y < bbox.max.y(); y += m_sample_interval) {
             auto hit_result = indexed_mesh.query_ray_hit({ x, y, bbox.min.z() }, { 0.0, 0.0, 1.0 });

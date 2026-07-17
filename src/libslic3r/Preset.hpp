@@ -66,7 +66,7 @@
 #define BBL_JSON_KEY_DEFAULT_MATERIALS          "default_materials"
 #define BBL_JSON_KEY_MODEL_ID                   "model_id"
 
-// Orca extension
+// Orca 扩展
 #define ORCA_JSON_KEY_RENAMED_FROM              "renamed_from"
 
 
@@ -118,7 +118,7 @@ public:
         std::string                 family;
         std::vector<PrinterVariant> variants;
         std::vector<std::string>	default_materials;
-        // Vendor & Printer Model specific print bed model & texture.
+        // 供应商和打印机型号特定的打印热床模型和纹理。
         std::string 			 	bed_model;
         std::string 				bed_texture;
         std::string                 hotend_model;
@@ -142,8 +142,8 @@ public:
 
     bool 		valid() const { return ! name.empty() && ! id.empty() && config_version.valid(); }
 
-    // Load VendorProfile from an ini file.
-    // If `load_all` is false, only the header with basic info (name, version, URLs) is loaded.
+    // 从ini文件加载VendorProfile。
+    // 如果`load_all`为false，仅加载包含基本信息（名称、版本、URL）的头部。
     static VendorProfile from_ini(const boost::filesystem::path &path, bool load_all=true);
     static VendorProfile from_ini(const boost::property_tree::ptree &tree, const boost::filesystem::path &path, bool load_all=true);
 
@@ -156,19 +156,19 @@ public:
 
 class Preset;
 
-// Helper to hold a profile with its vendor definition, where the vendor definition may have been extracted from a parent system preset.
-// The parent preset is only accessible through PresetCollection, therefore to allow definition of the various is_compatible_with methods
-// outside of the PresetCollection, this composite is returned by PresetCollection::get_preset_with_vendor_profile() when needed.
+// 用于保存配置文件及其供应商定义的辅助结构，供应商定义可能已从父系统预设中提取。
+// 父预设只能通过PresetCollection访问，因此为了允许在PresetCollection外部定义各种is_compatible_with方法，
+// 在需要时由PresetCollection::get_preset_with_vendor_profile()返回此复合结构。
 struct PresetWithVendorProfile {
 	PresetWithVendorProfile(const Preset &preset, const VendorProfile *vendor) : preset(preset), vendor(vendor) {}
 	const Preset 		&preset;
 	const VendorProfile *vendor;
 };
 
-// Note: it is imporant that map is used here rather than unordered_map,
-// because we need iterators to not be invalidated,
-// because Preset and the ConfigWizard hold pointers to VendorProfiles.
-// XXX: maybe set is enough (cf. changes in Wizard)
+// 注意：此处使用map而不是unordered_map很重要，
+// 因为我们需要迭代器不被失效，
+// 因为Preset和ConfigWizard持有指向VendorProfiles的指针。
+// XXX: 也许set就足够了（参见Wizard中的更改）
 typedef std::map<std::string, VendorProfile> VendorMap;
 
 class Preset
@@ -183,8 +183,8 @@ public:
         TYPE_SLA_MATERIAL,
         TYPE_PRINTER,
         TYPE_COUNT,
-        // This type is here to support PresetConfigSubstitutions for physical printers, however it does not belong to the Preset class,
-        // PhysicalPrinter class is used instead.
+        // 此类型用于支持物理打印机的PresetConfigSubstitutions，但它不属于Preset类，
+        // 而是使用PhysicalPrinter类。
         TYPE_PHYSICAL_PRINTER,
         // BBS: plate config
         TYPE_PLATE,
@@ -194,21 +194,19 @@ public:
 
     Type                type        = TYPE_INVALID;
 
-    // The preset represents a "default" set of properties,
-    // pulled from the default values of the PrintConfig (see PrintConfigDef for their definitions).
+    // 预设表示一组"默认"属性，
+    // 从PrintConfig的默认值中提取（其定义请参见PrintConfigDef）。
     bool                is_default = false;
-    // External preset points to a configuration, which has been loaded but not imported
-    // into the Slic3r default configuration location.
+    // 外部预设指向已加载但未导入到Slic3r默认配置位置的配置。
     bool                is_external = false;
-    // System preset is read-only.
+    // 系统预设是只读的。
     bool                is_system   = false;
-    // Preset is visible, if it is associated with a printer model / variant that is enabled in the AppConfig
-    // or if it has no printer model / variant association.
-    // Also the "default" preset is only visible, if it is the only preset in the list.
+    // 如果预设与AppConfig中启用的打印机型号/变体关联，或者没有打印机型号/变体关联，则预设可见。
+    // 此外，仅当"default"预设是列表中唯一的预设时，它才可见。
     bool                is_visible  = true;
-    // Has this preset been modified?
+    // 此预设是否已被修改？
     bool                is_dirty    = false;
-    // Is this preset compatible with the currently active printer?
+    // 此预设是否与当前活动打印机兼容？
     bool                is_compatible = true;
 
     //BBS: add type for project-embedded
@@ -217,51 +215,51 @@ public:
     bool                is_user() const { return ! this->is_default && ! this->is_system && ! this->is_project_embedded; }
     //bool                is_user() const { return ! this->is_default && ! this->is_system; }
 
-    // Name of the preset, usually derived form the file name.
+    // 预设名称，通常从文件名派生。
     std::string         name;
-    // File name of the preset. This could be a Print / Filament / Printer preset,
-    // or a Configuration file bundling the Print + Filament + Printer presets (in that case is_external and possibly is_system will be true),
-    // or it could be a G-code (again, is_external will be true).
+    // 预设的文件名。可以是打印/耗材/打印机预设，
+    // 或捆绑了打印+耗材+打印机预设的配置文件（此时is_external和可能的is_system将为true），
+    // 也可以是G-code（同样，is_external将为true）。
     std::string         file;
-    // If this is a system profile, then there should be a vendor data available to display at the UI.
+    // 如果这是系统配置文件，则应有供应商数据可在UI中显示。
     const VendorProfile *vendor      = nullptr;
 
-    // Has this profile been loaded?
+    // 此配置文件是否已加载？
     bool                loaded      = false;
 
-    // Configuration data, loaded from a file, or set from the defaults.
+    // 配置数据，从文件加载或从默认值设置。
     DynamicPrintConfig  config;
 
-    // Alias of the preset
+    // 预设的别名
     std::string         alias;
-    // List of profile names, from which this profile was renamed at some point of time.
-    // This list is then used to match profiles by their names when loaded from .gcode, .3mf, .amf,
-    // and to match the "inherits" field of user profiles with updated system profiles.
+    // 配置文件名称列表，此配置文件在某个时间点从此列表中重命名。
+    // 此列表用于在从.gcode、.3mf、.amf加载时按名称匹配配置文件，
+    // 以及将用户配置文件的"inherits"字段与更新后的系统配置文件匹配。
     std::vector<std::string> renamed_from;
 
-    // Orca: maintain a list of printer models that are excluded from this preset, designed for filaments without compatible_printer defined
-    // (hence they are visible to all printer models by default) in Orca Filament Library. However, we might have speciliazed filament for
-    // certain printer models defined in the vendor profile as well, in this case we want to hide this generic preset for these printer models.
+    // Orca: 维护从此预设中排除的打印机型号列表，设计用于在Orca耗材库中未定义compatible_printer的耗材
+    // （因此默认对所有打印机型号可见）。但是，我们可能在供应商配置文件中为特定打印机型号定义了专门的耗材，
+    // 在这种情况下，我们希望对这些打印机型号隐藏此通用预设。
     std::set<std::string> m_excluded_from;
 
-    // Orca: flag to indicate if this preset is from Orca Filament Library
+    // Orca: 标志，指示此预设是否来自Orca耗材库
     bool m_from_orca_filament_lib = false;
 
     //BBS
-    Semver              version;         // version of preset
-    std::string         ini_str;         // ini string of preset
-    std::string         setting_id;      // setting id in cloud database
-    std::string         filament_id;      // setting id in cloud database
-    std::string         user_id;         // preset user_id
-    std::string         base_id;         // base id of preset
-    std::string         sync_info;       // enum: "delete", "create", "update", ""
-    std::string         custom_defined;  // enum: "1", "0", ""
-    std::string         description;     // 
+    Semver              version;         // 预设版本
+    std::string         ini_str;         // 预设的ini字符串
+    std::string         setting_id;      // 云数据库中的设置ID
+    std::string         filament_id;      // 云数据库中的设置ID
+    std::string         user_id;         // 预设用户ID
+    std::string         base_id;         // 预设的基础ID
+    std::string         sync_info;       // 枚举: "delete", "create", "update", ""
+    std::string         custom_defined;  // 枚举: "1", "0", ""
+    std::string         description;     // 描述
     long long           updated_time{0};    //last updated time
     std::map<std::string, std::string> key_values;
 
     static std::string  get_type_string(Preset::Type type);
-    // get string type for iot
+    // 获取物联网的字符串类型
     static std::string  get_iot_type_string(Preset::Type type);
     static Preset::Type get_type_from_string(std::string type_str);
     void                load_info(const std::string& file);
@@ -273,20 +271,20 @@ public:
     void                save(DynamicPrintConfig* parent_config);
     void                reload(Preset const & parent);
 
-    // Return a label of this preset, consisting of a name and a "(modified)" suffix, if this preset is dirty.
+    // 返回此预设的标签，由名称和"(modified)"后缀组成（如果此预设被修改过）。
     std::string         label(bool no_alias) const;
 
-    // Set the is_dirty flag if the provided config is different from the active one.
+    // 如果提供的配置与活动配置不同，则设置is_dirty标志。
     void                set_dirty(const DynamicPrintConfig &config) { this->is_dirty = ! this->config.diff(config).empty(); }
     void                set_dirty(bool dirty = true) { this->is_dirty = dirty; }
     void                reset_dirty() { this->is_dirty = false; }
 
-    // Returns the name of the preset, from which this preset inherits.
+    // 返回此预设所继承的预设名称。
     static std::string& inherits(DynamicPrintConfig &cfg) { return cfg.option<ConfigOptionString>("inherits", true)->value; }
     std::string&        inherits() { return Preset::inherits(this->config); }
     const std::string&  inherits() const { return Preset::inherits(const_cast<Preset*>(this)->config); }
 
-    // Returns the "compatible_prints_condition".
+    // 返回 "compatible_prints_condition"。
     static std::string& compatible_prints_condition(DynamicPrintConfig &cfg) { return cfg.option<ConfigOptionString>("compatible_prints_condition", true)->value; }
     std::string&        compatible_prints_condition() {
 		assert(this->type == TYPE_FILAMENT || this->type == TYPE_SLA_MATERIAL);
@@ -294,7 +292,7 @@ public:
     }
     const std::string&  compatible_prints_condition() const { return const_cast<Preset*>(this)->compatible_prints_condition(); }
 
-    // Returns the "compatible_printers_condition".
+    // 返回 "compatible_printers_condition"。
     static std::string& compatible_printers_condition(DynamicPrintConfig &cfg) { return cfg.option<ConfigOptionString>("compatible_printers_condition", true)->value; }
     std::string&        compatible_printers_condition() {
 		assert(this->type == TYPE_PRINT || this->type == TYPE_SLA_PRINT || this->type == TYPE_FILAMENT || this->type == TYPE_SLA_MATERIAL);
@@ -302,31 +300,31 @@ public:
     }
     const std::string&  compatible_printers_condition() const { return const_cast<Preset*>(this)->compatible_printers_condition(); }
 
-    // Return a printer technology, return ptFFF if the printer technology is not set.
+    // 返回打印机技术，如果未设置打印机技术则返回ptFFF。
     static PrinterTechnology printer_technology(const DynamicPrintConfig &cfg) {
         auto *opt = cfg.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology");
-        // The following assert may trigger when importing some legacy profile,
-        // but it is safer to keep it here to capture the cases where the "printer_technology" key is queried, where it should not.
+        // 导入旧配置文件时可能触发以下断言，
+        // 但将其保留在此处以捕获不应查询"printer_technology"键的情况更安全。
 //        assert(opt != nullptr);
         return (opt == nullptr) ? ptFFF : opt->value;
     }
     PrinterTechnology   printer_technology() const { return Preset::printer_technology(this->config); }
-    // This call returns a reference, it may add a new entry into the DynamicPrintConfig.
+    // 此调用返回引用，它可能向DynamicPrintConfig添加新条目。
     PrinterTechnology&  printer_technology_ref() { return this->config.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology", true)->value; }
 
-    // Set is_visible according to application config
+    // 根据应用配置设置is_visible
     void                set_visible_from_appconfig(const AppConfig &app_config);
 
-    // Resize the extruder specific fields, initialize them with the content of the 1st extruder.
+    // 调整挤出机特定字段的大小，使用第一个挤出机的内容初始化它们。
     void                set_num_extruders(unsigned int n) { this->config.set_num_extruders(n); }
 
-    // Sort lexicographically by a preset name. The preset name shall be unique across a single PresetCollection.
+    // 按预设名称进行字典序排序。预设名称在单个PresetCollection中应是唯一的。
     bool                operator<(const Preset &other) const { return this->name < other.name; }
 
-    // special for upport G and Support W
+    // 专门用于支撑G和支撑W
     std::string get_filament_type(std::string &display_filament_type);
-    std::string get_printer_type(PresetBundle *preset_bundle); // get edited preset type
-    std::string get_current_printer_type(PresetBundle *preset_bundle); // get current preset type
+    std::string get_printer_type(PresetBundle *preset_bundle); // 获取编辑后的预设类型
+    std::string get_current_printer_type(PresetBundle *preset_bundle); // 获取当前预设类型
 
     bool has_lidar(PresetBundle *preset_bundle);
     bool is_custom_defined();
@@ -347,11 +345,11 @@ public:
 
     static const std::vector<std::string>&  print_options();
     static const std::vector<std::string>&  filament_options();
-    // Printer options contain the nozzle options.
+    // 打印机选项包含喷嘴选项。
     static const std::vector<std::string>&  printer_options();
-    // Nozzle options of the printer options.
+    // 打印机选项中的喷嘴选项。
     static const std::vector<std::string>&  nozzle_options();
-    // Printer machine limits, those are contained in printer_options().
+    // 打印机机器限制，包含在printer_options()中。
     static const std::vector<std::string>&  machine_limits_options();
 
     static const std::vector<std::string>&  sla_printer_options();
@@ -362,10 +360,10 @@ public:
     static const std::string&               suffix_modified();
     static std::string                      remove_suffix_modified(const std::string& name);
     static void                             normalize(DynamicPrintConfig &config);
-    // Report configuration fields, which are misplaced into a wrong group, remove them from the config.
+    // 报告被错误放置到错误组中的配置字段，将它们从配置中移除。
     static std::string                      remove_invalid_keys(DynamicPrintConfig &config, const DynamicPrintConfig &default_config);
 
-    // BBS: move constructor to public
+    // BBS: 将构造函数移到public
     Preset(Type type, const std::string &name, bool is_default = false) : type(type), is_default(is_default), name(name) {}
 
 protected:
@@ -380,19 +378,19 @@ bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const Pre
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer);
 
 enum class PresetSelectCompatibleType {
-	// Never select a compatible preset if the newly selected profile is not compatible.
+	// 如果新选择的配置文件不兼容，则从不选择兼容的预设。
 	Never,
-	// Only select a compatible preset if the active profile used to be compatible, but it is no more.
+	// 仅当活动配置文件以前是兼容的但不再兼容时，才选择兼容的预设。
 	OnlyIfWasCompatible,
-	// Always select a compatible preset if the active profile is no more compatible.
+	// 如果活动配置文件不再兼容，则始终选择兼容的预设。
 	Always
 };
 
-// Substitutions having been performed during parsing a single configuration file.
+// 在解析单个配置文件期间执行的替换。
 struct PresetConfigSubstitutions {
-    // User readable preset name.
+    // 用户可读的预设名称。
     std::string                             preset_name;
-    // Type of the preset (Print / Filament / Printer ...)
+    // 预设类型（Print / Filament / Printer ...）
     Preset::Type                            preset_type;
     enum class Source {
         UserFile,
@@ -412,11 +410,11 @@ struct PresetConfigSubstitutions {
 // PrusaSlicer and reading the user Print / Filament / Printer profiles.
 using PresetsConfigSubstitutions = std::vector<PresetConfigSubstitutions>;
 
-// Collections of presets of the same type (one of the Print, Filament or Printer type).
+// 相同类型预设的集合（Print、Filament或Printer类型之一）。
 class PresetCollection
 {
 public:
-    // Initialize the PresetCollection with the "- default -" preset.
+    // 用"- default -"预设初始化PresetCollection。
     PresetCollection(Preset::Type type, const std::vector<std::string> &keys, const Slic3r::StaticPrintConfig &defaults, const std::string &default_name = "Default Setting");
 
     typedef std::deque<Preset>::iterator Iterator;
@@ -445,16 +443,16 @@ public:
     void            reset(bool delete_files);
 
     Preset::Type    type() const { return m_type; }
-    // Name, to be used on the screen and in error messages. Not localized.
+    // 在屏幕上和错误消息中使用的名称。未本地化。
     std::string     name() const;
-    // Name, to be used as a section name in config bundle, and as a folder name for presets.
+    // 在配置包中用作节名称，以及预设的文件夹名称。
     std::string     section_name() const;
     const std::deque<Preset>& operator()() const { return m_presets; }
 
-    // Add default preset at the start of the collection, increment the m_default_preset counter.
+    // 在集合开头添加默认预设，递增m_default_preset计数器。
     void            add_default_preset(const std::vector<std::string> &keys, const Slic3r::StaticPrintConfig &defaults, const std::string &preset_name);
 
-    // Load ini files of the particular type from the provided directory path.
+    // 从提供的目录路径加载特定类型的ini文件。
     void            load_presets(const std::string &dir_path, const std::string &subdir, PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule rule);
 
     //BBS: update user presets directory
@@ -478,8 +476,8 @@ public:
     std::vector<Preset*> get_project_embedded_presets();
     bool reset_project_embedded_presets();
 
-    // Load a preset from an already parsed config file, insert it into the sorted sequence of presets
-    // and select it, losing previous modifications.
+    // 从已解析的配置文件加载预设，将其插入到排序的预设序列中，
+    // 并选择它，丢失之前的修改。
     Preset&         load_preset(const std::string &path, const std::string &name, const DynamicPrintConfig &config, bool select = true, Semver file_version = Semver(), bool is_custom_defined = false);
     Preset&         load_preset(const std::string &path, const std::string &name, DynamicPrintConfig &&config, bool select = true, Semver file_version = Semver(), bool is_custom_defined = false);
 
@@ -496,53 +494,53 @@ public:
 
     std::map<std::string, std::vector<Preset const *>> get_filament_presets() const;
 
-    // Returns a loaded preset, returns true if an existing preset was selected AND modified from config.
-    // In that case the successive filament loaded for a multi material printer should not be modified, but
-    // an external preset should be created instead.
+    // 返回加载的预设，如果选择了现有预设并从配置修改则返回true。
+    // 在这种情况下，为多材料打印机加载的后续耗材不应被修改，
+    // 而是应创建外部预设。
     enum class LoadAndSelect {
-        // Never select
+        // 从不选择
         Never,
-        // Always select
+        // 总是选择
         Always,
-        // Select a profile only if it was modified.
+        // 仅当配置文件被修改时才选择。
         OnlyIfModified,
     };
     std::pair<Preset*, bool> load_external_preset(
-        // Path to the profile source file (a G-code, an AMF or 3MF file, a config file)
+        // 配置文件源文件的路径（G-code、AMF或3MF文件、配置文件）
         const std::string           &path,
-        // Name of the profile, derived from the source file name.
+        // 配置文件的名称，从源文件名派生。
         const std::string           &name,
-        // Original name of the profile, extracted from the loaded config. Empty, if the name has not been stored.
+        // 配置文件的原始名称，从加载的配置中提取。如果名称未存储则为空。
         const std::string           &original_name,
-        // Config to initialize the preset from.
+        // 用于初始化预设的配置。
         const DynamicPrintConfig    &config,
-        //different settings list
+        // 不同的设置列表
         const std::set<std::string> &different_settings_list,
-        // Select the preset after loading?
+        // 加载后是否选择预设？
         LoadAndSelect                select = LoadAndSelect::Always,
         const Semver                file_version = Semver(),
         const std::string           filament_id = std::string());
 
-    // Save the preset under a new name. If the name is different from the old one,
-    // a new preset is stored into the list of presets.
-    // All presets are marked as not modified and the new preset is activated.
+    // 以新名称保存预设。如果名称与旧名称不同，
+    // 则新预设将存储到预设列表中。
+    // 所有预设都被标记为未修改，新预设被激活。
     //BBS: add project embedded preset logic
     void            save_current_preset(const std::string &new_name, bool detach = false, bool save_to_project = false, Preset* _curr_preset = nullptr, const Preset* _current_printer = nullptr);
 
-    // Delete the current preset, activate the first visible preset.
-    // returns true if the preset was deleted successfully.
+    // 删除当前预设，激活第一个可见预设。
+    // 如果预设成功删除则返回true。
     bool            delete_current_preset();
-    // Delete the current preset, activate the first visible preset.
-    // returns true if the preset was deleted successfully.
+    // 删除当前预设，激活第一个可见预设。
+    // 如果预设成功删除则返回true。
     bool            delete_preset(const std::string& name);
 
-    // Enable / disable the "- default -" preset.
+    // 启用/禁用 "- default -" 预设。
     void            set_default_suppressed(bool default_suppressed);
     bool            is_default_suppressed() const { return m_default_suppressed; }
 
-    // Select a preset. If an invalid index is provided, the first visible preset is selected.
+    // 选择一个预设。如果提供了无效索引，则选择第一个可见预设。
     Preset&         select_preset(size_t idx);
-    // Return the selected preset, without the user modifications applied.
+    // 返回选中的预设，不应用用户修改。
     Preset&         get_selected_preset() {
         //BBS fix crash when m_idx_selected == -1, give a default value
         if ((m_idx_selected < 0) || (m_idx_selected >= m_presets.size())) {
@@ -552,31 +550,30 @@ public:
     }
     const Preset&   get_selected_preset() const { return m_presets[m_idx_selected]; }
     size_t          get_selected_idx()    const { return m_idx_selected; }
-    // Returns the name of the selected preset, or an empty string if no preset is selected.
+    // 返回选中预设的名称，如果未选择预设则返回空字符串。
     std::string     get_selected_preset_name() const {
         if (m_idx_selected == size_t(-1) || m_idx_selected >= m_presets.size())
             return std::string();
         return this->get_selected_preset().name;
     }
-    // For the current edited preset, return the parent preset if there is one.
-    // If there is no parent preset, nullptr is returned.
-    // The parent preset may be a system preset or a user preset, which will be
-    // reflected by the UI.
+    // 对于当前编辑的预设，如果存在则返回父预设。
+    // 如果没有父预设，则返回nullptr。
+    // 父预设可以是系统预设或用户预设，这将在UI中反映。
     const Preset*   get_selected_preset_parent() const;
-	// Get parent preset for a child preset, based on the "inherits" field of a child,
-	// where the "inherits" profile name is searched for in both m_presets and m_map_system_profile_renamed.
+	// 获取子预设的父预设，基于子预设的"inherits"字段，
+	// 在m_presets和m_map_system_profile_renamed中搜索"inherits"配置文件名称。
 	const Preset*	get_preset_parent(const Preset& child) const;
 	const Preset*	get_preset_base(const Preset& child) const;
-	// Return the selected preset including the user modifications.
+	// 返回包含用户修改的选中预设。
     Preset&         get_edited_preset()         { return m_edited_preset; }
     const Preset&   get_edited_preset() const   { return m_edited_preset; }
 
     const Preset& get_selected_preset_base() const { return *get_preset_base(m_presets[m_idx_selected]); }
 
-    // Return the last saved preset.
+    // 返回最后保存的预设。
 //  const Preset&   get_saved_preset() const { return m_saved_preset; }
 
-    // Return vendor of the first parent profile, for which the vendor is defined, or null if such profile does not exist.
+    // 返回定义了供应商的第一个父配置文件的供应商，如果不存在则返回null。
     PresetWithVendorProfile get_preset_with_vendor_profile(const Preset &preset) const;
     PresetWithVendorProfile get_edited_preset_with_vendor_profile() const { return this->get_preset_with_vendor_profile(this->get_edited_preset()); }
 
@@ -585,16 +582,16 @@ public:
     bool                    is_alias_exist(const std::string &alias, Preset* preset = nullptr);
     void                    set_printer_hold_alias(const std::string &alias, Preset &preset);
 
-	// used to update preset_choice from Tab
+	// 用于从Tab更新预设选择
 	const std::deque<Preset>&	get_presets() const	{ return m_presets; }
     size_t                      get_idx_selected()	{ return m_idx_selected; }
 	static const std::string&	get_suffix_modified();
 
-    // Return a preset possibly with modifications.
+    // 返回可能带有修改的预设。
 	Preset&			default_preset(size_t idx = 0)		 { assert(idx < m_num_default_presets); return m_presets[idx]; }
 	const Preset&   default_preset(size_t idx = 0) const { assert(idx < m_num_default_presets); return m_presets[idx]; }
 	virtual const Preset& default_preset_for(const DynamicPrintConfig & /* config */) const { return this->default_preset(); }
-    // Return a preset by an index. If the preset is active, a temporary copy is returned.
+    // 按索引返回预设。如果预设处于活动状态，则返回临时副本。
     Preset&         preset(size_t idx, bool real = false) {
         if (real) return m_presets[idx];
         return (idx == m_idx_selected) ? m_edited_preset : m_presets[idx];
@@ -606,20 +603,19 @@ public:
 //        update_saved_preset_from_current_preset();
     }
 
-    // Return a preset by its name. If the preset is active, a temporary copy is returned.
-    // If a preset is not found by its name, null is returned.
-    // return real pointer if set real = true
+    // 按名称返回预设。如果预设处于活动状态，则返回临时副本。
+    // 如果按名称未找到预设，则返回null。
+    // 如果设置 real = true 则返回真实指针
     Preset* find_preset(const std::string& name, bool first_visible_if_not_found = false, bool real = false, bool only_from_library = false);
     const Preset* find_preset(const std::string& name, bool first_visible_if_not_found = false) const
     {
         return const_cast<PresetCollection*>(this)->find_preset(name, first_visible_if_not_found);
     }
-    // Orca: find preset, if not found, keep searching in the renamed history. This is function should only be used when find
-    // system(parent) presets for custom preset.
+    // Orca: 查找预设，如果未找到，继续在重命名历史中搜索。此函数仅应在查找自定义预设的系统（父）预设时使用。
     Preset* find_preset2(const std::string& name, bool auto_match = true);
 
     std::vector<std::string> diameters_of_selected_printer();
-    // All nozzle variants shipped for the current edited preset's printer_model (ignores is_visible).
+    // 当前编辑预设的printer_model所附的所有喷嘴变体（忽略is_visible）。
     std::vector<std::string> diameters_for_same_printer_model();
 
     const Preset* find_preset2(const std::string& name, bool auto_match = true) const
@@ -627,8 +623,8 @@ public:
         return const_cast<PresetCollection*>(this)->find_preset2(name, auto_match);
     }
     size_t first_visible_idx() const;
-    // Return index of the first compatible preset. Certainly at least the '- default -' preset shall be compatible.
-    // If one of the prefered_alternates is compatible, select it.
+    // 返回第一个兼容预设的索引。当然至少'- default -'预设应该是兼容的。
+    // 如果某个首选替代项兼容，则选择它。
     template<typename PreferedCondition> size_t first_compatible_idx(PreferedCondition prefered_condition) const
     {
         size_t i             = m_default_suppressed ? m_num_default_presets : 0;
@@ -636,29 +632,29 @@ public:
         size_t i_compatible  = n;
         int    match_quality = -1;
         for (; i < n; ++i)
-            // Since we use the filament selection from Wizard, it's needed to control the preset visibility too
+            // 由于我们使用来自向导的耗材选择，因此也需要控制预设的可见性
             if (m_presets[i].is_compatible && m_presets[i].is_visible) {
                 int this_match_quality = prefered_condition(m_presets[i]);
                 if (this_match_quality > match_quality) {
                     if (match_quality == std::numeric_limits<int>::max())
-                        // Better match will not be found.
+                        // 将找不到更好的匹配。
                         return i;
-                    // Store the first compatible profile with highest match quality into i_compatible.
+                    // 将具有最高匹配质量的第一个兼容配置文件存储到i_compatible中。
                     i_compatible  = i;
                     match_quality = this_match_quality;
                 }
             }
         return (i_compatible == n) ?
-                    // No compatible preset found, return the default preset.
+                    // 未找到兼容的预设，返回默认预设。
                     0 :
-                    // Compatible preset found.
+                    // 找到兼容的预设。
                     i_compatible;
 }
-    // Return index of the first compatible preset. Certainly at least the '- default -' preset shall be compatible.
+    // 返回第一个兼容预设的索引。当然至少'- default -'预设应该是兼容的。
     size_t          first_compatible_idx() const { return this->first_compatible_idx([](const Preset&) -> int { return 0; }); }
 
-    // Return index of the first visible preset. Certainly at least the '- default -' preset shall be visible.
-    // Return the first visible preset. Certainly at least the '- default -' preset shall be visible.
+    // 返回第一个可见预设的索引。当然至少'- default -'预设应该是可见的。
+    // 返回第一个可见预设。当然至少'- default -'预设应该是可见的。
     Preset&         first_visible()             { return this->preset(this->first_visible_idx()); }
     const Preset&   first_visible() const       { return this->preset(this->first_visible_idx()); }
     Preset&         first_compatible()          { return this->preset(this->first_compatible_idx()); }
@@ -666,16 +662,16 @@ public:
     Preset&         first_compatible(PreferedCondition prefered_condition) { return this->preset(this->first_compatible_idx(prefered_condition)); }
     const Preset&   first_compatible() const    { return this->preset(this->first_compatible_idx()); }
 
-    // Return number of presets including the "- default -" preset.
+    // 返回预设数量，包括"- default -"预设。
     size_t          size() const                { return m_presets.size(); }
     bool            has_defaults_only() const   { return m_presets.size() <= m_num_default_presets; }
 
-    // For Print / Filament presets, disable those, which are not compatible with the printer.
+    // 对于Print/Filament预设，禁用那些与打印机不兼容的预设。
     template<typename PreferedCondition>
     void            update_compatible(const PresetWithVendorProfile &active_printer, const PresetWithVendorProfile *active_print, PresetSelectCompatibleType select_other_if_incompatible, PreferedCondition prefered_condition)
     {
         if (this->update_compatible_internal(active_printer, active_print, select_other_if_incompatible) == (size_t)-1)
-            // Find some other compatible preset, or the "-- default --" preset.
+            // 查找其他兼容的预设，或"-- default --"预设。
             this->select_preset(this->first_compatible_idx(prefered_condition));
     }
     void            update_compatible(const PresetWithVendorProfile &active_printer, const PresetWithVendorProfile *active_print, PresetSelectCompatibleType select_other_if_incompatible)
@@ -683,41 +679,41 @@ public:
 
     size_t          num_visible() const { return std::count_if(m_presets.begin(), m_presets.end(), [](const Preset &preset){return preset.is_visible;}); }
 
-    // Compare the content of get_selected_preset() with get_edited_preset() configs, return true if they differ.
+    // 比较get_selected_preset()与get_edited_preset()配置的内容，如果不同则返回true。
     bool                        current_is_dirty() const
         { return is_dirty(&this->get_edited_preset(), &this->get_selected_preset()); }
-    // Compare the content of get_selected_preset() with get_edited_preset() configs, return the list of keys where they differ.
+    // 比较get_selected_preset()与get_edited_preset()配置的内容，返回差异的键列表。
     std::vector<std::string>    current_dirty_options(const bool deep_compare = false) const
         { return dirty_options(&this->get_edited_preset(), &this->get_selected_preset(), deep_compare); }
-    // Compare the content of get_selected_preset() with get_edited_preset() configs, return the list of keys where they differ.
+    // 比较get_selected_preset()与get_edited_preset()配置的内容，返回差异的键列表。
     std::vector<std::string>    current_different_from_parent_options(const bool deep_compare = false) const
         { return dirty_options(&this->get_edited_preset(), this->get_selected_preset_parent(), deep_compare); }
 
-    // Compare the content of get_saved_preset() with get_edited_preset() configs, return true if they differ.
+    // 比较get_saved_preset()与get_edited_preset()配置的内容，如果不同则返回true。
     bool                        saved_is_dirty() const
         { return is_dirty(&this->get_edited_preset(), &m_saved_preset); }
     // Compare the content of get_saved_preset() with get_edited_preset() configs, return the list of keys where they differ.
 //    std::vector<std::string>    saved_dirty_options() const
 //        { return dirty_options(&this->get_edited_preset(), &this->get_saved_preset(), /* deep_compare */ false); }
-    // Copy edited preset into saved preset.
+    // 将编辑后的预设复制到已保存的预设中。
     void                        update_saved_preset_from_current_preset() { m_saved_preset = m_edited_preset; }
 
-    // Return a sorted list of system preset names.
-    // Used for validating the "inherits" flag when importing user's config bundles.
-    // Returns names of all system presets including the former names of these presets.
+    // 返回系统预设名称的排序列表。
+    // 用于在导入用户配置包时验证"inherits"标志。
+    // 返回所有系统预设的名称，包括这些预设的旧名称。
     std::vector<std::string>    system_preset_names() const;
 
-    // Update a dirty flag of the current preset
-    // Return true if the dirty flag changed.
+    // 更新当前预设的dirty标志
+    // 如果dirty标志更改则返回true。
     bool            update_dirty();
 
-    // Select a profile by its name. Return true if the selection changed.
-    // Without force, the selection is only updated if the index changes.
-    // With force, the changes are reverted if the new index is the same as the old index.
+    // 按名称选择配置文件。如果选择更改则返回true。
+    // 不使用force时，仅当索引更改时更新选择。
+    // 使用force时，如果新索引与旧索引相同，则恢复更改。
     bool            select_preset_by_name(const std::string &name, bool force);
     bool is_base_preset(const Preset &preset) const { return preset.is_system || (preset.is_user() && preset.inherits().empty()); }
 
-    // Generate a file path from a profile name. Add the ".ini" suffix if it is missing.
+    // 从配置文件名称生成文件路径。如果缺少".ini"后缀则添加。
     std::string     path_from_name(const std::string &new_name, bool detach = false) const;
     std::string     path_for_preset(const Preset & preset) const;
 
@@ -725,44 +721,43 @@ public:
 
 protected:
     PresetCollection() = default;
-    // Copy constructor and copy operators are not to be used from outside PresetBundle,
-    // as the Profile::vendor points to an instance of VendorProfile stored at parent PresetBundle!
+    // 复制构造函数和复制运算符不应在PresetBundle外部使用，
+    // 因为Profile::vendor指向存储在父PresetBundle中的VendorProfile实例！
     PresetCollection(const PresetCollection &other) = default;
     //BBS: add operator= logic insteadof default
     PresetCollection& operator=(const PresetCollection &other);
-    // After copying a collection with the default operators above, call this function
-    // to adjust Profile::vendor pointers.
+    // 使用上述默认运算符复制集合后，调用此函数
+    // 以调整Profile::vendor指针。
     void            update_vendor_ptrs_after_copy(const VendorMap &vendors);
 
-    // Select a preset, if it exists. If it does not exist, select an invalid (-1) index.
-    // This is a temporary state, which shall be fixed immediately by the following step.
+    // 选择一个预设（如果存在）。如果不存在，则选择无效索引(-1)。
+    // 这是一个临时状态，应由下一步立即修复。
     bool            select_preset_by_name_strict(const std::string &name);
 
-    // Merge one vendor's presets with the other vendor's presets, report duplicates.
+    // 将一个供应商的预设与另一个供应商的预设合并，报告重复项。
     std::vector<std::string> merge_presets(PresetCollection &&other, const VendorMap &new_vendors);
 
-    // Update m_map_alias_to_profile_name from loaded system profiles.
+    // 从加载的系统配置文件更新m_map_alias_to_profile_name。
 	void 			update_map_alias_to_profile_name();
 
-    // Update m_map_system_profile_renamed from loaded system profiles.
+    // 从加载的系统配置文件更新m_map_system_profile_renamed。
     void 			update_map_system_profile_renamed();
 
-    // Orca: update m_excluded_from loaded system profiles.
+    // Orca: 更新已加载系统配置文件的m_excluded_from。
     void 			update_library_profile_excluded_from();
 
 
     void            set_custom_preset_alias(Preset &preset);
 
 private:
-    // Find a preset position in the sorted list of presets.
-    // The "-- default -- " preset is always the first, so it needs
-    // to be handled differently.
-    // If a preset does not exist, an iterator is returned indicating where to insert a preset with the same name.
+    // 在排序的预设列表中查找预设位置。
+    // "-- default --" 预设始终是第一个，因此需要不同处理。
+    // 如果预设不存在，则返回一个迭代器，指示在何处插入同名预设。
     std::deque<Preset>::iterator find_preset_internal(const std::string &name, bool from_orca_lib_only = false)
     {
         auto it = Slic3r::lower_bound_by_predicate(m_presets.begin() + m_num_default_presets, m_presets.end(), [&name](const auto& l) { return l.name < name;  });
         if (it == m_presets.end() || it->name != name) {
-            // Preset has not been not found in the sorted list of non-default presets. Try the defaults.
+            // 在排序的非默认预设列表中未找到预设。尝试默认值。
             for (size_t i = 0; i < m_num_default_presets; ++ i)
                 if (m_presets[i].name == name && (!from_orca_lib_only || m_presets[i].m_from_orca_filament_lib)) {
                     it = m_presets.begin() + i;
@@ -789,29 +784,29 @@ public:
     //BBS: add function for dirty_options_without_option_list
     static std::vector<std::string> dirty_options_without_option_list(const Preset *edited, const Preset *reference, const std::set<std::string>& option_ignore_list, const bool deep_compare = false);
 private:
-    // Type of this PresetCollection: TYPE_PRINT, TYPE_FILAMENT or TYPE_PRINTER.
+    // 此PresetCollection的类型：TYPE_PRINT、TYPE_FILAMENT或TYPE_PRINTER。
     Preset::Type            m_type;
-    // List of presets, starting with the "- default -" preset.
-    // Use deque to force the container to allocate an object per each entry,
-    // so that the addresses of the presets don't change during resizing of the container.
+    // 预设列表，以"- default -"预设开始。
+    // 使用deque强制容器为每个条目分配一个对象，
+    // 以便预设的地址在容器调整大小时不会改变。
     std::deque<Preset>      m_presets;
-    // System profiles may have aliases. Map to the full profile name.
+    // 系统配置文件可能有别名。映射到完整的配置文件名称。
     std::map<std::string, std::vector<std::string>> m_map_alias_to_profile_name;
     std::unordered_map<std::string, std::unordered_set<std::string>> m_printer_hold_alias;
-    // Map from old system profile name to a current system profile name.
+    // 从旧系统配置文件名称到当前系统配置文件名称的映射。
     std::map<std::string, std::string> m_map_system_profile_renamed;
-    // Initially this preset contains a copy of the selected preset. Later on, this copy may be modified by the user.
+    // 最初，此预设包含选中预设的副本。之后，此副本可能由用户修改。
     Preset                  m_edited_preset;
-    // Contains a copy of the last saved selected preset.
+    // 包含最后保存的选中预设的副本。
     Preset                  m_saved_preset;
 
-    // Selected preset.
+    // 选中的预设。
     size_t                  m_idx_selected;
-    // Is the "- default -" preset suppressed?
+    // "- default -" 预设是否被抑制？
     bool                    m_default_suppressed  = true;
     size_t                  m_num_default_presets = 0;
 
-    // Path to the directory to store the config files into.
+    // 存储配置文件的目录路径。
     std::string             m_dir_path;
 
     // to access select_preset_by_name_strict() and the default & copy constructors.
@@ -820,12 +815,12 @@ private:
     //BBS: mutex
     std::mutex          m_mutex;
 
-    // Orca: used for validation only
+    // Orca: 仅用于验证
     int m_errors = 0;
 };
 
-// Printer supports the FFF and SLA technologies, with different set of configuration values,
-// therefore this PresetCollection needs to handle two defaults.
+// 打印机支持FFF和SLA技术，使用不同的配置值集，
+// 因此此PresetCollection需要处理两个默认值。
 class PrinterPresetCollection : public PresetCollection
 {
 public:
@@ -847,7 +842,7 @@ private:
 };
 
 namespace PresetUtils {
-	// PrinterModel of a system profile, from which this preset is derived, or null if it is not derived from a system profile.
+	// 系统配置文件的PrinterModel，此预设从中派生，如果未从系统配置文件派生则为null。
 	const VendorProfile::PrinterModel* system_printer_model(const Preset &preset);
     std::string system_printer_bed_model(const Preset& preset);
     std::string system_printer_bed_texture(const Preset& preset);
@@ -864,16 +859,16 @@ public:
     PhysicalPrinter(const std::string& name, const DynamicPrintConfig &default_config, const Preset& preset);
     void set_name(const std::string &name);
 
-    // Name of the Physical Printer, usually derived form the file name.
+    // 物理打印机名称，通常从文件名派生。
     std::string         name;
-    // File name of the Physical Printer.
+    // 物理打印机的文件名。
     std::string         file;
-    // Configuration data, loaded from a file, or set from the defaults.
+    // 配置数据，从文件加载或从默认值设置。
     DynamicPrintConfig  config;
-    // set of presets used with this physical printer
+    // 与此物理打印机一起使用的预设集
     std::set<std::string> preset_names;
 
-    // Has this profile been loaded?
+    // 此配置文件是否已加载？
     bool                loaded = false;
 
     static std::string  separator();
@@ -894,31 +889,31 @@ public:
     void                update_from_preset(const Preset& preset);
     void                update_from_config(const DynamicPrintConfig &new_config);
 
-    // add preset to the preset_names
-    // return false, if preset with this name is already exist in the set
+    // 将预设添加到preset_names
+    // 如果集合中已存在此名称的预设，则返回false
     bool                add_preset(const std::string& preset_name);
     bool                delete_preset(const std::string& preset_name);
     void                reset_presets();
 
-    // Return a printer technology, return ptFFF if the printer technology is not set.
+    // 返回打印机技术，如果未设置打印机技术则返回ptFFF。
     static PrinterTechnology printer_technology(const DynamicPrintConfig& cfg) {
         auto* opt = cfg.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology");
-        // The following assert may trigger when importing some legacy profile,
-        // but it is safer to keep it here to capture the cases where the "printer_technology" key is queried, where it should not.
+        // 导入旧配置文件时可能触发以下断言，
+        // 但将其保留在此处以捕获不应查询"printer_technology"键的情况更安全。
         return (opt == nullptr) ? ptFFF : opt->value;
     }
     PrinterTechnology   printer_technology() const { return printer_technology(this->config); }
 
-    // Sort lexicographically by a preset name. The preset name shall be unique across a single PresetCollection.
+    // 按预设名称进行字典序排序。预设名称在单个PresetCollection中应是唯一的。
     bool                operator<(const PhysicalPrinter& other) const { return this->name < other.name; }
 
-    // get full printer name included a name of the preset
+    // 获取包含预设名称的完整打印机名称
     std::string         get_full_name(std::string preset_name) const;
 
-    // get printer name from the full name uncluded preset name
+    // 从包含预设名称的完整名称中获取打印机名称
     static std::string  get_short_name(std::string full_name);
 
-    // get preset name from the full name uncluded printer name
+    // 从包含打印机名称的完整名称中获取预设名称
     static std::string  get_preset_name(std::string full_name);
 
 protected:
@@ -930,7 +925,7 @@ protected:
 // ***  PhysicalPrinterCollection  ***
 // ---------------------------------
 
-// Collections of physical printers
+// 物理打印机的集合
 class PhysicalPrinterCollection
 {
 public:
@@ -951,54 +946,54 @@ public:
 
     const std::deque<PhysicalPrinter>& operator()() const { return m_printers; }
 
-    // Load ini files of the particular type from the provided directory path.
+    // 从提供的目录路径加载特定类型的ini文件。
     void            load_printers(const std::string& dir_path, const std::string& subdir, PresetsConfigSubstitutions& substitutions, ForwardCompatibilitySubstitutionRule rule);
     void            load_printers_from_presets(PrinterPresetCollection &printer_presets);
-    // Load printer from the loaded configuration
+    // 从加载的配置中加载打印机
     void            load_printer(const std::string& path, const std::string& name, DynamicPrintConfig&& config, bool select, bool save=false);
 
-    // Save the printer under a new name. If the name is different from the old one,
-    // a new printer is stored into the list of printers.
-    // New printer is activated.
+    // 以新名称保存打印机。如果名称与旧名称不同，
+    // 新打印机将存储到打印机列表中。
+    // 新打印机被激活。
     void            save_printer(PhysicalPrinter& printer, const std::string& renamed_from = "");
 
-    // Delete the current preset, activate the first visible preset.
-    // returns true if the preset was deleted successfully.
+    // 删除当前预设，激活第一个可见预设。
+    // 如果预设成功删除则返回true。
     bool            delete_printer(const std::string& name);
-    // Delete the selected preset
-    // returns true if the preset was deleted successfully.
+    // 删除选中的预设
+    // 如果预设成功删除则返回true。
     bool            delete_selected_printer();
-    // Delete preset_name preset from all printers:
-    // If there is last preset for the printer and first_check== false, then delete this printer
-    // returns true if all presets were deleted successfully.
+    // 从所有打印机中删除preset_name预设：
+    // 如果是打印机的最后一个预设且first_check == false，则删除此打印机
+    // 如果所有预设成功删除则返回true。
     bool            delete_preset_from_printers(const std::string& preset_name);
 
-    // Get list of printers which have more than one preset and "preset_names" preset is one of them
+    // 获取拥有多个预设且"preset_names"预设是其中之一的所有打印机列表
     std::vector<std::string> get_printers_with_preset( const std::string &preset_name);
-    // Get list of printers which has only "preset_names" preset
+    // 获取仅包含"preset_names"预设的打印机列表
     std::vector<std::string> get_printers_with_only_preset( const std::string &preset_name);
 
-    // Return the selected preset, without the user modifications applied.
+    // 返回选中的预设，不应用用户修改。
     PhysicalPrinter&        get_selected_printer() { return m_printers[m_idx_selected]; }
     const PhysicalPrinter&  get_selected_printer() const { return m_printers[m_idx_selected]; }
 
     size_t                  get_selected_idx()    const { return m_idx_selected; }
-    // Returns the name of the selected preset, or an empty string if no preset is selected.
+    // 返回选中预设的名称，如果未选择预设则返回空字符串。
     std::string             get_selected_printer_name() const { return (m_idx_selected == size_t(-1)) ? std::string() : this->get_selected_printer().name; }
-    // Returns the config of the selected printer, or nullptr if no printer is selected.
+    // 返回选中打印机的配置，如果未选中打印机则返回nullptr。
     DynamicPrintConfig*     get_selected_printer_config() { return (m_idx_selected == size_t(-1)) ? nullptr : &(this->get_selected_printer().config); }
-    // Returns the config of the selected printer, or nullptr if no printer is selected.
+    // 返回选中打印机的配置，如果未选中打印机则返回nullptr。
     PrinterTechnology       get_selected_printer_technology() { return (m_idx_selected == size_t(-1)) ? PrinterTechnology::ptAny : this->get_selected_printer().printer_technology(); }
 
-    // Each physical printer can have a several related preset,
-    // so, use the next functions to get an exact names of selections in the list:
-    // Returns the full name of the selected printer, or an empty string if no preset is selected.
+    // 每个物理打印机可以有多个相关预设，
+    // 因此，使用以下函数获取列表中选中的确切名称：
+    // 返回选中打印机的完整名称，如果未选中预设则返回空字符串。
     std::string     get_selected_full_printer_name() const;
-    // Returns the printer model of the selected preset, or an empty string if no preset is selected.
+    // 返回选中预设的打印机型号，如果未选中预设则返回空字符串。
     std::string     get_selected_printer_preset_name() const { return (m_idx_selected == size_t(-1)) ? std::string() : m_selected_preset; }
 
-    // Select printer by the full printer name, which contains name of printer, separator and name of selected preset
-    // If full_name doesn't contain name of selected preset, then select first preset in the list for this printer
+    // 按完整打印机名称选择打印机，包含打印机名称、分隔符和选中预设名称
+    // 如果full_name不包含选中预设的名称，则为该打印机选择列表中的第一个预设
     void select_printer(const std::string& full_name);
     void select_printer(const PhysicalPrinter& printer);
     void select_printer(const std::string& printer_name, const std::string& preset_name);
@@ -1006,20 +1001,20 @@ public:
     void unselect_printer() ;
     bool is_selected(ConstIterator it, const std::string &preset_name) const;
 
-    // Return a printer by an index. If the printer is active, a temporary copy is returned.
+    // 按索引返回打印机。如果打印机处于活动状态，则返回临时副本。
     PhysicalPrinter& printer(size_t idx) { return m_printers[idx]; }
     const PhysicalPrinter& printer(size_t idx) const { return const_cast<PhysicalPrinterCollection*>(this)->printer(idx); }
 
-    // Return a preset by its name. If the preset is active, a temporary copy is returned.
-    // If a preset is not found by its name, null is returned.
-    // It is possible case (in)sensitive search
+    // 按名称返回预设。如果预设处于活动状态，则返回临时副本。
+    // 如果按名称未找到预设，则返回null。
+    // 支持大小写（不）敏感搜索
     PhysicalPrinter* find_printer(const std::string& name, bool case_sensitive_search = true);
     const PhysicalPrinter* find_printer(const std::string& name, bool case_sensitive_search = true) const
     {
         return const_cast<PhysicalPrinterCollection*>(this)->find_printer(name, case_sensitive_search);
     }
 
-    // Generate a file path from a profile name. Add the ".ini" suffix if it is missing.
+    // 从配置文件名称生成文件路径。如果缺少".ini"后缀则添加。
     std::string     path_from_name(const std::string& new_name) const;
 
     const DynamicPrintConfig& default_config() const { return m_default_config; }
@@ -1029,29 +1024,29 @@ private:
     PhysicalPrinterCollection() = default;
     PhysicalPrinterCollection& operator=(const PhysicalPrinterCollection& other) = default;
 
-    // Find a physical printer position in the sorted list of printers.
-    // The name of a printer should be unique and case insensitive
-    // Use this functions with case_sensitive_search = false, when you need case insensitive search
+    // 在排序的打印机列表中查找物理打印机位置。
+    // 打印机名称应唯一且不区分大小写
+    // 当需要不区分大小写的搜索时，使用case_sensitive_search = false调用此函数
     std::deque<PhysicalPrinter>::iterator find_printer_internal(const std::string& name, bool case_sensitive_search = true);
     std::deque<PhysicalPrinter>::const_iterator find_printer_internal(const std::string& name, bool case_sensitive_search = true) const
     {
         return const_cast<PhysicalPrinterCollection*>(this)->find_printer_internal(name);
     }
 
-    // List of printers
-    // Use deque to force the container to allocate an object per each entry,
-    // so that the addresses of the presets don't change during resizing of the container.
+    // 打印机列表
+    // 使用deque强制容器为每个条目分配一个对象，
+    // 以便预设的地址在容器调整大小时不会改变。
     std::deque<PhysicalPrinter> m_printers;
 
-    // Default config for a physical printer containing all key/value pairs of PhysicalPrinter::printer_options().
+    // 包含PhysicalPrinter::printer_options()所有键/值对的物理打印机默认配置。
     DynamicPrintConfig          m_default_config;
 
-    // Selected printer.
+    // 选中的打印机。
     size_t                      m_idx_selected = size_t(-1);
-    // The name of the preset which is currently select for this printer
+    // 当前为此打印机选择的预设名称
     std::string                 m_selected_preset;
 
-    // Path to the directory to store the config files into.
+    // 存储配置文件的目录路径。
     std::string                 m_dir_path;
 };
 

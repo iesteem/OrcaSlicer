@@ -39,8 +39,8 @@ bool open_zip(mz_zip_archive *zip, const char *fname, bool isread)
     {
         res = mz_zip_reader_init_cfile(zip, f, 0, 0);
         if (!res)
-            // if we get here it means we tried to open a non-zip file
-            // we need to close the file here because the call to mz_zip_get_cfile() made into close_zip() returns a null pointer
+            // 如果执行到这里，意味着我们尝试打开了一个非zip文件
+            // 我们需要在这里关闭文件，因为对mz_zip_get_cfile()的调用（在close_zip()中）返回空指针
             // see: https://github.com/prusa3d/PrusaSlicer/issues/3536
             fclose(f);
     }

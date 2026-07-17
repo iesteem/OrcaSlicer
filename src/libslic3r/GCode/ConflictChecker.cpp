@@ -91,20 +91,20 @@ void LinesBucketQueue::emplace_back_bucket(ExtrusionLayers &&els, const void *ob
     auto oldSize = line_buckets.capacity();
     line_buckets.emplace_back(std::move(els), objPtr, offset);
     auto newSize = line_buckets.capacity();
-    // Since line_bucket_ptr_queue is storing pointers into line_buckets,
-    // we need to handle the case where the capacity changes since that makes
-    // the existing pointers invalid
+    // 由于line_bucket_ptr_queue存储指向line_buckets的指针，
+    // 我们需要处理容量变化的情况，因为这将使
+    // 现有指针失效
     if (oldSize == newSize) {
         line_bucket_ptr_queue.push(&line_buckets.back());
     }
-    else { // pointers change, create a new queue from scratch
+    else { // 指针更改，从头创建新队列
         decltype(line_bucket_ptr_queue) newQueue;
         for (LinesBucket &bucket : line_buckets) { newQueue.push(&bucket); }
         std::swap(line_bucket_ptr_queue, newQueue);
     }
 }
 
-// remove lowest and get the current bottom z
+// 移除最低值并获取当前的底部z
 float LinesBucketQueue::getCurrBottomZ()
 {
     auto lowest = line_bucket_ptr_queue.top();
@@ -159,7 +159,7 @@ void getExtrusionPathsFromEntity(const ExtrusionEntityCollection *entity, Extrus
 
 ExtrusionLayers getExtrusionPathsFromLayer(const LayerRegionPtrs layerRegionPtrs)
 {
-    ExtrusionLayers perimeters; // periments and infills
+    ExtrusionLayers perimeters; // 周长和填充
     perimeters.resize(layerRegionPtrs.size());
     int i = 0;
     for (LayerRegion *regionPtr : layerRegionPtrs) {
@@ -218,12 +218,12 @@ ConflictComputeOpt ConflictChecker::find_inter_of_lines(const LineWithIDs &lines
 }
 
 ConflictResultOpt ConflictChecker::find_inter_of_lines_in_diff_objs(PrintObjectPtrs                      objs,
-                                                                    std::optional<const FakeWipeTower *> wtdptr) // find the first intersection point of lines in different objects
+                                                                     std::optional<const FakeWipeTower *> wtdptr) // 找到不同对象中线的第一个交点
 {
     if (objs.size() <= 1 && !wtdptr) { return {}; }
     LinesBucketQueue conflictQueue;
 
-    if (wtdptr.has_value()) { // wipe tower at 0 by default
+    if (wtdptr.has_value()) { // 默认擦拭塔在0位置
         ExtrusionLayers wtels = wtdptr.value()->getTrueExtrusionLayersFromWipeTower();
         conflictQueue.emplace_back_bucket(std::move(wtels), wtdptr.value(), {wtdptr.value()->plate_origin.x(), wtdptr.value()->plate_origin.y()});
     }
@@ -276,9 +276,9 @@ ConflictResultOpt ConflictChecker::find_inter_of_lines_in_diff_objs(PrintObjectP
 
 ConflictComputeOpt ConflictChecker::line_intersect(const LineWithID &l1, const LineWithID &l2)
 {
-    constexpr double SUPPORT_THRESHOLD = 100;  // this large almost disables conflict check of supports
+    constexpr double SUPPORT_THRESHOLD = 100;  // 这个较大的值几乎禁用了支撑的冲突检查
     constexpr double OTHER_THRESHOLD   = 0.01;
-    if (l1._id == l2._id) { return {}; } // return true if lines are from same object
+    if (l1._id == l2._id) { return {}; } // 如果线来自同一对象则返回true
     Point inter;
     bool  intersect = l1._line.intersection(l2._line, &inter);
 
@@ -291,7 +291,7 @@ ConflictComputeOpt ConflictChecker::line_intersect(const LineWithID &l1, const L
         bool          both_support = r1 == ExtrusionRole::erSupportMaterial || r1 == ExtrusionRole::erSupportMaterialInterface || r1 == ExtrusionRole::erSupportTransition;
         both_support = both_support && ( r2 == ExtrusionRole::erSupportMaterial || r2 == ExtrusionRole::erSupportMaterialInterface || r2 == ExtrusionRole::erSupportTransition);
         if (dist > (both_support ? SUPPORT_THRESHOLD:OTHER_THRESHOLD)) {
-            // the two lines intersects if dist>0.01mm for regular lines, and if dist>1mm for both supports
+            // 如果dist>0.01mm（普通线）或dist>1mm（两者都是支撑），则两条线相交
             return std::make_optional<ConflictComputeResult>(l1._id, l2._id);
         }
     }

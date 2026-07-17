@@ -1,4 +1,4 @@
-#ifndef ANYPTR_HPP
+﻿#ifndef ANYPTR_HPP
 #define ANYPTR_HPP
 
 #include <memory>
@@ -111,14 +111,14 @@ public:
         return ret;
     }
 
-    // If the underlying pointer is unique, convert to shared pointer
+    // 如果底层指针是 unique，则转换为 shared 指针
     void convert_unique_to_shared()
     {
         if (ptr.which() == UPtr)
             ptr = std::shared_ptr<T>{std::move(boost::get<std::unique_ptr<T>>(ptr))};
     }
 
-    // Returns true if the data is owned by this AnyPtr instance
+    // 如果数据由此 AnyPtr 实例拥有则返回 true
     bool is_owned() const noexcept
     {
         return ptr.which() == UPtr || ptr.which() == ShPtr;

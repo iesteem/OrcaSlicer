@@ -11,7 +11,7 @@
 namespace Slic3r {
 namespace sla {
 
-// The minimum distance for two support points to remain valid.
+// 两个支撑点保持有效的最小距离。
 const double /*constexpr*/ D_SP = 0.1;
 
 enum { // For indexing Eigen vectors as v(X), v(Y), v(Z) instead of numbers
@@ -228,17 +228,14 @@ class SupportTreeBuildsteps {
         return m_mesh.query_ray_hit(s, dir);
     }
 
-    // This function will test if a future pinhead would not collide with the
-    // model geometry. It does not take a 'Head' object because those are
-    // created after this test. Parameters: s: The touching point on the model
-    // surface. dir: This is the direction of the head from the pin to the back
-    // r_pin, r_back: the radiuses of the pin and the back sphere width: This
-    // is the full width from the pin center to the back center m: The object
-    // mesh.
-    // The return value is the hit result from the ray casting. If the starting
-    // point was inside the model, an "invalid" hit_result will be returned
-    // with a zero distance value instead of a NAN. This way the result can
-    // be used safely for comparison with other distances.
+    // 此函数将测试未来的钉头是否会与模型几何体碰撞。
+    // 它不接收 'Head' 对象，因为那些是在此测试之后创建的。
+    // 参数：s: 模型表面上的接触点。dir: 头部从钉尖到背部的方向。
+    // r_pin, r_back: 钉尖和背部球体的半径。width: 从钉尖中心到背部中心的完整宽度。
+    // m: 对象网格。
+    // 返回值是射线投射的结果。如果起点在模型内部，
+    // 将返回一个距离值为零的"无效" hit_result，而不是 NAN。
+    // 这样结果可以安全地用于与其他距离进行比较。
     IndexedMesh::hit_result pinhead_mesh_intersect(
         const Vec3d& s,
         const Vec3d& dir,
@@ -259,14 +256,12 @@ class SupportTreeBuildsteps {
                                           m_cfg.head_back_radius_mm);
     }
 
-    // Checking bridge (pillar and stick as well) intersection with the model.
-    // If the function is used for headless sticks, the ins_check parameter
-    // have to be true as the beginning of the stick might be inside the model
-    // geometry.
-    // The return value is the hit result from the ray casting. If the starting
-    // point was inside the model, an "invalid" hit_result will be returned
-    // with a zero distance value instead of a NAN. This way the result can
-    // be used safely for comparison with other distances.
+    // 检查桥（以及柱和杆）与模型的相交情况。
+    // 如果函数用于无头杆，ins_check 参数必须为 true，
+    // 因为杆的起始点可能在模型几何体内部。
+    // 返回值是射线投射的结果。如果起点在模型内部，
+    // 将返回一个距离值为零的"无效" hit_result，而不是 NAN。
+    // 这样结果可以安全地用于与其他距离进行比较。
     IndexedMesh::hit_result bridge_mesh_intersect(
         const Vec3d& s,
         const Vec3d& dir,
@@ -288,16 +283,15 @@ class SupportTreeBuildsteps {
         return bridge_mesh_intersect(std::forward<Args>(args)...).distance();
     }
 
-    // Helper function for interconnecting two pillars with zig-zag bridges.
+    // 辅助函数，用于用锯齿形桥连接两个柱。
     bool interconnect(const Pillar& pillar, const Pillar& nextpillar);
 
-    // For connecting a head to a nearby pillar.
+    // 用于将头连接到附近的柱。
     bool connect_to_nearpillar(const Head& head, long nearpillar_id);
     
-    // Find route for a head to the ground. Inserts additional bridge from the
-    // head to the pillar if cannot create pillar directly.
-    // The optional dir parameter is the direction of the bridge which is the
-    // direction of the pinhead if omitted.
+    // 找到头到地面的路径。如果无法直接创建柱，
+    // 则从头到柱插入额外的桥。
+    // 可选的 dir 参数是桥的方向，如果省略则为钉头的方向。
     bool connect_to_ground(Head& head, const Vec3d &dir);
     inline bool connect_to_ground(Head& head);
     
@@ -305,11 +299,10 @@ class SupportTreeBuildsteps {
 
     bool search_pillar_and_connect(const Head& source);
     
-    // This is a proxy function for pillar creation which will mind the gap
-    // between the pad and the model bottom in zero elevation mode.
-    // jp is the starting junction point which needs to be routed down.
-    // sourcedir is the allowed direction of an optional bridge between the
-    // jp junction and the final pillar.
+    // 这是一个用于创建柱的代理函数，在零抬高模式下会考虑
+    // 垫与模型底部之间的间隙。
+    // jp 是起始连接点，需要向下路由。
+    // sourcedir 是 jp 连接点与最终柱之间可选桥的允许方向。
     bool create_ground_pillar(const Vec3d &jp,
                               const Vec3d &sourcedir,
                               double       radius,
@@ -328,41 +321,35 @@ class SupportTreeBuildsteps {
 public:
     SupportTreeBuildsteps(SupportTreeBuilder & builder, const SupportableMesh &sm);
 
-    // Now let's define the individual steps of the support generation algorithm
+    // 现在定义支撑生成算法的各个步骤
 
-    // Filtering step: here we will discard inappropriate support points
-    // and decide the future of the appropriate ones. We will check if a
-    // pinhead is applicable and adjust its angle at each support point. We
-    // will also merge the support points that are just too close and can
-    // be considered as one.
+    // 过滤步骤：这里我们将丢弃不合适的支撑点，
+    // 并决定合适支撑点的后续处理。我们将检查钉头是否适用，
+    // 并在每个支撑点调整其角度。
+    // 我们还将合并那些距离过近、可视为一个的支撑点。
     void filter();
 
-    // Pinhead creation: based on the filtering results, the Head objects
-    // will be constructed (together with their triangle meshes).
+    // 钉头创建：根据过滤结果，将构建 Head 对象（以及它们的三角形网格）。
     void add_pinheads();
 
-    // Further classification of the support points with pinheads. If the
-    // ground is directly reachable through a vertical line parallel to the
-    // Z axis we consider a support point as pillar candidate. If touches
-    // the model geometry, it will be marked as non-ground facing and
-    // further steps will process it. Also, the pillars will be grouped
-    // into clusters that can be interconnected with bridges. Elements of
-    // these groups may or may not be interconnected. Here we only run the
-    // clustering algorithm.
+    // 对带有钉头的支撑点进行进一步分类。如果通过平行于 Z 轴的垂直线
+    // 可以直接到达地面，我们将支撑点视为柱候选。
+    // 如果接触到模型几何体，它将被标记为非地面朝向，
+    // 后续步骤将处理它。此外，柱将被分组为可用桥互连的聚类。
+    // 这些组的元素可能互连，也可能不互连。这里我们只运行
+    // 聚类算法。
     void classify();
 
-    // Step: Routing the ground connected pinheads, and interconnecting
-    // them with additional (angled) bridges. Not all of these pinheads
-    // will be a full pillar (ground connected). Some will connect to a
-    // nearby pillar using a bridge. The max number of such side-heads for
-    // a central pillar is limited to avoid bad weight distribution.
+    // 步骤：路由地面连接的钉头，并使用额外的（倾斜）桥将它们互连。
+    // 并非所有这些钉头都会成为完整的柱（地面连接）。
+    // 有些将使用桥连接到附近的柱。中心柱的此类侧头
+    // 的最大数量是有限的，以避免不良的重量分布。
     void routing_to_ground();
 
-    // Step: routing the pinheads that would connect to the model surface
-    // along the Z axis downwards. For now these will actually be connected with
-    // the model surface with a flipped pinhead. In the future here we could use
-    // some smart algorithms to search for a safe path to the ground or to a
-    // nearby pillar that can hold the supported weight.
+    // 步骤：路由将沿 Z 轴向下连接到模型表面的钉头。
+    // 目前这些将实际上使用翻转的钉头连接到模型表面。
+    // 未来这里我们可以使用一些智能算法来搜索到地面或到
+    // 可以承受支撑重量的附近柱的安全路径。
     void routing_to_model();
 
     void interconnect_pillars();

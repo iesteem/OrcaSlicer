@@ -7,7 +7,7 @@
 
 namespace Slic3r {
 
-// Forward declarations.
+// 前向声明。
 class GCode;
 class Layer;
 class Point;
@@ -15,7 +15,7 @@ class Point;
 class AvoidCrossingPerimeters
 {
 public:
-    // Routing around the objects vs. inside a single object.
+    // 绕对象外面行走 vs. 在单个对象内部行走。
     void        use_external_mp(bool use = true) { m_use_external_mp = use; };
     bool        used_external_mp() { return m_use_external_mp; }
     void        use_external_mp_once()  { m_use_external_mp_once = true; }
@@ -35,13 +35,13 @@ public:
     Polyline    travel_to(const GCode& gcodegen, const Point& point, bool* could_be_wipe_disabled);
 
     struct Boundary {
-        // Collection of boundaries used for detection of crossing perimeters for travels
+        // 用于检测移动中周长穿越的边界集合
         Polygons                        boundaries;
-        // Bounding box of boundaries
+        // 边界的边界框
         BoundingBoxf                    bbox;
-        // Precomputed distances of all points in boundaries
+        // 边界中所有点的预计算距离
         std::vector<std::vector<float>> boundaries_params;
-        // Used for detection of intersection between line and any polygon from boundaries
+        // 用于检测线段与边界中任何多边形之间的交点
         EdgeGrid::Grid                  grid;
 
         void clear()
@@ -53,20 +53,20 @@ public:
 
 private:
     bool           m_use_external_mp { false };
-    // just for the next travel move
+    // 仅用于下一个移动移动
     bool           m_use_external_mp_once { false };
-    // this flag disables reduce_crossing_wall just for the next travel move
-    // we enable it by default for the first travel move in print
+    // 此标志仅针对下一个移动移动禁用reduce_crossing_wall
+    // 我们默认在打印的第一个移动移动中启用它
     bool           m_disabled_once { true };
 
-    // Lslices offseted by half an external perimeter width. Used for detection if line or polyline is inside of any polygon.
+    // 按一半外部周长宽度偏移的L层切片。用于检测线段或多段线是否在任何多边形内部。
     ExPolygons               m_lslices_offset;
     std::vector<BoundingBox> m_lslices_offset_bboxes;
-    // Used for detection of line or polyline is inside of any polygon.
+    // 用于检测线段或多段线是否在任何多边形内部。
     EdgeGrid::Grid m_grid_lslice;
-    // Store all needed data for travels inside object
+    // 存储对象内移动所需的所有数据
     Boundary m_internal;
-    // Store all needed data for travels outside object
+    // 存储对象外移动所需的所有数据
     Boundary m_external;
 };
 

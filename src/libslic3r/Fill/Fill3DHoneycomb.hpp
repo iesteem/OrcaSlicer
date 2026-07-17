@@ -15,8 +15,8 @@ public:
     Fill* clone() const override { return new Fill3DHoneycomb(*this); };
     ~Fill3DHoneycomb() override {}
 
-    // note: updated 3D Honeycomb doesn't need bridge flow because the
-    //       pattern is placed on top of previous layers
+    // 注意：更新后的 3D 蜂巢不需要桥接流量，因为
+    //       图案放置在先前层的顶部
     bool use_bridge_flow() const override { return false; }
     bool is_self_crossing() override { return false; }
 

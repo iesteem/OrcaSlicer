@@ -1,4 +1,4 @@
-// Based on implementation by @platsch
+// 基于@platsch的实现
 
 #ifndef slic3r_Slicing_hpp_
 #define slic3r_Slicing_hpp_
@@ -22,14 +22,14 @@ class ModelConfig;
 class ModelObject;
 class DynamicPrintConfig;
 
-// Parameters to guide object slicing and support generation.
-// The slicing parameters account for a raft and whether the 1st object layer is printed with a normal or a bridging flow
-// (using a normal flow over a soluble support, using a bridging flow over a non-soluble support).
+// 用于指导对象切片和支撑生成的参数。
+// 切片参数考虑了底座以及第一对象层是使用正常流量还是桥接流量打印
+//（在可溶性支撑上使用正常流量，在非可溶性支撑上使用桥接流量）。
 struct SlicingParameters
 {
 	SlicingParameters() = default;
 
-    // Orca: XYZ filament compensation introduced object_shrinkage_compensation
+    // Orca: XYZ线材补偿引入了object_shrinkage_compensation
     static SlicingParameters create_from_config(
          const PrintConfig               &print_config,
          const PrintObjectConfig         &object_config,
@@ -37,28 +37,28 @@ struct SlicingParameters
          const std::vector<unsigned int> &object_extruders,
          const Vec3d                     &object_shrinkage_compensation);
 
-    // Has any raft layers?
+    // 是否有任何底座层？
     bool        has_raft() const { return raft_layers() > 0; }
     size_t      raft_layers() const { return base_raft_layers + interface_raft_layers; }
 
-    // Is the 1st object layer height fixed, or could it be varied?
+    // 第一对象层高度是固定的还是可以变化的？
     bool        first_object_layer_height_fixed()  const { return ! has_raft() || first_object_layer_bridging; }
 
-    // Height of the object to be printed. This value does not contain the raft height.
+    // 要打印的对象的高度。此值不包含底座高度。
     coordf_t    object_print_z_height() const { return object_print_z_max - object_print_z_min; }
     
-    // Height of the object to be printed. This value does not contain the raft height.
-     // This value isn't scaled by shrinkage compensation in the Z-axis.
+    // 要打印的对象的高度。此值不包含底座高度。
+     // 此值不受Z轴收缩补偿的缩放。
      coordf_t    object_print_z_uncompensated_height() const { return object_print_z_uncompensated_max - object_print_z_min; }
 
     bool        valid { false };
 
-    // Number of raft layers.
+    // 底座层数。
     size_t      base_raft_layers { 0 };
-    // Number of interface layers including the contact layer.
+    // 包括接触层在内的接口层数。
     size_t      interface_raft_layers { 0 };
 
-    // Layer heights of the raft (base, interface and a contact layer).
+    // 底座的层高（基层、接口层和接触层）。
     coordf_t    base_raft_layer_height { 0 };
     coordf_t    interface_raft_layer_height { 0 };
     coordf_t    contact_raft_layer_height { 0 };

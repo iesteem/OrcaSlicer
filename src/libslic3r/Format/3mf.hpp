@@ -3,7 +3,7 @@
 #include <expat.h>
 
 namespace Slic3r {
-// PrusaFileParser is used to check 3mf file is from Prusa
+// PrusaFileParser 用于检查3mf文件是否来自Prusa
 class PrusaFileParser
 {
 public:
@@ -26,17 +26,17 @@ private:
     XML_Parser m_parser;
 };
 
-    /* The format for saving the SLA points was changing in the past. This enum holds the latest version that is being currently used.
-     * Examples of the Slic3r_PE_sla_support_points.txt for historically used versions:
+    /* 保存SLA点的格式在过去有过变化。此枚举保存当前使用的最新版本。
+     * 历史上使用的Slic3r_PE_sla_support_points.txt版本示例：
 
-     *  version 0 : object_id=1|-12.055421 -2.658771 10.000000
+     *  版本0 : object_id=1|-12.055421 -2.658771 10.000000
                     object_id=2|-14.051745 -3.570338 5.000000
-        // no header and x,y,z positions of the points)
+        // 无头部，只有点的x,y,z位置)
 
-     * version 1 :  ThreeMF_support_points_version=1
+     * 版本1 :  ThreeMF_support_points_version=1
                     object_id=1|-12.055421 -2.658771 10.000000 0.4 0.0
                     object_id=2|-14.051745 -3.570338 5.000000 0.6 1.0
-        // introduced header with version number; x,y,z,head_size,is_new_island)
+        // 引入了带版本号的头部；x,y,z,head_size,is_new_island)
     */
 
     enum {
@@ -52,11 +52,11 @@ private:
     class DynamicPrintConfig;
     struct ThumbnailData;
 
-    // Load the content of a 3mf file into the given model and preset bundle.
+    // 将3mf文件的内容加载到给定的模型和预设包中。
     extern bool load_3mf(const char* path, DynamicPrintConfig& config, ConfigSubstitutionContext& config_substitutions, Model* model, bool check_version);
 
-    // Save the given model and the config data contained in the given Print into a 3mf file.
-    // The model could be modified during the export process if meshes are not repaired or have no shared vertices
+    // 将给定的模型和包含在给定Print中的配置数据保存到3mf文件中。
+    // 在导出过程中，如果网格未修复或没有共享顶点，模型可能会被修改。
     extern bool store_3mf(const char* path, Model* model, const DynamicPrintConfig* config, bool fullpath_sources, const ThumbnailData* thumbnail_data = nullptr, bool zip64 = true);
 
 } // namespace Slic3r

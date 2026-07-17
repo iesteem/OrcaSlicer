@@ -48,7 +48,7 @@ static inline Polyline make_wave(
         points.emplace_back(Vec2d(width, f(width, z_sin, z_cos, vertical, flip)));
     }
 
-    // and construct the final polyline to return:
+    // 构造最终要返回的多段线：
     Polyline polyline;
     polyline.points.reserve(points.size());
     for (auto& point : points) {
@@ -106,11 +106,10 @@ static Polylines make_gyroid_waves(double gridZ, double density_adjusted, double
 {
     const double scaleFactor = scale_(line_spacing) / density_adjusted;
 
-    // tolerance in scaled units. clamp the maximum tolerance as there's
-    // no processing-speed benefit to do so beyond a certain point
+    // 缩放单位下的容差。限制最大容差，因为超过某一点后这样做没有处理速度上的好处
     const double tolerance = std::min(line_spacing / 2, FillGyroid::PatternTolerance) / unscale<double>(scaleFactor);
 
-    //scale factor for 5% : 8 712 388
+    // 5% 的比例因子：8 712 388
     // 1z = 10^-6 mm ?
     const double z     = gridZ / scaleFactor;
     const double z_sin = sin(z);
@@ -127,15 +126,15 @@ static Polylines make_gyroid_waves(double gridZ, double density_adjusted, double
         std::swap(width,height);
     }
 
-    std::vector<Vec2d> one_period_odd = make_one_period(width, scaleFactor, z_cos, z_sin, vertical, flip, tolerance); // creates one period of the waves, so it doesn't have to be recalculated all the time
-    flip = !flip;                                                                   // even polylines are a bit shifted
+    std::vector<Vec2d> one_period_odd = make_one_period(width, scaleFactor, z_cos, z_sin, vertical, flip, tolerance); // 创建一个周期的波，这样就不必每次都重新计算
+    flip = !flip;                                                                   // 偶数多段线稍微偏移
     std::vector<Vec2d> one_period_even = make_one_period(width, scaleFactor, z_cos, z_sin, vertical, flip, tolerance);
     Polylines result;
 
     for (double y0 = lower_bound; y0 < upper_bound + EPSILON; y0 += M_PI) {
-        // creates odd polylines
+        // 创建奇数多段线
         result.emplace_back(make_wave(one_period_odd, width, height, y0, scaleFactor, z_cos, z_sin, vertical, flip));
-        // creates even polylines
+        // 创建偶数多段线
         y0 += M_PI;
         if (y0 < upper_bound + EPSILON) {
             result.emplace_back(make_wave(one_period_even, width, height, y0, scaleFactor, z_cos, z_sin, vertical, flip));
@@ -145,7 +144,7 @@ static Polylines make_gyroid_waves(double gridZ, double density_adjusted, double
     return result;
 }
 
-// FIXME: needed to fix build on Mac on buildserver
+// FIXME: 需要修复 Mac 构建服务器上的构建
 constexpr double FillGyroid::PatternTolerance;
 
 void FillGyroid::_fill_surface_single(
@@ -160,19 +159,19 @@ void FillGyroid::_fill_surface_single(
         expolygon.rotate(-infill_angle);
 
     BoundingBox bb = expolygon.contour.bounding_box();
-    // Density adjusted to have a good %of weight.
+    // 密度调整以获得良好的重量百分比。
     double      density_adjusted = std::max(0., params.density * DensityAdjust / params.multiline);
-    // Distance between the gyroid waves in scaled coordinates.
+    // 陀螺形波之间在缩放坐标中的距离。
     coord_t     distance = coord_t(scale_(this->spacing) / density_adjusted);
 
-    // align bounding box to a multiple of our grid module
+    // 将边界框对齐到网格模块的倍数
     bb.merge(align_to_grid(bb.min, Point(2*M_PI*distance, 2*M_PI*distance)));
 
-    // Expand the bounding box to avoid artifacts at the edges
+    // 扩展边界框以避免边缘出现伪影
     coord_t expand = 10 * (scale_(this->spacing));
     bb.offset(expand); 
 
-    // generate pattern
+    // 生成图案
     Polylines polylines = make_gyroid_waves(
         scale_(this->z),
         density_adjusted,
@@ -180,18 +179,18 @@ void FillGyroid::_fill_surface_single(
         ceil(bb.size()(0) / distance) + 1.,
         ceil(bb.size()(1) / distance) + 1.);
 
-	// shift the polyline to the grid origin
+	// 将多段线平移到网格原点
 	for (Polyline &pl : polylines)
 		pl.translate(bb.min);
 
-    // Apply multiline offset if needed
+    // 如果需要，应用多线偏移
     multiline_fill(polylines, params, spacing);
 
 	polylines = intersection_pl(polylines, expolygon);
 
     if (! polylines.empty()) {
-		// Remove very small bits, but be careful to not remove infill lines connecting thin walls!
-        // The infill perimeter lines should be separated by around a single infill line width.
+		// 移除非常小的片段，但注意不要移除连接薄壁的填充线！
+        // 填充周长线应间隔大约一个填充线宽。
         const double minlength = scale_(0.8 * this->spacing);
 		polylines.erase(
 			std::remove_if(polylines.begin(), polylines.end(), [minlength](const Polyline &pl) { return pl.length() < minlength; }),

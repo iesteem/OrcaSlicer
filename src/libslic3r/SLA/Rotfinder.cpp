@@ -58,7 +58,7 @@ T sum_score(AccessFn &&accessfn, size_t facecount, size_t Nthreads)
     return execution::reduce(ex_tbb, from, to, initv, mergefn, accessfn, grainsize);
 }
 
-// Get area and normal of a triangle
+// 获取三角形的面积和法线
 struct Facestats {
     Vec3f  normal;
     double area;
@@ -73,7 +73,7 @@ struct Facestats {
     }
 };
 
-// Try to guess the number of support points needed to support a mesh
+// 尝试估算支撑网格所需的支撑点数量
 double get_misalginment_score(const TriangleMesh &mesh, const Transform3f &tr)
 {
     if (mesh.its.vertices.empty()) return std::nan("");
@@ -86,7 +86,7 @@ double get_misalginment_score(const TriangleMesh &mesh, const Transform3f &tr)
                          + std::abs(fc.normal.dot(Vec3f::UnitY()))
                          + std::abs(fc.normal.dot(Vec3f::UnitZ())));
 
-        // We should score against the alignment with the reference planes
+        // 我们应根据与参考平面对齐的程度进行评分
         return scaled<int_fast64_t>(score);
     };
 
@@ -97,24 +97,23 @@ double get_misalginment_score(const TriangleMesh &mesh, const Transform3f &tr)
     return S / facecount;
 }
 
-// The score function for a particular face
+// 特定面的得分函数
 inline double get_supportedness_score(const Facestats &fc)
 {
-    // Simply get the angle (acos of dot product) between the face normal and
-    // the DOWN vector.
+    // 直接获取面法线与 DOWN 向量之间的角度（点积的反余弦）。
     float cosphi = fc.normal.dot(DOWN);
     float phi = 1.f - std::acos(cosphi) / float(PI);
 
-    // Make the huge slopes more significant than the smaller slopes
+    // 使大斜率比小斜率更显著
     phi = phi * phi * phi;
 
-    // Multiply with the square root of face area of the current face,
-    // the area is less important as it grows.
-    // This makes many smaller overhangs a bigger impact.
+    // 乘以当前面面积平方根，
+    // 面积越大重要性越低。
+    // 这使得许多较小的悬垂产生更大的影响。
     return std::sqrt(fc.area) * POINTS_PER_UNIT_AREA * phi;
 }
 
-// Try to guess the number of support points needed to support a mesh
+// 尝试估算支撑网格所需的支撑点数量
 double get_supportedness_score(const TriangleMesh &mesh, const Transform3f &tr)
 {
     if (mesh.its.vertices.empty()) return std::nan("");
@@ -131,7 +130,7 @@ double get_supportedness_score(const TriangleMesh &mesh, const Transform3f &tr)
     return S / facecount;
 }
 
-// Find transformed mesh ground level without copy and with parallel reduce.
+// 在不复制的情况下使用并行化 reduce 查找变换后网格的地面高度。
 float find_ground_level(const TriangleMesh &mesh,
                          const Transform3f & tr,
                          size_t              threads)
@@ -157,7 +156,7 @@ float get_supportedness_onfloor_score(const TriangleMesh &mesh,
     size_t Nthreads = std::thread::hardware_concurrency();
 
     float zmin = find_ground_level(mesh, tr, Nthreads);
-    float zlvl = zmin + 0.1f; // Set up a slight tolerance from z level
+    float zlvl = zmin + 0.1f; // 从 z 层设置一个小的容差
 
     auto accessfn = [&mesh, &tr, zlvl](size_t fi) {
         std::array<Vec3f, 3> tri = get_transformed_triangle(mesh, tr, fi);
@@ -177,7 +176,7 @@ float get_supportedness_onfloor_score(const TriangleMesh &mesh,
 
 using XYRotation = std::array<double, 2>;
 
-// prepare the rotation transformation
+// 准备旋转变换
 Transform3f to_transform3f(const XYRotation &rot)
 {
     Transform3f rt = Transform3f::Identity();
@@ -201,7 +200,7 @@ inline bool is_on_floor(const SLAPrintObjectConfig &cfg)
     return opt_elevation < EPSILON || opt_padaround;
 }
 
-// collect the rotations for each face of the convex hull
+// 收集凸包每个面的旋转角度
 std::vector<XYRotation> get_chull_rotations(const TriangleMesh &mesh, size_t max_count)
 {
     TriangleMesh chull = mesh.convex_hull_3d();
@@ -252,7 +251,7 @@ std::vector<XYRotation> get_chull_rotations(const TriangleMesh &mesh, size_t max
     return ret;
 }
 
-// Find the best score from a set of function inputs. Evaluate for every point.
+// 从一组函数输入中找到最佳得分。对每个点进行评估。
 template<size_t N, class Fn, class It, class StopCond>
 std::array<double, N> find_min_score(Fn &&fn, It from, It to, StopCond &&stopfn)
 {
@@ -293,8 +292,7 @@ struct RotfinderBoilerplate {
     unsigned max_tries;
     const RotOptimizeParams &params;
 
-    // Assemble the mesh with the correct transformation to be used in rotation
-    // optimization.
+    // 组装具有正确变换的网格，用于旋转优化。
     static TriangleMesh get_mesh_to_rotate(const ModelObject &mo)
     {
         TriangleMesh mesh = mo.raw_mesh();
@@ -329,7 +327,7 @@ Vec2d find_best_misalignment_rotation(const ModelObject &      mo,
 {
     RotfinderBoilerplate<1000> bp{mo, params};
 
-    // Preparing the optimizer.
+    // 准备优化器。
     size_t gridsize = std::sqrt(bp.max_tries);
     opt::Optimizer<opt::AlgBruteForce> solver(
         opt::StopCriteria{}.max_iterations(bp.max_tries)
@@ -337,9 +335,9 @@ Vec2d find_best_misalignment_rotation(const ModelObject &      mo,
         gridsize
     );
 
-    // We are searching rotations around only two axes x, y. Thus the
-    // problem becomes a 2 dimensional optimization task.
-    // We can specify the bounds for a dimension in the following way:
+    // 我们只搜索绕 x、y 两个轴的旋转。因此
+    // 问题变为二维优化任务。
+    // 我们可以按以下方式指定维度的边界：
     auto bounds = opt::bounds({ {-PI, PI}, {-PI, PI} });
 
     auto result = solver.to_max().optimize(
@@ -365,14 +363,14 @@ Vec2d find_least_supports_rotation(const ModelObject &      mo,
 
     XYRotation rot;
 
-    // Different search methods have to be used depending on the model elevation
+    // 根据模型高度必须使用不同的搜索方法
     if (is_on_floor(pocfg)) {
 
         std::vector<XYRotation> inputs = get_chull_rotations(bp.mesh, bp.max_tries);
         bp.max_tries = inputs.size();
 
-        // If the model can be placed on the bed directly, we only need to
-        // check the 3D convex hull face rotations.
+        // 如果模型可以直接放置在热床上，我们只需要
+        // 检查 3D 凸包面的旋转。
 
         auto objfn = [&bp](const XYRotation &rot) {
             bp.statusfn();
@@ -385,8 +383,8 @@ Vec2d find_least_supports_rotation(const ModelObject &      mo,
         });
 
     } else {
-        // Preparing the optimizer.
-        size_t gridsize = std::sqrt(bp.max_tries); // 2D grid has gridsize^2 calls
+        // 准备优化器。
+        size_t gridsize = std::sqrt(bp.max_tries); // 2D 网格有 gridsize^2 次调用
         opt::Optimizer<opt::AlgBruteForce> solver(
             opt::StopCriteria{}.max_iterations(bp.max_tries)
                                .stop_condition([&bp] { return bp.stopcond(); }),
@@ -405,7 +403,7 @@ Vec2d find_least_supports_rotation(const ModelObject &      mo,
                 return get_supportedness_score(bp.mesh, to_transform3f(rot));
             }, opt::initvals({0., 0.}), bounds);
 
-        // Save the result
+        // 保存结果
         rot = result.optimum;
     }
 

@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿//Copyright (c) 2022 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #include "BeadingStrategy.hpp"
 #include "libslic3r/Point.hpp"

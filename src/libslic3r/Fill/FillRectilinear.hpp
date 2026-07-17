@@ -19,18 +19,18 @@ public:
     bool is_self_crossing() override { return false; }
 
 protected:
-    // Fill by single directional lines, interconnect the lines along perimeters.
+    // 通过单向线填充，沿周长互连线。
 	bool fill_surface_by_lines(const Surface *surface, const FillParams &params, float angleBase, float pattern_shift, Polylines &polylines_out);
 
 
-    // Fill by multiple sweeps of differing directions.
+    // 通过不同方向的多重扫描填充。
     struct SweepParams {
         float angle_base;
         float pattern_shift;
     };
     bool fill_surface_by_multilines(const Surface *surface, FillParams params, const std::initializer_list<SweepParams> &sweep_params, Polylines &polylines_out);
 
-    // The extended bounding box of the whole object that covers any rotation of every layer.
+    // 覆盖每层任意旋转的整个物体的扩展边界框。
     BoundingBox extended_object_bounding_box() const;
 };
 
@@ -41,7 +41,7 @@ public:
     ~FillAlignedRectilinear() override = default;
 
 protected:
-    // Always generate infill at the same angle.
+    // 始终以相同角度生成填充。
     virtual float _layer_angle(size_t idx) const override { return 0.f; }
 };
 
@@ -72,7 +72,7 @@ public:
     bool is_self_crossing() override { return true; }
 
 protected:
-	// The grid fill will keep the angle constant between the layers, see the implementation of Slic3r::Fill.
+	// 网格填充将在层之间保持角度恒定，参见 Slic3r::Fill 的实现。
     float _layer_angle(size_t idx) const override { return 0.f; }
 };
 
@@ -84,7 +84,7 @@ public:
     Polylines fill_surface(const Surface *surface, const FillParams &params) override;
 
 protected:
-	// The grid fill will keep the angle constant between the layers, see the implementation of Slic3r::Fill.
+	// 网格填充将在层之间保持角度恒定，参见 Slic3r::Fill 的实现。
     float _layer_angle(size_t idx) const override { return 0.f; }
 };
 
@@ -97,7 +97,7 @@ public:
     bool is_self_crossing() override { return true; }
 
 protected:
-	// The grid fill will keep the angle constant between the layers, see the implementation of Slic3r::Fill.
+	// 网格填充将在层之间保持角度恒定，参见 Slic3r::Fill 的实现。
     float _layer_angle(size_t idx) const override { return 0.f; }
 };
 
@@ -110,7 +110,7 @@ public:
     bool is_self_crossing() override { return true; }
 
 protected:
-    // The grid fill will keep the angle constant between the layers, see the implementation of Slic3r::Fill.
+    // 网格填充将在层之间保持角度恒定，参见 Slic3r::Fill 的实现。
     float _layer_angle(size_t idx) const override { return 0.f; }
 };
 
@@ -123,7 +123,7 @@ public:
     bool is_self_crossing() override { return true; }
 
 protected:
-	// The grid fill will keep the angle constant between the layers, see the implementation of Slic3r::Fill.
+	// 网格填充将在层之间保持角度恒定，参见 Slic3r::Fill 的实现。
     float _layer_angle(size_t idx) const override { return 0.f; }
 };
 
@@ -136,7 +136,7 @@ public:
     Polylines fill_surface(const Surface *surface, const FillParams &params) override;
 
 protected:
-	// The grid fill will keep the angle constant between the layers, see the implementation of Slic3r::Fill.
+	// 网格填充将在层之间保持角度恒定，参见 Slic3r::Fill 的实现。
     float _layer_angle(size_t idx) const override { return 0.f; }
 };
 
@@ -157,12 +157,12 @@ public:
     Polylines fill_surface(const Surface *surface, const FillParams &params) override;
 
 protected:
-    // The grid fill will keep the angle constant between the layers, see the implementation of Slic3r::Fill.
+    // 网格填充将在层之间保持角度恒定，参见 Slic3r::Fill 的实现。
     float _layer_angle(size_t idx) const override { return 0.f; }
 };
 
-// Orca: Introduced FillMonotonicLines from Prusa slicer, inhereting from FillRectilinear
-// This replaces the FillMonotonicLineWGapFill from BBS
+// Orca: 从 Prusa slicer 引入 FillMonotonicLines，继承自 FillRectilinear
+// 这替代了 BBS 的 FillMonotonicLineWGapFill
 class FillMonotonicLines : public FillRectilinear
 {
 public:

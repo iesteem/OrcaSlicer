@@ -1,7 +1,7 @@
 // PchipInterpolatorHelper.hpp
 // Snapmaker_Orca
 //
-// Header file for the PchipInterpolatorHelper class, responsible for performing Piecewise Cubic Hermite Interpolating Polynomial (PCHIP) interpolation on given data points.
+// PchipInterpolatorHelper类的头文件，负责对给定数据点执行分段三次埃尔米特插值多项式(PCHIP)插值。
 
 #ifndef PCHIPINTERPOLATORHELPER_HPP
 #define PCHIPINTERPOLATORHELPER_HPP
@@ -10,65 +10,65 @@
 
 /**
  * @class PchipInterpolatorHelper
- * @brief A helper class to perform Piecewise Cubic Hermite Interpolating Polynomial (PCHIP) interpolation.
+ * @brief 一个辅助类，用于执行分段三次埃尔米特插值多项式(PCHIP)插值。
  */
 class PchipInterpolatorHelper {
 public:
     /**
-     * @brief Default constructor.
+     * @brief 默认构造函数。
      */
     PchipInterpolatorHelper() = default;
 
     /**
-     * @brief Constructs the PCHIP interpolator with given data points.
-     * @param x The x-coordinates of the data points.
-     * @param y The y-coordinates of the data points.
+     * @brief 使用给定数据点构造PCHIP插值器。
+     * @param x 数据点的x坐标。
+     * @param y 数据点的y坐标。
      */
     PchipInterpolatorHelper(const std::vector<double>& x, const std::vector<double>& y);
 
     /**
-     * @brief Sets the data points for the interpolator.
-     * @param x The x-coordinates of the data points.
-     * @param y The y-coordinates of the data points.
-     * @throw std::invalid_argument if x and y have different sizes or if they contain fewer than two points.
+     * @brief 为插值器设置数据点。
+     * @param x 数据点的x坐标。
+     * @param y 数据点的y坐标。
+     * @throw std::invalid_argument 如果x和y大小不同或包含少于两个点。
      */
     void setData(const std::vector<double>& x, const std::vector<double>& y);
 
     /**
-     * @brief Interpolates the value at a given point.
-     * @param xi The x-coordinate at which to interpolate.
-     * @return The interpolated y-coordinate.
+     * @brief 在给定点处插值。
+     * @param xi 要插值的x坐标。
+     * @return 插值后的y坐标。
      */
     double interpolate(double xi) const;
 
 private:
-    std::vector<double> x_; ///< The x-coordinates of the data points.
-    std::vector<double> y_; ///< The y-coordinates of the data points.
-    std::vector<double> h_; ///< The differences between successive x-coordinates.
-    std::vector<double> delta_; ///< The slopes of the segments between successive data points.
-    std::vector<double> d_; ///< The derivatives at the data points.
+    std::vector<double> x_; ///< 数据点的x坐标。
+    std::vector<double> y_; ///< 数据点的y坐标。
+    std::vector<double> h_; ///< 连续x坐标之间的差值。
+    std::vector<double> delta_; ///< 连续数据点之间的线段斜率。
+    std::vector<double> d_; ///< 数据点处的导数。
 
     /**
-     * @brief Computes the PCHIP coefficients.
+     * @brief 计算PCHIP系数。
      */
     void computePCHIP();
 
     /**
-     * @brief Sorts the data points by x-coordinate.
+     * @brief 按x坐标对数据点排序。
      */
     void sortData();
 
     /**
-     * @brief Computes the difference between successive x-coordinates.
-     * @param i The index of the x-coordinate.
-     * @return The difference between x_[i+1] and x_[i].
+     * @brief 计算连续x坐标之间的差值。
+     * @param i x坐标的索引。
+     * @return x_[i+1]和x_[i]之间的差值。
      */
     double h(int i) const { return x_[i+1] - x_[i]; }
 
     /**
-     * @brief Computes the slope of the segment between successive data points.
-     * @param i The index of the segment.
-     * @return The slope of the segment between y_[i] and y_[i+1].
+     * @brief 计算连续数据点之间线段的斜率。
+     * @param i 线段的索引。
+     * @return y_[i]和y_[i+1]之间线段的斜率。
      */
     double delta(int i) const { return (y_[i+1] - y_[i]) / h(i); }
 };

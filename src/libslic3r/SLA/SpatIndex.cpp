@@ -18,7 +18,7 @@
 namespace Slic3r { namespace sla {
 
 /* **************************************************************************
- * PointIndex implementation
+ * PointIndex 实现
  * ************************************************************************** */
 
 class PointIndex::Impl {
@@ -91,7 +91,7 @@ void PointIndex::foreach(std::function<void (const PointIndexEl &)> fn) const
 }
 
 /* **************************************************************************
- * BoxIndex implementation
+ * BoxIndex 实现
  * ************************************************************************** */
 
 class BoxIndex::Impl {

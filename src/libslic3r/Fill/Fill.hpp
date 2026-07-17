@@ -15,7 +15,7 @@ namespace Slic3r {
 class ExtrusionEntityCollection;
 class LayerRegion;
 
-// An interface class to Perl, aggregating an instance of a Fill and a FillData.
+// 一个接口类，聚合了 Fill 和 FillData 的实例。
 class Filler
 {
 public:

@@ -13,16 +13,16 @@ namespace Slic3r {
 
 class PresetBundle;
 
-/// Filled when filament_hot_bed_nozzles.json marks the current nozzle + type as forbidden for a filament preset.
+/// 当 filament_hot_bed_nozzles.json 将当前喷嘴+类型标记为耗材预设禁止时填充。
 struct NozzleFilamentRuleMismatch {
     bool        has_mismatch{ false };
-    std::string nozzle_diameter_mm;   // display digits, e.g. "0.2" (no "mm" suffix)
+    std::string nozzle_diameter_mm;   // 显示数字，例如 "0.2"（无 "mm" 后缀）
     std::string nozzle_type_key;      // NozzleTypeEumnToStr: undefine, hardened_steel, stainless_steel, brass
-    std::string filament_preset_name; // resolved preset display name (may be empty)
+    std::string filament_preset_name; // 解析后的预设显示名称（可能为空）
 };
 
-// JSON: %AppData%/.../system/Snapmaker/filament/filament_hot_bed_nozzles.json (preferred), else bundled resources path.
-// Keys: bed ids (btPEI, btGESP), nozzle ids ("0.2mm" …) with support/warning.
+// JSON: %AppData%/.../system/Snapmaker/filament/filament_hot_bed_nozzles.json（优先），否则使用捆绑资源路径。
+// 键：热床 ID（btPEI, btGESP），喷嘴 ID（"0.2mm" ...）带有支持/警告。 …) with support/warning.
 // 喷嘴规则（键名以 "mm" 结尾），任选其一：
 // 1) 单对象 { "type":"all"|材质, "forbidden":[...] }
 // 2) 数组 [ { "type", "forbidden" }, ... ]
@@ -38,18 +38,18 @@ public:
     static FilamentHotBedNozzleRules& singleton();
 
     void load();
-    // Loads JSON once if not already loaded (Print::extruders uses this; GUI::load forces reload via load()).
+    // 如果尚未加载则加载 JSON 一次（Print::extruders 使用此方法；GUI::load 通过 load() 强制重新加载）。
     void ensure_loaded();
     bool is_loaded() const;
 
-    // "Supported" includes warning-tier materials (they are allowed but need a separate warning UI).
+    // "支持"包括警告级别的材料（这些材料允许使用，但需要单独的警告界面）。
     bool is_bed_filament_tips(const std::string& bed_key, const std::string& filament_type) const;
     bool is_bed_filament_supported(const std::string& bed_key, const std::string& filament_type) const;
     bool is_bed_filament_warning(const std::string& bed_key, const std::string& filament_type) const;
     bool is_nozzle_filament_forbidden(const std::string& nozzle_key, const std::string& filament_preset_name,
                                       NozzleType nozzle_type = NozzleType::ntUndefine) const;
-    /// Match rule entry to filament preset by exact name (case-insensitive) on the base preset name
-    /// (text before optional " @..." suffix); does not block slicing (see evaluate_nozzle_filament_mismatch).
+    /// 通过基础预设名称上的精确名称（不区分大小写）匹配规则条目到耗材预设
+    ///（可选的 " @..." 后缀之前的文本）；不会阻止切片（参见 evaluate_nozzle_filament_mismatch）。
     bool is_nozzle_filament_warning(const std::string& nozzle_key, const std::string& filament_preset_name,
                                     NozzleType nozzle_type = NozzleType::ntUndefine) const;
     
@@ -57,7 +57,7 @@ public:
                                                   const std::vector<unsigned int>& used_filament_indices,
                                                   const PresetBundle* preset_bundle = nullptr) const;
 
-    /// @return true if a forbidden nozzle+filament combination was found (fills @p out).
+    /// @return 如果发现了禁止的喷嘴+耗材组合，则返回 true（填充 @p out）。
     bool evaluate_nozzle_filament_mismatch_detail(const PrintConfig& cfg, const std::vector<unsigned int>& used_filament_indices,
                                                     const PresetBundle* preset_bundle, NozzleFilamentRuleMismatch& out) const;
 

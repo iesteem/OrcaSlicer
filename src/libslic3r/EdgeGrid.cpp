@@ -1,4 +1,4 @@
-#include <algorithm>
+﻿#include <algorithm>
 #include <vector>
 #include <float.h>
 #include <unordered_map>
@@ -15,7 +15,7 @@
 // #define EDGE_GRID_DEBUG_OUTPUT
 
 #if 0
-// Enable debugging and assert in this file.
+// 在此文件中启用调试和断言。
 #define DEBUG
 #define _DEBUG
 #undef NDEBUG
@@ -27,7 +27,7 @@ namespace Slic3r {
 
 void EdgeGrid::Grid::create(const Polygons &polygons, coord_t resolution)
 {
-	// Collect the contours.
+	// 收集轮廓。
 	m_contours.clear();
 	m_contours.reserve(std::count_if(polygons.begin(), polygons.end(), [](const Polygon &p) { return ! p.empty(); }));
 	for (const Polygon &polygon : polygons)
@@ -39,7 +39,7 @@ void EdgeGrid::Grid::create(const Polygons &polygons, coord_t resolution)
 
 void EdgeGrid::Grid::create(const std::vector<const Polygon*> &polygons, coord_t resolution)
 {
-	// Collect the contours.
+	// 收集轮廓。
 	m_contours.clear();
 	m_contours.reserve(std::count_if(polygons.begin(), polygons.end(), [](const Polygon *p) { return ! p->empty(); }));
 	for (const Polygon *polygon : polygons)
@@ -51,7 +51,7 @@ void EdgeGrid::Grid::create(const std::vector<const Polygon*> &polygons, coord_t
 
 void EdgeGrid::Grid::create(const std::vector<Points> &polygons, coord_t resolution, bool open_polylines)
 {
-	// Collect the contours.
+	// 收集轮廓。
 	m_contours.clear();
 	m_contours.reserve(std::count_if(polygons.begin(), polygons.end(), [](const Points &p) { return p.size() > 1; }));
 	for (const Points &points : polygons) 
@@ -74,7 +74,7 @@ void EdgeGrid::Grid::create(const std::vector<Points> &polygons, coord_t resolut
 
 void EdgeGrid::Grid::create(const Polygons &polygons, const Polylines &polylines, coord_t resolution)
 {
-	// Collect the contours.
+	// 收集轮廓。
 	m_contours.clear();
 	m_contours.reserve(
 		std::count_if(polygons.begin(), polygons.end(), [](const Polygon &p) { return p.size() > 1; }) +
@@ -122,7 +122,7 @@ void EdgeGrid::Grid::create(const ExPolygons &expolygons, coord_t resolution)
 		ncontours += std::count_if(expoly.holes.begin(), expoly.holes.end(), [](const Polygon &p) { return ! p.empty(); });
 	}
 
-	// Collect the contours.
+	// 收集轮廓。
 	m_contours.clear();
 	m_contours.reserve(ncontours);
 	for (const ExPolygon &expoly : expolygons) {
@@ -136,11 +136,11 @@ void EdgeGrid::Grid::create(const ExPolygons &expolygons, coord_t resolution)
 	create_from_m_contours(resolution);
 }
 
-// m_contours has been initialized. Now fill in the edge grid.
+// m_contours 已初始化。现在填充边缘网格。
 void EdgeGrid::Grid::create_from_m_contours(coord_t resolution)
 {
 	assert(resolution > 0);
-	// 1) Measure the bounding box.
+	// 1) 测量边界框。
 	for (const Contour &contour : m_contours) {
 		assert(contour.num_segments() > 0);
 		assert(*contour.begin() != contour.end()[-1]);
@@ -154,24 +154,24 @@ void EdgeGrid::Grid::create_from_m_contours(coord_t resolution)
 	m_bbox.max(0) += eps;
 	m_bbox.max(1) += eps;
 
-	// 2) Initialize the edge grid.
+	// 2) 初始化边缘网格。
 	m_resolution = resolution;
 	m_cols = (m_bbox.max(0) - m_bbox.min(0) + m_resolution - 1) / m_resolution;
 	m_rows = (m_bbox.max(1) - m_bbox.min(1) + m_resolution - 1) / m_resolution;
 	m_cells.assign(m_rows * m_cols, Cell());
 
-	// 3) First round of contour rasterization, count the edges per grid cell.
+	// 3) 第一轮轮廓光栅化，统计每个网格单元格的边数。
 	for (size_t i = 0; i < m_contours.size(); ++ i) {
 		const Contour &contour = m_contours[i];
 		for (size_t j = 0; j < contour.num_segments(); ++ j) {
-			// End points of the line segment.
+			// 线段的端点。
 			Slic3r::Point p1(contour.segment_start(j));
 			Slic3r::Point p2(contour.segment_end(j));
 			p1(0) -= m_bbox.min(0);
 			p1(1) -= m_bbox.min(1);
 			p2(0) -= m_bbox.min(0);
 			p2(1) -= m_bbox.min(1);
-		   	// Get the cells of the end points.
+		   	// 获取端点的单元格。
 		    coord_t ix    = p1(0) / m_resolution;
 		    coord_t iy    = p1(1) / m_resolution;
 		    coord_t ixb   = p2(0) / m_resolution;
@@ -180,18 +180,18 @@ void EdgeGrid::Grid::create_from_m_contours(coord_t resolution)
 			assert(iy >= 0 && size_t(iy) < m_rows);
 			assert(ixb >= 0 && size_t(ixb) < m_cols);
 			assert(iyb >= 0 && size_t(iyb) < m_rows);
-			// Account for the end points.
+			// 处理端点。
 			++ m_cells[iy*m_cols+ix].end;
 			if (ix == ixb && iy == iyb)
-				// Both ends fall into the same cell.
+				// 两端落入同一单元格。
 				continue;
-		    // Raster the centeral part of the line.
+		    // 光栅化线的中心部分。
 			coord_t dx = std::abs(p2(0) - p1(0));
 			coord_t dy = std::abs(p2(1) - p1(1));
 			if (p1(0) < p2(0)) {
 				int64_t ex = int64_t((ix + 1)*m_resolution - p1(0)) * int64_t(dy);
 				if (p1(1) < p2(1)) {
-					// x positive, y positive
+					// x 正方向，y 正方向
 					int64_t ey = int64_t((iy + 1)*m_resolution - p1(1)) * int64_t(dx);
 					do {
 						assert(ix <= ixb && iy <= iyb);
@@ -216,7 +216,7 @@ void EdgeGrid::Grid::create_from_m_contours(coord_t resolution)
 					} while (ix != ixb || iy != iyb);
 				}
 				else {
-					// x positive, y non positive
+					// x 正方向，y 非正方向
 					int64_t ey = int64_t(p1(1) - iy*m_resolution) * int64_t(dx);
 					do {
 						assert(ix <= ixb && iy >= iyb);
@@ -237,7 +237,7 @@ void EdgeGrid::Grid::create_from_m_contours(coord_t resolution)
 			else {
 				int64_t ex = int64_t(p1(0) - ix*m_resolution) * int64_t(dy);
 				if (p1(1) < p2(1)) {
-					// x non positive, y positive
+					// x 非正方向，y 正方向
 					int64_t ey = int64_t((iy + 1)*m_resolution - p1(1)) * int64_t(dx);
 					do {
 						assert(ix >= ixb && iy <= iyb);
@@ -256,7 +256,7 @@ void EdgeGrid::Grid::create_from_m_contours(coord_t resolution)
 					} while (ix != ixb || iy != iyb);
 				}
 				else {
-					// x non positive, y non positive
+					// x 非正方向，y 非正方向
 					int64_t ey = int64_t(p1(1) - iy*m_resolution) * int64_t(dx);
 					do {
 						assert(ix >= ixb && iy >= iyb);
@@ -266,9 +266,9 @@ void EdgeGrid::Grid::create_from_m_contours(coord_t resolution)
 							ix -= 1;
 						}
 						else if (ex == ey) {
-							// The lower edge of a grid cell belongs to the cell.
-							// Handle the case where the ray may cross the lower left corner of a cell in a general case,
-							// or a left or lower edge in a degenerate case (horizontal or vertical line).
+							// 网格单元格的下边缘属于该单元格。
+							// 处理射线可能穿过单元格左下角的一般情况，
+							// 或退化情况（水平或垂直线）下的左边缘或下边缘。
 							if (dx > 0) {
 								ex = int64_t(dy) * m_resolution;
 								ix -= 1;
@@ -696,7 +696,7 @@ void EdgeGrid::Grid::calculate_sdf()
 				const Contour &contour = m_contours[m_cell_data[i].first];
 				assert(contour.closed());
 				size_t ipt = m_cell_data[i].second;
-				// End points of the line segment.
+				// 线段的端点。
 				const Slic3r::Point &p1 = contour.segment_start(ipt);
 				const Slic3r::Point &p2 = contour.segment_end(ipt);
 				// Segment vector
@@ -1085,7 +1085,7 @@ EdgeGrid::Grid::ClosestPointResult EdgeGrid::Grid::closest_point_signed_distance
 				const Contour &contour     = m_contours[contour_idx];
 				assert(contour.closed());
 				size_t ipt = m_cell_data[i].second;
-				// End points of the line segment.
+				// 线段的端点。
 				const Slic3r::Point &p1 = contour.segment_start(ipt);
 				const Slic3r::Point &p2 = contour.segment_end(ipt);
 				const Slic3r::Point v_seg = p2 - p1;
@@ -1214,7 +1214,7 @@ bool EdgeGrid::Grid::signed_distance_edges(const Point &pt, coord_t search_radiu
 				const Contour &contour = m_contours[m_cell_data[i].first];
 				assert(contour.closed());
 				size_t ipt = m_cell_data[i].second;
-				// End points of the line segment.
+				// 线段的端点。
 				const Slic3r::Point &p1 = contour.segment_start(ipt);
 				const Slic3r::Point &p2 = contour.segment_end(ipt);
 				Slic3r::Point v_seg = p2 - p1;

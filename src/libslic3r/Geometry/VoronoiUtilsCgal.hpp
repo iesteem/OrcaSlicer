@@ -13,10 +13,10 @@ class VoronoiDiagram;
 class VoronoiUtilsCgal
 {
 public:
-    // Check if the Voronoi diagram is planar using CGAL sweeping edge algorithm for enumerating all intersections between lines.
+    // 使用CGAL扫描线算法枚举所有线段之间的交点，检查Voronoi图是否为平面图。
     static bool is_voronoi_diagram_planar_intersection(const VoronoiDiagram &voronoi_diagram);
 
-    // Check if the Voronoi diagram is planar using verification that all neighboring edges are ordered CCW for each vertex.
+    // 通过验证每个顶点的所有相邻边是否按CCW顺序排列，检查Voronoi图是否为平面图。
     template<typename SegmentIterator>
     static typename boost::polygon::enable_if<
         typename boost::polygon::gtl_if<typename boost::polygon::is_segment_concept<

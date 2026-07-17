@@ -20,10 +20,10 @@ namespace Slic3r {
 
 namespace {
 
-// Runtime state for mixed filament auto-generation feature.
-// This is synchronized with the "auto_generate_gradients" config setting.
-// Initial value is false, but will be overridden by AppConfig during application startup.
-// See: GUI_App::init_app_config() which loads the actual config value.
+// 混合耗材自动生成功能的运行时状态。
+// 与"auto_generate_gradients"配置设置同步。
+// 初始值为false，但将在应用程序启动期间被AppConfig覆盖。
+// 参见: GUI_App::init_app_config() 加载实际配置值。
 std::atomic_bool s_mixed_filament_auto_generate_enabled { false };
 
 } // namespace
@@ -36,7 +36,7 @@ static uint64_t canonical_pair_key(unsigned int a, unsigned int b)
 }
 
 // ---------------------------------------------------------------------------
-// Colour helpers (internal)
+// 颜色辅助函数（内部）
 // ---------------------------------------------------------------------------
 
 struct RGB {
@@ -70,12 +70,12 @@ struct RGBf {
 }
 
 
-// Convert RGB to an artist-pigment style RYB space.
-// This is an approximation, but it gives expected pair mixes:
-// Red + Blue -> Purple, Blue + Yellow -> Green, Red + Yellow -> Orange.
+// 将RGB转换为艺术颜料风格的RYB空间。
+// 这是一个近似值，但能产生预期的配对混合：
+// 红+蓝 -> 紫，蓝+黄 -> 绿，红+黄 -> 橙。
 
-// Legacy RYB conversion helpers kept for reference.
-// Active code paths use FilamentMixer.
+// 保留旧的RYB转换辅助函数以供参考。
+// 活动代码路径使用FilamentMixer。
 [[maybe_unused]] static RGBf rgb_to_ryb(RGBf in)
 {
     float r = clamp01(in.r);
@@ -154,7 +154,7 @@ struct RGBf {
     return { clamp01(r), clamp01(g), clamp01(b) };
 }
 
-// Parse "#RRGGBB" to RGB.  Returns black on failure.
+// 解析"#RRGGBB"为RGB。失败时返回黑色。
 static RGB parse_hex_color(const std::string &hex)
 {
     RGB c;
@@ -289,19 +289,19 @@ void MixedFilamentManager::normalize_ratio_pair(int &a, int &b)
 static void compute_gradient_ratios(MixedFilament &mf, int gradient_mode, float lower_bound, float upper_bound)
 {
     if (gradient_mode == 1) {
-        // Height-weighted mode:
-        // map blend to [lower, upper], then convert relative heights to an integer cadence.
+        // 高度加权模式：
+        // 将混合映射到[lower, upper]，然后将相对高度转换为整数节奏。
         float h_a = 0.f;
         float h_b = 0.f;
         compute_gradient_heights(mf, lower_bound, upper_bound, h_a, h_b);
-        // Use lower-bound as quantization unit so this mode differs clearly from layer-cycle mode.
+        // 使用下限作为量化单位，使此模式与图层循环模式明显不同。
         const float unit = std::max(0.01f, std::min(h_a, h_b));
         mf.ratio_a = std::max(1, safe_ratio_from_height(h_a, unit));
         mf.ratio_b = std::max(1, safe_ratio_from_height(h_b, unit));
     } else {
-        // Layer-cycle mode:
-        // derive a gradual integer cadence directly from the blend ratio
-        // by fixing the minority side to one layer and scaling the majority.
+        // 图层循环模式：
+        // 直接从混合比例推导渐进的整数节奏，
+        // 将少数侧固定为一层并缩放多数侧。
         const int mix_b = clamp_int(mf.mix_b_percent, 0, 100);
         if (mix_b <= 0) {
             mf.ratio_a = 1;
@@ -353,11 +353,11 @@ static bool use_component_b_advanced_dither(int layer_index, int ratio_a, int ra
     if (ratio_a <= 0)
         return true;
 
-    // Base ordered pattern: as evenly distributed as possible for ratio_b/cycle.
+    // 基本有序模式：对于 ratio_b/cycle 尽可能均匀分布。
     const int pos = MixedFilamentManager::safe_mod(layer_index, cycle);
     const int cycle_idx = (layer_index - pos) / cycle;
 
-    // Rotate each cycle to avoid visible long-period vertical striping.
+    // 旋转每个周期以避免可见的长周期垂直条纹。
     const int phase = MixedFilamentManager::safe_mod(cycle_idx * dithering_phase_step(cycle), cycle);
     const int p = MixedFilamentManager::safe_mod(pos + phase, cycle);
 
@@ -457,14 +457,14 @@ static bool parse_row_definition(const std::string &row,
 
     int values[5] = { 0, 0, 1, 1, 50 };
     if (tokens.size() == 4) {
-        // Legacy: a,b,enabled,mix
+        // 旧格式：a,b,enabled,mix
         if (!parse_int_token(tokens[0], values[0]) ||
             !parse_int_token(tokens[1], values[1]) ||
             !parse_int_token(tokens[2], values[2]) ||
             !parse_int_token(tokens[3], values[4]))
             return false;
     } else {
-        // Current: a,b,enabled,custom,mix[,pointillism_all[,pattern]]
+        // 当前格式：a,b,enabled,custom,mix[,pointillism_all[,pattern]]
         for (size_t i = 0; i < 5; ++i)
             if (!parse_int_token(tokens[i], values[i]))
                 return false;
@@ -496,10 +496,10 @@ static bool parse_row_definition(const std::string &row,
 
     size_t token_idx = 5;
     if (tokens.size() >= 6) {
-        // Backward compatibility:
-        // - old: token[5] is pointillism flag ("0"/"1")
-        // - old: token[5] is pattern ("12", "1212", ...)
-        // - new: token[5] may be metadata token ("g..." / "m...")
+        // 向后兼容性：
+        // - 旧版：token[5] 是点画标志 ("0"/"1")
+        // - 旧版：token[5] 是模式 ("12", "1212", ...)
+        // - 新版：token[5] 可以是元数据令牌 ("g..." / "m...")
         const std::string &legacy = tokens[5];
         if (legacy == "0" || legacy == "1") {
             pointillism_all_filaments = (legacy == "1");
@@ -613,15 +613,15 @@ static bool parse_row_definition(const std::string &row,
     pointillism_all_filaments = false;
     distribution_mode = normalize_distribution_mode_without_pointillism(distribution_mode, gradient_component_ids);
     
-    // Validate gradient parameters if gradient is enabled
+    // 如果启用渐变，则验证渐变参数
     if (gradient_enabled) {
-        // Ensure start and end are in valid range (0.01 to 0.99)
+        // 确保起始和结束在有效范围内（0.01 到 0.99）
         gradient_start = std::clamp(gradient_start, 0.01f, 0.99f);
         gradient_end   = std::clamp(gradient_end,   0.01f, 0.99f);
         
-        // Ensure start and end are not too close (need meaningful gradient)
+        // 确保起始和结束不要太接近（需要有意义的变化梯度）
         if (std::abs(gradient_start - gradient_end) < MixedFilament::k_min_gradient_difference) {
-            // Gradient range too small, disable gradient mode
+            // 渐变范围太小，禁用渐变模式
             gradient_enabled = false;
         }
     }
@@ -661,9 +661,9 @@ static std::string flatten_manual_pattern_groups(const std::string &pattern)
     return flattened;
 }
 
-// Basic tokenization of a single group (no comma) into token strings.
-// - No '/' in group: legacy mode, each '1'-'9' char is one token.
-// - Has '/' in group: split by '/', each segment is one token.
+// 将单个组（无逗号）基本分词为标记字符串。
+// - 组中无'/'：旧模式，每个'1'-'9'字符是一个标记。
+// - 组中有'/'：按'/'分割，每个段是一个标记。
 static std::vector<std::string> tokenize_pattern_group(const std::string &group)
 {
     std::vector<std::string> tokens;
@@ -726,10 +726,9 @@ std::vector<std::string> MixedFilamentManager::split_pattern_group_to_tokens(con
 
 unsigned int MixedFilamentManager::physical_filament_from_token(const std::string &token, const MixedFilament &mf, size_t num_physical)
 {
-    // Cycle-mode invariant: component_a≡1, component_b≡2 always
-    // (enforced by UI and MixedFilamentDialog::MODE_CYCLE).
-    // Under this invariant the symbolic tokens "1"/"2" are identity
-    // mappings — no ambiguity with direct physical IDs 1 and 2.
+    // 循环模式不变式：component_a≡1，component_b≡2始终成立
+    // （由UI和MixedFilamentDialog::MODE_CYCLE强制）。
+    // 在此不变式下，符号标记"1"/"2"是恒等映射——与直接物理ID 1和2没有歧义。
     if (token == "1")
         return (mf.component_a >= 1 && mf.component_a <= num_physical) ? mf.component_a : 0;
     if (token == "2")
@@ -784,7 +783,7 @@ static int mix_percent_from_normalized_pattern(const std::string &pattern)
 
 std::string MixedFilamentManager::normalize_gradient_component_ids(const std::string &components)
 {
-    // Decode (no validation cap during normalization), then re-encode to canonical form.
+    // 解码（归一化期间无验证上限），然后重新编码为标准形式。
     auto ids = decode_gradient_component_ids(components, kMaxPhysicalFilaments);
     return encode_gradient_component_ids(ids);
 }
@@ -795,7 +794,7 @@ std::string MixedFilamentManager::encode_gradient_component_ids(const std::vecto
     for (unsigned int id : ids)
         if (id > 9) { extended = true; break; }
 
-    // Single extended ID: use leading '/' to disambiguate from legacy format
+    // 单个扩展ID：使用前导'/'以区别于旧格式
     if (extended && ids.size() == 1)
         return "/" + std::to_string(ids[0]);
 
@@ -821,7 +820,7 @@ std::vector<unsigned int> MixedFilamentManager::decode_gradient_component_ids(co
     std::unordered_set<unsigned int> seen;
     ids.reserve(components.size());
 
-    // Extended format: /-separated decimal IDs
+    // 扩展格式：/-分隔的十进制ID
     if (components.find('/') != std::string::npos) {
         std::string token;
         for (const char c : components) {
@@ -842,7 +841,7 @@ std::vector<unsigned int> MixedFilamentManager::decode_gradient_component_ids(co
                 ids.emplace_back(id);
         }
     } else {
-        // Legacy format: concatenated single-digit chars
+        // 旧格式：连接的单数字符
         bool seen_legacy[10] = { false };
         for (const char c : components) {
             if (c < '1' || c > '9')
@@ -1108,7 +1107,7 @@ static std::vector<unsigned int> build_grouped_manual_pattern_preview_sequence(c
         return sequence;
     }
 
-    // Build per-group token vectors for indexed access
+    // 构建每组令牌向量以进行索引访问
     std::vector<std::vector<std::string>> group_tokens;
     group_tokens.reserve(groups.size());
     for (const std::string &group : groups)
@@ -1699,8 +1698,7 @@ bool MixedFilamentManager::auto_generate_enabled()
 
 void MixedFilamentManager::auto_generate(const std::vector<std::string> &filament_colours)
 {
-    // Keep a copy of the old list so we can preserve user-modified ratios and
-    // enabled flags and custom rows.
+    // 保留旧列表的副本，以便我们可以保留用户修改的比例、启用标志和自定义行。
     std::vector<MixedFilament> old = std::move(m_mixed);
     m_mixed.clear();
 
@@ -1729,7 +1727,7 @@ void MixedFilamentManager::auto_generate(const std::vector<std::string> &filamen
         return;
     }
 
-    // Generate all C(N,2) pairwise combinations.
+    // 生成所有 C(N,2) 两两组合。
     for (size_t i = 0; i < n; ++i) {
         for (size_t j = i + 1; j < n; ++j) {
             MixedFilament mf;
@@ -1768,10 +1766,10 @@ void MixedFilamentManager::remove_physical_filament(unsigned int deleted_filamen
     if (deleted_filament_id == 0 || m_mixed.empty())
         return;
 
-    // Check and adjust filaments following resolve() order:
-    //   1. manual_pattern (cycle mode tokens)
+    // 按 resolve() 顺序检查和调整耗材：
+    //   1. manual_pattern（循环模式令牌）
     //   2. gradient_component_ids
-    //   3. component_a / component_b (pair)
+    //   3. component_a / component_b（配对）
 
     std::vector<MixedFilament> filtered;
     filtered.reserve(m_mixed.size());
@@ -1796,9 +1794,9 @@ void MixedFilamentManager::remove_physical_filament(unsigned int deleted_filamen
         if (uses_deleted_in_pattern)
             continue;
 
-        // ---- 2. gradient components ----
-        // Only check when there is no manual_pattern; a pattern already resolves
-        // every token, so the gradient check would be a false positive at worst.
+        // ---- 2. 渐变组件 ----
+        // 仅在没有 manual_pattern 时检查；模式已解析每个令牌，
+        // 因此渐变检查最多会产生误报。
         if (norm.empty()) {
             bool uses_deleted_in_gradient = false;
             for (unsigned int comp_id : decode_gradient_component_ids(mf.gradient_component_ids, 0)) {
@@ -1811,11 +1809,11 @@ void MixedFilamentManager::remove_physical_filament(unsigned int deleted_filamen
                 continue;
         }
 
-        // ---- 3. pair components ----
-        // Only check when there is no manual_pattern; a pattern already resolves
-        // every token through physical_filament_from_token (symbolic "1"/"2" or
-        // literal numeric), so the pair check would be redundant at best and a
-        // false positive at worst (component_a/b may hold unrelated default values).
+        // ---- 3. 配对组件 ----
+        // 仅在没有 manual_pattern 时检查；模式已通过 physical_filament_from_token
+        // （符号"1"/"2"或字面数字）解析每个令牌，
+        // 因此配对检查最好情况下是冗余的，最坏情况下会产生误报
+        // （component_a/b 可能持有无关的默认值）。
         if (norm.empty() && (mf.component_a == deleted_filament_id || mf.component_b == deleted_filament_id))
             continue;
 
@@ -1829,12 +1827,11 @@ void MixedFilamentManager::remove_physical_filament(unsigned int deleted_filamen
                 if (gi > 0) adjusted += ',';
                 const auto tokens = tokenize_pattern_group(groups[gi]);
                 for (const std::string &token : tokens) {
-                    // All tokens are treated as literal physical-filament IDs
-                    // during adjustment. In cycle mode (component_a≡1, component_b≡2)
-                    // the "1"/"2" identity mapping means decrementing them produces
-                    // the correct result; for non-cycle patterns without "1"/"2",
-                    // component_a/b are irrelevant (pair adjustment is guarded by
-                    // norm.empty()).
+                    // 在调整期间，所有令牌都被视为字面物理耗材ID。
+                    // 在循环模式（component_a≡1, component_b≡2）中，
+                    // "1"/"2"的恒等映射意味着递减它们会产生正确的结果；
+                    // 对于没有"1"/"2"的非循环模式，
+                    // component_a/b 无关紧要（配对调整受 norm.empty() 保护）。
                     char *end = nullptr;
                     errno = 0;
                     unsigned long id = std::strtoul(token.c_str(), &end, 10);
@@ -1861,7 +1858,7 @@ void MixedFilamentManager::remove_physical_filament(unsigned int deleted_filamen
             mf.manual_pattern = adjusted;
         }
 
-        // Adjust pair components (only when no pattern — same rationale as Step 3)
+        // 调整配对组件（仅在没有模式时 — 与第3步相同的原因）
         if (norm.empty()) {
             if (mf.component_a > deleted_filament_id)
                 --mf.component_a;
@@ -1869,11 +1866,11 @@ void MixedFilamentManager::remove_physical_filament(unsigned int deleted_filamen
                 --mf.component_b;
         }
 
-        // Adjust gradient component IDs
+        // 调整渐变组件ID
         {
             auto decoded = decode_gradient_component_ids(mf.gradient_component_ids, 0);
             if (!norm.empty()) {
-                // When manual_pattern is the active resolution source the
+                // 当 manual_pattern 是活动解析源时
                 // gradient deletion check was skipped — remove stale IDs
                 // that reference the now-deleted physical filament.
                 decoded.erase(

@@ -23,16 +23,16 @@ static void apply_tolerance(ModelVolume* vol)
 
     Vec3d sf = vol->get_scaling_factor();
 
-    // make a "hole" wider
+    // 使"孔"变宽
     sf[X] += double(cut_info.radius_tolerance);
     sf[Y] += double(cut_info.radius_tolerance);
 
-    // make a "hole" dipper
+    // 使"孔"更深
     sf[Z] += double(cut_info.height_tolerance);
 
     vol->set_scaling_factor(sf);
 
-    // correct offset in respect to the new depth
+    // 根据新深度修正偏移
     Vec3d rot_norm = rotation_transform(vol->get_rotation()) * Vec3d::UnitZ();
     if (rot_norm.norm() != 0.0)
         rot_norm.normalize();
@@ -40,7 +40,7 @@ static void apply_tolerance(ModelVolume* vol)
     double z_offset = 0.5 * static_cast<double>(cut_info.height_tolerance);
     if (cut_info.connector_type == CutConnectorType::Plug || 
         cut_info.connector_type == CutConnectorType::Snap)
-        z_offset -= 0.05; // add small Z offset to better preview
+        z_offset -= 0.05; // 添加小Z偏移以更好地预览
 
     vol->set_offset(vol->get_offset() + rot_norm * z_offset);
 }
@@ -55,7 +55,7 @@ static void add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelV
     vol->set_type(type);
 
     vol->name = src_volume->name + suffix;
-    // Don't copy the config's ID.
+    // 不复制配置的ID。
     vol->config.assign_config(src_volume->config);
     assert(vol->config.id().valid());
     assert(vol->config.id() != src_volume->config.id());
@@ -71,8 +71,8 @@ static void process_volume_cut( ModelVolume* volume, const Transform3d& instance
     const Transformation cut_transformation = Transformation(cut_matrix);
     const Transform3d invert_cut_matrix = cut_transformation.get_rotation_matrix().inverse() * translation_transform(-1 * cut_transformation.get_offset());
 
-    // Transform the mesh by the combined transformation matrix.
-    // Flip the triangles in case the composite transformation is left handed.
+    // 通过组合变换矩阵变换网格。
+    // 如果复合变换是左手系，则翻转三角形。
     TriangleMesh mesh(volume->mesh());
     mesh.transform(invert_cut_matrix * instance_matrix * volume_matrix, true);
 
@@ -93,8 +93,8 @@ static void process_connector_cut(  ModelVolume* volume, const Transform3d& inst
 
     const auto volume_matrix = volume->get_matrix();
 
-    // ! Don't apply instance transformation for the conntectors.
-    // This transformation is already there
+    // ! 不要对连接器应用实例变换。
+    // 这个变换已经存在了
     if (volume->cut_info.connector_type != CutConnectorType::Dowel) {
         if (attributes.has(ModelObjectCutAttribute::KeepUpper)) {
             ModelVolume* vol = nullptr;
@@ -117,39 +117,39 @@ static void process_connector_cut(  ModelVolume* volume, const Transform3d& inst
         if (attributes.has(ModelObjectCutAttribute::KeepLower)) {
             ModelVolume* vol = lower->add_volume(*volume);
             vol->set_transformation(volume_matrix);
-            // for lower part change type of connector from NEGATIVE_VOLUME to MODEL_PART if this connector is a plug
+            // 对于下部，如果此连接器是插头，将类型从NEGATIVE_VOLUME更改为MODEL_PART
             vol->set_type(ModelVolumeType::MODEL_PART);
         }
     }
     else {
         if (attributes.has(ModelObjectCutAttribute::CreateDowels)) {
             ModelObject* dowel{ nullptr };
-            // Clone the object to duplicate instances, materials etc.
+            // 克隆对象以复制实例、材料等。
             volume->get_object()->clone_for_cut(&dowel);
 
-            // add one more solid part same as connector if this connector is a dowel
+            // 如果此连接器是销钉，则添加一个与连接器相同的实体部件
             ModelVolume* vol = dowel->add_volume(*volume);
             vol->set_type(ModelVolumeType::MODEL_PART);
 
-            // But discard rotation and Z-offset for this volume
+            // 但丢弃此体积块的旋转和Z偏移
             vol->set_rotation(Vec3d::Zero());
             vol->set_offset(Z, 0.0);
 
             dowels.push_back(dowel);
         }
 
-        // Cut the dowel
+        // 切割销钉
         apply_tolerance(volume);
 
-        // Perform cut
+        // 执行切割
         TriangleMesh upper_mesh, lower_mesh;
         process_volume_cut(volume, Transform3d::Identity(), cut_matrix, attributes, upper_mesh, lower_mesh);
 
-        // add small Z offset to better preview
+        // 添加小Z偏移以更好地预览
         upper_mesh.translate((-0.05 * Vec3d::UnitZ()).cast<float>());
         lower_mesh.translate((0.05 * Vec3d::UnitZ()).cast<float>());
 
-        // Add cut parts to the related objects
+        // 添加切割部件到相关对象
         add_cut_volume(upper_mesh, upper, volume, cut_matrix, "_A", volume->type());
         add_cut_volume(lower_mesh, lower, volume, cut_matrix, "_B", volume->type());
     }
@@ -160,8 +160,7 @@ static void process_modifier_cut(ModelVolume* volume, const Transform3d& instanc
 {
     const auto volume_matrix = instance_matrix * volume->get_matrix();
 
-    // Modifiers are not cut, but we still need to add the instance transformation
-    // to the modifier volume transformation to preserve their shape properly.
+    // 修饰器不被切割，但我们仍需要将实例变换添加到修饰器体积变换中以正确保留其形状。
     volume->set_transformation(Transformation(volume_matrix));
 
     if (attributes.has(ModelObjectCutAttribute::KeepAsParts)) {
@@ -169,7 +168,7 @@ static void process_modifier_cut(ModelVolume* volume, const Transform3d& instanc
         return;
     }
 
-    // Some logic for the negative volumes/connectors. Add only needed modifiers
+    // 负体积块/连接器的一些逻辑。仅添加所需的修饰器
     auto bb = volume->mesh().transformed_bounding_box(inverse_cut_matrix * volume_matrix);
     bool is_crossed_by_cut = bb.min[Z] <= 0 && bb.max[Z] >= 0;
     if (attributes.has(ModelObjectCutAttribute::KeepUpper) && (bb.min[Z] >= 0 || is_crossed_by_cut))
@@ -181,11 +180,11 @@ static void process_modifier_cut(ModelVolume* volume, const Transform3d& instanc
 static void process_solid_part_cut(ModelVolume* volume, const Transform3d& instance_matrix, const Transform3d& cut_matrix,
                             ModelObjectCutAttributes attributes, ModelObject* upper, ModelObject* lower)
 {
-    // Perform cut
+    // 执行切割
     TriangleMesh upper_mesh, lower_mesh;
     process_volume_cut(volume, instance_matrix, cut_matrix, attributes, upper_mesh, lower_mesh);
 
-    // Add required cut parts to the objects
+    // 添加所需的切割部件到对象
 
     if (attributes.has(ModelObjectCutAttribute::KeepAsParts)) {
         add_cut_volume(upper_mesh, upper, volume, cut_matrix, "_A");
@@ -207,14 +206,14 @@ static void reset_instance_transformation(ModelObject* object, size_t src_instan
                                           const Transform3d& cut_matrix = Transform3d::Identity(),
                                           bool place_on_cut = false, bool flip = false)
 {
-    // Reset instance transformation except offset and Z-rotation
+    // 重置实例变换，除了偏移和Z旋转
 
     for (size_t i = 0; i < object->instances.size(); ++i) {
         auto& obj_instance = object->instances[i];
         const double rot_z = obj_instance->get_rotation().z();
         
         Transformation inst_trafo = Transformation(obj_instance->get_transformation().get_matrix_no_scaling_factor());
-        // add respect to mirroring
+        // 添加对镜像的考虑
         if (obj_instance->is_left_handed())
             inst_trafo = inst_trafo * Transformation(scale_transform(Vec3d(-1, 1, 1)));
 
@@ -262,7 +261,7 @@ void Cut::post_process(ModelObject* object, ModelObjectPtrs& cut_object_ptrs, bo
         cut_object_ptrs.push_back(object);
     }
     else
-        m_model.objects.push_back(object); // will be deleted in m_model.clear_objects();
+        m_model.objects.push_back(object); // 将在 m_model.clear_objects() 中被删除
 }
 
 void Cut::post_process(ModelObject* upper, ModelObject* lower, ModelObjectPtrs& cut_object_ptrs)
@@ -281,10 +280,10 @@ void Cut::post_process(ModelObject* upper, ModelObject* lower, ModelObjectPtrs& 
 
 void Cut::finalize(const ModelObjectPtrs& objects)
 {
-    //clear model from temporarry objects
+    // 从模型中清除临时对象
     m_model.clear_objects();
 
-    // add to model result objects
+    // 添加到模型结果对象
     m_model.objects = objects;
 }
 
@@ -300,7 +299,7 @@ const ModelObjectPtrs& Cut::perform_with_plane()
 
     BOOST_LOG_TRIVIAL(trace) << "ModelObject::cut - start";
 
-    // Clone the object to duplicate instances, materials etc.
+    // 克隆对象以复制实例、材料等。
     ModelObject* upper{ nullptr };
     if (m_attributes.has(ModelObjectCutAttribute::KeepUpper))
         mo->clone_for_cut(&upper);
@@ -311,10 +310,9 @@ const ModelObjectPtrs& Cut::perform_with_plane()
 
     std::vector<ModelObject*> dowels;
 
-    // Because transformations are going to be applied to meshes directly,
-    // we reset transformation of all instances and volumes,
-    // except for translation and Z-rotation on instances, which are preserved
-    // in the transformation matrix and not applied to the mesh transform.
+    // 因为变换将直接应用于网格，
+    // 我们重置所有实例和体积块的变换，
+    // 除了实例上的平移和Z旋转，它们保留在变换矩阵中且不应用于网格变换。
 
     const auto              instance_matrix = mo->instances[m_instance]->get_transformation().get_matrix_no_offset();
     const Transformation    cut_transformation = Transformation(m_cut_matrix);
@@ -333,7 +331,7 @@ const ModelObjectPtrs& Cut::perform_with_plane()
             process_solid_part_cut(volume, instance_matrix, m_cut_matrix, m_attributes, upper, lower);
     }
 
-    // Post-process cut parts
+    // 后处理切割部件
 
     if (m_attributes.has(ModelObjectCutAttribute::KeepAsParts) && upper->volumes.empty()) {
         m_model = Model();
@@ -348,7 +346,7 @@ const ModelObjectPtrs& Cut::perform_with_plane()
         cut_object_ptrs.push_back(upper);
     }
     else {
-        // Delete all modifiers which are not intersecting with solid parts bounding box
+        // 删除所有不与实体部件边界框相交的修饰器
         auto delete_extra_modifiers = [this](ModelObject* mo) {
             if (!mo) return;
             const BoundingBoxf3 obj_bb = mo->instance_bounding_box(m_instance);
@@ -391,11 +389,11 @@ static void distribute_modifiers_from_object(ModelObject* from_obj, const int in
 
     for (ModelVolume* vol : from_obj->volumes)
         if (!vol->is_model_part()) {
-            // Don't add modifiers which are processed connectors
+            // 不添加已处理的连接器修饰器
             if (vol->cut_info.is_connector && !vol->cut_info.is_processed)
                 continue;
             auto bb = vol->mesh().transformed_bounding_box(inst_matrix * vol->get_matrix());
-            // Don't add modifiers which are not intersecting with solid parts
+            // 不添加不与实体部件相交的修饰器
             if (obj1_bb.intersects(bb))
                 to_obj1->add_volume(*vol);
             if (obj2_bb.intersects(bb))
@@ -407,7 +405,7 @@ static void merge_solid_parts_inside_object(ModelObjectPtrs& objects)
 {
     for (ModelObject* mo : objects) {
         TriangleMesh mesh;
-        // Merge all SolidPart but not Connectors
+        // 合并所有实体部件但不包括连接器
         for (const ModelVolume* mv : mo->volumes) {
             if (mv->is_model_part() && !mv->is_cut_connector()) {
                 TriangleMesh m = mv->mesh();
@@ -418,13 +416,13 @@ static void merge_solid_parts_inside_object(ModelObjectPtrs& objects)
         if (!mesh.empty()) {
             ModelVolume* new_volume = mo->add_volume(mesh);
             new_volume->name = mo->name;
-            // Delete all merged SolidPart but not Connectors
+            // 删除所有已合并的实体部件但不包括连接器
             for (int i = int(mo->volumes.size()) - 2; i >= 0; --i) {
                 const ModelVolume* mv = mo->volumes[i];
                 if (mv->is_model_part() && !mv->is_cut_connector())
                     mo->delete_volume(i);
             }
-            // Ensuring that volumes start with solid parts for proper slicing
+            // 确保体积块以实体部件开头以便正确切片
             mo->sort_volumes(true);
         }
     }
@@ -435,7 +433,7 @@ const ModelObjectPtrs& Cut::perform_by_contour(std::vector<Part> parts, int dowe
 {
     ModelObject* cut_mo = m_model.objects.front();
 
-    // Clone the object to duplicate instances, materials etc.
+    // 克隆对象以复制实例、材料等。
     ModelObject* upper{ nullptr };
     if (m_attributes.has(ModelObjectCutAttribute::KeepUpper)) cut_mo->clone_for_cut(&upper);
     ModelObject* lower{ nullptr };
@@ -449,16 +447,16 @@ const ModelObjectPtrs& Cut::perform_by_contour(std::vector<Part> parts, int dowe
     const size_t cut_parts_cnt = parts.size();
     bool has_modifiers = false;
 
-    // Distribute SolidParts to the Upper/Lower object
+    // 将实体部件分配到上/下对象
     for (size_t id = 0; id < cut_parts_cnt; ++id) {
         if (parts[id].is_modifier)
-            has_modifiers = true; // modifiers will be added later to the related parts
+            has_modifiers = true; // 修饰器将在稍后添加到相关部件中
         else if (ModelObject* obj = (parts[id].selected ? upper : lower))
             obj->add_volume(*(cut_mo->volumes[id]));
     }
 
     if (has_modifiers) {
-        // Distribute Modifiers to the Upper/Lower object
+        // 将修饰器分配到上/下对象
         distribute_modifiers_from_object(cut_mo, m_instance, upper, lower);
     }
 
@@ -466,49 +464,49 @@ const ModelObjectPtrs& Cut::perform_by_contour(std::vector<Part> parts, int dowe
 
     ModelVolumePtrs& volumes = cut_mo->volumes;
     if (volumes.size() == cut_parts_cnt) {
-        // Means that object is cut without connectors
+        // 表示对象不带连接器切割
 
-        // Just add Upper and Lower objects to cut_object_ptrs
+        // 只需将上部和下部对象添加到 cut_object_ptrs
         post_process(upper, lower, cut_object_ptrs);
 
-        // Now merge all model parts together:
+        // 现在将所有模型部件合并在一起：
         merge_solid_parts_inside_object(cut_object_ptrs);
 
-        // replace initial objects in model with cut object 
+        // 用切割对象替换模型中的初始对象
         finalize(cut_object_ptrs);
     }
     else if (volumes.size() > cut_parts_cnt) {
-        // Means that object is cut with connectors
+        // 表示对象带连接器切割
 
-        // All volumes are distributed to Upper / Lower object,
-        // So we don’t need them anymore
+        // 所有体积块已分配到上/下对象，
+        // 所以我们不再需要它们
         for (size_t id = 0; id < cut_parts_cnt; id++)
             delete* (volumes.begin() + id);
         volumes.erase(volumes.begin(), volumes.begin() + cut_parts_cnt);
 
-        // Perform cut just to get connectors
+        // 执行切割仅为了获取连接器
         Cut cut(cut_mo, m_instance, m_cut_matrix, m_attributes);
         const ModelObjectPtrs& cut_connectors_obj = cut.perform_with_plane();
         assert(dowels_count > 0 ? cut_connectors_obj.size() >= 3 : cut_connectors_obj.size() == 2);
 
-        // Connectors from upper object
+        // 来自上部对象的连接器
         for (const ModelVolume* volume : cut_connectors_obj[0]->volumes)
             upper->add_volume(*volume, volume->type());
 
-        // Connectors from lower object
+        // 来自下部对象的连接器
         for (const ModelVolume* volume : cut_connectors_obj[1]->volumes)
             lower->add_volume(*volume, volume->type());
 
-        // Add Upper and Lower objects to cut_object_ptrs
+        // 添加上部和下部对象到 cut_object_ptrs
         post_process(upper, lower, cut_object_ptrs);
 
-        // Now merge all model parts together:
+        // 现在将所有模型部件合并在一起：
         merge_solid_parts_inside_object(cut_object_ptrs);
 
-        // replace initial objects in model with cut object
+        // 用切割对象替换模型中的初始对象
         finalize(cut_object_ptrs);
 
-        // Add Dowel-connectors as separate objects to model
+        // 将销钉连接器作为单独对象添加到模型
         if (cut_connectors_obj.size() >= 3)
             for (size_t id = 2; id < cut_connectors_obj.size(); id++)
                 m_model.add_object(*cut_connectors_obj[id]);
@@ -522,7 +520,7 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove& groove, const Tran
 {
     ModelObject* cut_mo = m_model.objects.front();
 
-    // Clone the object to duplicate instances, materials etc.
+    // 克隆对象以复制实例、材料等。
     ModelObject* upper{ nullptr };
     cut_mo->clone_for_cut(&upper);
     ModelObject* lower{ nullptr };
@@ -565,7 +563,7 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove& groove, const Tran
         reset_instance_transformation(object, m_instance);
     };
 
-    // cut by upper plane
+    // 按上平面切割
 
     const Transform3d cut_matrix_upper = translation_transform(rotation_m * (groove_half_depth * Vec3d::UnitZ())) * m_cut_matrix;
     {
@@ -573,7 +571,7 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove& groove, const Tran
         add_volumes_from_cut(upper, ModelObjectCutAttribute::KeepUpper, tmp_model_for_cut);
     }
 
-    // cut by lower plane
+    // 按下平面切割
 
     const Transform3d cut_matrix_lower = translation_transform(rotation_m * (-groove_half_depth * Vec3d::UnitZ())) * m_cut_matrix;
     {
@@ -581,11 +579,11 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove& groove, const Tran
         add_volumes_from_cut(lower, ModelObjectCutAttribute::KeepLower, tmp_model_for_cut);
     }
 
-    // cut middle part with 2 angles and add parts to related upper/lower objects
+    // 用两个角度切割中间部分并将部件添加到相关的上/下对象
 
     const double h_side_shift = 0.5 * double(groove.width + groove.depth / tan(groove.flaps_angle));
 
-    // cut by angle1 plane
+    // 按角度1平面切割
     {
         const Transform3d cut_matrix_angle1 = translation_transform(rotation_m * (-h_side_shift * Vec3d::UnitX())) * m_cut_matrix * rotation_transform(Vec3d(0, -groove.flaps_angle, -groove.angle));
 
@@ -593,7 +591,7 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove& groove, const Tran
         add_volumes_from_cut(lower, ModelObjectCutAttribute::KeepUpper, tmp_model_for_cut);
     }
 
-    // cut by angle2 plane
+    // 按角度2平面切割
     {
         const Transform3d cut_matrix_angle2 = translation_transform(rotation_m * (h_side_shift * Vec3d::UnitX())) * m_cut_matrix * rotation_transform(Vec3d(0, groove.flaps_angle, groove.angle));
 
@@ -601,7 +599,7 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove& groove, const Tran
         add_volumes_from_cut(lower, ModelObjectCutAttribute::KeepUpper, tmp_model_for_cut);
     }
 
-    // apply tolerance to the middle part
+    // 对中间部分应用容差
     {
         const double h_groove_shift_tolerance = groove_half_depth - (double)groove.depth_tolerance;
 
@@ -617,31 +615,31 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove& groove, const Tran
         cut(tmp_object, cut_matrix_angle2_tolerance, ModelObjectCutAttribute::KeepUpper, tmp_model_for_cut);
     }
 
-    // this part can be added to the upper object now
+    // 此部件现在可以添加到上部对象
     add_volumes_from_cut(upper, ModelObjectCutAttribute::KeepLower, tmp_model_for_cut);
 
     ModelObjectPtrs cut_object_ptrs;
 
     if (keep_as_parts) {
-        // add volumes from lower object to the upper, but mark them as a lower
+        // 从下部对象添加体积块到上部，但标记为下部
         const auto& volumes = lower->volumes;
         for (const ModelVolume* volume : volumes) {
             ModelVolume* new_vol = upper->add_volume(*volume);
             new_vol->cut_info.is_from_upper = false;
         }
 
-        // add modifiers
+        // 添加修饰器
         for (const ModelVolume* volume : cut_mo->volumes)
             if (!volume->is_model_part())
                 upper->add_volume(*volume);
 
         cut_object_ptrs.push_back(upper);
 
-        // add lower object to the cut_object_ptrs just to correct delete it from the Model destructor and avoid memory leaks
+        // 将下部对象添加到 cut_object_ptrs 只是为了正确地从 Model 析构函数中删除它并避免内存泄漏
         cut_object_ptrs.push_back(lower);
     }
     else {
-        // add modifiers if object has any
+        // 如果对象有修饰器则添加
         for (const ModelVolume* volume : cut_mo->volumes)
             if (!volume->is_model_part()) {
                 distribute_modifiers_from_object(cut_mo, m_instance, upper, lower);
@@ -650,11 +648,11 @@ const ModelObjectPtrs& Cut::perform_with_groove(const Groove& groove, const Tran
 
         assert(!upper->volumes.empty() && !lower->volumes.empty());
 
-        // Add Upper and Lower parts to cut_object_ptrs
+        // 添加上部和下部部件到 cut_object_ptrs
 
         post_process(upper, lower, cut_object_ptrs);
 
-        // Now merge all model parts together:
+        // 现在将所有模型部件合并在一起：
         merge_solid_parts_inside_object(cut_object_ptrs);
     }
 

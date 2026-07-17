@@ -24,7 +24,7 @@
 
 #include "GCode/PressureEqualizer.hpp"
 #include "GCode/SmallAreaInfillFlowCompensator.hpp"
-// ORCA: post processor below used for Dynamic Pressure advance
+// ORCA：下面的后处理器用于动态压力提前
 #include "GCode/AdaptivePAProcessor.hpp"
 
 #include <memory>
@@ -128,9 +128,9 @@ private:
     std::string append_tcr(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
     std::string append_tcr2(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
 
-    // Postprocesses gcode: rotates and moves G1 extrusions and returns result
+    // 后处理 G 代码：旋转和移动 G1 挤出并返回结果
     std::string post_process_wipe_tower_moves(const WipeTower::ToolChangeResult& tcr, const Vec2f& translation, float angle) const;
-    // Left / right edges of the wipe tower, for the planning of wipe moves.
+    // 擦拭塔的左/右边缘，用于规划擦拭移动。
 
     Vec2d extruder_offset_at(size_t extruder_id) const;
 
@@ -141,13 +141,13 @@ private:
     const float                                                  m_wipe_tower_rotation;
     const std::vector<Vec2d>                                     m_extruder_offsets;
 
-    // Reference to cached values at the Printer class.
+    // 引用 Printer 类中的缓存值。
     const std::vector<WipeTower::ToolChangeResult>              &m_priming;
     const std::vector<std::vector<WipeTower::ToolChangeResult>> &m_tool_changes;
     const std::vector<std::vector<WipeTower::ToolChangeResult>> &m_local_z_tool_changes;
     const std::vector<std::vector<WipeTower::box_coordinates>>  &m_local_z_reserve_boxes;
     const WipeTower::ToolChangeResult                           &m_final_purge;
-    // Current layer index.
+    // 当前层索引。
     int                                                          m_layer_idx;
     int                                                          m_tool_change_idx;
     std::vector<size_t>                                          m_local_z_tool_change_idx;

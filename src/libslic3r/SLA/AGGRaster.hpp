@@ -4,7 +4,7 @@
 #include <libslic3r/SLA/RasterBase.hpp>
 #include "libslic3r/ExPolygon.hpp"
 
-// For rasterizing
+// 用于光栅化
 #include <agg/agg_basics.h>
 #include <agg/agg_rendering_buffer.h>
 #include <agg/agg_pixfmt_gray.h>
@@ -140,7 +140,7 @@ public:
         , m_renderer(m_raw_renderer)
         , m_trafo(trafo)
     {
-        // Visual Studio compiler gives warnings about possible division by zero.
+        // Visual Studio 编译器会给出可能除以零的警告。
         assert(pd.w_mm != 0 && pd.h_mm != 0);
         if (pd.w_mm != 0 && pd.h_mm != 0) {
             m_pxdim_scaled.w_mm /= pd.w_mm;
@@ -171,11 +171,10 @@ public:
 };
 
 /*
- * Captures an anti-aliased monochrome canvas where vectorial
- * polygons can be rasterized. Fill color is always white and the background is
- * black. Contours are anti-aliased.
- * 
- * A gamma function can be specified at compile time to make it more flexible.
+ * 捕获一个抗锯齿的单色画布，用于光栅化矢量多边形。
+ * 填充颜色始终为白色，背景为黑色。轮廓经过抗锯齿处理。
+ *
+ * 可以在编译时指定伽马函数以使其更灵活。
  */
 using _RasterGrayscaleAA =
     AGGRaster<agg::pixfmt_gray8, agg::renderer_scanline_aa_solid>;

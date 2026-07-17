@@ -19,8 +19,8 @@
 namespace Slic3r {
 
 #ifdef _WIN32
-// The new API is better than the old SEH style thread naming since the names also show up in crash dumpsand ETW traces.
-// Because the new API is only available on newer Windows 10, look it up dynamically.
+// 新API比旧的SEH风格线程命名更好，因为名称也会显示在崩溃转储和ETW跟踪中。
+// 由于新API仅在较新的Windows 10上可用，因此动态查找。
 
 typedef HRESULT(__stdcall* SetThreadDescriptionType)(HANDLE, PCWSTR);
 typedef HRESULT(__stdcall* GetThreadDescriptionType)(HANDLE, PWSTR*);

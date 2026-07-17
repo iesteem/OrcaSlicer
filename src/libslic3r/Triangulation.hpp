@@ -20,14 +20,14 @@ public:
     using Indices   = std::vector<Vec3i32>;
 
     /// <summary>
-    /// Connect points by triangulation to create filled surface by triangles
-    /// Input points have to be unique
-    /// Inspiration for make unique points is Emboss::dilate_to_unique_points
+    /// 通过三角剖分连接点以创建由三角形填充的表面
+    /// 输入点必须唯一
+    /// 使点唯一的灵感来自 Emboss::dilate_to_unique_points
     /// </summary>
-    /// <param name="points">Points to connect</param>
-    /// <param name="edges">Constraint for edges, pair is from point(first) to
-    /// point(second), sorted lexicographically</param> 
-    /// <returns>Triangles</returns>
+    /// <param name="points">要连接的点</param>
+    /// <param name="edges">边的约束，对是从点(first)到
+    /// 点(second)，按字典序排序</param>
+    /// <returns>三角形</returns>
     static Indices triangulate(const Points &points,
                                const HalfEdges &half_edges);
     static Indices triangulate(const Polygon &polygon);
@@ -40,12 +40,12 @@ public:
     using Changes = std::vector<uint32_t>;
 
     /// <summary>
-    /// Create conversion map from original index into new 
-    /// with respect of duplicit point
+    /// 创建从原始索引到新索引的转换映射，
+    /// 针对重复点进行处理
     /// </summary>
-    /// <param name="points">input set of points</param>
-    /// <param name="duplicits">duplicit points collected from points</param>
-    /// <returns>Conversion map for point index</returns>
+    /// <param name="points">输入点集</param>
+    /// <param name="duplicits">从点中收集的重复点</param>
+    /// <returns>点索引的转换映射</returns>
     static Changes create_changes(const Points &points, const Points &duplicits);
 
     /// <summary>

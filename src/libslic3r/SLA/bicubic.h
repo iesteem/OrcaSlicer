@@ -10,7 +10,7 @@
 namespace Slic3r {
 
 namespace BicubicInternal {
-	// Linear kernel, to be able to test cubic methods with hat kernels.
+	// 线性核，用于用 hat 核测试三次方法。
 	template<typename T>
 	struct LinearKernel
 	{
@@ -34,7 +34,7 @@ namespace BicubicInternal {
 		static T a33() { return T(0.); }
 	};
 
-	// Interpolation kernel aka Catmul-Rom aka Keyes kernel.
+	// 插值核，又称 Catmul-Rom 核或 Keyes 核。
 	template<typename T>
 	struct CubicCatmulRomKernel
 	{
@@ -58,7 +58,7 @@ namespace BicubicInternal {
 		static T a33() { return (T) 0.5;   }
 	};
 
-	// B-spline kernel
+	// B 样条核
 	template<typename T>
 	struct CubicBSplineKernel
 	{
@@ -124,15 +124,15 @@ struct CubicKernel
 	}
 };
 
-// Linear splines
+// 线性样条
 typedef CubicKernel<BicubicInternal::LinearKernel<float>>					LinearKernelf;
 typedef CubicKernel<BicubicInternal::LinearKernel<double>>					LinearKerneld;
-// Catmul-Rom splines
+// Catmul-Rom 样条
 typedef CubicKernel<BicubicInternal::CubicCatmulRomKernel<float>>			CubicCatmulRomKernelf;
 typedef CubicKernel<BicubicInternal::CubicCatmulRomKernel<double>>			CubicCatmulRomKerneld;
 typedef CubicKernel<BicubicInternal::CubicCatmulRomKernel<float>>			CubicInterpolationKernelf;
 typedef CubicKernel<BicubicInternal::CubicCatmulRomKernel<double>>			CubicInterpolationKerneld;
-// Cubic B-splines
+// 三次 B 样条
 typedef CubicKernel<BicubicInternal::CubicBSplineKernel<float>>				CubicBSplineKernelf;
 typedef CubicKernel<BicubicInternal::CubicBSplineKernel<double>>			CubicBSplineKerneld;
 
@@ -145,10 +145,10 @@ static float cubic_interpolate(const Eigen::ArrayBase<Derived> &F, const typenam
 	const T   s  = pt - (T)ix;
 
 	if (ix > 1 && ix + 2 < w) {
-		// Inside the fully interpolated region.
+		// 在完全插值区域内。
 		return KERNEL::interpolate(F[ix - 1], F[ix], F[ix + 1], F[ix + 2], s);
 	}
-	// Transition region. Extend with a constant function.
+	// 过渡区域。用常数函数扩展。
 	auto f = [&F, w](x) { return F[BicubicInternal::clamp(x, 0, w - 1)]; }
 	return KERNEL::interpolate(f(ix - 1), f(ix), f(ix + 1), f(ix + 2), s);
 }
@@ -172,7 +172,7 @@ static float bicubic_interpolate(const Eigen::MatrixBase<Derived> &F, const Eige
 			KERNEL::interpolate(F(ix-1,iy+1),F(ix  ,iy+1),F(ix+1,iy+1),F(ix+2,iy+1),s),
 			KERNEL::interpolate(F(ix-1,iy+2),F(ix  ,iy+2),F(ix+1,iy+2),F(ix+2,iy+2),s),t);
 	}
-	// Transition region. Extend with a constant function.
+	// 过渡区域。用常数函数扩展。
 	auto f = [&f, w, h](int x, int y) { return F(BicubicInternal::clamp(x,0,w-1),BicubicInternal::clamp(y,0,h-1)); }
 	return KERNEL::interpolate(
 		KERNEL::interpolate(f(ix-1,iy-1),f(ix  ,iy-1),f(ix+1,iy-1),f(ix+2,iy-1),s),

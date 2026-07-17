@@ -24,7 +24,7 @@ protected:
 	    ExPolygon                 		 expolygon,
 	    Polylines                       &polylines_out) override;
 
-	// Caching the 
+	// 缓存
 	struct CacheID 
 	{
 		CacheID(float adensity, coordf_t aspacing) : 

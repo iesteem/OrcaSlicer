@@ -90,7 +90,7 @@ struct ArrangeItem {
 
 Pointfs arrange(size_t num_parts, const Vec2d &part_size, coordf_t gap, const BoundingBoxf* bed_bounding_box)
 {
-    // Use actual part size (the largest) plus separation distance (half on each side) in spacing algorithm.
+    // 在间距算法中使用实际零件尺寸（最大的）加上分离距离（每侧一半）。
     const Vec2d       cell_size(part_size(0) + gap, part_size(1) + gap);
 
     const BoundingBoxf bed_bbox = (bed_bounding_box != NULL && bed_bounding_box->defined) ? 
@@ -100,43 +100,43 @@ Pointfs arrange(size_t num_parts, const Vec2d &part_size, coordf_t gap, const Bo
             Vec2d(0, 0),
             Vec2d(cell_size(0) * num_parts, cell_size(1) * num_parts));
 
-    // This is how many cells we have available into which to put parts.
+    // 这是可用于放置零件的单元格数量。
     size_t cellw = size_t(floor((bed_bbox.size()(0) + gap) / cell_size(0)));
     size_t cellh = size_t(floor((bed_bbox.size()(1) + gap) / cell_size(1)));
     if (num_parts > cellw * cellh)
         throw Slic3r::InvalidArgument("%zu parts won't fit in your print area!\n", num_parts);
     
-    // Get a bounding box of cellw x cellh cells, centered at the center of the bed.
+    // 获取 cellw x cellh 单元格的边界框，以热床中心为中心。
     Vec2d       cells_size(cellw * cell_size(0) - gap, cellh * cell_size(1) - gap);
     Vec2d       cells_offset(bed_bbox.center() - 0.5 * cells_size);
     BoundingBoxf cells_bb(cells_offset, cells_size + cells_offset);
     
-    // List of cells, sorted by distance from center.
+    // 单元格列表，按距离中心的距离排序。
     std::vector<ArrangeItem> cellsorder(cellw * cellh, ArrangeItem());
     for (size_t j = 0; j < cellh; ++ j) {
-        // Center of the jth row on the bed.
+        // 热床上第 j 行的中心。
         coordf_t cy = linint(j + 0.5, 0., double(cellh), cells_bb.min(1), cells_bb.max(1));
-        // Offset from the bed center.
+        // 距热床中心的偏移。
         coordf_t yd = cells_bb.center()(1) - cy;
         for (size_t i = 0; i < cellw; ++ i) {
-            // Center of the ith column on the bed.
+            // 热床上第 i 列的中心。
             coordf_t cx = linint(i + 0.5, 0., double(cellw), cells_bb.min(0), cells_bb.max(0));
-            // Offset from the bed center.
+            // 距热床中心的偏移。
             coordf_t xd = cells_bb.center()(0) - cx;
-            // Cell with a distance from the bed center.
+            // 距热床中心有一定距离的单元格。
             ArrangeItem &ci = cellsorder[j * cellw + i];
-            // Cell center
+            // 单元格中心
             ci.pos(0) = cx;
             ci.pos(1) = cy;
-            // Square distance of the cell center to the bed center.
+            // 单元格中心到热床中心的平方距离。
             ci.weight = xd * xd + yd * yd;
         }
     }
-    // Sort the cells lexicographically by their distances to the bed center and left to right / bttom to top.
+    // 按单元格到热床中心的距离以及从左到右/从下到上的顺序进行字典序排序。
     std::sort(cellsorder.begin(), cellsorder.end());
     cellsorder.erase(cellsorder.begin() + num_parts, cellsorder.end());
 
-    // Return the (left,top) corners of the cells.
+    // 返回单元格的（左上）角。
     Pointfs positions;
     positions.reserve(num_parts);
     for (std::vector<ArrangeItem>::const_iterator it = cellsorder.begin(); it != cellsorder.end(); ++ it)
@@ -164,7 +164,7 @@ arrange(size_t total_parts, const Vec2d &part_size, coordf_t dist, const Boundin
 
     Vec2d part = part_size;
 
-    // use actual part size (the largest) plus separation distance (half on each side) in spacing algorithm
+    // 在间距算法中使用实际零件尺寸（最大的）加上分离距离（每侧一半）
     part(0) += dist;
     part(1) += dist;
     
@@ -172,35 +172,35 @@ arrange(size_t total_parts, const Vec2d &part_size, coordf_t dist, const Boundin
     if (bb != NULL && bb->defined) {
         area = bb->size();
     } else {
-        // bogus area size, large enough not to trigger the error below
+        // 虚拟区域大小，足够大以不会触发下面的错误
         area(0) = part(0) * total_parts;
         area(1) = part(1) * total_parts;
     }
     
-    // this is how many cells we have available into which to put parts
+    // 这是可用于放置零件的单元格数量
     size_t cellw = floor((area(0) + dist) / part(0));
     size_t cellh = floor((area(1) + dist) / part(1));
     if (total_parts > (cellw * cellh))
         return false;
     
-    // total space used by cells
+    // 单元格占用的总空间
     Vec2d cells(cellw * part(0), cellh * part(1));
     
-    // bounding box of total space used by cells
+    // 单元格占用的总空间的边界框
     BoundingBoxf cells_bb;
     cells_bb.merge(Vec2d(0,0)); // min
     cells_bb.merge(cells);  // max
     
-    // center bounding box to area
+    // 将边界框居中到区域
     cells_bb.translate(
         (area(0) - cells(0)) / 2,
         (area(1) - cells(1)) / 2
     );
     
-    // list of cells, sorted by distance from center
+    // 单元格列表，按距离中心的距离排序
     std::vector<ArrangeItemIndex> cellsorder;
     
-    // work out distance for all cells, sort into list
+    // 计算所有单元格的距离，排序到列表中
     for (size_t i = 0; i <= cellw-1; ++i) {
         for (size_t j = 0; j <= cellh-1; ++j) {
             coordf_t cx = linint(i + 0.5, 0, cellw, cells_bb.min(0), cells_bb.max(0));
@@ -240,13 +240,13 @@ arrange(size_t total_parts, const Vec2d &part_size, coordf_t dist, const Boundin
         }
     }
     
-    // the extents of cells actually used by objects
+    // 对象实际使用的单元格范围
     coordf_t lx = 0;
     coordf_t ty = 0;
     coordf_t rx = 0;
     coordf_t by = 0;
 
-    // now find cells actually used by objects, map out the extents so we can position correctly
+    // 现在找到对象实际使用的单元格，绘制范围以便正确定位
     for (size_t i = 1; i <= total_parts; ++i) {
         ArrangeItemIndex c = cellsorder[i - 1];
         coordf_t cx = c.item.index_x;
@@ -261,7 +261,7 @@ arrange(size_t total_parts, const Vec2d &part_size, coordf_t dist, const Boundin
             if (cy < ty) ty = cy;
         }
     }
-    // now we actually place objects into cells, positioned such that the left and bottom borders are at 0
+    // 现在我们将对象实际放置到单元格中，定位使得左边框和下边框在 0 位置
     for (size_t i = 1; i <= total_parts; ++i) {
         ArrangeItemIndex c = cellsorder.front();
         cellsorder.erase(cellsorder.begin());

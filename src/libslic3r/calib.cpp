@@ -6,7 +6,7 @@
 
 namespace Slic3r {
 
-// Calculate the optimal Pressure Advance speed
+// 计算最优压力提前速度
 float CalibPressureAdvance::find_optimal_PA_speed(const DynamicPrintConfig &config, double line_width, double layer_height, int filament_idx)
 {
     const double general_suggested_min_speed   = 100.0;
@@ -24,15 +24,15 @@ std::string CalibPressureAdvance::move_to(Vec2d pt, GCodeWriter &writer, std::st
 {
     std::stringstream gcode;
 
-    gcode << writer.retract(); // retract before z move or move
+    gcode << writer.retract(); // 在Z移动之前回抽
     if(z > EPSILON && layer_height >= 0){
-        gcode << writer.travel_to_z(z, "z-hop"); // Perform z hop
-        gcode << writer.travel_to_xy(pt, comment); // Travel with z move
-        gcode << writer.travel_to_z(layer_height, "undo z-hop"); // Undo z hop
+        gcode << writer.travel_to_z(z, "z-hop"); // 执行Z抬升
+        gcode << writer.travel_to_xy(pt, comment); // 随Z移动一起移动
+        gcode << writer.travel_to_z(layer_height, "undo z-hop"); // 撤销Z抬升
     }else {
         gcode << writer.travel_to_xy(pt, comment);
     }
-    gcode << writer.unretract(); // unretract after z move is complete
+    gcode << writer.unretract(); // 在Z移动完成后取消回抽
 
     m_last_pos = Vec3d(pt.x(), pt.y(), 0);
 
@@ -53,9 +53,9 @@ std::string CalibPressureAdvance::convert_number_to_string(double num, unsigned 
     std::ostringstream stream;
 
     if (precision) {
-        /* if number is > 1000 then there are no way we'll fit fractional part into 5 glyphs, so
-         * in this case we keep full precision.
-         * Otherwise we reduce precision by 1 to accomodate decimal separator */
+        /* 如果数字 > 1000，则无法将小数部分放入5个字型中，因此
+         * 在这种情况下我们保持完整精度。
+         * 否则我们将精度减1以容纳小数点分隔符 */
         stream << std::setprecision(num >= 1000 ? precision : precision - 1);
     }
 
@@ -267,9 +267,9 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
 
     const double spacing = opt_args.line_width - opt_args.height * (1 - M_PI / 4);
 
-    // if number of perims exceeds size of box, reduce it to max
+    // 如果周长数超出盒子大小，则减少到最大值
     const int max_perimeters = std::min(
-        // this is the equivalent of number of perims for concentric fill
+        // 这等同于同心填充的周长数
         std::floor(size_x * std::sin(to_radians(45))) / (spacing / std::sin(to_radians(45))),
         std::floor(size_y * std::sin(to_radians(45))) / (spacing / std::sin(to_radians(45))));
 
@@ -284,7 +284,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
     std::string comment = "";
 
     for (int i = 0; i < opt_args.num_perimeters; ++i) {
-        if (i != 0) { // after first perimeter, step inwards to start next perimeter
+        if (i != 0) { // 在第一个周长之后，向内步进以开始下一个周长
             x += spacing;
             y += spacing;
             gcode << move_to(Vec2d(x, y), writer, "Step inwards to print next perimeter");
@@ -311,7 +311,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
         return gcode.str();
     }
 
-    // create box infill
+    // 创建盒子填充
     const double spacing_45 = spacing / std::sin(to_radians(45));
 
     const double bound_modifier = (spacing * (opt_args.num_perimeters - 1)) + (opt_args.line_width * (1 - m_encroachment));
@@ -331,7 +331,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
     gcode << move_to(Vec2d(x, y), writer, "Move to fill start");
 
     for (int i = 0; i < x_count + y_count + (x_remainder + y_remainder >= spacing_45 ? 1 : 0);
-         ++i) { // this isn't the most robust way, but less expensive than finding line intersections
+         ++i) { // 这不是最稳健的方法，但比查找线交点代价小
         if (i < std::min(x_count, y_count)) {
             if (i % 2 == 0) {
                 x += spacing_45;
@@ -354,7 +354,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
             }
         } else if (i < std::max(x_count, y_count)) {
             if (x_count > y_count) {
-                // box is wider than tall
+                // 盒子比高更宽
                 if (i % 2 == 0) {
                     x += spacing_45;
                     y = y_min_bound;
@@ -380,7 +380,7 @@ std::string CalibPressureAdvance::draw_box(GCodeWriter &writer, double min_x, do
                     gcode << draw_line(writer, Vec2d(x, y), line_arg_line_width, line_arg_height, line_arg_speed, comment);
                 }
             } else {
-                // box is taller than wide
+                // 盒子比宽更高
                 if (i % 2 == 0) {
                     x = x_max_bound;
                     if (i == x_count) {
@@ -491,7 +491,7 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
     gcode << mp_gcodegen->writer().travel_to_z(m_height_layer + z_offset);
     double y_pos = start_y;
 
-    // prime line
+    // 预挤线
     gcode << writer.set_pressure_advance(0.0);
     auto prime_x = start_x;
     gcode << move_to(Vec2d(prime_x, y_pos + (num) * m_space_y), writer);
@@ -510,7 +510,7 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
                                       e_per_mm * m_length_short);
 
         if (i == 0) {
-            // Print extra anchor line
+            // 打印额外的锚定线
             gcode << writer.set_pressure_advance(0.0);
             gcode << writer.extrude_to_xy(Vec2d(start_x + m_length_short + m_length_long + m_length_short, y_pos + (num) * m_space_y), e_per_mm * m_space_y * num * 1.2);
         }
@@ -519,7 +519,7 @@ std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double star
 
     if (m_draw_numbers) {
 
-        // Orca: skip drawing indicator lines
+        // Orca: 跳过绘制指示线
         // gcode << writer.set_speed(fast);
         // gcode << move_to(Vec2d(start_x + m_length_short, y_pos + (num - 1) * m_space_y + 2), writer);
         // gcode << writer.extrude_to_xy(Vec2d(start_x + m_length_short, y_pos + (num - 1) * m_space_y + 7), thin_e_per_mm * 7);
@@ -592,10 +592,10 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
     const DrawBoxOptArgs default_box_opt_args(wall_count(), height_first_layer(), line_width_first_layer(),
                                               speed_adjust(speed_first_layer()));
 
-    // create anchoring frame
+    // 创建锚定框架
     gcode << draw_box(m_writer, m_starting_point.x(), m_starting_point.y(), print_size_x(), frame_size_y(), default_box_opt_args);
 
-    // create tab for numbers
+    // 创建数字标签
     DrawBoxOptArgs draw_box_opt_args = default_box_opt_args;
     draw_box_opt_args.is_filled      = true;
     draw_box_opt_args.num_perimeters = wall_count();
@@ -604,12 +604,12 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
                       max_numbering_height() + line_spacing_first_layer() + m_glyph_padding_vertical * 2, draw_box_opt_args);
 
     std::vector<CustomGCode::Item> gcode_items;
-    const int                      num_patterns = get_num_patterns(); // "cache" for use in loops
+    const int                      num_patterns = get_num_patterns(); // "缓存" 用于循环
 
     const double zhop_config_value = m_config.option<ConfigOptionFloats>("z_hop")->get_at(0);
     const auto accel = accel_perimeter();
 
-    // draw pressure advance pattern
+    // 绘制压力提前模式
     for (int i = 0; i < m_num_layers; ++i) {
         const double layer_height = height_first_layer() + height_z_offset() + (i * height_layer());
         const double zhop_height = layer_height + zhop_config_value;
@@ -622,14 +622,14 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
             item.extra   = gcode.str();
             gcode_items.push_back(item);
 
-            gcode = std::stringstream(); // reset for next layer contents
+            gcode = std::stringstream(); // 重置为下一层内容
             gcode << "; start pressure advance pattern for layer\n";
 
             gcode << m_writer.travel_to_z(layer_height, "Move to layer height");
             gcode << m_writer.reset_e();
         }
 
-        // line numbering
+        // 行编号
         if (i == 1) {
             m_number_len = max_numbering_length();
 
@@ -640,20 +640,20 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
                                               m_config.option<ConfigOptionFloats>("filament_diameter")->get_at(0),
                                               m_config.option<ConfigOptionFloats>("filament_flow_ratio")->get_at(0));
 
-            // glyph on every other line
+            // 每隔一行显示字形
             for (int j = 0; j < num_patterns; j += 2) {
                 gcode << draw_number(glyph_start_x(j), m_starting_point.y() + frame_size_y() + m_glyph_padding_vertical + line_width(),
                                      m_params.start + (j * m_params.step), m_draw_digit_mode, line_width(), number_e_per_mm,
                                      speed_first_layer(), m_writer);
             }
 
-            // flow value
+            // 流量值
             int line_num = num_patterns + 2;
             gcode << draw_number(glyph_start_x(line_num), m_starting_point.y() + frame_size_y() + m_glyph_padding_vertical + line_width(),
                                  flow_val(), m_draw_digit_mode, line_width(), number_e_per_mm,
                                  speed_first_layer(), m_writer);
 
-            // acceleration
+            // 加速度
             line_num = num_patterns + 4;
             gcode << draw_number(glyph_start_x(line_num), m_starting_point.y() + frame_size_y() + m_glyph_padding_vertical + line_width(),
                                  accel, m_draw_digit_mode, line_width(), number_e_per_mm,
@@ -665,7 +665,7 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
         double to_y        = m_starting_point.y();
         double side_length = m_wall_side_length;
 
-        // shrink first layer to fit inside frame
+        // 缩小第一层以适合框架内部
         if (i == 0) {
             double shrink = (line_spacing_first_layer() * (wall_count() - 1) + (line_width_first_layer() * (1 - m_encroachment))) /
                             std::sin(to_radians(m_corner_angle) / 2);
@@ -688,7 +688,7 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
         gcode << move_to(Vec2d(to_x, to_y), m_writer, "Move to pattern start",zhop_height,layer_height);
 
         for (int j = 0; j < num_patterns; ++j) {
-            // increment pressure advance
+            // 增加压力提前
             gcode << m_writer.set_pressure_advance(m_params.start + (j * m_params.step));
 
             for (int k = 0; k < wall_count(); ++k) {
@@ -696,7 +696,7 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
                 to_y += std::sin(to_radians(m_corner_angle) / 2) * side_length;
 
                 auto draw_line_arg_height = i == 0 ? height_first_layer() : height_layer();
-                auto draw_line_arg_line_width = line_width(); // don't use line_width_first_layer so results are consistent across all layers
+                auto draw_line_arg_line_width = line_width(); // 不使用第一层线宽，使结果在所有层之间一致
                 auto draw_line_arg_speed   = i == 0 ? speed_adjust(speed_first_layer()) : speed_adjust(speed_perimeter());
                 auto draw_line_arg_comment = "Print pattern wall";
                 gcode << draw_line(m_writer, Vec2d(to_x, to_y), draw_line_arg_line_width, draw_line_arg_height, draw_line_arg_speed, draw_line_arg_comment);
@@ -708,20 +708,20 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
 
                 to_y = initial_y;
                 if (k != wall_count() - 1) {
-                    // perimeters not done yet. move to next perimeter
+                    // 周长尚未完成。移至下一个周长
                     to_x += line_spacing_angle();
-                    gcode << move_to(Vec2d(to_x, to_y), m_writer, "Move to start next pattern wall", zhop_height, layer_height); // Call move to command with XY as well as z hop and layer height to invoke and undo z lift
+                    gcode << move_to(Vec2d(to_x, to_y), m_writer, "移动到下一个模式墙的起始位置", zhop_height, layer_height); // 调用移动命令，包含XY、Z抬升和层高，以执行和撤销Z抬升
                 } else if (j != num_patterns - 1) {
-                    // patterns not done yet. move to next pattern
+                    // 模式尚未完成。移至下一个模式
                     to_x += m_pattern_spacing + line_width();
-                    gcode << move_to(Vec2d(to_x, to_y), m_writer, "Move to next pattern", zhop_height, layer_height); // Call move to command with XY as well as z hop and layer height to invoke and undo z lift
+                    gcode << move_to(Vec2d(to_x, to_y), m_writer, "移动到下一个模式", zhop_height, layer_height); // 调用移动命令，包含XY、Z抬升和层高，以执行和撤销Z抬升
                 } else if (i != m_num_layers - 1) {
-                    // layers not done yet. move back to start
+                    // 图层尚未完成。移回起始位置
                     to_x = initial_x;
-                    gcode << move_to(Vec2d(to_x, to_y), m_writer, "Move back to start position", zhop_height, layer_height); // Call move to command with XY as well as z hop and layer height to invoke and undo z lift
-                    gcode << m_writer.reset_e(); // reset extruder before printing placeholder cube to avoid over extrusion
+                    gcode << move_to(Vec2d(to_x, to_y), m_writer, "移回起始位置", zhop_height, layer_height); // 调用移动命令，包含XY、Z抬升和层高，以执行和撤销Z抬升
+                    gcode << m_writer.reset_e(); // 在打印占位立方体之前重置挤出机以避免过度挤出
                 } else {
-                    // everything done
+                    // 全部完成
                 }
             }
         }
@@ -808,24 +808,24 @@ double CalibPressureAdvancePattern::object_size_y() const
 
 double CalibPressureAdvancePattern::glyph_start_x(int pattern_i) const
 {
-    // note that pattern_i is zero-based!
-    // align glyph's start with first perimeter of specified pattern
+    // 注意 pattern_i 是从零开始的！
+    // 将字形的起始与指定模式的第一个周长对齐
     double x =
-        // starting offset
+        // 起始偏移
         m_starting_point.x() + pattern_shift() +
 
-        // width of pattern extrusions
-        pattern_i * (wall_count() - 1) * line_spacing_angle() + // center to center distance of extrusions
-        pattern_i * line_width() +                              // endcaps. center to end on either side = 1 line width
+        // 模式挤出宽度
+        pattern_i * (wall_count() - 1) * line_spacing_angle() + // 挤出的中心到中心距离
+        pattern_i * line_width() +                              // 端盖。任一侧的中心到末端 = 1个线宽
 
-        // space between each pattern
+        // 每个模式之间的间距
         pattern_i * m_pattern_spacing;
 
-    // align to middle of pattern walls
+    // 对齐到模式墙的中间
     x += wall_count() * line_spacing_angle() / 2;
 
-    // shift so glyph is centered on pattern
-    // m_digit_segment_len = half of X length of glyph
+    // 平移以使字形在模式上居中
+    // m_digit_segment_len = 字形X长度的一半
     x -= (glyph_length_x() / 2);
 
     return x;
@@ -833,20 +833,20 @@ double CalibPressureAdvancePattern::glyph_start_x(int pattern_i) const
 
 double CalibPressureAdvancePattern::glyph_length_x() const
 {
-    // half of line_width sticks out on each side
+    // 线宽的一半在每侧伸出
     return line_width() + (2 * m_digit_segment_len);
 }
 
 double CalibPressureAdvancePattern::glyph_tab_max_x() const
 {
-    // only every other glyph is shown, starting with 1
+    // 仅每隔一个字形显示，从1开始
     int num     = get_num_patterns();
     int max_num = (num % 2 == 0) ? num - 1 : num;
 
-    // padding at end should be same as padding at start
+    // 尾部的内边距应与开始处相同
     double padding = glyph_start_x(0) - m_starting_point.x();
 
-    return glyph_start_x(max_num - 1) + // glyph_start_x is zero-based
+    return glyph_start_x(max_num - 1) + // glyph_start_x 是从零开始的
            (glyph_length_x() - line_width() / 2) + padding;
 }
 
@@ -855,7 +855,7 @@ size_t CalibPressureAdvancePattern::max_numbering_length() const
     std::string::size_type most_characters = 0;
     const int              num_patterns    = get_num_patterns();
 
-    // note: only every other number is printed
+    // 注意：只打印每隔一个数字
     for (std::string::size_type i = 0; i < num_patterns; i += 2) {
         std::string sNumber = convert_number_to_string(m_params.start + (i * m_params.step));
 

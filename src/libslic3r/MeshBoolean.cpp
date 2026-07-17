@@ -7,11 +7,11 @@
 
 #include <boost/next_prior.hpp>
 #include "boost/log/trivial.hpp"
-// Include igl first. It defines "L" macro which then clashes with our localization
+// 先包含 igl。它定义的 "L" 宏之后会与我们的本地化冲突
 #include <igl/copyleft/cgal/mesh_boolean.h>
 #undef L
 
-// CGAL headers
+// CGAL 头文件
 #include <CGAL/Polygon_mesh_processing/corefinement.h>
 #include <CGAL/Exact_integer.h>
 #include <CGAL/Surface_mesh.h>
@@ -21,12 +21,12 @@
 #include <CGAL/Polygon_mesh_processing/remesh.h>
 #include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
 #include <CGAL/Polygon_mesh_processing/orientation.h>
-// BBS: for segment
+// BBS：用于分段
 #include <CGAL/mesh_segmentation.h>
 #include <CGAL/property_map.h>
 #include <CGAL/boost/graph/copy_face_graph.h>
 #include <CGAL/boost/graph/Face_filtered_graph.h>
-// BBS: for boolean using mcut
+// BBS：使用 mcut 进行布尔运算
 #include "mcut/include/mcut/mcut.h"
 
 namespace Slic3r {

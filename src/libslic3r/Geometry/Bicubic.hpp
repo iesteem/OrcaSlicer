@@ -12,7 +12,7 @@ namespace Slic3r {
 namespace Geometry {
 
 namespace BicubicInternal {
-// Linear kernel, to be able to test cubic methods with hat kernels.
+// 线性核，用于使用帽状核测试三次方法。
 template<typename T>
 struct LinearKernel
 {
@@ -68,7 +68,7 @@ struct LinearKernel
     }
 };
 
-// Interpolation kernel aka Catmul-Rom aka Keyes kernel.
+// 插值核，也称为Catmul-Rom核或Keyes核。
 template<typename T>
 struct CubicCatmulRomKernel
 {
@@ -124,7 +124,7 @@ struct CubicCatmulRomKernel
     }
 };
 
-// B-spline kernel
+// B样条核
 template<typename T>
 struct CubicBSplineKernel
 {
@@ -223,15 +223,15 @@ struct CubicKernelWrapper
     }
 };
 
-// Linear splines
+// 线性样条
 template<typename NumberType>
 using LinearKernel = CubicKernelWrapper<BicubicInternal::LinearKernel<NumberType>>;
 
-// Catmul-Rom splines
+// Catmul-Rom样条
 template<typename NumberType>
 using CubicCatmulRomKernel = CubicKernelWrapper<BicubicInternal::CubicCatmulRomKernel<NumberType>>;
 
-// Cubic B-splines
+// 三次B样条
 template<typename NumberType>
 using CubicBSplineKernel = CubicKernelWrapper<BicubicInternal::CubicBSplineKernel<NumberType>>;
 
@@ -244,10 +244,10 @@ static typename KernelWrapper::FloatType cubic_interpolate(const Eigen::ArrayBas
     const T s = pt - T( ix);
 
     if (ix > 1 && ix + 2 < w) {
-        // Inside the fully interpolated region.
+        // 完全插值区域内部。
         return KernelWrapper::interpolate(F[ix - 1], F[ix], F[ix + 1], F[ix + 2], s);
     }
-    // Transition region. Extend with a constant function.
+    // 过渡区域。使用常数函数扩展。
     auto f = [&F, w](T x) {
         return F[BicubicInternal::clamp(x, 0, w - 1)];
     };
@@ -266,14 +266,14 @@ static float bicubic_interpolate(const Eigen::MatrixBase<Derived> &F,
     const T t = pt[1] - T( iy);
 
     if (ix > 1 && ix + 2 < w && iy > 1 && iy + 2 < h) {
-        // Inside the fully interpolated region.
+        // 完全插值区域内部。
         return Kernel::interpolate(
                 Kernel::interpolate(F(ix - 1, iy - 1), F(ix, iy - 1), F(ix + 1, iy - 1), F(ix + 2, iy - 1), s),
                 Kernel::interpolate(F(ix - 1, iy), F(ix, iy), F(ix + 1, iy), F(ix + 2, iy), s),
                 Kernel::interpolate(F(ix - 1, iy + 1), F(ix, iy + 1), F(ix + 1, iy + 1), F(ix + 2, iy + 1), s),
                 Kernel::interpolate(F(ix - 1, iy + 2), F(ix, iy + 2), F(ix + 1, iy + 2), F(ix + 2, iy + 2), s), t);
     }
-    // Transition region. Extend with a constant function.
+    // 过渡区域。使用常数函数扩展。
     auto f = [&F, w, h](int x, int y) {
         return F(BicubicInternal::clamp(x, 0, w - 1), BicubicInternal::clamp(y, 0, h - 1));
     };

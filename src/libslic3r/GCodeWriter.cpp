@@ -52,9 +52,9 @@ void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
     for (unsigned int extruder_id : extruder_ids)
         m_extruders.emplace_back(Extruder(extruder_id, &this->config, config.single_extruder_multi_material.value));
     
-    /*  we enable support for multiple extruder if any extruder greater than 0 is used
-        (even if prints only uses that one) since we need to output Tx commands
-        first extruder has index 0 */
+    /*  如果使用任何大于 0 的挤出机，我们就启用多挤出机支持
+        （即使打印只使用那一个），因为我们需要输出 Tx 命令
+        第一个挤出机索引为 0 */
     this->multiple_extruders = (*std::max_element(extruder_ids.begin(), extruder_ids.end())) > 0;
 }
 
@@ -195,13 +195,13 @@ std::string GCodeWriter::set_chamber_temperature(int temperature, bool wait)
 // copied from PrusaSlicer
 std::string GCodeWriter::set_acceleration_internal(Acceleration type, unsigned int acceleration)
 {
-    // Clamp the acceleration to the allowed maximum.
+    // 将加速度限制在允许的最大值内。
     if (type == Acceleration::Print && m_max_acceleration > 0 && acceleration > m_max_acceleration)
         acceleration = m_max_acceleration;
     if (type == Acceleration::Travel && m_max_travel_acceleration > 0 && acceleration > m_max_travel_acceleration)
         acceleration = m_max_travel_acceleration;
 
-    // Are we setting travel acceleration for a flavour that supports separate travel and print acc?
+    // 我们是否在设置支持独立行进和打印加速度的固件类型的行进加速度？
     bool separate_travel = (type == Acceleration::Travel && supports_separate_travel_acceleration(this->config.gcode_flavor));
 
     auto& last_value = separate_travel ? m_last_travel_acceleration : m_last_acceleration ;
@@ -276,7 +276,7 @@ std::string GCodeWriter::set_accel_and_jerk(unsigned int acceleration, double je
     if(FLAVOR_IS_NOT(gcfKlipper))
         throw std::runtime_error("set_accel_and_jerk() is only supported by Klipper");
 
-    // Clamp the acceleration to the allowed maximum.
+    // 将加速度限制在允许的最大值内。
     if (m_max_acceleration > 0 && acceleration > m_max_acceleration)
         acceleration = m_max_acceleration;
     
@@ -338,7 +338,7 @@ std::string GCodeWriter::set_pressure_advance(double pa) const
     if (pa < 0)
         return gcode.str();
     if(m_is_bbl_printers){
-        //SoftFever: set L1000 to use linear model
+        //SoftFever：设置 L1000 以使用线性模型
         gcode << "M900 K" <<std::setprecision(4)<< pa << " L1000 M10 ; Override pressure advance value\n";
     }
     else{
@@ -454,13 +454,13 @@ std::string GCodeWriter::toolchange_prefix() const
 
 std::string GCodeWriter::toolchange(unsigned int extruder_id)
 {
-    // set the new extruder
+    // 设置新挤出机
 	auto it_extruder = Slic3r::lower_bound_by_predicate(m_extruders.begin(), m_extruders.end(), [extruder_id](const Extruder &e) { return e.id() < extruder_id; });
     assert(it_extruder != m_extruders.end() && it_extruder->id() == extruder_id);
     m_extruder = &*it_extruder;
 
-    // return the toolchange command
-    // if we are running a single-extruder setup, just set the extruder and return nothing
+    // 返回换刀命令
+    // 如果运行的是单挤出机设置，只需设置挤出机并返回空
     std::ostringstream gcode;
     if (this->multiple_extruders || (this->config.filament_diameter.values.size() > 1 && !is_bbl_printers())) {
         gcode << this->toolchange_prefix() << extruder_id;
@@ -508,15 +508,12 @@ std::string GCodeWriter::travel_to_xy(const Vec2d &point, const std::string &com
 
 std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &comment, bool force_z)
 {
-    // FIXME: This function was not being used when travel_speed_z was separated (bd6badf).
-    // Calculation of feedrate was not updated accordingly. If you want to use
-    // this function, fix it first.
+    // FIXME：当 travel_speed_z 被分离时（bd6badf），此函数未被使用。
+    // 进给率的计算未相应更新。如果你想使用此函数，请先修复它。
     //std::terminate();
 
-    /*  If target Z is lower than current Z but higher than nominal Z we
-        don't perform the Z move but we only move in the XY plane and
-        adjust the nominal Z by reducing the lift amount that will be 
-        used for unlift. */
+    /*  如果目标 Z 低于当前 Z 但高于标称 Z，我们不执行 Z 移动，
+        而只在 XY 平面移动，并通过减少用于取消提升的提升量来调整标称 Z。 */
         // BBS
     Vec3d dest_point = point;
     auto travel_speed =
@@ -524,9 +521,8 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
     //BBS: a z_hop need to be handle when travel
     if (std::abs(m_to_lift) > EPSILON) {
         assert(std::abs(m_lifted) < EPSILON);
-        //BBS: don't need to do real lift if the current position is absolutely same with target.
-        //This ususally happens when the last extrusion line is short and the end of wipe position
-        //is same with the traget point by chance.
+        //BBS：如果当前位置与目标位置完全相同，则无需执行真正的提升。
+        //这通常发生在最后一条挤出线很短且擦拭位置的末端恰好与目标点相同时。
         if ((!this->is_current_position_clear() || m_pos != dest_point) &&
             m_to_lift + m_pos(2) > point(2)) {
             m_lifted = m_to_lift + m_pos(2) - point(2);
@@ -543,21 +539,21 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
         //BBS: don'need slope travel because we don't know where is the source position the first time
         //BBS: Also don't need to do slope move or spiral lift if x-y distance is absolute zero
         if (delta(2) > 0 && delta_no_z.norm() != 0.0f)    {
-            //BBS: SpiralLift
+            //BBS：螺旋提升
             if (m_to_lift_type == LiftType::SpiralLift && this->is_current_position_clear()) {
-                //BBS: todo: check the arc move all in bed area, if not, then use lazy lift
+                //BBS：TODO：检查圆弧移动是否全部在热床区域内，如果不是，则使用惰性提升
                 double radius = delta(2) / (2 * PI * atan(this->extruder()->travel_slope()));
                 Vec2d ij_offset = radius * delta_no_z.normalized();
                 ij_offset = { -ij_offset(1), ij_offset(0) };
                 slop_move = this->_spiral_travel_to_z(target(2), ij_offset, "spiral lift Z");
             }
-            //BBS: LazyLift
+            //BBS：惰性提升
             else if (m_to_lift_type == LiftType::LazyLift &&
                 this->is_current_position_clear() && 
                 atan2(delta(2), delta_no_z.norm()) < this->extruder()->travel_slope()) {
-                //BBS: check whether we can make a travel like
+                //BBS：检查是否可以做一个像
                 //   _____
-                //  /       to make the z list early to avoid to hit some warping place when travel is long.
+                //  /       这样的行进，以提前提升Z，避免长距离行进时碰到翘曲区域。
                 Vec2d temp = delta_no_z.normalized() * delta(2) / tan(this->extruder()->travel_slope());
                 Vec3d slope_top_point = Vec3d(temp(0), temp(1), delta(2)) + source;
                 GCodeG1Formatter w0;
@@ -635,9 +631,8 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
 
 std::string GCodeWriter::travel_to_z(double z, const std::string &comment, bool force)
 {
-    /*  If target Z is lower than current Z but higher than nominal Z
-        we don't perform the move but we only adjust the nominal Z by
-        reducing the lift amount that will be used for unlift. */
+    /*  如果目标 Z 低于当前 Z 但高于标称 Z，我们不执行移动，
+        而只通过减少用于取消提升的提升量来调整标称 Z。 */
     if (!force && !this->will_move_z(z)) {
         double nominal_z = m_pos(2) - m_lifted;
         m_lifted -= (z - nominal_z);
@@ -646,8 +641,7 @@ std::string GCodeWriter::travel_to_z(double z, const std::string &comment, bool 
         return "";
     }
     
-    /*  In all the other cases, we perform an actual Z move and cancel
-        the lift. */
+    /*  在所有其他情况下，我们执行实际的 Z 移动并取消提升。 */
     m_lifted = 0;
     return this->_travel_to_z(z, comment);
 }
@@ -692,15 +686,14 @@ std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, c
 
 bool GCodeWriter::will_move_z(double z) const
 {
-    /* If target Z is lower than current Z but higher than nominal Z
-        we don't perform an actual Z move. */
+    /* 如果目标 Z 低于当前 Z 但高于标称 Z，我们不执行实际的 Z 移动。 */
     if (m_lifted > 0) {
         double nominal_z = m_pos(2) - m_lifted;
         if (z >= nominal_z && z <= m_pos(2))
             return false;
     }
     // BBS.
-    // Dont move z if it is the same as target z
+    // 如果 Z 与目标 Z 相同，则不移动 Z
     else if (std::abs(m_pos(2) - z) < EPSILON) {
         return false;
     }
@@ -794,9 +787,9 @@ std::string GCodeWriter::retract_for_toolchange(bool before_wipe, double retract
 
 std::string GCodeWriter::_retract(double length, double restart_extra, const std::string &comment)
 {
-    /*  If firmware retraction is enabled, we use a fake value of 1
-    since we ignore the actual configured retract_length which
-    might be 0, in which case the retraction logic gets skipped. */
+    /*  如果启用了固件回抽，我们使用假值 1，
+        因为我们将忽略实际配置的 retract_length（可能为 0），
+        在这种情况下回抽逻辑会被跳过。 */
     if (this->config.use_firmware_retraction)
         length = 1;
 
@@ -836,7 +829,7 @@ std::string GCodeWriter::unretract()
         }
         else {
             //BBS
-            // use G1 instead of G0 because G0 will blend the restart with the previous travel move
+            // 使用 G1 而不是 G0，因为 G0 会将重启与先前的行进移动混合
             GCodeG1Formatter w;
             w.emit_e(m_extruder->E());
             w.emit_f(m_extruder->deretract_speed() * 60.);
@@ -854,7 +847,7 @@ std::string GCodeWriter::unretract()
     (i.e. with travel_to_z()) and thus _lifted was reduced. */
 std::string GCodeWriter::lift(LiftType lift_type, bool spiral_vase)
 {
-    // check whether the above/below conditions are met
+    // 检查是否满足 above/below 条件
     double target_lift = 0;
     {
         double above = this->config.retract_lift_above.get_at(m_extruder->id());
@@ -987,8 +980,8 @@ void GCodeFormatter::emit_axis(const char axis, const double v, size_t digits) {
 
     char *base_ptr = this->ptr_err.ptr;
     auto  v_int    = int64_t(std::round(v * pow_10[digits]));
-    // Older stdlib on macOS doesn't support std::from_chars at all, so it is used boost::spirit::karma::generate instead of it.
-    // That is a little bit slower than std::to_chars but not much.
+    // macOS 上的旧版 stdlib 根本不支持 std::from_chars，因此使用 boost::spirit::karma::generate 替代。
+    // 这比 std::to_chars 稍慢，但相差不大。
 #ifdef __APPLE__
     boost::spirit::karma::generate(this->ptr_err.ptr, boost::spirit::karma::int_generator<int64_t>(), v_int);
 #else

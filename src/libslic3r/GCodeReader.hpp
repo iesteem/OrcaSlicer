@@ -135,15 +135,14 @@ public:
     void parse_line(const std::string &line, Callback callback)
         { GCodeLine gline; this->parse_line(line.c_str(), line.c_str() + line.size(), gline, callback); }
 
-    // Returns false if reading the file failed.
+    // 如果读取文件失败则返回 false。
     bool parse_file(const std::string &file, callback_t callback);
-    // Collect positions of line ends in the binary G-code to be used by the G-code viewer when memory mapping and displaying section of G-code
-    // as an overlay in the 3D scene.
+    // 收集二进制 G-code 中行尾的位置，供 G-code 查看器在内存映射和显示 G-code 部分作为 3D 场景叠加层时使用。
     bool parse_file(const std::string &file, callback_t callback, std::vector<size_t> &lines_ends);
-    // Just read the G-code file line by line, calls callback (const char *begin, const char *end). Returns false if reading the file failed.
+    // 逐行读取 G-code 文件，调用回调函数 (const char *begin, const char *end)。如果读取文件失败则返回 false。
     bool parse_file_raw(const std::string &file, raw_line_callback_t callback);
 
-    // To be called by the callback to stop parsing.
+    // 由回调调用以停止解析。
     void quit_parsing() { m_parsing = false; }
 
     float& x()       { return m_position[X]; }
@@ -189,7 +188,7 @@ private:
     GCodeConfig m_config;
     float       m_position[NUM_AXES];
     bool        m_verbose;
-    // To be set by the callback to stop parsing.
+    // 由回调设置以停止解析。
     bool        m_parsing{ false };
 };
 

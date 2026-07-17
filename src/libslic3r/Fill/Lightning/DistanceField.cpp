@@ -41,7 +41,7 @@ DistanceField::DistanceField(const coord_t& radius, const Polygons& current_outl
     m_unsupported_points_bbox(current_outlines_bbox)
 {
     m_supporting_radius2 = Slic3r::sqr(int64_t(radius));
-    // Sample source polygons with a regular grid sampling pattern.
+    // 使用规则网格采样模式对源多边形进行采样。
     const BoundingBox overhang_bbox = get_extents(current_overhang);
     ExPolygons expolys = offset2_ex(union_ex(current_overhang), -m_cell_size / 2, m_cell_size / 2); // remove dangling lines which causes sample_grid_pattern crash (fails the OUTER_LOW assertions)
     for (const ExPolygon &expoly : expolys) {
@@ -52,7 +52,7 @@ DistanceField::DistanceField(const coord_t& radius, const Polygons& current_outl
         tbb::parallel_for(tbb::blocked_range<size_t>(0, sampled_points.size()), [&self = *this, &expoly = std::as_const(expoly), &sampled_points = std::as_const(sampled_points), &unsupported_points_prev_size = std::as_const(unsupported_points_prev_size)](const tbb::blocked_range<size_t> &range) -> void {
             for (size_t sp_idx = range.begin(); sp_idx < range.end(); ++sp_idx) {
                 const Point &sp = sampled_points[sp_idx];
-                // Find a squared distance to the source expolygon boundary.
+                // 找到到源 expolygon 边界的平方距离。
                 double d2 = std::numeric_limits<double>::max();
                 for (size_t icontour = 0; icontour <= expoly.holes.size(); ++icontour) {
                     const Polygon &contour = icontour == 0 ? expoly.contour : expoly.holes[icontour - 1];
@@ -81,8 +81,8 @@ DistanceField::DistanceField(const coord_t& radius, const Polygons& current_outl
 
     m_unsupported_points_grid.initialize(m_unsupported_points, [&self = std::as_const(*this)](const Point &p) -> Point { return self.to_grid_point(p); });
 
-    // Because the distance between two points is at least one axis equal to m_cell_size, every cell
-    // in m_unsupported_points_grid contains exactly one point.
+    // 因为两点之间的距离至少有一个轴等于 m_cell_size，所以
+    // m_unsupported_points_grid 中的每个单元恰好包含一个点。
     assert(m_unsupported_points.size() == m_unsupported_points_grid.size());
 
 #ifdef LIGHTNING_DISTANCE_FIELD_DEBUG_OUTPUT
@@ -109,7 +109,7 @@ void DistanceField::update(const Point& to_node, const Point& added_leaf)
         grid.merge(added_leaf - iextent);
         grid.merge(added_leaf + iextent);
 
-        // Clip grid by m_unsupported_points_bbox. Mainly to ensure that grid.min is a non-negative value.
+        // 使用 m_unsupported_points_bbox 裁剪网格。主要是确保 grid.min 为非负值。
         grid.min.x() = std::max(grid.min.x(), m_unsupported_points_bbox.min.x());
         grid.min.y() = std::max(grid.min.y(), m_unsupported_points_bbox.min.y());
         grid.max.x() = std::min(grid.max.x(), m_unsupported_points_bbox.max.x());
@@ -124,21 +124,21 @@ void DistanceField::update(const Point& to_node, const Point& added_leaf)
     for (grid_addr.y() = grid.min.y(); grid_addr.y() <= grid.max.y(); ++grid_addr.y()) {
         for (grid_addr.x() = grid.min.x(); grid_addr.x() <= grid.max.x(); ++grid_addr.x()) {
             grid_loc = this->from_grid_point(grid_addr);
-            // Test inside a circle at the new leaf.
+            // 测试是否在新叶节点处的圆内。
             if ((grid_loc - added_leaf).cast<int64_t>().squaredNorm() > m_supporting_radius2) {
-                // Not inside a circle at the end of the new leaf.
-                // Test inside a rotated rectangle.
+                // 不在新叶节点末端的圆内。
+                // 测试是否在旋转矩形内。
                 Vec2d  vx = (grid_loc - to_node).cast<double>();
                 double d  = v.dot(vx);
                 if (d >= 0 && d <= l2) {
                     d = extent.dot(vx);
                     if (d < -1. || d > 1.)
-                        // Not inside a rotated rectangle.
+                        // 不在旋转矩形内。
                         continue;
                 }
             }
-            // Inside a circle at the end of the new leaf, or inside a rotated rectangle.
-            // Remove unsupported leafs at this grid location.
+            // 在新叶节点末端的圆内，或在旋转矩形内。
+            // 移除该网格位置处的未支撑叶节点。
             if (const size_t cell_idx = m_unsupported_points_grid.find_cell_idx(grid_addr); cell_idx != std::numeric_limits<size_t>::max()) {
                 const UnsupportedCell &cell = m_unsupported_points[cell_idx];
                 if ((cell.loc - added_leaf).cast<int64_t>().squaredNorm() <= m_supporting_radius2) {

@@ -23,9 +23,9 @@ public:
         float minimal_distance {1.f};
         float head_diameter {0.4f};
 
-        // Originally calibrated to 7.7f, reduced density by Tamas to 70% which is 11.1 (7.7 / 0.7) to adjust for new algorithm changes in tm_suppt_gen_improve
-        inline float support_force() const { return 11.1f / density_relative; } // a force one point can support       (arbitrary force unit)
-        inline float tear_pressure() const { return 1.f; }  // pressure that the display exerts    (the force unit per mm2)
+        // 原始校准值为 7.7f，Tamas 将密度降低到 70%，得到 11.1 (7.7 / 0.7)，以适应 tm_suppt_gen_improve 中的新算法变更
+        inline float support_force() const { return 11.1f / density_relative; } // 一个点能支撑的力（任意力单位）
+        inline float tear_pressure() const { return 1.f; }  // 显示器施加的压力（每平方毫米的力单位）
     };
     
     SupportPointGenerator(const IndexedMesh& emesh, const std::vector<ExPolygons>& slices,
@@ -51,8 +51,8 @@ public:
         const Vec2f centroid = Vec2f::Zero();
         const float area = 0.f;
         float zlevel = 0;
-        // How well is this ExPolygon held to the print base?
-        // Positive number, the higher the better.
+        // 此 ExPolygon 被固定在打印平台上的程度如何？
+        // 正数，越大越好。
         float supports_force_this_layer     = 0.f;
         float supports_force_inherited      = 0.f;
         float supports_force_total() const { return this->supports_force_this_layer + this->supports_force_inherited; }
@@ -67,24 +67,24 @@ public:
         };
 
 #ifdef NDEBUG
-        // In release mode, use the optimized container.
+        // 在发布模式下，使用优化的容器。
         boost::container::small_vector<Link, 4> islands_above;
         boost::container::small_vector<Link, 4> islands_below;
 #else
-        // In debug mode, use the standard vector, which is well handled by debugger visualizer.
+        // 在调试模式下，使用标准向量，调试器可视化工具可良好处理。
         std::vector<Link>					 	islands_above;
         std::vector<Link>						islands_below;
 #endif
-        // Overhangs, that are dangling considerably.
+        // 严重下垂的悬垂区域。
         ExPolygons                              dangling_areas;
-        // Complete overhands.
+        // 完整的悬垂区域。
         ExPolygons                              overhangs;
-        // Overhangs, where the surface must slope.
+        // 表面必须倾斜的悬垂区域。
         ExPolygons                              overhangs_slopes;
         float                                   overhangs_area = 0.f;
         
         bool overlaps(const Structure &rhs) const { 
-            //FIXME ExPolygon::overlaps() shall be commutative, it is not!
+            //FIXME ExPolygon::overlaps() 应满足交换律，但它不满足！
             return this->bbox.overlap(rhs.bbox) && (this->polygon->overlaps(*rhs.polygon) || rhs.polygon->overlaps(*this->polygon)); 
         }
         float overlap_area(const Structure &rhs) const { 
@@ -121,7 +121,7 @@ public:
                 out.emplace_back(*below.island->polygon);
             return out;
         }
-        // Positive deficit of the supports. If negative, this area is well supported. If positive, more supports need to be added.
+        // 支撑的正赤字。如果为负，则该区域支撑良好。如果为正，则需要添加更多支撑。
         float support_force_deficit(const float tear_pressure) const { return this->area * tear_pressure - this->supports_force_total(); }
     };
     

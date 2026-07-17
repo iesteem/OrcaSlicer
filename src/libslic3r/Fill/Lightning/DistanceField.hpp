@@ -14,31 +14,26 @@ namespace Slic3r::FillLightning
 {
 
 /*!
- * 2D field that maintains locations which need to be supported for Lightning
- * Infill.
+ * 2D 场，维护需要为闪电填充支撑的位置。
  *
- * This field contains a set of "cells", spaced out in a grid. Each cell
- * maintains how far it is removed from the edge, which is used to determine
- * how it gets supported by Lightning Infill.
+ * 该场包含一组"单元"，以网格间隔分布。每个单元
+ * 维护其距边缘的距离，用于确定它如何被闪电填充支撑。
  */
 class DistanceField
 {
 public:
     /*!
-     * Construct a new field to calculate Lightning Infill with.
-     * \param radius The radius of influence that an infill line is expected to
-     * support in the layer above.
-     * \param current_outline The total infill area on this layer.
-     * \param current_overhang The overhang that needs to be supported on this
-     * layer.
+     * 构造一个新的场，用于计算闪电填充。
+     * \param radius 填充线预期在上层支撑的影响半径。
+     * \param current_outline 此层上的总填充区域。
+     * \param current_overhang 此层上需要支撑的悬垂部分。
      */
     DistanceField(const coord_t& radius, const Polygons& current_outline, const BoundingBox& current_outlines_bbox, const Polygons& current_overhang);
     
     /*!
-     * Gets the next unsupported location to be supported by a new branch.
-     * \param p Output variable for the next point to support.
-     * \return ``true`` if successful, or ``false`` if there are no more points
-     * to consider.
+     * 获取下一个需要由新分支支撑的未支撑位置。
+     * \param p 下一个要支撑的点的输出变量。
+     * \return 成功返回 ``true``，如果没有更多点需要考虑则返回 ``false``。
      */
     bool tryGetNextPoint(Point *out_unsupported_location, size_t *out_unsupported_cell_idx, const size_t start_idx = 0) const
     {
@@ -54,57 +49,51 @@ public:
     }
 
     /*!
-     * Update the distance field with a newly added branch.
+     * 使用新添加的分支更新距离场。
      *
-     * The branch is a line extending from \p to_node to \p added_leaf . This
-     * function updates the grid cells so that the distance field knows how far
-     * off it is from being supported by the current pattern. Grid points are
-     * updated with sampling points spaced out by the supporting radius along
-     * the line.
-     * \param to_node The node endpoint of the newly added branch.
-     * \param added_leaf The location of the leaf of the newly added branch,
-     * drawing a straight line to the node.
+     * 分支是从 \p to_node 延伸到 \p added_leaf 的线。此函数更新网格单元，
+     * 以便距离场知道其距离当前图案支撑的程度。网格点使用沿线的支撑半径间隔的采样点进行更新。
+     * \param to_node 新添加分支的节点端点。
+     * \param added_leaf 新添加分支的叶节点位置，与节点形成直线。
      */
     void update(const Point& to_node, const Point& added_leaf);
 
 protected:
     /*!
-     * Spacing between grid points to consider supporting.
+     * 网格点之间的间距，用于考虑支撑。
      */
     coord_t m_cell_size;
 
     /*!
-     * The radius of the area of the layer above supported by a point on a
-     * branch of a tree.
+     * 树分支上的点支撑的上层区域的半径。
      */
     coord_t m_supporting_radius;
     int64_t m_supporting_radius2;
 
     /*!
-     * Represents a small discrete area of infill that needs to be supported.
+     * 表示需要被支撑的填充的微小离散区域。
      */
     struct UnsupportedCell
     {
-        // The position of the center of this cell.
+        // 此单元中心的位置。
         Point loc;
-        // How far this cell is removed from the ``current_outline`` polygon, the edge of the infill area.
+        // 此单元与 ``current_outline`` 多边形（填充区域边缘）的距离。
         coord_t dist_to_boundary;
     };
 
     /*!
-     * Cells which still need to be supported at some point.
+     * 在某个时刻仍然需要被支撑的单元。
      */
     std::vector<UnsupportedCell> m_unsupported_points;
     std::vector<bool>            m_unsupported_points_erased;
 
     /*!
-     * BoundingBox of all points in m_unsupported_points. Used for mapping of sign integer numbers to positive integer numbers.
+     * m_unsupported_points 中所有点的边界框。用于将有符号整数映射到正整数。
      */
     const BoundingBox          m_unsupported_points_bbox;
 
     /*!
-     * Links the unsupported points to a grid point, so that we can quickly look
-     * up the cell belonging to a certain position in the grid.
+     * 将未支撑的点链接到网格点，以便我们可以快速查找网格中属于某个位置的单元。
      */
 
     class UnsupportedPointsGrid
@@ -186,14 +175,14 @@ protected:
     UnsupportedPointsGrid m_unsupported_points_grid;
 
     /*!
-     * Maps the point to the grid coordinates.
+     * 将点映射到网格坐标。
      */
     Point to_grid_point(const Point &point) const {
         return (point - m_unsupported_points_bbox.min) / m_cell_size;
     }
 
     /*!
-     * Maps the point to the grid coordinates.
+     * 将点映射到网格坐标。
      */
     Point from_grid_point(const Point &point) const {
         return point * m_cell_size + m_unsupported_points_bbox.min;

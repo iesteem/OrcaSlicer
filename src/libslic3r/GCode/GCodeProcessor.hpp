@@ -19,7 +19,7 @@ namespace Slic3r {
 
 class Print;
 
-// slice warnings enum strings
+// 切片警告枚举字符串
 #define NOZZLE_HRC_CHECKER                                          "the_actual_nozzle_hrc_smaller_than_the_required_nozzle_hrc"
 #define BED_TEMP_TOO_HIGH_THAN_FILAMENT                             "bed_temperature_too_high_than_filament"
 #define NOT_SUPPORT_TRADITIONAL_TIMELAPSE                           "not_support_traditional_timelapse"
@@ -79,7 +79,7 @@ class Print;
         std::map<size_t, double>                            wipe_tower_volumes_per_extruder;
         std::map<size_t, double>                            support_volumes_per_extruder;
         std::map<size_t, double>                            total_volumes_per_extruder;
-        //BBS: the flush amount of every filament
+        //BBS: 每种丝材的冲洗量
         std::map<size_t, double>                            flush_per_filament;
         std::map<ExtrusionRole, std::pair<double, double>>  used_filaments_per_role;
 
@@ -109,7 +109,7 @@ class Print;
         std::string        _objName1;
         std::string        _objName2;
         double             _height;
-        const void *_obj1; // nullptr means wipe tower
+        const void *_obj1; // nullptr表示擦拭塔
         const void *_obj2;
         int                layer = -1;
         ConflictResult(const std::string &objName1, const std::string &objName2, double height, const void *obj1, const void *obj2)
@@ -163,19 +163,19 @@ class Print;
             float height{ 0.0f }; // mm
             float mm3_per_mm{ 0.0f };
             float travel_dist{ 0.0f }; // mm
-            float fan_speed{ 0.0f }; // percentage
-            float temperature{ 0.0f }; // Celsius degrees
+            float fan_speed{ 0.0f }; // 百分比
+            float temperature{ 0.0f }; // 摄氏度
             float time{ 0.0f }; // s
-            float layer_duration{ 0.0f }; // s (layer id before finalize)
+            float layer_duration{ 0.0f }; // s (最终确定前的层id)
 
 
-            //BBS: arc move related data
+            //BBS: 圆弧移动相关数据
             EMovePathType move_path_type{ EMovePathType::Noop_move };
             Vec3f arc_center_position{ Vec3f::Zero() };      // mm
-            std::vector<Vec3f> interpolation_points;     // interpolation points of arc for drawing
+            std::vector<Vec3f> interpolation_points;     // 用于绘图的圆弧插值点
 
             float volumetric_rate() const { return feedrate * mm3_per_mm; }
-            //BBS: new function to support arc move
+            //BBS: 支持圆弧移动的新函数
             bool is_arc_move_with_interpolation_points() const {
                 return (move_path_type == EMovePathType::Arc_move_ccw || move_path_type == EMovePathType::Arc_move_cw) && interpolation_points.size();
             }
@@ -185,25 +185,25 @@ class Print;
         };
 
         struct SliceWarning {
-            int         level;                  // 0: normal tips, 1: warning; 2: error
-            std::string msg;                    // enum string
-            std::string error_code;             // error code for studio
-            std::vector<std::string> params;    // extra msg info
+            int         level;                  // 0: 普通提示, 1: 警告; 2: 错误
+            std::string msg;                    // 枚举字符串
+            std::string error_code;             // 用于studio的错误码
+            std::vector<std::string> params;    // 额外消息信息
         };
 
         std::string filename;
         unsigned int id;
         std::vector<MoveVertex> moves;
-        // Positions of ends of lines of the final G-code this->filename after TimeProcessor::post_process() finalizes the G-code.
+        // 在TimeProcessor::post_process()最终确定G-code后，最终G-code this->filename的行结束位置。
         std::vector<size_t> lines_ends;
         Pointfs printable_area;
-        //BBS: add bed exclude area
+        //BBS: 添加床排除区域
         Pointfs bed_exclude_area;
-        //BBS: add toolpath_outside
+        //BBS: 添加外部刀路
         bool toolpath_outside;
-        //BBS: add object_label_enabled
+        //BBS: 添加对象标签启用
         bool label_object_enabled;
-        //BBS : extra retraction when change filament,experiment func
+        //BBS: 更换丝材时的额外回抽，实验功能
         bool long_retraction_when_cut {0};
         int timelapse_warning_code {0};
         bool support_traditional_timelapse{true};
@@ -230,7 +230,7 @@ class Print;
 #endif // ENABLE_GCODE_VIEWER_STATISTICS
         void reset();
 
-        //BBS: add mutex for protection of gcode result
+        //BBS: 添加互斥锁以保护gcode结果
         mutable std::mutex result_mutex;
         GCodeProcessorResult& operator=(const GCodeProcessorResult &other)
         {
@@ -298,10 +298,10 @@ class Print;
         };
 
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
-        // checks the given gcode for reserved tags and returns true when finding the 1st (which is returned into found_tag) 
+        // 检查给定gcode中的保留标签，找到第一个时返回true（其值返回到found_tag中）
         static bool contains_reserved_tag(const std::string& gcode, std::string& found_tag);
-        // checks the given gcode for reserved tags and returns true when finding any
-        // (the first max_count found tags are returned into found_tag)
+        // 检查给定gcode中的保留标签，找到任何标签时返回true
+        // （前max_count个找到的标签返回到found_tag中）
         static bool contains_reserved_tags(const std::string& gcode, unsigned int max_count, std::vector<std::string>& found_tag);
 
         static int get_gcode_last_filament(const std::string &gcode_str);
@@ -391,7 +391,7 @@ class Print;
             FeedrateProfile feedrate_profile;
             Trapezoid trapezoid;
 
-            // Calculates this block's trapezoid
+            // 计算此块的梯形
             void calculate_trapezoid();
 
             float time() const;
@@ -405,13 +405,13 @@ class Print;
             {
                 float feedrate; // mm/s
                 float safe_feedrate; // mm/s
-                //BBS: feedrate of X-Y-Z-E axis. But when the move is G2 and G3, X-Y will be
-                //same value which means feedrate in X-Y plane.
+                //BBS: X-Y-Z-E轴的进给率。但当移动为G2和G3时，X-Y将
+                //相同，表示X-Y平面中的进给率。
                 AxisCoords axis_feedrate; // mm/s
                 AxisCoords abs_axis_feedrate; // mm/s
 
-                //BBS: unit vector of enter speed and exit speed in x-y-z space. 
-                //For line move, there are same. For arc move, there are different.
+                //BBS: x-y-z空间中进入速度和退出速度的单位向量。
+                //对于直线移动，它们相同。对于圆弧移动，它们不同。
                 Vec3f enter_direction;
                 Vec3f exit_direction;
 
@@ -436,13 +436,13 @@ class Print;
 
             bool enabled;
             float acceleration; // mm/s^2
-            // hard limit for the acceleration, to which the firmware will clamp.
+            // 固件将限制到的加速度硬限制。
             float max_acceleration; // mm/s^2
             float retract_acceleration; // mm/s^2
-            // hard limit for the acceleration, to which the firmware will clamp.
+            // 固件将限制到的回抽加速度硬限制。
             float max_retract_acceleration; // mm/s^2
             float travel_acceleration; // mm/s^2
-            // hard limit for the travel acceleration, to which the firmware will clamp.
+            // 固件将限制到的移动加速度硬限制。
             float max_travel_acceleration; // mm/s^2
             float extrude_factor_override_percentage;
             float time; // s
@@ -462,12 +462,12 @@ class Print;
             std::array<float, static_cast<size_t>(EMoveType::Count)> moves_time;
             std::array<float, static_cast<size_t>(ExtrusionRole::erCount)> roles_time;
             std::vector<float> layers_time;
-            //BBS: prepare stage time before print model, including start gcode time and mostly same with start gcode time
+            //BBS: 打印模型之前的准备阶段时间，包括开始gcode时间，大多与开始gcode时间相同
             float prepare_time;
 
             void reset();
 
-            // Simulates firmware st_synchronize() call
+            // 模拟固件st_synchronize()调用
             void simulate_st_synchronize(float additional_time = 0.0f);
             void calculate_time(size_t keep_last_n_blocks = 0, float additional_time = 0.0f);
         };
@@ -476,25 +476,25 @@ class Print;
         {
             struct Planner
             {
-                // Size of the firmware planner queue. The old 8-bit Marlins usually just managed 16 trapezoidal blocks.
-                // Let's be conservative and plan for newer boards with more memory.
+                // 固件规划器队列的大小。旧的8位Marlins通常只管理16个梯形块。
+                // 让我们保守一点，为具有更多内存的新主板规划。
                 static constexpr size_t queue_size = 64;
-                // The firmware recalculates last planner_queue_size trapezoidal blocks each time a new block is added.
-                // We are not simulating the firmware exactly, we calculate a sequence of blocks once a reasonable number of blocks accumulate.
+                // 每次添加新块时，固件重新计算最后planner_queue_size个梯形块。
+                // 我们不精确模拟固件，而是当足够数量的块累积后计算一个块序列。
                 static constexpr size_t refresh_threshold = queue_size * 4;
             };
 
-            // extruder_id is currently used to correctly calculate filament load / unload times into the total print time.
-            // This is currently only really used by the MK3 MMU2:
-            // extruder_unloaded = true means no filament is loaded yet, all the filaments are parked in the MK3 MMU2 unit.
+            // extruder_id当前用于正确计算丝材加载/卸载时间到总打印时间中。
+            // 这目前仅真正由MK3 MMU2使用：
+            // extruder_unloaded = true表示尚未加载丝材，所有丝材都停放在MK3 MMU2单元中。
             bool extruder_unloaded;
-            // allow to skip the lines M201/M203/M204/M205 generated by GCode::print_machine_envelope() for non-Normal time estimate mode
+            // 允许跳过GCode::print_machine_envelope()为非常规时间估计模式生成的行M201/M203/M204/M205
             bool machine_envelope_processing_enabled;
             MachineEnvelopeConfig machine_limits;
-            // Additional load / unload times for a filament exchange sequence.
+            // 丝材交换序列的额外加载/卸载时间。
             float filament_load_times;
             float filament_unload_times;
-            //Orca:  time for tool change
+            //Orca: 工具更换时间
             float machine_tool_change_time;
 
             std::array<TimeMachine, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)> machines;
@@ -502,7 +502,7 @@ class Print;
             void reset();
         };
 
-        struct UsedFilaments  // filaments per ColorChange
+        struct UsedFilaments  // 每次颜色更改的丝材
         {
             double color_change_cache;
             std::vector<double> volumes_per_color_change;
@@ -516,7 +516,7 @@ class Print;
             double support_volume_cache;
             std::map<size_t, double>support_volumes_per_extruder;
 
-            //BBS: the flush amount of every filament
+            //BBS: 每种丝材的冲洗量
             std::map<size_t, double> flush_per_filament;
 
             double total_volume_cache;
@@ -566,8 +566,7 @@ class Print;
             bool has_first_vertex() const { return m_first_vertex.has_value(); }
         };
 
-        // Helper class used to fix the z for color change, pause print and
-        // custom gcode markes
+        // 用于修复颜色更改、暂停打印和自定义gcode标记的z的辅助类
         class OptionsZCorrector
         {
             GCodeProcessorResult& m_result;
@@ -689,10 +688,10 @@ class Print;
         float m_remaining_volume;
         bool m_manual_filament_change;
 
-        //BBS: x, y offset for gcode generated
+        //BBS: 生成的gcode的x, y偏移
         double          m_x_offset{ 0 };
         double          m_y_offset{ 0 };
-        //BBS: arc move related data
+        //BBS: 圆弧移动相关数据
         EMovePathType m_move_path_type{ EMovePathType::Noop_move };
         Vec3f m_arc_center{ Vec3f::Zero() };    // mm
         std::vector<Vec3f> m_interpolation_points;
@@ -706,7 +705,7 @@ class Print;
         float m_forced_height; // mm
         float m_mm3_per_mm;
         float m_travel_dist; // mm
-        float m_fan_speed; // percentage
+        float m_fan_speed; // 百分比
         float m_z_offset; // mm
         ExtrusionRole m_extrusion_role;
         unsigned char m_extruder_id;
@@ -790,11 +789,11 @@ class Print;
 
 
         GCodeReader& parser() { return m_parser; }
-        // Load a G-code into a stand-alone G-code viewer.
-        // throws CanceledException through print->throw_if_canceled() (sent by the caller as callback).
+        // 将G-code加载到独立的G-code查看器中。
+        // 通过print->throw_if_canceled()（由调用者作为回调发送）抛出CanceledException。
         void process_file(const std::string& filename, std::function<void()> cancel_callback = nullptr);
 
-        // Streaming interface, for processing G-codes just generated by PrusaSlicer in a pipelined fashion.
+        // 流式接口，用于以流水线方式处理PrusaSlicer刚刚生成的G-codes。
         void initialize(const std::string& filename);
         void process_buffer(const std::string& buffer);
         void finalize(bool post_process);
@@ -808,11 +807,11 @@ class Print;
         std::vector<std::pair<ExtrusionRole, float>> get_roles_time(PrintEstimatedStatistics::ETimeMode mode) const;
         std::vector<float> get_layers_time(PrintEstimatedStatistics::ETimeMode mode) const;
 
-        //BBS: set offset for gcode writer
+        //BBS: 为gcode写入器设置偏移
         void set_xy_offset(double x, double y) { m_x_offset = x; m_y_offset = y; }
 
-        // Orca: if true, only change new layer if ETags::Layer_Change occurs
-        // otherwise when we got a lift of z during extrusion, a new layer will be added
+        // Orca: 如果为true，仅在出现ETags::Layer_Change时更改新层
+        // 否则当在挤出过程中抬升z时，将添加新层
         void detect_layer_based_on_tag(bool enabled) { m_detect_layer_based_on_tag = enabled; }
 
     private:
@@ -821,7 +820,7 @@ class Print;
         void apply_config_superslicer(const std::string& filename);
         void process_gcode_line(const GCodeReader::GCodeLine& line, bool producers_enabled);
 
-        // Process tags embedded into comments
+        // 处理嵌入到注释中的标签
         void process_tags(const std::string_view comment, bool producers_enabled);
         bool process_producers_tags(const std::string_view comment);
         bool process_bambuslicer_tags(const std::string_view comment);
@@ -833,129 +832,129 @@ class Print;
 
         bool detect_producer(const std::string_view comment);
 
-        // Move
+        // 移动
         void process_G0(const GCodeReader::GCodeLine& line);
         void process_G1(const GCodeReader::GCodeLine& line, const std::optional<unsigned int>& remaining_internal_g1_lines = std::nullopt);
         void process_G2_G3(const GCodeReader::GCodeLine& line);
 
-        // BBS: handle delay command
+        // BBS: 处理延迟命令
         void process_G4(const GCodeReader::GCodeLine& line);
 
-        // Retract
+        // 回抽
         void process_G10(const GCodeReader::GCodeLine& line);
 
-        // Unretract
+        // 取消回抽
         void process_G11(const GCodeReader::GCodeLine& line);
 
-        // Set Units to Inches
+        // 设置单位为英寸
         void process_G20(const GCodeReader::GCodeLine& line);
 
-        // Set Units to Millimeters
+        // 设置单位为毫米
         void process_G21(const GCodeReader::GCodeLine& line);
 
-        // Firmware controlled Retract
+        // 固件控制回抽
         void process_G22(const GCodeReader::GCodeLine& line);
 
-        // Firmware controlled Unretract
+        // 固件控制取消回抽
         void process_G23(const GCodeReader::GCodeLine& line);
 
-        // Move to origin
+        // 移动到原点
         void process_G28(const GCodeReader::GCodeLine& line);
 
         // BBS
         void process_G29(const GCodeReader::GCodeLine& line);
 
-        // Set to Absolute Positioning
+        // 设置为绝对定位
         void process_G90(const GCodeReader::GCodeLine& line);
 
-        // Set to Relative Positioning
+        // 设置为相对定位
         void process_G91(const GCodeReader::GCodeLine& line);
 
-        // Set Position
+        // 设置位置
         void process_G92(const GCodeReader::GCodeLine& line);
 
-        // Sleep or Conditional stop
+        // 睡眠或有条件停止
         void process_M1(const GCodeReader::GCodeLine& line);
 
-        // Set extruder to absolute mode
+        // 设置挤出机为绝对模式
         void process_M82(const GCodeReader::GCodeLine& line);
 
-        // Set extruder to relative mode
+        // 设置挤出机为相对模式
         void process_M83(const GCodeReader::GCodeLine& line);
 
-        // Set extruder temperature
+        // 设置挤出机温度
         void process_M104(const GCodeReader::GCodeLine& line);
 
-        // Set fan speed
+        // 设置风扇速度
         void process_M106(const GCodeReader::GCodeLine& line);
 
-        // Disable fan
+        // 禁用风扇
         void process_M107(const GCodeReader::GCodeLine& line);
 
-        // Set tool (Sailfish)
+        // 设置工具（Sailfish）
         void process_M108(const GCodeReader::GCodeLine& line);
 
-        // Set extruder temperature and wait
+        // 设置挤出机温度并等待
         void process_M109(const GCodeReader::GCodeLine& line);
 
-        // Recall stored home offsets
+        // 恢复存储的主页偏移
         void process_M132(const GCodeReader::GCodeLine& line);
 
-        // Set tool (MakerWare)
+        // 设置工具（MakerWare）
         void process_M135(const GCodeReader::GCodeLine& line);
 
-        //BBS: Set bed temperature
+        //BBS: 设置热床温度
         void process_M140(const GCodeReader::GCodeLine& line);
 
-        //BBS: wait bed temperature
+        //BBS: 等待热床温度
         void process_M190(const GCodeReader::GCodeLine& line);
 
-        //BBS: wait chamber temperature
+        //BBS: 等待腔室温度
         void process_M191(const GCodeReader::GCodeLine& line);
 
-        // Set max printing acceleration
+        // 设置最大打印加速度
         void process_M201(const GCodeReader::GCodeLine& line);
 
-        // Set maximum feedrate
+        // 设置最大进给率
         void process_M203(const GCodeReader::GCodeLine& line);
 
-        // Set default acceleration
+        // 设置默认加速度
         void process_M204(const GCodeReader::GCodeLine& line);
 
-        // Advanced settings
+        // 高级设置
         void process_M205(const GCodeReader::GCodeLine& line);
 
         // Klipper SET_VELOCITY_LIMIT
         void process_SET_VELOCITY_LIMIT(const GCodeReader::GCodeLine& line);
 
-        // Set extrude factor override percentage
+        // 设置挤出因子覆盖百分比
         void process_M221(const GCodeReader::GCodeLine& line);
 
-        // BBS: handle delay command. M400 is defined by BBL only
+        // BBS: 处理延迟命令。M400仅由BBL定义
         void process_M400(const GCodeReader::GCodeLine& line);
 
-        // Repetier: Store x, y and z position
+        // Repetier: 存储x, y和z位置
         void process_M401(const GCodeReader::GCodeLine& line);
 
-        // Repetier: Go to stored position
+        // Repetier: 转到存储的位置
         void process_M402(const GCodeReader::GCodeLine& line);
 
-        // Set allowable instantaneous speed change
+        // 设置允许的瞬时速度变化
         void process_M566(const GCodeReader::GCodeLine& line);
 
-        // Unload the current filament into the MK3 MMU2 unit at the end of print.
+        // 在打印结束时将当前丝材卸载到MK3 MMU2单元中。
         void process_M702(const GCodeReader::GCodeLine& line);
 
-        // Processes T line (Select Tool)
+        // 处理T行（选择工具）
         void process_T(const GCodeReader::GCodeLine& line);
         void process_T(const std::string_view command);
 
-        // post process the file with the given filename to:
-        // 1) add remaining time lines M73 and update moves' gcode ids accordingly
-        // 2) update used filament data
+        // 对具有给定文件名的文件进行后处理以：
+        // 1) 添加剩余时间行M73并相应地更新移动的gcode id
+        // 2) 更新已使用的丝材数据
         void run_post_process();
 
-        //BBS: different path_type is only used for arc move
+        //BBS: 不同的path_type仅用于圆弧移动
         void store_move_vertex(EMoveType type, EMovePathType path_type = EMovePathType::Noop_move);
 
         void set_extrusion_role(ExtrusionRole role);
@@ -978,7 +977,7 @@ class Print;
         void process_custom_gcode_time(CustomGCode::Type code);
         void process_filaments(CustomGCode::Type code);
 
-        // Simulates firmware st_synchronize() call
+        // 模拟固件st_synchronize()调用
         void simulate_st_synchronize(float additional_time = 0.0f);
 
         void update_estimated_times_stats();
@@ -989,5 +988,3 @@ class Print;
 } /* namespace Slic3r */
 
 #endif /* slic3r_GCodeProcessor_hpp_ */
-
-

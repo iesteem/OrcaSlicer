@@ -1,10 +1,10 @@
-// Tree supports by Thomas Rahm, losely based on Tree Supports by CuraEngine.
-// Original source of Thomas Rahm's tree supports:
+// 由Thomas Rahm开发的树状支撑，松散地基于CuraEngine的树状支撑。
+// Thomas Rahm树状支撑的原始来源：
 // https://github.com/ThomasRahm/CuraEngine
 //
-// Original CuraEngine copyright:
+// 原始CuraEngine版权： Original CuraEngine copyright:
 // Copyright (c) 2021 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// CuraEngine根据AGPLv3或更高版本的条款发布。
 
 #include "TreeSupport3D.hpp"
 #include "AABBTreeIndirect.hpp"
@@ -45,7 +45,7 @@
 #define TREE_SUPPORT_ORGANIC_NUDGE_NEW 1
 
 #ifndef TREE_SUPPORT_ORGANIC_NUDGE_NEW
-// Old version using OpenVDB, works but it is extremely slow for complex meshes.
+// 使用OpenVDB的旧版本，可以工作但对于复杂网格极度缓慢。
 #include "../OpenVDBUtilsLegacy.hpp"
 #include <openvdb/tools/VolumeToSpheres.h>
 #endif // TREE_SUPPORT_ORGANIC_NUDGE_NEW
@@ -126,7 +126,7 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
 {
     std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> grouped_meshes;
 
-    //FIXME this is ugly, it does not belong here.
+    //FIXME this is ugly, it does not belong here. 这很丑陋，它不属于这里。
     for (size_t object_id : print_object_ids) {
         const PrintObject       &print_object  = *print.get_object(object_id);
         const PrintObjectConfig &object_config = print_object.config();
@@ -137,14 +137,14 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
 
     size_t largest_printed_mesh_idx = 0;
 
-    // Group all meshes that can be processed together. NOTE this is different from mesh-groups! Only one setting object is needed per group,
-    // as different settings in the same group may only occur in the tip, which uses the original settings objects from the meshes.
+    // Group all meshes that can be processed together. NOTE this is different from mesh-groups! Only one setting object is needed per group, 将所有可以一起处理的网格分组。注意这与网格组不同！每组只需要一个设置对象，
+    // as different settings in the same group may only occur in the tip, which uses the original settings objects from the meshes. 因为同一组中不同的设置只可能出现在尖端，尖端使用来自网格的原始设置对象。
     for (size_t object_id : print_object_ids) {
         const PrintObject       &print_object  = *print.get_object(object_id);
 
         bool found_existing_group = false;
         TreeSupportSettings next_settings{ TreeSupportMeshGroupSettings{ print_object }, print_object.slicing_parameters() };
-        //FIXME for now only a single object per group is enabled.
+        //FIXME for now only a single object per group is enabled. 目前每组仅启用单个对象。
 #if 0
         for (size_t idx = 0; idx < grouped_meshes.size(); ++ idx)
             if (next_settings == grouped_meshes[idx].first) {
@@ -209,7 +209,7 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
     const bool               support_threshold_auto = support_threshold == 0;
     // +1 makes the threshold inclusive
     double                   tan_threshold          = support_threshold_auto ? 0. : tan(M_PI * double(support_threshold + 1) / 180.);
-    //FIXME this is a fudge constant!
+    //FIXME this is a fudge constant! 这是一个粗略的估量常数！
     auto                     enforcer_overhang_offset = scaled<double>(config.tree_support_tip_diameter.value);
     const coordf_t radius_sample_resolution = g_config_tree_support_collision_resolution;
 
@@ -222,7 +222,7 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
                 if (print_object.print()->canceled())
                     break;
                 Layer* layer = print_object.get_layer(layer_nr);
-                // Filter out areas whose diameter that is smaller than extrusion_width, but we don't want to lose any details.
+                // Filter out areas whose diameter that is smaller than extrusion_width, but we don't want to lose any details. 滤除直径小于挤出宽度的区域，但我们不想丢失任何细节。
                 layer->lslices_extrudable = intersection_ex(layer->lslices, offset2_ex(layer->lslices, -extrusion_width_scaled / 2, extrusion_width_scaled));
             }
         });
@@ -235,12 +235,12 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
         for (LayerIndex layer_id = range.begin(); layer_id < range.end(); ++ layer_id) {
             const Layer   &current_layer  = *print_object.get_layer(layer_id);
             const Layer   &lower_layer    = *print_object.get_layer(layer_id - 1);
-            // Full overhangs with zero lower_layer_offset and no blockers applied.
+            // Full overhangs with zero lower_layer_offset and no blockers applied. 完整悬垂，下层偏移量为零且未应用阻挡器。
             Polygons       raw_overhangs;
             bool           raw_overhangs_calculated = false;
-            // Final overhangs.
+            // Final overhangs. 最终悬垂。
             Polygons       overhangs;
-            // For how many layers full overhangs shall be supported.
+            // For how many layers full overhangs shall be supported. 完整悬垂应被支撑的层数。
             const bool     enforced_layer = layer_id < support_enforce_layers;
             if (support_auto || enforced_layer) {
                 float lower_layer_offset;
@@ -270,7 +270,7 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
             }
             //check_self_intersections(overhangs, "generate_overhangs1");
             if (! enforcers_layers.empty() && ! enforcers_layers[layer_id].empty()) {
-                // Has some support enforcers at this layer, apply them to the overhangs, don't apply the support threshold angle.
+                // Has some support enforcers at this layer, apply them to the overhangs, don't apply the support threshold angle. 此层有支撑强制区域，将其应用到悬垂，不应用支撑阈值角度。
                 //enforcers_layers[layer_id] = union_(enforcers_layers[layer_id]);
                 //check_self_intersections(enforcers_layers[layer_id], "generate_overhangs - enforcers");
                 //check_self_intersections(to_polygons(lower_layer.lslices), "generate_overhangs - lowerlayers");
@@ -353,7 +353,7 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
         max_layer = std::max(max_support_layer_id - int(config.z_distance_top_layers), 0);
     }
     if (max_layer > 0)
-        // The actual precalculation happens in TreeModelVolumes.
+        // The actual precalculation happens in TreeModelVolumes. 实际的预计算发生在TreeModelVolumes中。
         volumes.precalculate(*print.get_object(object_ids.front()), max_layer, throw_on_cancel);
     return max_layer;
 }
@@ -387,7 +387,7 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
  * \param layer_idx[in] The current layer.
  * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
  */
-// Called by generate_initial_areas()
+// Called by generate_initial_areas() 由generate_initial_areas()调用
 [[nodiscard]] static LineInformations convert_lines_to_internal(
     const TreeModelVolumes &volumes, const TreeSupportSettings &config,
     const Polylines &polylines, LayerIndex layer_idx)
@@ -395,7 +395,7 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
     const bool min_xy_dist = config.xy_distance > config.xy_min_distance;
 
     LineInformations result;
-    // Also checks if the position is valid, if it is NOT, it deletes that point
+    // Also checks if the position is valid, if it is NOT, it deletes that point 还会检查位置是否有效，如果无效，则删除该点
     for (const Polyline &line : polylines) {
         LineInformation res_line;
         for (Point p : line) {
@@ -501,9 +501,9 @@ template<typename EvaluatePointFn>
     return std::pair<std::vector<std::vector<std::pair<Point, LineStatus>>>, std::vector<std::vector<std::pair<Point, LineStatus>>>>(keep, set_free);
 }
 
-// Ported from CURA's PolygonUtils::getNextPointWithDistance()
-// Sample a next point at distance "dist" from start_pt on polyline segment (start_idx, start_idx + 1).
-// Returns sample point and start index of its segment on polyline if such sample exists.
+// Ported from CURA's PolygonUtils::getNextPointWithDistance() 从CURA的PolygonUtils::getNextPointWithDistance()移植
+// Sample a next point at distance "dist" from start_pt on polyline segment (start_idx, start_idx + 1). 在多段线段(start_idx, start_idx + 1)上从start_pt开始采样距离为"dist"的下一个点。
+// Returns sample point and start index of its segment on polyline if such sample exists. 如果存在这样的采样点，返回采样点及其在多段线上的段起始索引。
 static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_distance(const Points &polyline, const Point &start_pt, size_t start_idx, double dist)
 {
     const double                dist2  = sqr(dist);
@@ -513,12 +513,12 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
     for (size_t i = start_idx + 1; i < polyline.size(); ++ i) {
         const Point p1 = polyline[i];
         if ((p1 - start_pt).cast<int64_t>().squaredNorm() >= dist2i) {
-            // The end point is outside the circle with center "start_pt" and radius "dist".
+            // The end point is outside the circle with center "start_pt" and radius "dist". 终点在以"start_pt"为圆心、"dist"为半径的圆外。
             const Point p0  = polyline[i - 1];
             Vec2d       v   = (p1 - p0).cast<double>();
             double      l2v = v.squaredNorm();
             if (l2v < sqr(eps)) {
-                // Very short segment.
+                // Very short segment. 非常短的线段。
                 Point c = (p0 + p1) / 2;
                 if (std::abs((start_pt - c).cast<double>().norm() - dist) < eps)
                     return std::pair<Point, size_t>{ c, i - 1 };
@@ -526,20 +526,20 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
                     continue;
             }
             Vec2d p0f = (start_pt - p0).cast<double>();
-            // Foot point of start_pt into v.
+            // Foot point of start_pt into v. start_pt在v上的垂足点。
             Vec2d foot_pt = v * (p0f.dot(v) / l2v);
-            // Vector from foot point of "start_pt" to "start_pt".
+            // Vector from foot point of "start_pt" to "start_pt". 从"start_pt"的垂足到"start_pt"的向量。
             Vec2d xf = p0f - foot_pt;
-            // Squared distance of "start_pt" from the ray (p0, p1).
+            // Squared distance of "start_pt" from the ray (p0, p1). "start_pt"到射线(p0, p1)的平方距离。
             double l2_from_line = xf.squaredNorm();
-            // Squared distance of an intersection point of a circle with center at the foot point.
+            // Squared distance of an intersection point of a circle with center at the foot point. 以垂足为圆心的圆与射线交点的平方距离。
             if (double l2_intersection = dist2 - l2_from_line;
                 l2_intersection > - SCALED_EPSILON) {
-                // The ray (p0, p1) touches or intersects a circle centered at "start_pt" with radius "dist".
-                // Distance of the circle intersection point from the foot point.
+                // The ray (p0, p1) touches or intersects a circle centered at "start_pt" with radius "dist". 射线(p0, p1)与以"start_pt"为圆心、"dist"为半径的圆相切或相交。
+                // Distance of the circle intersection point from the foot point. 圆交点到垂足的距离。
                 l2_intersection = std::max(l2_intersection, 0.);
                 if ((v - foot_pt).cast<double>().squaredNorm() >= l2_intersection) {
-                    // Intersection of the circle with the segment (p0, p1) is on the right side (close to p1) from the foot point.
+                    // Intersection of the circle with the segment (p0, p1) is on the right side (close to p1) from the foot point. 圆与线段(p0, p1)的交点在垂足的右侧（靠近p1）。
                     Point p = p0 + (foot_pt + v * sqrt(l2_intersection / l2v)).cast<coord_t>();
                     validate_range(p);
                     return std::pair<Point, size_t>{ p, i - 1 };
@@ -570,7 +570,7 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
         double current_distance = std::max(distance, scaled<double>(0.1));
         if (len < 2 * distance && min_points <= 1)
         {
-            // Insert the opposite point of the first one.
+            // Insert the opposite point of the first one. 插入第一个点的对立点。
             //FIXME pretty expensive
             Polyline pl(part);
             pl.clip_end(len / 2);
@@ -582,9 +582,9 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
 
             if (part.front() == part.back()) {
                 size_t optimal_start_index = 0;
-                // If the polyline was a polygon, there is a high chance it was an overhang. Overhangs that are <60� tend to be very thin areas, so lets get the beginning and end of them and ensure that they are supported.
-                // The first point of the line will always be supported, so rotate the order of points in this polyline that one of the two corresponding points that are furthest from each other is in the beginning.
-                // The other will be manually added (optimal_end_index)
+                // If the polyline was a polygon, there is a high chance it was an overhang. Overhangs that are <60� tend to be very thin areas, so lets get the beginning and end of them and ensure that they are supported. 如果多段线是多边形，则很可能是悬垂。小于60度的悬垂往往是极薄的区域，所以让我们获取它们的起点和终点，确保它们被支撑。
+                // The first point of the line will always be supported, so rotate the order of points in this polyline that one of the two corresponding points that are furthest from each other is in the beginning. 线的第一个点将始终被支撑，因此旋转此多段线中点的顺序，使两个相距最远的对应点之一位于开头。
+                // The other will be manually added (optimal_end_index) 另一个将被手动添加（optimal_end_index）
                 coord_t max_dist2_between_vertecies = 0;
                 for (size_t idx = 0; idx < part.size() - 1; ++ idx) {
                     for (size_t inner_idx = 0; inner_idx < part.size() - 1; inner_idx++) {
@@ -610,12 +610,12 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
                 size_t current_index = 0;
                 std::optional<std::pair<Point, size_t>> next_point;
                 double next_distance = current_distance;
-                // Get points so that at least min_points are added and they each are current_distance away from each other. If that is impossible, decrease current_distance a bit.
-                // The input are lines, that means that the line from the last to the first vertex does not have to exist, so exclude all points that are on this line!
+                // Get points so that at least min_points are added and they each are current_distance away from each other. If that is impossible, decrease current_distance a bit. 获取点，使得至少添加min_points个点，且它们彼此相距current_distance。如果不可能，则稍微减小current_distance。
+                // The input are lines, that means that the line from the last to the first vertex does not have to exist, so exclude all points that are on this line! 输入是线，这意味着从最后一个顶点到第一个顶点的线不一定存在，因此排除所有在此线上的点！
                 while ((next_point = polyline_sample_next_point_at_distance(part.points, current_point, current_index, next_distance))) {
-                    // Not every point that is distance away, is valid, as it may be much closer to another point. This is especially the case when the overhang is very thin.
-                    // So this ensures that the points are actually a certain distance from each other.
-                    // This assurance is only made on a per polygon basis, as different but close polygon may not be able to use support below the other polygon.
+                    // Not every point that is distance away, is valid, as it may be much closer to another point. This is especially the case when the overhang is very thin. 并非每个距离为distance的点都有效，因为它可能更接近另一个点。当悬垂非常薄时尤其如此。
+                    // So this ensures that the points are actually a certain distance from each other. 因此，这确保了点之间实际保持一定的距离。
+                    // This assurance is only made on a per polygon basis, as different but close polygon may not be able to use support below the other polygon. 此保证仅在每个多边形的基础上进行，因为不同但接近的多边形可能无法利用另一个多边形下方的支撑。
                     double min_distance_to_existing_point = std::numeric_limits<double>::max();
                     for (Point p : line)
                         min_distance_to_existing_point = std::min(min_distance_to_existing_point, (p - next_point->first).cast<double>().norm());
@@ -627,12 +627,12 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
                         next_distance = current_distance;
                     } else {
                         if (current_point == next_point->first) {
-                            // In case a fixpoint is encountered, better aggressively overcompensate so the code does not become stuck here...
+                            // In case a fixpoint is encountered, better aggressively overcompensate so the code does not become stuck here... 如果遇到不动点，最好积极过度补偿，以免代码卡在这里...
                             BOOST_LOG_TRIVIAL(warning) << "Tree Support: Encountered a fixpoint in polyline_sample_next_point_at_distance. This is expected to happen if the distance (currently " << next_distance <<
                                 ") is smaller than 100";
                             tree_supports_show_error("Encountered issue while placing tips. Some tips may be missing."sv, true);
                             if (next_distance > 2 * current_distance)
-                                // This case should never happen, but better safe than sorry.
+                                // This case should never happen, but better safe than sorry. 这种情况不应该发生，但小心总是胜过后悔。
                                 break;
                             next_distance += current_distance;
                             continue;
@@ -663,7 +663,7 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
  * \return A Polygons object that represents the resulting infill lines.
  */
 [[nodiscard]] static Polylines generate_support_infill_lines(
-    // Polygon to fill in with a zig-zag pattern supporting an overhang.
+    // Polygon to fill in with a zig-zag pattern supporting an overhang. 用锯齿形填充以支撑悬垂的多边形。
     const Polygons          &polygon,
     const SupportParameters &support_params,
     bool roof, LayerIndex layer_idx, coord_t support_infill_distance)
@@ -723,7 +723,7 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
 
     Polylines out;
     for (ExPolygon &expoly : union_ex(polygon)) {
-        // The surface type does not matter.
+        // The surface type does not matter. 表面类型无关紧要。
         assert(area(expoly) > 0.);
 #ifdef TREE_SUPPORT_SHOW_ERRORS_WIN32
         if (area(expoly) <= 0.)
@@ -757,8 +757,8 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
 [[nodiscard]] static Polygons safe_union(const Polygons first, const Polygons second = {})
 {
     // unionPolygons can slowly remove Polygons under certain circumstances, because of rounding issues (Polygons that have a thin area).
-    // This does not cause a problem when actually using it on large areas, but as influence areas (representing centerpoints) can be very thin, this does occur so this ugly workaround is needed
-    // Here is an example of a Polygons object that will loose vertices when unioning, and will be gone after a few times unionPolygons was called:
+    // This does not cause a problem when actually using it on large areas, but as influence areas (representing centerpoints) can be very thin, this does occur so this ugly workaround is needed 在实际用于大区域时不会造成问题，但由于影响区域（表示中心点）可能非常薄，确实会出现这种情况，因此需要这个丑陋的变通方法
+    // Here is an example of a Polygons object that will loose vertices when unioning, and will be gone after a few times unionPolygons was called: 以下是一个Polygons对象的示例，它在合并时会丢失顶点，经过几次unionPolygons调用后将消失：
     /*
     Polygons example;
     Polygon exampleInner;
@@ -802,7 +802,7 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
     bool do_final_difference = last_step_offset_without_check == 0;
     Polygons ret = safe_union(me); // ensure sane input
 
-    // Trim the collision polygons with the region of interest for diff() efficiency.
+    // Trim the collision polygons with the region of interest for diff() efficiency. 用感兴趣区域裁剪碰撞多边形以提高diff()效率。
     Polygons collision_trimmed_buffer;
     auto collision_trimmed = [&collision_trimmed_buffer, &collision, &ret, distance]() -> const Polygons& {
         if (collision_trimmed_buffer.empty() && ! collision.empty())
@@ -822,7 +822,7 @@ static std::optional<std::pair<Point, size_t>> polyline_sample_next_point_at_dis
     int     steps = distance > last_step_offset_without_check ? (distance - last_step_offset_without_check) / step_size : 0;
     if (distance - steps * step_size > last_step_offset_without_check) {
         if ((steps + 1) * step_size <= distance)
-            // This will be the case when last_step_offset_without_check >= safe_step_size
+            // This will be the case when last_step_offset_without_check >= safe_step_size 当last_step_offset_without_check >= safe_step_size时会出现这种情况
             ++ steps;
         else
             do_final_difference = true;
@@ -875,31 +875,31 @@ public:
 
     }
     const TreeModelVolumes                             &volumes;
-    // Radius of the tree tip is large enough to be covered by an interface.
+    // Radius of the tree tip is large enough to be covered by an interface. 树尖半径足够大，可以被接口层覆盖。
     const bool                                          force_tip_to_roof;
     bool                                                min_xy_dist;
 
 public:
     // called by sample_overhang_area()
     void add_points_along_lines(
-        // Insert points (tree tips or top contact interfaces) along these lines.
+        // Insert points (tree tips or top contact interfaces) along these lines. 沿这些线插入点（树尖或顶部接触接口）。
         LineInformations    lines,
-        // Start at this layer.
+        // Start at this layer. 从此层开始。
         LayerIndex          insert_layer_idx,
-        // Insert this number of interface layers.
+        // Insert this number of interface layers. 插入此数量的接口层。
         size_t              roof_tip_layers,
-        // True if an interface is already generated above these lines.
+        // True if an interface is already generated above these lines. 如果这些线上方已生成接口层，则为真。
         size_t              supports_roof_layers,
-        // The element tries to not move until this dtt is reached.
+        // The element tries to not move until this dtt is reached. 元素尝试在达到此dtt之前不移动。
         size_t              dont_move_until)
     {
         validate_range(lines);
-        // Add tip area as roof (happens when minimum roof area > minimum tip area) if possible
+        // Add tip area as roof (happens when minimum roof area > minimum tip area) if possible 如果可能，将尖端区域添加为顶面（当最小顶面面积 > 最小尖端面积时发生）
         size_t dtt_roof_tip;
         for (dtt_roof_tip = 0; dtt_roof_tip < roof_tip_layers && insert_layer_idx - dtt_roof_tip >= 1; ++ dtt_roof_tip) {
             size_t this_layer_idx = insert_layer_idx - dtt_roof_tip;
             auto evaluateRoofWillGenerate = [&](const std::pair<Point, LineStatus> &p) {
-                //FIXME Vojtech: The circle is just shifted, it has a known size, the infill should fit all the time!
+                //FIXME Vojtech: The circle is just shifted, it has a known size, the infill should fill all the time! 圆形只是移动了，它有已知的大小，填充应该始终适合！
     #if 0
                 Polygon roof_circle;
                 for (Point corner : base_circle)
@@ -916,7 +916,7 @@ public:
                     split_lines(lines, [this, this_layer_idx](const std::pair<Point, LineStatus> &p)
                         { return evaluate_point_for_next_layer_function(volumes, config, this_layer_idx, p); });
                 LineInformations points = std::move(split.second);
-                // Not all roofs are guaranteed to actually generate lines, so filter these out and add them as points.
+                // Not all roofs are guaranteed to actually generate lines, so filter these out and add them as points. 并非所有顶面都保证能生成线，因此过滤掉这些并作为点添加。
                 split = split_lines(split.first, evaluateRoofWillGenerate);
                 lines = std::move(split.first);
                 append(points, split.second);
@@ -935,7 +935,7 @@ public:
             // add all tips as roof to the roof storage
             Polygons new_roofs;
             for (const LineInformation &line : lines)
-                //FIXME sweep the tip radius along the line?
+                //FIXME sweep the tip radius along the line? 沿着线扫掠尖端半径？
                 for (const std::pair<Point, LineStatus> &p : line) {
                     Polygon roof_circle{ m_base_circle };
                     roof_circle.scale(config.min_radius / m_base_radius);
@@ -946,8 +946,8 @@ public:
         }
 
         for (const LineInformation &line : lines) {
-            // If a line consists of enough tips, the assumption is that it is not a single tip, but part of a simulated support pattern.
-            // Ovalisation should be disabled for these to improve the quality of the lines when tip_diameter=line_width
+            // If a line consists of enough tips, the assumption is that it is not a single tip, but part of a simulated support pattern. 如果一条线由足够多的尖端组成，则假定它不是单个尖端，而是模拟支撑图案的一部分。
+            // Ovalisation should be disabled for these to improve the quality of the lines when tip_diameter=line_width 当tip_diameter=line_width时，应禁用椭圆化以提高线的质量
             bool disable_ovalistation = config.min_radius < 3 * config.support_line_width && roof_tip_layers == 0 && dtt_roof_tip == 0 && line.size() > 5;
             for (const std::pair<Point, LineStatus> &point_data : line)
                 add_point_as_influence_area(point_data, insert_layer_idx - dtt_roof_tip,
@@ -1007,11 +1007,11 @@ private:
     // Outputs
     std::vector<SupportElements>                       &move_bounds;
 
-    // Temps
+    // Temps 临时变量
     coord_t m_base_radius;
     Polygon                                       m_base_circle;
 
-    // Mutexes, guards
+    // Mutexes, guards 互斥锁，保护
     std::mutex                                          m_mutex_movebounds;
     std::vector<std::unordered_set<Point, PointHash>>   m_already_inserted;
 };
@@ -1023,13 +1023,13 @@ int generate_raft_contact(
 {
     int raft_contact_layer_idx = -1;
     if (print_object.has_raft() && print_object.layer_count() > 0) {
-        // Produce raft contact layer outside of the tree support loop, so that no trees will be generated for the raft contact layer.
-        // Raft layers supporting raft contact interface will be produced by the classic raft generator.
-        // Find the raft contact layer.
+        // Produce raft contact layer outside of the tree support loop, so that no trees will be generated for the raft contact layer. 在树支撑循环外部生成筏层接触层，这样就不会为筏层接触层生成树。
+        // Raft layers supporting raft contact interface will be produced by the classic raft generator. 支撑筏层接触接口的筏层将由经典筏层生成器生成。
+        // Find the raft contact layer. 查找筏层接触层。
         raft_contact_layer_idx = int(config.raft_layers.size()) - 1;
         while (raft_contact_layer_idx > 0 && config.raft_layers[raft_contact_layer_idx] > print_object.slicing_parameters().raft_contact_top_z + EPSILON)
             -- raft_contact_layer_idx;
-        // Create the raft contact layer.
+        // Create the raft contact layer. 创建筏层接触层。
         const ExPolygons &lslices   = print_object.get_layer(0)->lslices;
         double            expansion = print_object.config().raft_expansion.value;
         interface_placer.add_roof_unguarded(expansion > 0 ? expand(lslices, scaled<float>(expansion)) : to_polygons(lslices), raft_contact_layer_idx, 0);
@@ -1045,14 +1045,14 @@ void finalize_raft_contact(
 {
     if (raft_contact_layer_idx >= 0) {
         const size_t first_tree_layer = print_object.slicing_parameters().raft_layers() - 1;
-        // Remove tree tips that start below the raft contact,
+        // Remove tree tips that start below the raft contact, 移除从筏层接触下方开始的树尖，
         // remove interface layers below the raft contact.
         for (size_t i = 0; i < first_tree_layer; ++i) {
             top_contacts[i] = nullptr;
             move_bounds[i].clear();
         }
         if (raft_contact_layer_idx >= 0 && print_object.config().raft_expansion.value > 0) {
-            // If any tips at first_tree_layer now are completely inside the expanded raft layer, remove them as well before they are propagated to the ground.
+            // If any tips at first_tree_layer now are completely inside the expanded raft layer, remove them as well before they are propagated to the ground. 如果first_tree_layer上任何尖端现在完全在扩展后的筏层内部，在它们传播到地面之前也将它们移除。
             Polygons &raft_polygons = top_contacts[raft_contact_layer_idx]->polygons;
             EdgeGrid::Grid grid(get_extents(raft_polygons).inflated(SCALED_EPSILON));
             grid.create(raft_polygons, Polylines{}, coord_t(scale_(10.)));
@@ -1063,18 +1063,18 @@ void finalize_raft_contact(
                     coordf_t dist;
                     if (grid.signed_distance_edges(el.state.result_on_layer, threshold, dist)) {
                         assert(std::abs(dist) < threshold + SCALED_EPSILON);
-                        // Support point is inside the expanded raft, remove it.
+                        // Support point is inside the expanded raft, remove it. 支撑点在扩展后的筏层内，移除此点。
                         return dist < - 0.;
                     }
                     return false;
                 }), first_layer_move_bounds.end());
     #if 0
-            // Remove the remaining tips from the raft: Closing operation on tip circles.
+            // Remove the remaining tips from the raft: Closing operation on tip circles. 从筏层中移除剩余的尖端：尖端圆上的闭合操作。
             if (! first_layer_move_bounds.empty()) {
                 const double eps = 0.1;
-                // All tips supporting this layer are expected to have the same radius.
+                // All tips supporting this layer are expected to have the same radius. 支撑此层的所有尖端应具有相同半径。
                 double       radius = support_element_radius(config, first_layer_move_bounds.front());
-                // Connect the tips with the following closing radius.
+                // Connect the tips with the following closing radius. 用以下闭合半径连接尖端。
                 double       closing_distance = radius;
                 Polygon      circle = make_circle(radius + closing_distance, eps);
                 Polygons     circles;
@@ -1090,36 +1090,36 @@ void finalize_raft_contact(
     }
 }
 
-// Called by generate_initial_areas(), used in parallel by multiple layers.
-// Produce
-// 1) Maximum num_support_roof_layers roof (top interface & contact) layers.
-// 2) Tree tips supporting either the roof layers or the object itself.
-// num_support_roof_layers should always be respected:
-// If num_support_roof_layers contact layers could not be produced, then the tree tip
-// is augmented with SupportElementState::missing_roof_layers
-// and the top "missing_roof_layers" of such particular tree tips are supposed to be coverted to
-// roofs aka interface layers by the tool path generator.
+// Called by generate_initial_areas(), used in parallel by multiple layers. 由generate_initial_areas()调用，在多个层上并行使用。
+// Produce 生成
+// 1) Maximum num_support_roof_layers roof (top interface & contact) layers. 最多num_support_roof_layers个顶面（顶部接口和接触）层。
+// 2) Tree tips supporting either the roof layers or the object itself. 支撑顶面层或物体本身的树尖。
+// num_support_roof_layers should always be respected: 应始终遵守num_support_roof_layers：
+// If num_support_roof_layers contact layers could not be produced, then the tree tip 如果无法生成num_support_roof_layers个接触层，则树尖
+// is augmented with SupportElementState::missing_roof_layers 会增加SupportElementState::missing_roof_layers
+// and the top "missing_roof_layers" of such particular tree tips are supposed to be coverted to 并且这些特定树尖的顶部"missing_roof_layers"应由路径生成器转换为
+// roofs aka interface layers by the tool path generator. 顶面即接口层。
 void sample_overhang_area(
-    // Area to support
+    // Area to support 要支撑的区域
     Polygons                           &&overhang_area,
-    // If true, then the overhang_area is likely large and wide, thus it is worth to try
+    // If true, then the overhang_area is likely large and wide, thus it is worth to try 如果为真，则悬垂区域可能又大又宽，因此值得尝试
     // to cover it with continuous interfaces supported by zig-zag patterned tree tips.
     const bool                           large_horizontal_roof,
-    // Index of the top suport layer generated by this function.
+    // Index of the top suport layer generated by this function. 由此函数生成的顶部支撑层的索引。
     const size_t                         layer_idx,
-    // Maximum number of roof (contact, interface) layers between the overhang and tree tips to be generated.
+    // Maximum number of roof (contact, interface) layers between the overhang and tree tips to be generated. 在悬垂和树尖之间生成的最大顶面（接触、接口）层数。
     const size_t                         num_support_roof_layers,
     //
     const coord_t                        connect_length,
-    // Configuration classes
+    // Configuration classes 配置类
     const TreeSupportMeshGroupSettings& mesh_group_settings,
-    // Configuration & Output
+    // Configuration & Output 配置和输出
     RichInterfacePlacer& interface_placer)
 {
-    // Assumption is that roof will support roof further up to avoid a lot of unnecessary branches. Each layer down it is checked whether the roof area
+    // Assumption is that roof will support roof further up to avoid a lot of unnecessary branches. Each layer down it is checked whether the roof area 假设顶面会支撑更高处的顶面，以避免大量不必要的分支。每向下一层都会检查顶面区域
     // is still large enough to be a roof and aborted as soon as it is not. This part was already reworked a few times, and there could be an argument
     // made to change it again if there are actual issues encountered regarding supporting roofs.
-    // Main problem is that some patterns change each layer, so just calculating points and checking if they are still valid an layer below is not useful,
+    // Main problem is that some patterns change each layer, so just calculating points and checking if they are still valid an layer below is not useful, 主要问题是一些图案每层都会变化，因此仅计算点并检查它们在下一层是否仍然有效是没有用的，
     // as the pattern may be different one layer below. Same with calculating which points are now no longer being generated as result from
     // a decreasing roof, as there is no guarantee that a line will be above these points. Implementing a separate roof support behavior
     // for each pattern harms maintainability as it very well could be >100 LOC
@@ -1128,14 +1128,14 @@ void sample_overhang_area(
     };
 
     LineInformations        overhang_lines;
-    // Track how many top contact / interface layers were already generated.
+    // Track how many top contact / interface layers were already generated. 跟踪已经生成了多少个顶部接触/接口层。
     size_t                  dtt_roof             = 0;
     size_t                  layer_generation_dtt = 0;
 
     if (large_horizontal_roof) {
         assert(num_support_roof_layers > 0);
-        // Sometimes roofs could be empty as the pattern does not generate lines if the area is narrow enough (i am looking at you, concentric infill).
-        // To catch these cases the added roofs are saved to be evaluated later.
+        // Sometimes roofs could be empty as the pattern does not generate lines if the area is narrow enough (i am looking at you, concentric infill). 有时顶面可能为空，因为如果区域足够窄，图案不会生成线（说的就是你，同心填充）。
+        // To catch these cases the added roofs are saved to be evaluated later. 为了捕获这些情况，添加的顶面被保存以供后续评估。
         std::vector<Polygons>   added_roofs(num_support_roof_layers);
         Polygons                last_overhang = overhang_area;
         for (dtt_roof = 0; dtt_roof < num_support_roof_layers && layer_idx - dtt_roof >= 1; ++ dtt_roof) {
@@ -1147,15 +1147,15 @@ void sample_overhang_area(
                     interface_placer.volumes.getCollision(interface_placer.config.getRadius(0), layer_idx - (dtt_roof + 1), min_xy_dist) :
                     interface_placer.volumes.getAvoidance(interface_placer.config.getRadius(0), layer_idx - (dtt_roof + 1), TreeModelVolumes::AvoidanceType::Fast, false, min_xy_dist);
                 // prevent rounding errors down the line
-                //FIXME maybe use SafetyOffset::Yes at the following diff() instead?
+                //FIXME maybe use SafetyOffset::Yes at the following diff() instead? 也许应该在下面的diff()中使用SafetyOffset::Yes？
                 forbidden_next = offset(union_ex(forbidden_next_raw), scaled<float>(0.005), jtMiter, 1.2);
             }
             Polygons overhang_area_next = diff(overhang_area, forbidden_next);
             if (area(overhang_area_next) < mesh_group_settings.minimum_roof_area) {
-                // Next layer down the roof area would be to small so we have to insert our roof support here.
+                // Next layer down the roof area would be to small so we have to insert our roof support here. 下一层顶面区域会太小，所以我们必须在这里插入顶面支撑。
                 if (dtt_roof > 0) {
                     size_t dtt_before = dtt_roof - 1;
-                    // Produce support head points supporting an interface layer: First produce the interface lines, then sample them.
+                    // Produce support head points supporting an interface layer: First produce the interface lines, then sample them. 生成支撑接口层的支撑头点：首先生成接口线，然后采样它们。
                     overhang_lines = split_lines(
                         convert_lines_to_internal(interface_placer.volumes, interface_placer.config,
                             ensure_maximum_distance_polyline(generate_roof_lines(last_overhang, layer_idx - dtt_before), connect_length, 1), layer_idx - dtt_before),
@@ -1188,7 +1188,7 @@ void sample_overhang_area(
     if (overhang_lines.empty()) {
         // support_line_width to form a line here as otherwise most will be unsupported. Technically this violates branch distance, but not only is this the only reasonable choice,
         // but it ensures consistant behaviour as some infill patterns generate each line segment as its own polyline part causing a similar line forming behaviour.
-        // This is not doen when a roof is above as the roof will support the model and the trees only need to support the roof
+        // This is not doen when a roof is above as the roof will support the model and the trees only need to support the roof 当上方有顶面时则不执行此操作，因为顶面将支撑模型，树只需要支撑顶面
         bool supports_roof = dtt_roof > 0;
         bool continuous_tips = !supports_roof && large_horizontal_roof;
         Polylines polylines = ensure_maximum_distance_polyline(
@@ -1201,7 +1201,7 @@ void sample_overhang_area(
         const size_t min_support_points = std::max(coord_t(1), std::min(coord_t(3), coord_t(total_length(overhang_area) / connect_length)));
         if (point_count <= min_support_points) {
             // add the outer wall (of the overhang) to ensure it is correct supported instead. Try placing the support points in a way that they fully support the outer wall, instead of just the with half of the the support line width.
-            // I assume that even small overhangs are over one line width wide, so lets try to place the support points in a way that the full support area generated from them
+            // I assume that even small overhangs are over one line width wide, so lets try to place the support points in a way that the full support area generated from them 我假设即使是很小的悬垂也超过一个线宽，所以让我们尝试以某种方式放置支撑点，使得从它们生成的完整支撑区域
             // will support the overhang (if this is not done it may only be half). This WILL NOT be the case when supporting an angle of about < 60 degrees so there is a fallback,
             // as some support is better than none.
             Polygons reduced_overhang_area = offset(union_ex(overhang_area), -interface_placer.config.support_line_width / 2.2, jtMiter, 1.2);
@@ -1218,7 +1218,7 @@ void sample_overhang_area(
 
     assert(dtt_roof <= layer_idx);
     if (dtt_roof >= layer_idx && large_horizontal_roof)
-        // Reached buildplate when generating contact, interface and base interface layers.
+        // Reached buildplate when generating contact, interface and base interface layers. 在生成接触层、接口层和基础接口层时到达构建板。
         interface_placer.add_roof_build_plate(std::move(overhang_area), dtt_roof);
     else {
         // normal trees have to be generated
@@ -1258,7 +1258,7 @@ static void generate_initial_areas(
     using                           AvoidanceType = TreeModelVolumes::AvoidanceType;
     TreeSupportMeshGroupSettings    mesh_group_settings(print_object);
 
-    // To ensure z_distance_top_layers are left empty between the overhang (zeroth empty layer), the support has to be added z_distance_top_layers+1 layers below
+    // To ensure z_distance_top_layers are left empty between the overhang (zeroth empty layer), the support has to be added z_distance_top_layers+1 layers below 为了确保悬垂之间保留z_distance_top_layers个空白层（第0个空白层），支撑必须添加到下方z_distance_top_layers+1层
     const size_t z_distance_delta = config.z_distance_top_layers + 1;
 
     const bool min_xy_dist = config.xy_distance > config.xy_min_distance;
@@ -1269,19 +1269,19 @@ static void generate_initial_areas(
 #endif
 
     const coord_t connect_length = (config.support_line_width * 100. / mesh_group_settings.support_tree_top_rate) + std::max(2. * config.min_radius - 1.0 * config.support_line_width, 0.0);
-    // As r*r=x*x+y*y (circle equation): If a circle with center at (0,0) the top most point is at (0,r) as in y=r.
-    // This calculates how far one has to move on the x-axis so that y=r-support_line_width/2.
-    // In other words how far does one need to move on the x-axis to be support_line_width/2 away from the circle line.
-    // As a circle is round this length is identical for every axis as long as the 90 degrees angle between both remains.
+    // As r*r=x*x+y*y (circle equation): If a circle with center at (0,0) the top most point is at (0,r) as in y=r. 根据圆方程r*r=x*x+y*y：如果圆心在(0,0)，最上面的点在(0,r)即y=r。
+    // This calculates how far one has to move on the x-axis so that y=r-support_line_width/2. 这计算了需要在x轴上移动多远，使得y=r-support_line_width/2。
+    // In other words how far does one need to move on the x-axis to be support_line_width/2 away from the circle line. 换句话说，需要在x轴上移动多远才能距离圆线support_line_width/2。
+    // As a circle is round this length is identical for every axis as long as the 90 degrees angle between both remains. 由于圆是圆的，只要两者之间保持90度角，此长度对每个轴都相同。
     const coord_t circle_length_to_half_linewidth_change = config.min_radius < config.support_line_width ?
         config.min_radius / 2 :
         scale_(sqrt(sqr(unscale<double>(config.min_radius)) - sqr(unscale<double>(config.min_radius - config.support_line_width / 2))));
-    // Extra support offset to compensate for larger tip radiis. Also outset a bit more when z overwrites xy, because supporting something with a part of a support line is better than not supporting it at all.
-    //FIXME Vojtech: This is not sufficient for support enforcers to work.
-    //FIXME There is no account for the support overhang angle.
-    //FIXME There is no account for the width of the collision regions.
+    // Extra support offset to compensate for larger tip radiis. Also outset a bit more when z overwrites xy, because supporting something with a part of a support line is better than not supporting it at all. 额外的支撑偏移以补偿较大的尖端半径。当Z覆盖XY时也多偏移一点，因为用部分支撑线支撑某物总比根本不支撑要好。
+    //FIXME Vojtech: This is not sufficient for support enforcers to work. 这不足以使支撑强制区域工作。
+    //FIXME There is no account for the support overhang angle. 没有考虑支撑悬垂角度。
+    //FIXME There is no account for the width of the collision regions. 没有考虑碰撞区域的宽度。
     const coord_t extra_outset = std::max(coord_t(0), config.min_radius - config.support_line_width / 2) + (min_xy_dist ? config.support_line_width / 2 : 0)
-        //FIXME this is a heuristic value for support enforcers to work.
+        //FIXME this is a heuristic value for support enforcers to work. 这是使支撑强制区域工作的启发式值。
 //        + 10 * config.support_line_width;
         ;
     const size_t  num_support_roof_layers = mesh_group_settings.support_roof_layers;
@@ -1290,16 +1290,16 @@ static void generate_initial_areas(
     // cap for how much layer below the overhang a new support point may be added, as other than with regular support every new inserted point
     // may cause extra material and time cost.  Could also be an user setting or differently calculated. Idea is that if an overhang
     // does not turn valid in double the amount of layers a slope of support angle would take to travel xy_distance, nothing reasonable will come from it.
-    // The 2*z_distance_delta is only a catch for when the support angle is very high.
-    // Used only if not min_xy_dist.
+    // The 2*z_distance_delta is only a catch for when the support angle is very high. 2*z_distance_delta仅用于支撑角度非常高的情况。
+    // Used only if not min_xy_dist. 仅在非min_xy_dist时使用。
     coord_t max_overhang_insert_lag = 0;
     if (config.z_distance_top_layers > 0) {
         max_overhang_insert_lag = 2 * config.z_distance_top_layers;
 
     //FIXME
         if (mesh_group_settings.support_angle > EPSILON && mesh_group_settings.support_angle < 0.5 * M_PI - EPSILON) {
-            //FIXME mesh_group_settings.support_angle does not apply to enforcers and also it does not apply to automatic support angle (by half the external perimeter width).
-            //used by max_overhang_insert_lag, only if not min_xy_dist.
+            //FIXME mesh_group_settings.support_angle does not apply to enforcers and also it does not apply to automatic support angle (by half the external perimeter width). mesh_group_settings.support_angle不适用于强制区域，也不适用于自动支撑角度（通过外部周长宽度的一半）。
+            //used by max_overhang_insert_lag, only if not min_xy_dist. 由max_overhang_insert_lag使用，仅在非min_xy_dist时。
             const auto max_overhang_speed  = coord_t(tan(mesh_group_settings.support_angle) * config.layer_height);
             max_overhang_insert_lag = std::max(max_overhang_insert_lag, round_up_divide(config.xy_distance, max_overhang_speed / 2));
         }
@@ -1307,7 +1307,7 @@ static void generate_initial_areas(
 
     size_t                                          num_support_layers;
     int                                             raft_contact_layer_idx;
-    // Layers with their overhang regions.
+    // Layers with their overhang regions. 层及其悬垂区域。
     std::vector<std::pair<size_t, const Polygons*>>  raw_overhangs;
 
     {
@@ -1315,7 +1315,7 @@ static void generate_initial_areas(
         const size_t first_support_layer = std::max(int(num_raft_layers) - int(z_distance_delta), 1);
         num_support_layers  = size_t(std::max(0, int(print_object.layer_count()) + int(num_raft_layers) - int(z_distance_delta)));
         raft_contact_layer_idx = generate_raft_contact(print_object, config, interface_placer);
-        // Enumerate layers for which the support tips may be generated from overhangs above.
+        // Enumerate layers for which the support tips may be generated from overhangs above. 枚举可以从上方悬垂生成支撑尖端的层。
         raw_overhangs.reserve(num_support_layers - first_support_layer);
         for (size_t layer_idx = first_support_layer; layer_idx < num_support_layers; ++ layer_idx)
             if (const size_t overhang_idx = layer_idx + z_distance_delta; ! overhangs[overhang_idx].empty())
@@ -1361,7 +1361,7 @@ static void generate_initial_areas(
 
                 // Offset the area to compensate for large tip radiis. Offset happens in multiple steps to ensure the tip is as close to the original overhang as possible.
                 //+config.support_line_width / 80  to avoid calculating very small (useless) offsets because of rounding errors.
-                //FIXME likely a better approach would be to find correspondences between the full overhang and the trimmed overhang
+                //FIXME likely a better approach would be to find correspondences between the full overhang and the trimmed overhang 可能更好的方法是在完整悬垂和修剪后的悬垂之间找到对应关系
                 // and if there is no correspondence, project the missing points to the clipping curve.
                 for (coord_t extra_total_offset_acc = 0; ! remaining_overhang.empty() && extra_total_offset_acc + config.support_line_width / 8 < extra_outset; ) {
                     const coord_t offset_current_step = std::min(
@@ -1483,8 +1483,8 @@ static unsigned int move_inside(const Polygons &polygons, Point &from, int dista
             Vec2i64 ab = (b - a).cast<int64_t>();
             Vec2i64 ap = (p - a).cast<int64_t>();
             int64_t ab_length2 = ab.squaredNorm();
-            if (ab_length2 <= 0) { //A = B, i.e. the input polygon had two adjacent points on top of each other.
-                p1 = p2; //Skip only one of the points.
+            if (ab_length2 <= 0) { //A = B, i.e. the input polygon had two adjacent points on top of each other. A = B，即输入多边形有两个相邻点重合。
+                p1 = p2; //Skip only one of the points. 只跳过其中一个点。
                 continue;
             }
             int64_t dot_prod = ab.dot(ap);
@@ -2370,7 +2370,7 @@ static void merge_influence_areas(
     // The actual merge logic is found in merge_influence_areas_two_sets.
 
     // Build an AABB tree over the influence areas.
-    //FIXME A full tree does not need to be built, the lowest level branches will be always bucketed.
+    //FIXME A full tree does not need to be built, the lowest level branches will be always bucketed. 不需要构建完整的树，最低层的分支将始终被分桶。
     // However the additional time consumed is negligible.
     AABBTreeIndirect::Tree<2, coord_t> tree;
     // Sort influence_areas in place.
@@ -2773,7 +2773,7 @@ static void create_nodes_from_area(
                         double radius_increase = support_element_radius(config, elem) - support_element_radius(config, parent);
                         assert(radius_increase >= 0);
                         double shift = (elem.state.result_on_layer - parent.state.result_on_layer).cast<double>().norm();
-                        //FIXME this assert fails a lot. Is it correct?
+                        //FIXME this assert fails a lot. Is it correct? 这个断言经常失败。它是正确的吗？
 //                        assert(shift < radius_increase + 2. * config.maximum_move_distance_slow);
                     }
                 }
@@ -3128,7 +3128,7 @@ static void organic_smooth_branches_avoid_collisions(
     }
     // Update min_z / max_z to limit the search Z span of a given sphere for collision detection.
     for (CollisionSphere &collision_sphere : collision_spheres) {
-        //FIXME limit the collision span by the tree slope.
+        //FIXME limit the collision span by the tree slope. 通过树斜率限制碰撞跨度。
         collision_sphere.min_z = std::max(collision_sphere.min_z, collision_sphere.position.z() - collision_sphere.radius);
         collision_sphere.max_z = std::min(collision_sphere.max_z, collision_sphere.position.z() + collision_sphere.radius);
         collision_sphere.layer_begin = std::min(collision_sphere.element.state.layer_idx, layer_idx_ceil(slicing_params, config, collision_sphere.min_z));
@@ -3227,7 +3227,7 @@ static void organic_smooth_branches_avoid_collisions(
         elements_with_link_down[i].first->state.result_on_layer = scaled<coord_t>(to_2d(collision_spheres[i].position));
 }
 #else // TREE_SUPPORT_ORGANIC_NUDGE_NEW
-// Old version using OpenVDB, works but it is extremely slow for complex meshes.
+// 使用OpenVDB的旧版本，可以工作但对于复杂网格极度缓慢。
 static void organic_smooth_branches_avoid_collisions(
     const PrintObject                                   &print_object,
     const TreeModelVolumes                              &volumes,
@@ -3275,7 +3275,7 @@ static void organic_smooth_branches_avoid_collisions(
                     ++ num_moved;
                     double dxy = sqrt(sqr(radius) - sqr(v.z()));
                     double nudge_dist_max = dxy - std::hypot(v.x(), v.y())
-                        //FIXME 1mm gap
+                        //FIXME 1mm gap 1毫米间隙
                         + collision_extra_gap;
                     // Shift by maximum 2mm.
                     double nudge_dist = std::min(std::max(0., nudge_dist_max), max_nudge_collision_avoidance);
@@ -3352,7 +3352,7 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
     {
         // process each combination of meshes
         // this struct is used to easy retrieve setting. No other function except those in TreeModelVolumes and generate_initial_areas() have knowledge of the existence of multiple meshes being processed.
-        //FIXME this is a copy
+        //FIXME this is a copy 这是一个副本
         // Contains config settings to avoid loading them in every function. This was done to improve readability of the code.
         const TreeSupportSettings &config = processing.first;
         BOOST_LOG_TRIVIAL(info) << "Processing support tree mesh group " << counter + 1 << " of " << grouped_meshes.size() << " containing " << grouped_meshes[counter].second.size() << " meshes.";
@@ -3384,7 +3384,7 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
 #endif // SLIC3R_TREESUPPORTS_PROGRESS
             /* additional_excluded_areas */{} };
 
-        //FIXME generating overhangs just for the first mesh of the group.
+        //FIXME generating overhangs just for the first mesh of the group. 仅为组的第一个网格生成悬垂。
         assert(processing.second.size() == 1);
 
 #if 1

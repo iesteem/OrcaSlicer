@@ -25,7 +25,7 @@ bool load_obj(const char *path, TriangleMesh *meshptr, ObjInfo& obj_info, std::s
 {
     if (meshptr == nullptr)
         return false;
-    // Parse the OBJ file.
+    // 解析OBJ文件。
     ObjParser::ObjData data;
     ObjParser::MtlData mtl_data;
     if (! ObjParser::objparse(path, data)) {
@@ -34,7 +34,7 @@ bool load_obj(const char *path, TriangleMesh *meshptr, ObjInfo& obj_info, std::s
         return false;
     }
     bool exist_mtl = false;
-    if (data.mtllibs.size() > 0) { // read mtl
+    if (data.mtllibs.size() > 0) { // 读取mtl
         for (auto mtl_name : data.mtllibs) {
             if (mtl_name.size() == 0){
                 continue;
@@ -66,21 +66,21 @@ bool load_obj(const char *path, TriangleMesh *meshptr, ObjInfo& obj_info, std::s
             }
         }
     }
-    // Count the faces and verify, that all faces are triangular.
+    // 统计面数并验证所有面都是三角形。
     size_t num_faces = 0;
     size_t num_quads = 0;
     for (size_t i = 0; i < data.vertices.size(); ++ i) {
-        // Find the end of face.
+        // 查找面的结束位置。
         size_t j = i;
         for (; j < data.vertices.size() && data.vertices[j].coordIdx != -1; ++ j) ;
         if (size_t num_face_vertices = j - i; num_face_vertices > 0) {
             if (num_face_vertices > 4) {
-                // Non-triangular and non-quad faces are not supported as of now.
+                // 目前不支持非三角形和非四边形的面。
                 BOOST_LOG_TRIVIAL(error) << "load_obj: failed to parse " << path << ". The file contains polygons with more than 4 vertices.";
                 message = _L("The file contains polygons with more than 4 vertices.");
                 return false;
             } else if (num_face_vertices < 3) {
-                // Non-triangular and non-quad faces are not supported as of now.
+                // 目前不支持非三角形和非四边形的面。
                 BOOST_LOG_TRIVIAL(error) << "load_obj: failed to parse " << path << ". The file contains polygons with less than 2 vertices.";
                 message = _L("The file contains polygons with less than 2 vertices.");
                 return false;
@@ -91,7 +91,7 @@ bool load_obj(const char *path, TriangleMesh *meshptr, ObjInfo& obj_info, std::s
             i = j;
         }
     }
-    // Convert ObjData into indexed triangle set.
+    // 将ObjData转换为索引三角形集。
     indexed_triangle_set its;
     size_t               num_vertices = data.coordinates.size() / OBJ_VERTEX_LENGTH;
     its.vertices.reserve(num_vertices);
@@ -133,7 +133,7 @@ bool load_obj(const char *path, TriangleMesh *meshptr, ObjInfo& obj_info, std::s
                 }
             if (cnt) {
                 assert(cnt == 3 || cnt == 4);
-                // Insert one or two faces (triangulate a quad).
+                // 插入一个或两个面（将四边形三角化）。
                 its.indices.emplace_back(indices[0], indices[1], indices[2]);
                 int  face_index =its.indices.size() - 1;
                 RGBA face_color;
@@ -229,7 +229,7 @@ bool load_obj(const char *path, Model *model, ObjInfo& obj_info, std::string &me
 
 bool store_obj(const char *path, TriangleMesh *mesh)
 {
-    //FIXME returning false even if write failed.
+    //FIXME 即使写入失败也返回false。
     mesh->WriteOBJFile(path);
     return true;
 }

@@ -80,7 +80,7 @@ public:
     void append(ExPolygons &&src, const Surface &surfaceTempl) { surfaces_append(this->surfaces, std::move(src), surfaceTempl); }
     void append(Surfaces &&src) { surfaces_append(this->surfaces, std::move(src)); }
 
-    // For debugging purposes:
+    // 用于调试目的：
     void export_to_svg(const char *path, bool show_labels);
 };
 

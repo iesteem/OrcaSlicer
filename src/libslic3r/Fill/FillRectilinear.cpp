@@ -40,9 +40,9 @@
 
 namespace Slic3r {
 
-// Having a segment of a closed polygon, calculate its Euclidian length.
-// The segment indices seg1 and seg2 signify an end point of an edge in the forward direction of the loop,
-// therefore the point p1 lies on poly.points[seg1-1], poly.points[seg1] etc.
+// 给定闭合多边形的一个线段，计算其欧几里得长度。
+// 段索引seg1和seg2表示沿循环前进方向的边的端点，
+// 因此点p1位于poly.points[seg1-1]、poly.points[seg1]等之间。
 static inline coordf_t segment_length(const Polygon &poly, size_t seg1, const Point &p1, size_t seg2, const Point &p2)
 {
 #ifdef SLIC3R_DEBUG
@@ -77,9 +77,9 @@ static inline coordf_t segment_length(const Polygon &poly, size_t seg1, const Po
     return len;
 }
 
-// Append a segment of a closed polygon to a polyline.
-// The segment indices seg1 and seg2 signify an end point of an edge in the forward direction of the loop.
-// Only insert intermediate points between seg1 and seg2.
+// 将闭合多边形的一个线段附加到折线上。
+// 段索引seg1和seg2表示沿循环前进方向的边的端点。
+// 仅在seg1和seg2之间插入中间点。
 static inline void polygon_segment_append(Points &out, const Polygon &polygon, size_t seg1, size_t seg2)
 {
     if (seg1 == seg2) {
@@ -115,12 +115,12 @@ static inline void polygon_segment_append_reversed(Points &out, const Polygon &p
     }
 }
 
-// Intersection point of a vertical line with a polygon segment.
+// 垂直线与多边形段的交点。
 struct SegmentIntersection
 {
-    // Index of a contour in ExPolygonWithOffset, with which this vertical line intersects.
+    // ExPolygonWithOffset中的轮廓索引，此垂直线与该轮廓相交。
     size_t      iContour { 0 };
-    // Index of a segment in iContour, with which this vertical line intersects.
+    // iContour中段的索引，此垂直线与该段相交。
     size_t      iSegment { 0 };
     // y position of the intersection, rational number.
     int64_t     pos_p { 0 };
@@ -268,7 +268,7 @@ struct SegmentIntersection
     LinkQuality vertical_outside_quality()		const { return this->is_low() ? this->vertical_down_quality() : this->vertical_up_quality(); }
 
     // Compare two y intersection points given by rational numbers.
-    // Note that the rational number is given as pos_p/pos_q, where pos_p is int64 and pos_q is uint32.
+    // 注意有理数表示为pos_p/pos_q，其中pos_p是int64，pos_q是uint32。
     // This function calculates pos_p * other.pos_q < other.pos_p * pos_q as a 48bit number.
     // We don't use 128bit intrinsic data types as these are usually not supported by 32bit compilers and
     // we don't need the full 128bit precision anyway.
@@ -356,7 +356,7 @@ static_assert(sizeof(SegmentIntersection::pos_q) == 4, "SegmentIntersection::pos
 // A vertical line with intersection points with polygons.
 struct SegmentedIntersectionLine
 {
-    // Index of this vertical intersection line.
+    // 此垂直相交线的索引。
     size_t                              idx;
     // x position of this vertical intersection line.
     coord_t                             pos;
@@ -682,7 +682,7 @@ static inline void emit_perimeter_segment_on_vertical_line(
 	out.points.push_back(Point(il.pos, itsct2.pos()));
 }
 
-//TBD: For precise infill, measure the area of a slab spanned by an infill line.
+//TBD: 对于精确填充，测量由填充线跨越的平板面积。
 /*
 static inline float measure_outer_contour_slab(
     const ExPolygonWithOffset                     &poly_with_offset,
@@ -758,18 +758,18 @@ enum DirectionMask
 
 static std::vector<SegmentedIntersectionLine> slice_region_by_vertical_lines(const ExPolygonWithOffset &poly_with_offset, size_t n_vlines, coord_t x0, coord_t line_spacing)
 {
-    // Allocate storage for the segments.
+    // 为段分配存储空间。
     std::vector<SegmentedIntersectionLine> segs(n_vlines, SegmentedIntersectionLine());
     for (coord_t i = 0; i < coord_t(n_vlines); ++ i) {
         segs[i].idx = i;
         segs[i].pos = x0 + i * line_spacing;
     }
-    // For each contour
+    // 对于每个轮廓
     for (size_t iContour = 0; iContour < poly_with_offset.n_contours; ++ iContour) {
         const Points &contour = poly_with_offset.contour(iContour).points;
         if (contour.size() < 2)
             continue;
-        // For each segment
+        // 对于每个段
         for (size_t iSegment = 0; iSegment < contour.size(); ++ iSegment) {
             size_t iPrev = ((iSegment == 0) ? contour.size() : iSegment) - 1;
             const Point &p1 = contour[iPrev];
@@ -2900,7 +2900,7 @@ bool FillRectilinear::fill_surface_by_lines(const Surface *surface, const FillPa
         //assert(! it->has_duplicate_points());
         it->remove_duplicate_points();
 
-         //get origin direction infill
+         //获取原始方向填充
         if (params.symmetric_infill_y_axis) {
             it->symmetric_y(params.symmetric_y_axis);
         }
@@ -3013,7 +3013,7 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     for (const SweepParams &sweep : sweep_params) {
         // Rotate polygons so that we can work with vertical lines here
         float angle = rotate_vector.first + sweep.angle_base;
-        //Fill Multiline
+        //填充多线
         for (int i = 0; i < n_multilines; ++i) {
             coord_t group_offset = i * line_spacing;
             coord_t internal_offset = (i - (n_multilines - 1) / 2.0f) * line_width;
@@ -3321,10 +3321,10 @@ Polylines FillMonotonicLines::fill_surface(const Surface *surface, const FillPar
     FillParams params2 = params;
     params2.monotonic = true;
     params2.anchor_length_max = 0.0f;
-    //BBS: always don't adjust the spacing of top surface infill
+    //BBS: 始终不调整顶部表面填充的间距
     params2.dont_adjust = true;
 
-    //BBS: always use no overlap expolygons to avoid overflow in top surface
+    //BBS: 始终使用无重叠的expolygon以避免顶部表面溢出
     //for (const ExPolygon &rectilinear_area : this->no_overlap_expolygons) {
     //    rectilinear_surface.expolygon = rectilinear_area;
     //    fill_surface_by_lines(&rectilinear_surface, params2, polylines_rectilinear);
@@ -3361,7 +3361,7 @@ Polylines FillMonotonicLines::fill_surface(const Surface *surface, const FillPar
     else
         unextruded_areas = this->no_overlap_expolygons;
 
-    //gapfill
+    //间隙填充
     ExPolygons gapfill_areas = union_ex(unextruded_areas);
     if (!this->no_overlap_expolygons.empty())
             gapfill_areas = intersection_ex(gapfill_areas, this->no_overlap_expolygons);
@@ -3371,7 +3371,7 @@ Polylines FillMonotonicLines::fill_surface(const Surface *surface, const FillPar
         ExPolygons gaps_ex = diff_ex(
             opening_ex(gapfill_areas, float(min / 2.)),
             offset2_ex(gapfill_areas, -float(max / 2.), float(max / 2. + ClipperSafetyOffset)));
-        //BBS: sort the gap_ex to avoid mess travel
+        //BBS: 对间隙进行排序以避免混乱的行程
         Points ordering_points;
         ordering_points.reserve(gaps_ex.size());
         ExPolygons gaps_ex_sorted;
@@ -3384,7 +3384,7 @@ Polylines FillMonotonicLines::fill_surface(const Surface *surface, const FillPar
 
         ThickPolylines polylines;
         for (ExPolygon& ex : gaps_ex_sorted) {
-            //BBS: Use DP simplify to avoid duplicated points and accelerate medial-axis calculation as well.
+            //BBS: 使用DP简化以避免重复点并加速中轴计算。
             ex.douglas_peucker(SCALED_RESOLUTION * 0.1);
             ex.medial_axis(min, max, &polylines);
         }

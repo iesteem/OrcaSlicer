@@ -23,11 +23,10 @@ inline indexed_triangle_set wall_strip(const Polygon &poly,
     
     ret.vertices.reserve(ret.vertices.size() + 2 *offs);
     
-    // The expression unscaled(p).cast<float>().eval() is important here
-    // as it ensures identical conversion of 2D scaled coordinates to float 3D
-    // to that used by the tesselation. This way, the duplicated vertices in the
-    // output mesh can be found with the == operator of the points.
-    // its_merge_vertices will then reliably remove the duplicates.
+    // 这里 unscale(p).cast<float>().eval() 的表达式很重要，
+    // 因为它确保与曲面细分使用的 2D 缩放坐标到 float 3D 的转换一致。
+    // 这样，输出网格中的重复顶点可以通过点的 == 运算符找到。
+    // 然后 its_merge_vertices 将可靠地移除重复项。
     for (const Point &p : poly.points)
         ret.vertices.emplace_back(to_3d(unscaled(p).cast<float>().eval(), float(lower_z_mm)));
     
@@ -45,7 +44,7 @@ inline indexed_triangle_set wall_strip(const Polygon &poly,
     return ret;
 }
 
-// Same as walls() but with identical higher and lower polygons.
+// 与 walls() 相同，但上下多边形相同。
 indexed_triangle_set inline straight_walls(const Polygon &plate,
                                      double         lo_z,
                                      double         hi_z)
@@ -90,9 +89,8 @@ indexed_triangle_set slices_to_mesh(
         const ExPolygons &upper = slices[i + 1];
         const ExPolygons &lower = slices[i];
 
-        // Small 0 area artefacts can be created by diff_ex, and the
-        // tesselation also can create 0 area triangles. These will be removed
-        // by its_remove_degenerate_faces.
+        // diff_ex 可能会产生小的零面积伪影，曲面细分也可能创建零面积三角形。
+        // 这些将由 its_remove_degenerate_faces 移除。
         ExPolygons free_top = diff_ex(lower, upper);
         ExPolygons overhang = diff_ex(upper, lower);
         its_merge(layers[i], triangulate_expolygons_3d(free_top, grid[i], NORMALS_UP));
@@ -111,9 +109,8 @@ indexed_triangle_set slices_to_mesh(
     its_merge(ret, straight_walls(slices.front(), zmin, grid.front()));
     its_merge(ret, triangulate_expolygons_3d(slices.back(), grid.back(), NORMALS_UP));
 
-    // FIXME: these repairs do not fix the mesh entirely. There will be cracks
-    // in the output. It is very hard to do the meshing in a way that does not
-    // leave errors.
+    // FIXME: 这些修复并不能完全修复网格。输出中仍会出现裂缝。
+    // 很难做到在网格化过程中不留下错误。
     its_merge_vertices(ret);
     its_remove_degenerate_faces(ret);
     its_compactify_vertices(ret);

@@ -47,7 +47,7 @@ FlushVolCalculator::FlushVolCalculator(int min, int max, float multiplier)
 int FlushVolCalculator::calc_flush_vol(unsigned char src_a, unsigned char src_r, unsigned char src_g, unsigned char src_b,
     unsigned char dst_a, unsigned char dst_r, unsigned char dst_g, unsigned char dst_b)
 {
-    // BBS: Transparent materials are treated as white materials
+    // BBS：透明材料被视为白色材料
     if (src_a == 0) {
         src_r = src_g = src_b = 255;
     }
@@ -66,13 +66,13 @@ int FlushVolCalculator::calc_flush_vol(unsigned char src_a, unsigned char src_r,
     dst_g_f = (float)dst_g / 255.f;
     dst_b_f = (float)dst_b / 255.f;
 
-    // Calculate color distance in HSV color space
+    // 在 HSV 色彩空间中计算颜色距离
     RGB2HSV(src_r_f, src_g_f,src_b_f, &from_hsv_h, &from_hsv_s, &from_hsv_v);
     RGB2HSV(dst_r_f, dst_g_f, dst_b_f, &to_hsv_h, &to_hsv_s, &to_hsv_v);
     float hs_dist = DeltaHS_BBS(from_hsv_h, from_hsv_s, from_hsv_v, to_hsv_h, to_hsv_s, to_hsv_v);
 
-    // 1. Color difference is more obvious if the dest color has high luminance
-    // 2. Color difference is more obvious if the source color has low luminance
+    // 1. 如果目标颜色亮度高，则色差更明显
+    // 2. 如果源颜色亮度低，则色差更明显
     float from_lumi = get_luminance(src_r_f, src_g_f, src_b_f);
     float to_lumi = get_luminance(dst_r_f, dst_g_f, dst_b_f);
     float lumi_flush = 0.f;

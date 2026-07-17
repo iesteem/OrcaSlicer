@@ -32,24 +32,24 @@ void detect_platform()
             if (type == CPU_TYPE_X86) {
                 int proc_translated = 0;
                 size                = sizeof(proc_translated);
-                // Detect if native CPU is really X86 or PrusaSlicer runs through Rosetta.
+                // 检测本机 CPU 是否为真正的 X86，或者 PrusaSlicer 是否通过 Rosetta 运行。
                 if (sysctlbyname("sysctl.proc_translated", &proc_translated, &size, NULL, 0) == -1) {
                     if (errno == ENOENT) {
-                        // Native CPU is X86, and property sysctl.proc_translated doesn't exist.
+                        // 本机 CPU 是 X86，并且 sysctl.proc_translated 属性不存在。
                         s_platform_flavor = PlatformFlavor::OSXOnX86;
                         BOOST_LOG_TRIVIAL(info) << "Platform flavor: OSXOnX86";
                     }
                 } else if (proc_translated == 1) {
-                    // Native CPU is ARM and PrusaSlicer runs through Rosetta.
+                    // 本机 CPU 是 ARM，并且 PrusaSlicer 通过 Rosetta 运行。
                     s_platform_flavor = PlatformFlavor::OSXOnArm;
                     BOOST_LOG_TRIVIAL(info) << "Platform flavor: OSXOnArm";
                 } else {
-                    // Native CPU is X86.
+                    // 本机 CPU 是 X86。
                     s_platform_flavor = PlatformFlavor::OSXOnX86;
                     BOOST_LOG_TRIVIAL(info) << "Platform flavor: OSXOnX86";
                 }
             } else if (type == CPU_TYPE_ARM) {
-                // Native CPU is ARM
+                // 本机 CPU 是 ARM
                 s_platform_flavor = PlatformFlavor::OSXOnArm;
                 BOOST_LOG_TRIVIAL(info) << "Platform flavor: OSXOnArm";
             }
@@ -87,7 +87,7 @@ void detect_platform()
 	s_platform 		  = Platform::BSDUnix;
 	s_platform_flavor = PlatformFlavor::OpenBSD;
 #else
-	// This should not happen.
+	// 这不应该发生。
     BOOST_LOG_TRIVIAL(info) << "Platform: Unknown";
 	static_assert(false, "Unknown platform detected");
 	s_platform 		  = Platform::Unknown;

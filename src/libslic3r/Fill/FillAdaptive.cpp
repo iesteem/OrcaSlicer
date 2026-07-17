@@ -29,13 +29,12 @@
 namespace Slic3r {
 namespace FillAdaptive {
 
-// Derived from https://github.com/juj/MathGeoLib/blob/master/src/Geometry/Triangle.cpp
-// The AABB-Triangle test implementation is based on the pseudo-code in
-// Christer Ericson's Real-Time Collision Detection, pp. 169-172. It is
-// practically a standard SAT test.
+// 源自 https://github.com/juj/MathGeoLib/blob/master/src/Geometry/Triangle.cpp
+// AABB-三角形测试实现基于Christer Ericson的《实时碰撞检测》第169-172页中的伪代码。
+// 这实际上是标准的SAT测试。
 //
-// Original MathGeoLib benchmark:
-//    Best: 17.282 nsecs / 46.496 ticks, Avg: 17.804 nsecs, Worst: 18.434 nsecs
+// 原始MathGeoLib基准测试：
+//    最佳：17.282纳秒/46.496时钟周期，平均：17.804纳秒，最差：18.434纳秒
 //
 //FIXME Vojtech: The MathGeoLib contains a vectorized implementation.
 template<typename Vector> 
@@ -156,7 +155,7 @@ bool triangle_AABB_intersects(const Vector &a, const Vector &b, const Vector &c,
     if (r + std::abs(tc - d1) < std::abs(tc))
         return false;
 
-    // No separating axis exists, the AABB and triangle intersect.
+    // 不存在分离轴，AABB和三角形相交。
     return true;
 }
 

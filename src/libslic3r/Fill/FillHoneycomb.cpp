@@ -13,7 +13,7 @@ void FillHoneycomb::_fill_surface_single(
     ExPolygon                        expolygon,
     Polylines                       &polylines_out)
 {
-    // cache hexagons math
+    // 缓存六边形计算
     CacheID cache_id(params.density, this->spacing);
     Cache::iterator it_m = this->cache.find(cache_id);
     if (it_m == this->cache.end()) {
@@ -34,19 +34,19 @@ void FillHoneycomb::_fill_surface_single(
 
     Polylines all_polylines;
     {
-        // adjust actual bounding box to the nearest multiple of our hex pattern
-        // and align it so that it matches across layers
+        // 将实际边界框调整到六边形图案的最近倍数
+        // 并使其在层之间对齐
 
         BoundingBox bounding_box = expolygon.contour.bounding_box();
         {
-            // rotate bounding box according to infill direction
+            // 根据填充方向旋转边界框
             Polygon bb_polygon = bounding_box.polygon();
             bb_polygon.rotate(direction.first, m.hex_center);
             bounding_box = bb_polygon.bounding_box();
 
-            // extend bounding box so that our pattern will be aligned with other layers
-            // $bounding_box->[X1] and [Y1] represent the displacement between new bounding box offset and old one
-            // The infill is not aligned to the object bounding box, but to a world coordinate system. Supposedly good enough.
+            // 扩展边界框，使我们的图案与其他层对齐
+            // $bounding_box->[X1] 和 [Y1] 表示新边界框偏移与旧边界框偏移之间的位移
+            // 填充未与物体边界框对齐，而是与世界坐标系对齐。据推测这已经足够好了。
             bounding_box.merge(align_to_grid(bounding_box.min, Point(m.hex_width, m.pattern_height)));
         }
 
@@ -55,7 +55,7 @@ void FillHoneycomb::_fill_surface_single(
             Polyline p;
             coord_t ax[2] = { x + m.x_offset, x + m.distance - m.x_offset };
             for (size_t i = 0; i < 2; ++ i) {
-                std::reverse(p.points.begin(), p.points.end()); // turn first half upside down
+                std::reverse(p.points.begin(), p.points.end()); // 将前半部分颠倒
                 for (coord_t y = bounding_box.min(1); y <= bounding_box.max(1); y += m.y_short + m.hex_side + m.y_short + m.hex_side) {
                     p.points.push_back(Point(ax[1], y + m.y_offset));
                     p.points.push_back(Point(ax[0], y + m.y_short - m.y_offset));
@@ -65,15 +65,15 @@ void FillHoneycomb::_fill_surface_single(
                 }
                 ax[0] = ax[0] + m.distance;
                 ax[1] = ax[1] + m.distance;
-                std::swap(ax[0], ax[1]); // draw symmetrical pattern
+                std::swap(ax[0], ax[1]); // 绘制对称图案
                 x += m.distance;
             }
             p.rotate(-direction.first, m.hex_center);
-            p.simplify(5 * spacing); // simplify to 5x line width
+            p.simplify(5 * spacing); // 简化为 5 倍线宽
             all_polylines.push_back(p);
         }
     }
-    // Apply multiline offset if needed
+    // 如果需要，应用多线偏移
     multiline_fill(all_polylines, params, 1.1 * spacing);
 
     all_polylines = intersection_pl(std::move(all_polylines), expolygon);

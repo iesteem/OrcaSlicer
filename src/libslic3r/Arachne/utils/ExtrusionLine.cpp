@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #include <algorithm>
 #include <cmath>
@@ -46,170 +46,166 @@ void ExtrusionLine::simplify(const int64_t smallest_line_segment_squared, const 
     if (junctions.size() <= min_path_size)
         return;
 
-    /* ExtrusionLines are treated as (open) polylines, so in case an ExtrusionLine is actually a closed polygon, its
-     * starting and ending points will be equal (or almost equal). Therefore, the simplification of the ExtrusionLine
-     * should not touch the first and last points. As a result, start simplifying from point at index 1.
+    /* ExtrusionLine 被视为（开放）折线，因此如果 ExtrusionLine 实际上是闭合多边形，其
+     * 起点和终点将相等（或几乎相等）。因此，ExtrusionLine 的简化
+     * 不应触碰第一个和最后一个点。因此，从索引 1 的点开始简化。
      * */
     std::vector<ExtrusionJunction> new_junctions;
-    // Starting junction should always exist in the simplified path
+    //// 起始连接点应始终存在于简化路径中
     new_junctions.emplace_back(junctions.front());
 
     ExtrusionJunction previous = junctions.front();
-    /* For open ExtrusionLines the last junction cannot be taken into consideration when checking the points at index 1.
-     * For closed ExtrusionLines, the first and last junctions are the same, so use the prior to last juction.
+    /* 对于开放 ExtrusionLine，检查索引 1 处的点时不能考虑最后一个连接点。
+     * 对于闭合 ExtrusionLine，第一个和最后一个连接点相同，因此使用倒数第二个连接点。
      * */
     ExtrusionJunction previous_previous = this->is_closed ? junctions[junctions.size() - 2] : junctions.front();
 
-    /* TODO: When deleting, combining, or modifying junctions, it would
-     * probably be good to set the new junction's width to a weighted average
-     * of the junctions it is derived from.
+    /* TODO: 在删除、合并或修改连接点时，最好将新连接点的宽度设为其
+     * 派生来源连接点的加权平均值。
      */
 
-    /* When removing a vertex, we check the height of the triangle of the area
-     being removed from the original polygon by the simplification. However,
-     when consecutively removing multiple vertices the height of the previously
-     removed vertices w.r.t. the shortcut path changes.
-     In order to not recompute the new height value of previously removed
-     vertices we compute the height of a representative triangle, which covers
-     the same amount of area as the area being cut off. We use the Shoelace
-     formula to accumulate the area under the removed segments. This works by
-     computing the area in a 'fan' where each of the blades of the fan go from
-     the origin to one of the segments. While removing vertices the area in
-     this fan accumulates. By subtracting the area of the blade connected to
-     the short-cutting segment we obtain the total area of the cutoff region.
-     From this area we compute the height of the representative triangle using
-     the standard formula for a triangle area: A = .5*b*h
+    /* 删除顶点时，我们检查简化从原始多边形中移除的三角形区域的高度。
+     * 然而，当连续删除多个顶点时，先前删除的顶点相对于
+     * 快捷路径的高度会发生变化。
+     * 为了不重新计算之前删除顶点的新高度值，
+     * 我们计算代表三角形的高度，其覆盖的面积与被切掉的面积相同。
+     * 我们使用鞋带公式（Shoelace formula）累加被删除线段下的面积。这通过
+     * 计算一个"扇形"中的面积来实现，其中扇形的每个叶片从
+     * 原点到一个线段。删除顶点时，此扇形的面积
+     * 累加。通过减去连接到
+     * 快捷线段的叶片面积，我们得到被切除区域的总面积。
+     * 从该面积我们使用标准三角形面积公式计算代表三角形的高度：A = .5*b*h
      */
     const ExtrusionJunction& initial = junctions[1];
-    int64_t accumulated_area_removed = int64_t(previous.p.x()) * int64_t(initial.p.y()) - int64_t(previous.p.y()) * int64_t(initial.p.x()); // Twice the Shoelace formula for area of polygon per line segment.
+    int64_t accumulated_area_removed = int64_t(previous.p.x()) * int64_t(initial.p.y()) - int64_t(previous.p.y()) * int64_t(initial.p.x()); // 每条线段的鞋带公式面积的两倍。
 
-    // For a closed polygon we process the last point, which is the same as the first point.
+    //// 对于闭合多边形，我们处理最后一个点，其与第一个点相同。
     for (size_t point_idx = 1; point_idx < junctions.size() - (this->is_closed ? 0 : 1); point_idx++)
     {
-        // For the last point of a closed polygon, use the first point of the new polygon in case we modified it.
+        //// 对于闭合多边形的最后一个点，如果我们修改了第一个点，则使用新多边形的第一个点。
         const bool is_last = point_idx + 1 == junctions.size();
         const ExtrusionJunction& current = is_last ? new_junctions[0] : junctions[point_idx];
 
-        // Don't simplify closed polygons below 3 junctions.
+        //// 不要将闭合多边形简化到低于 3 个连接点。
         if (this->is_closed && new_junctions.size() + (junctions.size() - point_idx) <= 3) {
             new_junctions.push_back(current);
             continue;
         }
 
-        // Spill over in case of overflow, unless the [next] vertex will then be equal to [previous].
+        //// 在溢出情况下溢出，除非下一个顶点将等于上一个。
         const bool spill_over = this->is_closed && point_idx + 2 >= junctions.size() &&
             point_idx + 2 - junctions.size() < new_junctions.size();
         ExtrusionJunction& next = spill_over ? new_junctions[point_idx + 2 - junctions.size()] : junctions[point_idx + 1];
 
-        const int64_t removed_area_next = int64_t(current.p.x()) * int64_t(next.p.y()) - int64_t(current.p.y()) * int64_t(next.p.x()); // Twice the Shoelace formula for area of polygon per line segment.
-        const int64_t negative_area_closing = int64_t(next.p.x()) * int64_t(previous.p.y()) - int64_t(next.p.y()) * int64_t(previous.p.x()); // Area between the origin and the short-cutting segment
+        const int64_t removed_area_next = int64_t(current.p.x()) * int64_t(next.p.y()) - int64_t(current.p.y()) * int64_t(next.p.x()); // 每条线段的鞋带公式面积的两倍。
+        const int64_t negative_area_closing = int64_t(next.p.x()) * int64_t(previous.p.y()) - int64_t(next.p.y()) * int64_t(previous.p.x()); // 原点和快捷线段之间的面积
         accumulated_area_removed += removed_area_next;
 
         const int64_t length2 = (current - previous).cast<int64_t>().squaredNorm();
         if (length2 < scaled<coord_t>(0.025))
         {
-            // We're allowed to always delete segments of less than 5 micron. The width in this case doesn't matter that much.
+            //// 我们始终允许删除小于 5 微米的线段。此情况下的宽度无关紧要。
             continue;
         }
 
-        const int64_t area_removed_so_far = accumulated_area_removed + negative_area_closing; // Close the shortcut area polygon
+        const int64_t area_removed_so_far = accumulated_area_removed + negative_area_closing; // 闭合快捷区域多边形
         const int64_t base_length_2 = (next - previous).cast<int64_t>().squaredNorm();
 
-        if (base_length_2 == 0) // Two line segments form a line back and forth with no area.
+        if (base_length_2 == 0) // 两个线段形成一条来回的直线，没有面积。
         {
-            continue; // Remove the junction (vertex).
+            continue; // 删除连接点（顶点）。
         }
-        //We want to check if the height of the triangle formed by previous, current and next vertices is less than allowed_error_distance_squared.
-        //1/2 L = A           [actual area is half of the computed shoelace value] // Shoelace formula is .5*(...) , but we simplify the computation and take out the .5
-        //A = 1/2 * b * h     [triangle area formula]
-        //L = b * h           [apply above two and take out the 1/2]
-        //h = L / b           [divide by b]
-        //h^2 = (L / b)^2     [square it]
-        //h^2 = L^2 / b^2     [factor the divisor]
+        //// 我们要检查由上一个、当前和下一个顶点形成的三角形的高度是否小于 allowed_error_distance_squared。
+        //// 1/2 L = A           [实际面积是计算出的鞋带值的一半] // 鞋带公式是 .5*(...)，但我们简化计算并去掉 .5
+        //// A = 1/2 * b * h     [三角形面积公式]
+        //// L = b * h           [应用上述两个并去掉 1/2]
+        //h = L / b           [除以 b]
+        //// h^2 = (L / b)^2     [平方]
+        //// h^2 = L^2 / b^2     [分解除数]
         const auto    height_2 = int64_t(double(area_removed_so_far) * double(area_removed_so_far) / double(base_length_2));
         const int64_t extrusion_area_error = calculateExtrusionAreaDeviationError(previous, current, next);
-        if ((height_2 <= scaled<coord_t>(0.001) //Almost exactly colinear (barring rounding errors).
-             && Line::distance_to_infinite(current.p, previous.p, next.p) <= scaled<double>(0.001)) // Make sure that height_2 is not small because of cancellation of positive and negative areas
-            // We shouldn't remove middle junctions of colinear segments if the area changed for the C-P segment is exceeding the maximum allowed
+        if ((height_2 <= scaled<coord_t>(0.001) //几乎完全共线（舍入误差范围内）。
+             && Line::distance_to_infinite(current.p, previous.p, next.p) <= scaled<double>(0.001)) // 确保 height_2 不是由于正负面积抵消而变小
+            //// 我们不应移除共线段的中点，如果 C-P 段的面积变化超过允许的最大值
              && extrusion_area_error <= maximum_extrusion_area_deviation)
         {
-            // Remove the current junction (vertex).
+            //// 移除当前连接点（顶点）。
             continue;
         }
 
         if (length2 < smallest_line_segment_squared
-            && height_2 <= allowed_error_distance_squared) // Removing the junction (vertex) doesn't introduce too much error.
+            && height_2 <= allowed_error_distance_squared) // 删除连接点（顶点）不会引入太多误差。
         {
             const int64_t next_length2 = (current - next).cast<int64_t>().squaredNorm();
             if (next_length2 > 4 * smallest_line_segment_squared)
             {
-                // Special case; The next line is long. If we were to remove this, it could happen that we get quite noticeable artifacts.
-                // We should instead move this point to a location where both edges are kept and then remove the previous point that we wanted to keep.
-                // By taking the intersection of these two lines, we get a point that preserves the direction (so it makes the corner a bit more pointy).
-                // We just need to be sure that the intersection point does not introduce an artifact itself.
-                //                o < prev_prev
+                //// 特殊情况；下一个线很长。如果我们移除它，可能会产生相当明显的伪影。
+                //// 我们应改为将此点移动到一个位置，使得两条边都被保留，然后移除我们原本想保留的上一个点。
+                //// 通过取这两条线的交点，我们得到一个保留方向（使拐角更尖）的点。
+                //// 我们只需确保交点本身不引入伪影。
+                //// o < prev_prev
                 //                |
-                //                o < prev
-                //                  \  < short segment
-                // intersection > +   o-------------------o < next
+                //// o < prev
+                //// \  < short 段
+                //// 交 > +   o-------------------o < 下一个
                 //                    ^ current
                 Point intersection_point;
                 bool has_intersection = Line(previous_previous.p, previous.p).intersection_infinite(Line(current.p, next.p), &intersection_point);
                 const auto dist_greater = [](const Point& p1, const Point& p2, const int64_t threshold) {
                     const auto vec = (p1 - p2).cwiseAbs().cast<uint64_t>().eval();
                     if(vec.x() > threshold || vec.y() > threshold) {
-                        // If this condition is true, the distance is definitely greater than the threshold.
-                        // We don't need to calculate the squared norm at all, which avoid potential arithmetic overflow.
+                        //// 如果此条件为 true，则距离肯定大于阈值。
+                        //// 我们根本不需要计算平方范数，这避免了潜在的算术溢出。
                         return true;
                     }
                     return vec.squaredNorm() > threshold;
                 };
                 if (!has_intersection
                     || Line::distance_to_infinite_squared(intersection_point, previous.p, current.p) > double(allowed_error_distance_squared)
-                    || dist_greater(intersection_point, previous.p, smallest_line_segment_squared)  // The intersection point is way too far from the 'previous'
-                    || dist_greater(intersection_point, current.p, smallest_line_segment_squared))  // and 'current' points, so it shouldn't replace 'current'
+                    || dist_greater(intersection_point, previous.p, smallest_line_segment_squared)  // 交点距离"上一个"点太远
+                    || dist_greater(intersection_point, current.p, smallest_line_segment_squared))  // 和"当前"点都太远，因此不应替换"当前"点
                 {
-                    // We can't find a better spot for it, but the size of the line is more than 5 micron.
-                    // So the only thing we can do here is leave it in...
+                    //// 我们找不到更好的位置，但线的长度超过 5 微米。
+                    //// 所以我们唯一能做的就是保留它...
                 }
                 else
                 {
-                    // New point seems like a valid one.
+                    //// 新点似乎是一个有效的点。
                     const ExtrusionJunction new_to_add = ExtrusionJunction(intersection_point, current.w, current.perimeter_index);
-                    // If there was a previous point added, remove it.
+                    //// 如果之前添加了一个点，则移除它。
                     if(!new_junctions.empty())
                     {
                         new_junctions.pop_back();
                         previous = previous_previous;
                     }
 
-                    // The junction (vertex) is replaced by the new one.
-                    accumulated_area_removed = removed_area_next; // So that in the next iteration it's the area between the origin, [previous] and [current]
+                    //// 连接点（顶点）被新点替换。
+                    accumulated_area_removed = removed_area_next; // 这样在下一次迭代中，它是原点、[previous] 和 [current] 之间的面积
                     previous_previous = previous;
-                    previous = new_to_add; // Note that "previous" is only updated if we don't remove the junction (vertex).
+                    previous = new_to_add; // 注意：只有当我们不删除连接点（顶点）时，"previous"才会更新。
                     new_junctions.push_back(new_to_add);
                     continue;
                 }
             }
             else
             {
-                continue; // Remove the junction (vertex).
+                continue; // 删除连接点（顶点）。
             }
         }
-        // The junction (vertex) isn't removed.
-        accumulated_area_removed = removed_area_next; // So that in the next iteration it's the area between the origin, [previous] and [current]
+        //// 连接点（顶点）未被删除。
+        accumulated_area_removed = removed_area_next; // 这样在下一次迭代中，它是原点、[previous] 和 [current] 之间的面积
         previous_previous = previous;
-        previous = current; // Note that "previous" is only updated if we don't remove the junction (vertex).
+        previous = current; // 注意：只有当我们不删除连接点（顶点）时，"previous"才会更新。
         new_junctions.push_back(current);
     }
 
     if (this->is_closed) {
-        /* The first and last points should be the same for a closed polygon.
-         * We processed the last point above, so copy it into the first point.
+        /* 对于闭合多边形，第一个和最后一个点应相同。
+         * 我们在上面处理了最后一个点，因此将其复制到第一个点。
          */
         new_junctions.front().p = new_junctions.back().p;
     } else {
-        // Ending junction (vertex) should always exist in the simplified path
+        //// 结束连接点（顶点）应始终存在于简化路径中
         new_junctions.emplace_back(junctions.back());
     }
 
@@ -227,25 +223,23 @@ int64_t ExtrusionLine::calculateExtrusionAreaDeviationError(ExtrusionJunction A,
      * |             |                                         ------------------------------------------
      * ---------------             ^                           **************
      *       ^                B.w + C.w / 2                                       ^
-     *  A.w + B.w / 2                                               new_width = weighted_average_width
+     *  A.w + B.w / 2                                               new_width = 加权平均宽度
      *
      *
-     * ******** denote the total extrusion area deviation error in the consecutive segments as a result of using the
-     * weighted-average width for the entire extrusion line.
+     * ******** 表示连续线段中由于对整个挤出线使用加权平均宽度而导致的总挤出面积偏差误差。
      *
      * */
     const int64_t ab_length = (B.p - A.p).cast<int64_t>().norm();
     const int64_t bc_length = (C.p - B.p).cast<int64_t>().norm();
     if (const coord_t width_diff = std::max(std::abs(B.w - A.w), std::abs(C.w - B.w)); width_diff > 1) {
-        // Adjust the width only if there is a difference, or else the rounding errors may produce the wrong
-        // weighted average value.
+        //// 仅在存在差异时调整宽度，否则舍入误差可能产生错误的加权平均值。
         const int64_t ab_weight              = (A.w + B.w) / 2;
         const int64_t bc_weight              = (B.w + C.w) / 2;
         const int64_t weighted_average_width = (ab_length * ab_weight + bc_length * bc_weight) / (ab_length + bc_length);
         const int64_t ac_length              = (C.p - A.p).cast<int64_t>().norm();
         return std::abs((ab_weight * ab_length + bc_weight * bc_length) - (weighted_average_width * ac_length));
     } else {
-        // If the width difference is very small, then select the width of the segment that is longer
+        //// 如果宽度差异非常小，则选择较长线段中的宽度
         return ab_length > bc_length ? int64_t(width_diff) * bc_length : int64_t(width_diff) * ab_length;
     }
 }
@@ -260,7 +254,7 @@ bool ExtrusionLine::is_contour() const
     for (const ExtrusionJunction &junction : this->junctions)
         poly.points.emplace_back(junction.p);
 
-    // Arachne produces contour with clockwise orientation and holes with counterclockwise orientation.
+    //// Arachne 生成顺时针方向的轮廓和逆时针方向的孔。
     return poly.is_clockwise();
 }
 

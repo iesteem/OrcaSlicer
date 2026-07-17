@@ -9,63 +9,63 @@
 namespace Slic3r{
 
 /// <summary>
-/// Represents cutted surface from object
-/// Extend index triangle set by outlines
+/// 表示从对象切割的表面
+/// 通过轮廓扩展索引三角形集合
 /// </summary>
 struct SurfaceCut : public indexed_triangle_set
 {
-    // vertex indices(index to mesh vertices)
+    // 顶点索引（指向网格顶点的索引）
     using Index = unsigned int;
     using Contour = std::vector<Index>;
     using Contours = std::vector<Contour>;
-    // list of circulated open surface
+    // 循环开放表面列表
     Contours contours;
 };
 
 /// <summary>
-/// Cut surface shape from models.
+/// 从模型中切割表面形状。
 /// </summary>
-/// <param name="shapes">Multiple shape to cut from model</param>
-/// <param name="models">Multi mesh to cut, need to be in same coordinate system</param>
-/// <param name="projection">Define transformation 2d shape into 3d</param>
-/// <param name="projection_ratio">Define ideal ratio between front and back projection to cut
-/// 0 .. means use closest to front projection
-/// 1 .. means use closest to back projection
-/// value from <0, 1>
+/// <param name="shapes">从模型中切割的多个形状</param>
+/// <param name="models">要切割的多网格，需在同一坐标系中</param>
+/// <param name="projection">定义将2D形状变换为3D</param>
+/// <param name="projection_ratio">定义切割时前后投影的理想比例
+/// 0 .. 表示使用最近的前投影
+/// 1 .. 表示使用最近的后投影
+/// 值在 <0, 1> 范围内
 /// </param>
-/// <returns>Cutted surface from model</returns>
+/// <returns>从模型切割的表面</returns>
 SurfaceCut cut_surface(const ExPolygons                        &shapes,
                        const std::vector<indexed_triangle_set> &models,
                        const Emboss::IProjection               &projection,
                        float projection_ratio);
 
 /// <summary>
-/// Create model from surface cuts by projection
+/// 通过投影从表面切割创建模型
 /// </summary>
-/// <param name="cut">Surface from model with outlines</param>
-/// <param name="projection">Way of emboss</param>
-/// <returns>Mesh</returns>
+/// <param name="cut">带有轮廓的模型表面</param>
+/// <param name="projection">浮雕方式</param>
+/// <returns>网格</returns>
 indexed_triangle_set cut2model(const SurfaceCut         &cut,
                                const Emboss::IProject3d &projection);
 
 /// <summary>
-/// Separate (A)rea (o)f (I)nterest .. AoI from model
-/// NOTE: Only 2d filtration, do not filtrate by Z coordinate
+/// 从模型中分离感兴趣区域（AoI）
+/// 注意：仅2D过滤，不按Z坐标过滤
 /// </summary>
-/// <param name="its">Input model</param>
-/// <param name="bb">Bounding box to project into space</param>
-/// <param name="projection">Define tranformation of BB into space</param>
-/// <returns>Triangles lay at least partialy inside of projected Bounding box</returns>
+/// <param name="its">输入模型</param>
+/// <param name="bb">投影到空间的边界框</param>
+/// <param name="projection">定义BB到空间的变换</param>
+/// <returns>至少部分位于投影边界框内的三角形</returns>
 indexed_triangle_set its_cut_AoI(const indexed_triangle_set &its,
                                  const BoundingBox          &bb,
                                  const Emboss::IProjection  &projection);
 
 /// <summary>
-/// Separate triangles by mask
+/// 按掩码分离三角形
 /// </summary>
-/// <param name="its">Input model</param>
-/// <param name="mask">Mask - same size as its::indices</param>
-/// <returns>Copy of indices by mask(with their vertices)</returns>
+/// <param name="its">输入模型</param>
+/// <param name="mask">掩码 - 与 its::indices 大小相同</param>
+/// <returns>按掩码复制索引（及其顶点）</returns>
 indexed_triangle_set its_mask(const indexed_triangle_set &its, const std::vector<bool> &mask);
 
 bool corefine_test(const std::string &model_path, const std::string &shape_path);

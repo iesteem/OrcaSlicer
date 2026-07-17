@@ -6,7 +6,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
-// Mark string for localization and translate.
+// 标记字符串用于本地化和翻译。
 #define L(s) Slic3r::I18N::translate(s)
 
 namespace Slic3r {
@@ -17,7 +17,7 @@ FlowErrorNegativeSpacing::FlowErrorNegativeSpacing() :
 FlowErrorNegativeFlow::FlowErrorNegativeFlow() :
     FlowError("Flow::mm3_per_mm() produced negative flow. Did you set some extrusion width too small?") {}
 
-// This static method returns a sane extrusion width default.
+// 此静态方法返回合理的挤出宽度默认值。
 float Flow::auto_extrusion_width(FlowRole role, float nozzle_diameter)
 {
     switch (role) {
@@ -35,8 +35,8 @@ float Flow::auto_extrusion_width(FlowRole role, float nozzle_diameter)
     }
 }
 
-// Used by the Flow::extrusion_width() funtion to provide hints to the user on default extrusion width values,
-// and to provide reasonable values to the PlaceholderParser.
+// 由 Flow::extrusion_width() 函数使用，向用户提供默认挤出宽度值的提示，
+// 并为 PlaceholderParser 提供合理的值。
 static inline FlowRole opt_key_to_flow_role(const std::string &opt_key)
 {
  	if (opt_key == "inner_wall_line_width" || 
@@ -62,7 +62,7 @@ static inline void throw_on_missing_variable(const std::string &opt_key, const c
 	throw FlowErrorMissingVariable((boost::format(L("Failed to calculate line width of %1%. Cannot get value of \"%2%\" ")) % opt_key % dependent_opt_key).str());
 }
 
-// Used to provide hints to the user on default extrusion width values, and to provide reasonable values to the PlaceholderParser.
+// 用于向用户提供默认挤出宽度值的提示，并为 PlaceholderParser 提供合理的值。
 double Flow::extrusion_width(const std::string& opt_key, const ConfigOptionFloatOrPercent* opt, const ConfigOptionResolver& config, const unsigned int first_printing_extruder)
 {
 	assert(opt != nullptr);
@@ -93,21 +93,20 @@ double Flow::extrusion_width(const std::string& opt_key, const ConfigOptionFloat
 	}
 
 	if (opt->value == 0.) {
-        // If user left option to 0, calculate a sane default width.
+        // 如果用户将选项保留为 0，则计算合理的默认宽度。
         return auto_extrusion_width(opt_key_to_flow_role(opt_key), float(opt_nozzle_diameters->get_at(first_printing_extruder)));
     }
 
 	return opt->value;
 }
 
-// Used to provide hints to the user on default extrusion width values, and to provide reasonable values to the PlaceholderParser.
+// 用于向用户提供默认挤出宽度值的提示，并为 PlaceholderParser 提供合理的值。
 double Flow::extrusion_width(const std::string& opt_key, const ConfigOptionResolver &config, const unsigned int first_printing_extruder)
 {
     return extrusion_width(opt_key, config.option<ConfigOptionFloatOrPercent>(opt_key), config, first_printing_extruder);
 }
 
-// This constructor builds a Flow object from an extrusion width config setting
-// and other context properties.
+// 此构造函数从挤出宽度配置设置和其他上下文属性构建 Flow 对象。
 Flow Flow::new_from_config_width(FlowRole role, const ConfigOptionFloatOrPercent &width, float nozzle_diameter, float height)
 {
     if (height <= 0)
@@ -115,17 +114,17 @@ Flow Flow::new_from_config_width(FlowRole role, const ConfigOptionFloatOrPercent
 
     float w;
     if (!width.percent  && width.value <= 0.) {
-        // If user left option to 0, calculate a sane default width.
+        // 如果用户将选项保留为 0，则计算合理的默认宽度。
         w = auto_extrusion_width(role, nozzle_diameter);
     } else {
-        // If user set a manual value, use it.
+        // 如果用户设置了手动值，则使用它。
       w = float(width.get_abs_value(nozzle_diameter));
     }
     
     return Flow(w, height, rounded_rectangle_extrusion_spacing(w, height), nozzle_diameter, false);
 }
 
-// Adjust extrusion flow for new extrusion line spacing, maintaining the old spacing between extrusions.
+// 调整挤出流量以适应新的挤出线间距，保持挤出之间的旧间距。
 Flow Flow::with_spacing(float new_spacing) const
 {
     Flow out = *this;
@@ -145,33 +144,33 @@ Flow Flow::with_spacing(float new_spacing) const
     return out;
 }
 
-// Adjust the width / height of a rounded extrusion model to reach the prescribed cross section area while maintaining extrusion spacing.
+// 调整圆形挤出模型的宽度/高度以达到规定的横截面积，同时保持挤出间距。
 Flow Flow::with_cross_section(float area_new) const
 {
     assert(! m_bridge);
     assert(m_width >= m_height);
 
-    // Adjust for bridge_flow, maintain the extrusion spacing.
+    // 调整桥接流量，保持挤出间距。
     float area = this->mm3_per_mm();
     if (area_new > area + EPSILON) {
-        // Increasing the flow rate.
+        // 增加流量。
         float new_full_spacing = area_new / m_height;
         if (new_full_spacing > m_spacing) {
-            // Filling up the spacing without an air gap. Grow the extrusion in height.
+            // 填满间距不留气隙。在高度方向上增加挤出。
             float height = area_new / m_spacing;
             return Flow(rounded_rectangle_extrusion_width_from_spacing(m_spacing, height), height, m_spacing, m_nozzle_diameter, false);
         } else {
             return this->with_width(rounded_rectangle_extrusion_width_from_spacing(area / m_height, m_height));
         }
     } else if (area_new < area - EPSILON) {
-        // Decreasing the flow rate.
+        // 减少流量。
         float width_new = m_width - (area - area_new) / m_height;
         assert(width_new > 0);
         if (width_new > m_height) {
-            // Shrink the extrusion width.
+            // 缩小挤出宽度。
             return this->with_width(width_new);
         } else {
-            // Create a rounded extrusion.
+            // 创建圆形挤出。
             auto dmr = float(sqrt(area_new / M_PI));
             return Flow(dmr, dmr, m_spacing, m_nozzle_diameter, false);
         }
@@ -197,7 +196,7 @@ float Flow::bridge_extrusion_spacing(float dmr)
     return dmr + BRIDGE_EXTRA_SPACING;
 }
 
-// This method returns extrusion volume per head move unit.
+// 此方法返回每单位喷头移动的挤出体积。
 double Flow::mm3_per_mm() const
 {
     float res = m_bridge ?

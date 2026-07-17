@@ -17,11 +17,11 @@ namespace Slic3r {
 namespace Utils {
 
 // "YYYY-MM-DD at HH:MM::SS [UTC]"
-// If TimeZone::utc is used with the conversion functions, it will append the
-// UTC letters to the end.
+// 如果TimeZone::utc与转换函数一起使用，它会在末尾附加
+// UTC字母。
 static const constexpr char *const SLICER_UTC_TIME_FMT = "%Y-%m-%d at %T";
 
-// ISO8601Z representation of time, without time zone info
+// 时间的ISO8601Z表示，不带时区信息
 static const constexpr char *const ISO8601Z_TIME_FMT = "%Y%m%dT%H%M%SZ";
 
 static const char * get_fmtstr(TimeFormat fmt)
@@ -35,13 +35,13 @@ static const char * get_fmtstr(TimeFormat fmt)
 }
 
 namespace __get_put_time_emulation {
-// FIXME: Implementations with the cpp11 put_time and get_time either not
-// compile or do not pass the tests on the build server. If we switch to newer
-// compilers, this namespace can be deleted with all its content.
+// FIXME: 使用cpp11的put_time和get_time的实现要么编译不通过，
+// 要么在构建服务器上未通过测试。如果我们切换到更新的编译器，
+// 这个命名空间及其所有内容都可以被删除。
 
 #ifdef _MSC_VER
-// VS2019 implementation fails with ISO8601Z_TIME_FMT.
-// VS2019 does not have std::strptime either. See bug:
+// VS2019的实现对于ISO8601Z_TIME_FMT失败。
+// VS2019也没有std::strptime。参见bug:
 // https://developercommunity.visualstudio.com/content/problem/140618/c-stdget-time-not-parsing-correctly.html
 
 static const std::map<std::string, std::string> sscanf_fmt_map = {
@@ -114,9 +114,8 @@ inline GetTimeReturnT get_time(std::tm *tms, const char *fmt)
 
 namespace {
 
-// Platform independent versions of gmtime and localtime. Completely thread
-// safe only on Linux. MSVC gtime_s and localtime_s sets global errno thus not
-// thread safe.
+// 平台无关的gmtime和localtime版本。仅在Linux上完全线程安全。
+// MSVC的gmtime_s和localtime_s设置全局errno，因此不是线程安全的。
 struct std::tm * _gmtime_r(const time_t *timep, struct tm *result)
 {
     assert(timep != nullptr && result != nullptr);
@@ -133,8 +132,7 @@ struct std::tm * _localtime_r(const time_t *timep, struct tm *result)
 {
     assert(timep != nullptr && result != nullptr);
 #ifdef WIN32
-    // Converts a time_t time value to a tm structure, and corrects for the
-    // local time zone.
+    // 将time_t时间值转换为tm结构，并校正为本地时区。
     time_t t = *timep;
     localtime_s(result, &t);
     return result;

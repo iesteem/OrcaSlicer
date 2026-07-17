@@ -18,7 +18,7 @@ namespace EdgeGrid {
 struct TrimmedLoop
 {
 	Points          			points;
-	// Number of points per segment. Empty if the loop is 
+	// 每个段的点数。如果循环为空则
 	std::vector<unsigned int> 	segments;
 
 	bool 	is_trimmed() const { return ! segments.empty(); }

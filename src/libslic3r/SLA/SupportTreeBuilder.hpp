@@ -12,42 +12,35 @@ namespace Slic3r {
 namespace sla {
 
 /**
- * Terminology:
+ * 术语说明：
  *
- * Support point:
- * The point on the model surface that needs support.
+ * 支撑点：
+ * 模型表面上需要支撑的点。
  *
- * Pillar:
- * A thick column that spans from a support point to the ground and has
- * a thick cone shaped base where it touches the ground.
+ * 柱：
+ * 从支撑点延伸到地面的粗柱，在与地面接触处有粗锥形底座。
  *
- * Ground facing support point:
- * A support point that can be directly connected with the ground with a pillar
- * that does not collide or cut through the model.
+ * 地面朝向支撑点：
+ * 可以直接用柱连接到地面，且柱不会与模型碰撞或穿过的支撑点。
  *
- * Non ground facing support point:
- * A support point that cannot be directly connected with the ground (only with
- * the model surface).
+ * 非地面朝向支撑点：
+ * 不能直接连接到地面（只能连接到模型表面）的支撑点。
  *
- * Head:
- * The pinhead that connects to the model surface with the sharp end end
- * to a pillar or bridge stick with the dull end.
+ * 头：
+ * 以尖端连接模型表面，以钝端连接柱或桥杆的钉头。
  *
- * Headless support point:
- * A support point on the model surface for which there is not enough place for
- * the head. It is either in a hole or there is some barrier that would collide
- * with the head geometry. The headless support point can be ground facing and
- * non ground facing as well.
+ * 无头支撑点：
+ * 模型表面上没有足够空间放置钉头的支撑点。它可能在孔中，或有障碍物与头部几何体碰撞。
+ * 无头支撑点也可以是地面朝向或非地面朝向的。
  *
- * Bridge:
- * A stick that connects two pillars or a head with a pillar.
+ * 桥：
+ * 连接两个柱，或连接头与柱的杆。
  *
- * Junction:
- * A small ball in the intersection of two or more sticks (pillar, bridge, ...)
+ * 连接点：
+ * 两个或多个杆（柱、桥等）交叉处的小球体。
  *
- * CompactBridge:
- * A bridge that connects a headless support point with the model surface or a
- * nearby pillar.
+ * CompactBridge：
+ * 连接无头支撑点与模型表面或附近柱的桥。
  */
 
 template<class Vec> double distance(const Vec& p) {
@@ -68,7 +61,7 @@ struct SupportTreeNode
     long id = ID_UNSET; // For identification withing a tree.
 };
 
-// A pinhead originating from a support point
+// 从支撑点发出的钉头
 struct Head: public SupportTreeNode {
     Vec3d dir = DOWN;
     Vec3d pos = {0, 0, 0};
@@ -79,7 +72,7 @@ struct Head: public SupportTreeNode {
     double penetration_mm = 0.5;
 
     
-    // If there is a pillar connecting to this head, then the id will be set.
+    // 如果有柱连接到这个头，则此 id 将被设置。
     long pillar_id = ID_UNSET;
     
     long bridge_id = ID_UNSET;
@@ -91,8 +84,8 @@ struct Head: public SupportTreeNode {
          double r_small_mm,
          double length_mm,
          double penetration,
-         const Vec3d &direction = DOWN,  // direction (normal to the dull end)
-         const Vec3d &offset = {0, 0, 0}      // displacement
+         const Vec3d &direction = DOWN,  // 方向（垂直于钝端）
+         const Vec3d &offset = {0, 0, 0}      // 位移
          );
 
     inline double real_width() const
@@ -117,7 +110,7 @@ struct Head: public SupportTreeNode {
     }
 };
 
-// A junction connecting bridges and pillars
+// 连接桥和柱的连接点
 struct Junction: public SupportTreeNode {
     double r = 1;
     Vec3d pos;
@@ -129,14 +122,14 @@ struct Pillar: public SupportTreeNode {
     double height, r;
     Vec3d endpt;
     
-    // If the pillar connects to a head, this is the id of that head
-    bool starts_from_head = true; // Could start from a junction as well
+    // 如果柱连接到某个头，则这是该头的 id
+    bool starts_from_head = true; // 也可以从连接点开始
     long start_junction_id = ID_UNSET;
-    
-    // How many bridges are connected to this pillar
+
+    // 有多少桥连接到这个柱
     unsigned bridges = 0;
-    
-    // How many pillars are cascaded with this one
+
+    // 有多少柱与此柱级联
     unsigned links = 0;
 
     Pillar(const Vec3d &endp, double h, double radius = 1.):
@@ -150,7 +143,7 @@ struct Pillar: public SupportTreeNode {
     const Vec3d& endpoint() const { return endpt; }
 };
 
-// A base for pillars or bridges that end on the ground
+// 柱或桥在地面上结束的基座
 struct Pedestal: public SupportTreeNode {
     Vec3d pos;
     double height, r_bottom, r_top;
@@ -160,11 +153,11 @@ struct Pedestal: public SupportTreeNode {
     {}
 };
 
-// This is the thing that anchors a pillar or bridge to the model body.
-// It is actually a reverse pinhead.
+// 这是将柱或桥锚定到模型主体的结构。
+// 它实际上是一个反向钉头。
 struct Anchor: public Head { using Head::Head; };
 
-// A Bridge between two pillars (with junction endpoints)
+// 两个柱之间的桥（带有连接点端点）
 struct Bridge: public SupportTreeNode {
     double r = 0.8;
     Vec3d startp = Vec3d::Zero(), endp = Vec3d::Zero();
@@ -186,7 +179,7 @@ struct DiffBridge: public Bridge {
     {}
 };
 
-// A wrapper struct around the pad
+// 垫的包装结构体
 struct Pad {
     indexed_triangle_set tmesh;
     PadConfig cfg;
@@ -203,22 +196,19 @@ struct Pad {
     bool empty() const { return tmesh.indices.size() == 0; }
 };
 
-// This class will hold the support tree meshes with some additional
-// bookkeeping as well. Various parts of the support geometry are stored
-// separately and are merged when the caller queries the merged mesh. The
-// merged result is cached for fast subsequent delivery of the merged mesh
-// which can be quite complex. The support tree creation algorithm can use an
-// instance of this class as a somewhat higher level tool for crafting the 3D
-// support mesh. Parts can be added with the appropriate methods such as
-// add_head or add_pillar which forwards the constructor arguments and fills
-// the IDs of these substructures. The IDs are basically indices into the
-// arrays of the appropriate type (heads, pillars, etc...). One can later query
-// e.g. a pillar for a specific head...
+// 此类将保存支撑树网格并进行一些额外的簿记工作。
+// 支撑几何体的各个部分分别存储，并在调用者查询合并网格时合并。
+// 合并结果被缓存，以便快速后续传递可能相当复杂的合并网格。
+// 支撑树创建算法可以使用此类的实例作为构建 3D 支撑网格的
+// 较高级别工具。可以通过适当的方法添加部件，例如
+// add_head 或 add_pillar，它们转发构造函数参数并填充
+// 这些子结构的 ID。ID 基本上是指向适当类型数组（heads、pillars 等）的索引。
+// 之后可以查询例如特定头对应的柱...
 //
-// The support pad is considered an auxiliary geometry and is not part of the
-// merged mesh. It can be retrieved using a dedicated method (pad())
+// 支撑垫被视为辅助几何体，不是合并网格的一部分。
+// 可以使用专用方法 (pad()) 检索它。
 class SupportTreeBuilder: public SupportTree {
-    // For heads it is beneficial to use the same IDs as for the support points.
+    // 对于头部，使用与支撑点相同的 ID 是有益的。
     std::vector<Head>       m_heads;
     std::vector<size_t>     m_head_indices;
     std::vector<Pillar>     m_pillars;

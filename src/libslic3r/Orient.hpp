@@ -8,22 +8,19 @@ namespace Slic3r {
 namespace orientation {
 
 
-/// A logical bed representing an object not being orientd. Either the orient
-/// has not yet successfully run on this OrientPolygon or it could not fit the
-/// object due to overly large size or invalid geometry.
+/// 表示尚未定向对象的逻辑热床。定向尚未在此 OrientPolygon 上成功运行，
+/// 或者由于尺寸过大或几何形状无效而无法容纳该对象。
 static const constexpr int UNORIENTD = -1;
 
-/// Input/Output structure for the orient() function. The mesh field will not
-/// be modified during orientment. Instead, the translation and rotation fields
-/// will mark the needed transformation for the polygon to be in the orientd
-/// position. These can also be set to an initial offset and rotation.
+/// orient() 函数的输入/输出结构。mesh 字段在定向过程中不会被修改。
+/// 相反，translation 和 rotation 字段将标记多边形所需变换到定向位置的转换。
+/// 这些也可以设置为初始偏移和旋转。
 ///
-/// The bed_idx field will indicate the logical bed into which the
-/// polygon belongs: UNORIENTD means no place for the polygon
-/// (also the initial state before orient), 0..N means the index of the bed.
-/// Zero is the physical bed, larger than zero means a virtual bed.
+/// bed_idx 字段将指示多边形所属的逻辑热床：UNORIENTD 表示多边形没有位置
+///（也是定向前的初始状态），0..N 表示热床的索引。
+/// 0 是物理热床，大于 0 表示虚拟热床。
 struct OrientMesh {
-    TriangleMesh mesh;              /// The real mesh data
+    TriangleMesh mesh;              /// 实际的网格数据
     double overhang_angle = 30;
     double angle{ 0 };
     Vec3d axis{ 0,0,1 };
@@ -32,15 +29,15 @@ struct OrientMesh {
     Vec3d euler_angles;
     std::string name;
 
-    /// Optional setter function which can store arbitrary data in its closure
+    /// 可选的设置器函数，可以在其闭包中存储任意数据
     std::function<void(const OrientMesh&)> setter = nullptr;
 
-    /// Helper function to call the setter with the orient data arguments
+    /// 使用定向数据参数调用设置器的辅助函数
     void apply() const { if (setter) setter(*this); }
 
 };
 
-// params for minimizing support area
+// 用于最小化支撑面积的参数
 struct OrientParamsArea {
     float TAR_A = 0.015f;
     float TAR_B = 0.177f;
@@ -61,29 +58,29 @@ struct OrientParamsArea {
     float height_offset = 2.3728f;
     float height_log = 0.041375f;
     float height_log_k = 1.9325457f;
-    float LAF_MAX = 0.999f; // cos(1.4\degree) for low angle face 0.9997f
+    float LAF_MAX = 0.999f; // 低角度面的 cos(1.4\degree) 0.9997f
     float LAF_MIN = 0.97f;  // cos(14\degree) 0.9703f
     float TAR_LAF = 0.001f; //0.01f
     float TAR_PROJ_AREA = 0.1f;
-    float BOTTOM_MIN = 0.1f;  // min bottom area. If lower than it the object may be unstable
-    float BOTTOM_MAX = 2000;  // max bottom area. If get to it the object is stable enough (further increase bottom area won't do more help)
+    float BOTTOM_MIN = 0.1f;  // 最小底部面积。如果低于此值，物体可能不稳定
+    float BOTTOM_MAX = 2000;  // 最大底部面积。如果达到此值，物体足够稳定（进一步增加底部面积不会有更多帮助）
     float height_to_bottom_hull_ratio_MIN = 1;
-    float BOTTOM_HULL_MAX = 2000;// max bottom hull area
-    float APPERANCE_FACE_SUPP=3; // penalty of generating supports on appearance face
+    float BOTTOM_HULL_MAX = 2000;// 最大底部包络面积
+    float APPERANCE_FACE_SUPP=3; // 在外观面上生成支撑的惩罚
 
     float overhang_angle = 60.f;
     bool use_low_angle_face = true;
     bool min_volume = false;
     Eigen::Vector3f fun_dir;
 
-    /// Allow parallel execution.
+    /// 允许并行执行。
     bool parallel = true;
 
-    /// Progress indicator callback called when an object gets packed.
-    /// The unsigned argument is the number of items remaining to pack.
+    /// 当对象被包装时调用的进度指示器回调。
+    /// unsigned 参数是剩余要包装的项目数。
     std::function<void(unsigned, std::string)> progressind = {};
 
-    /// A predicate returning true if abort is needed.
+    /// 如果需要中止则返回 true 的谓词。
     std::function<bool(void)>     stopcondition = {};
 
     OrientParamsArea() = default;
@@ -109,15 +106,15 @@ struct OrientParams {
     float height_offset = 2.7417608343142073f;
     float height_log = 0.06442030687034085f;
     float height_log_k = 0.3933594673063997f;
-    float LAF_MAX = 0.999f; // cos(1.4\degree) for low angle face //0.9997f;
+    float LAF_MAX = 0.999f; // 低角度面的 cos(1.4\degree) //0.9997f;
     float LAF_MIN= 0.9703f;  // cos(14\degree) 0.9703f;
     float TAR_LAF = 0.01f; //0.1f
     float TAR_PROJ_AREA = 0.1f;
     float BOTTOM_MIN = 0.1f;  // min bottom area. If lower than it the objects may be unstable
     float BOTTOM_MAX = 2000; //400
     float height_to_bottom_hull_ratio_MIN = 1;
-    float BOTTOM_HULL_MAX = 2000;// max bottom hull area to clip //600
-    float APPERANCE_FACE_SUPP=3; // penalty of generating supports on appearance face
+    float BOTTOM_HULL_MAX = 2000;// 最大底部包络面积 to clip //600
+    float APPERANCE_FACE_SUPP=3; // 在外观面上生成支撑的惩罚
 
     float overhang_angle = 60.f;
     bool use_low_angle_face = true;
@@ -125,14 +122,14 @@ struct OrientParams {
     Eigen::Vector3f fun_dir;
 
 
-    /// Allow parallel execution.
+    /// 允许并行执行。
     bool parallel = false;
 
-    /// Progress indicator callback called when an object gets packed.
-    /// The unsigned argument is the number of items remaining to pack.
+    /// 当对象被包装时调用的进度指示器回调。
+    /// unsigned 参数是剩余要包装的项目数。
     std::function<void(unsigned, std::string)> progressind = {};
 
-    /// A predicate returning true if abort is needed.
+    /// 如果需要中止则返回 true 的谓词。
     std::function<bool(void)>     stopcondition = {};
 
     OrientParams() = default;

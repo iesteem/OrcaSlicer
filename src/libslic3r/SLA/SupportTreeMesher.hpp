@@ -20,11 +20,11 @@ indexed_triangle_set sphere(double  rho,
                             Portion portion = make_portion(0., 2. * PI),
                             double  fa      = (2. * PI / 360.));
 
-// Down facing cylinder in Z direction with arguments:
-// r: radius
-// h: Height
-// ssteps: how many edges will create the base circle
-// sp: starting point
+// Z 方向朝下的圆柱体，参数：
+// r: 半径
+// h: 高度
+// ssteps: 组成底部圆的边数
+// sp: 起始点
 indexed_triangle_set cylinder(double       r,
                               double       h,
                               size_t       steps = 45,
@@ -49,10 +49,9 @@ inline indexed_triangle_set get_mesh(const Head &h, size_t steps)
 
     using Quaternion = Eigen::Quaternion<float>;
 
-    // We rotate the head to the specified direction. The head's pointing
-    // side is facing upwards so this means that it would hold a support
-    // point with a normal pointing straight down. This is the reason of
-    // the -1 z coordinate
+    // 我们将头部旋转到指定方向。头部的指向侧朝上，
+    // 这意味着它将支撑一个法线指向正下方的支撑点。
+    // 这就是 -1 z 坐标的原因
     auto quatern = Quaternion::FromTwoVectors(Vec3f{0.f, 0.f, -1.f},
                                               h.dir.cast<float>());
 
@@ -64,9 +63,8 @@ inline indexed_triangle_set get_mesh(const Head &h, size_t steps)
 
 inline indexed_triangle_set get_mesh(const Pillar &p, size_t steps)
 {
-    if(p.height > EPSILON) { // Endpoint is below the starting point
-        // We just create a bridge geometry with the pillar parameters and
-        // move the data.
+    if(p.height > EPSILON) { // 终点在起点下方
+        // 我们只需用柱参数创建桥几何体并移动数据。
         return cylinder(p.r, p.height, steps, p.endpoint());
     }
 
@@ -111,10 +109,9 @@ inline indexed_triangle_set get_mesh(const DiffBridge &br, size_t steps)
 
     using Quaternion = Eigen::Quaternion<float>;
 
-    // We rotate the head to the specified direction. The head's pointing
-    // side is facing upwards so this means that it would hold a support
-    // point with a normal pointing straight down. This is the reason of
-    // the -1 z coordinate
+    // 我们将头部旋转到指定方向。头部的指向侧朝上，
+    // 这意味着它将支撑一个法线指向正下方的支撑点。
+    // 这就是 -1 z 坐标的原因
     auto quatern = Quaternion::FromTwoVectors(Vec3f{0.f, 0.f, 1.f},
                                               br.get_dir().cast<float>());
 

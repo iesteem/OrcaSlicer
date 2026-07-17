@@ -16,7 +16,7 @@ void FillConcentric::_fill_surface_single(
     ExPolygon                        expolygon,
     Polylines                       &polylines_out)
 {
-    // no rotation is supported for this infill pattern
+    // 此填充图案不支持旋转
     BoundingBox bounding_box = expolygon.contour.bounding_box();
     
     coord_t min_spacing = scale_(this->spacing);
@@ -34,11 +34,11 @@ void FillConcentric::_fill_surface_single(
         append(loops, to_polygons(last));
     }
 
-    // generate paths from the outermost to the innermost, to avoid
-    // adhesion problems of the first central tiny loops
+    // 从最外层到最内层生成路径，以避免
+    // 第一个中心微小环的粘附问题
     loops = union_pt_chained_outside_in(loops);
     
-    // split paths using a nearest neighbor search
+    // 使用最近邻搜索分割路径
     size_t iPathFirst = polylines_out.size();
     Point last_pos(0, 0);
     for (const Polygon &loop : loops) {
@@ -46,8 +46,8 @@ void FillConcentric::_fill_surface_single(
         last_pos = polylines_out.back().last_point();
     }
 
-    // clip the paths to prevent the extruder from getting exactly on the first point of the loop
-    // Keep valid paths only.
+    // 裁剪路径以防止挤出机正好位于循环的第一个点上
+    // 仅保留有效路径。
     size_t j = iPathFirst;
     for (size_t i = iPathFirst; i < polylines_out.size(); ++ i) {
         polylines_out[i].clip_end(this->loop_clipping);
@@ -59,9 +59,9 @@ void FillConcentric::_fill_surface_single(
     }
     if (j < polylines_out.size())
         polylines_out.erase(polylines_out.begin() + j, polylines_out.end());
-    //TODO: return ExtrusionLoop objects to get better chained paths,
-    // otherwise the outermost loop starts at the closest point to (0, 0).
-    // We want the loops to be split inside the G-code generator to get optimum path planning.
+    //TODO: 返回 ExtrusionLoop 对象以获得更好的链式路径，
+    // 否则最外层循环从最接近 (0, 0) 的点开始。
+    // 我们希望循环在 G 代码生成器内部分割以获得最佳路径规划。
 }
 
 void FillConcentric::_fill_surface_single(const FillParams& params,
@@ -73,7 +73,7 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
     assert(params.use_arachne);
     assert(this->print_config != nullptr && this->print_object_config != nullptr);
 
-    // no rotation is supported for this infill pattern
+    // 此填充图案不支持旋转
     Point   bbox_size = expolygon.contour.bounding_box().size();
     coord_t min_spacing = scaled<coord_t>(this->spacing);
 
@@ -101,7 +101,7 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
                 all_extrusions.emplace_back(&wall);
         }
 
-        // Split paths using a nearest neighbor search.
+        // 使用最近邻搜索分割路径。
         size_t firts_poly_idx = thick_polylines_out.size();
         Point  last_pos(0, 0);
         for (const Arachne::ExtrusionLine* extrusion : all_extrusions) {
@@ -115,8 +115,8 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
             last_pos = thick_polylines_out.back().last_point();
         }
 
-        // clip the paths to prevent the extruder from getting exactly on the first point of the loop
-        // Keep valid paths only.
+        // 裁剪路径以防止挤出机正好位于循环的第一个点上
+        // 仅保留有效路径。
         size_t j = firts_poly_idx;
         for (size_t i = firts_poly_idx; i < thick_polylines_out.size(); ++i) {
             thick_polylines_out[i].clip_end(this->loop_clipping);

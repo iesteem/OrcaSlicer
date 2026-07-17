@@ -1,4 +1,4 @@
-#ifndef slic3r_ExtrusionSimulator_hpp_
+﻿#ifndef slic3r_ExtrusionSimulator_hpp_
 #define slic3r_ExtrusionSimulator_hpp_
 
 #include "libslic3r.h"
@@ -16,7 +16,7 @@ enum ExtrusionSimulationType
     ExtrusionSimulationSpreadExcess
 };
 
-// An opaque class, to keep the boost stuff away from the header.
+// 一个不透明类，用于将 boost 内容与头文件隔离。
 class ExtrusionSimulatorImpl;
 
 class ExtrusionSimulator
@@ -25,25 +25,25 @@ public:
     ExtrusionSimulator();
     ~ExtrusionSimulator();
 
-    // Size of the image, that will be returned by image_ptr().
-    // The image may be bigger than the viewport as many graphics drivers 
-    // expect the size of a texture to be rounded to a power of two.
+    // 由 image_ptr() 返回的图像大小。
+    // 图像可能比视口大，因为许多图形驱动程序
+    // 期望纹理的大小被舍入为 2 的幂。
     void  		set_image_size(const Point &image_size);
-    // Which part of the image shall be rendered to?
+    // 图像的哪一部分应该被渲染？
     void  		set_viewport(const BoundingBox &viewport);
-    // Shift and scale of the rendered extrusion paths into the viewport.
+    // 渲染的挤出路径到视口的平移和缩放。
     void		set_bounding_box(const BoundingBox &bbox);
 
-    // Reset the extrusion accumulator to zero for all buckets.
+    // 将所有桶的挤出累加器重置为零。
     void		reset_accumulator();
-    // Paint a thick path into an extrusion buffer.
-    // A simple implementation is provided now, splatting a rectangular extrusion for each linear segment.
-    // In the future, spreading and suqashing of a material will be simulated.
+    // 将粗路径绘制到挤出缓冲区。
+    // 目前提供了一个简单的实现，为每个线性段溅射一个矩形挤出。
+    // 未来将模拟材料的扩散和挤压。
     void		extrude_to_accumulator(const ExtrusionPath &path, const Point &shift, ExtrusionSimulationType simulationType);
-    // Evaluate the content of the accumulator and paint it into the viewport.
-    // After this call the image_ptr() call will return a valid image.
+    // 评估累加器的内容并将其绘制到视口中。
+    // 在此调用之后，image_ptr() 调用将返回有效的图像。
     void		evaluate_accumulator(ExtrusionSimulationType simulationType);
-    // An RGBA image of image_size, to be loaded into a GPU texture.
+    // 一个 image_size 的 RGBA 图像，用于加载到 GPU 纹理中。
     const void* image_ptr() const;
 
 private:

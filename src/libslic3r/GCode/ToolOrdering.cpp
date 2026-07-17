@@ -7,7 +7,7 @@
 
 // #define SLIC3R_DEBUG
 
-// Make assert active if SLIC3R_DEBUG
+// 如果SLIC3R_DEBUG则使assert活动
 #ifdef SLIC3R_DEBUG
     #define DEBUG
     #define _DEBUG
@@ -43,10 +43,9 @@ unsigned int resolve_mixed_with_layer_heights(const MixedFilamentManager *mixed_
 
     const MixedFilament *mixed_row = mixed_mgr->mixed_filament_from_id(filament_id_1based, num_physical);
 
-    // Z-direction gradient short-circuits the legacy A/B layer cycle below: the
-    // gradient path needs the per-(object, layer) run lookup performed inside
-    // MixedFilamentManager::resolve.
-    const bool gradient_active = 
+    // Z方向梯度短路以下传统的A/B层循环：梯度路径需要
+    // 在MixedFilamentManager::resolve内部执行每个（对象，层）运行时查找。
+    const bool gradient_active =
         (mixed_row != nullptr && current_object != nullptr) &&
         (mixed_row->gradient_enabled && mixed_row->component_a != mixed_row->component_b) &&
         (layer_index > 0);
@@ -147,8 +146,8 @@ void remove_duplicates_preserve_order(std::vector<unsigned int> &values)
 } // namespace
 
 
-// Shortest hamilton path problem
-static std::vector<unsigned int> solve_extruder_order(const std::vector<std::vector<float>>& wipe_volumes, std::vector<unsigned int> all_extruders, std::optional<unsigned int> start_extruder_id) 
+// 最短哈密顿路径问题
+static std::vector<unsigned int> solve_extruder_order(const std::vector<std::vector<float>>& wipe_volumes, std::vector<unsigned int> all_extruders, std::optional<unsigned int> start_extruder_id)
 {
     bool add_start_extruder_flag = false;
 
@@ -186,7 +185,7 @@ static std::vector<unsigned int> solve_extruder_order(const std::vector<std::vec
         }
     }
 
-    //get res
+    //获取结果
     float cost = std::numeric_limits<float>::max();
     int final_dst =0;
     for (unsigned int dst = 0; dst < all_extruders.size(); ++dst) {
@@ -252,7 +251,7 @@ if (all_extruders.size() > 1) {
 #endif // OPTIMIZE
 }
 
-// Returns true in case that extruder a comes before b (b does not have to be present). False otherwise.
+// 如果挤出机a在b之前，则返回true（b不必存在）。否则返回false。
 bool LayerTools::is_extruder_order(unsigned int a, unsigned int b) const
 {
     if (a == b)
@@ -268,7 +267,7 @@ bool LayerTools::is_extruder_order(unsigned int a, unsigned int b) const
     return false;
 }
 
-// Resolve a 1-based filament ID through the mixed-filament manager for this layer.
+// 通过此层的混合丝材管理器解析基于1的丝材ID。
 unsigned int LayerTools::resolve_mixed_1based(unsigned int filament_id) const
 {
     return resolve_mixed_with_layer_heights(mixed_mgr,
@@ -283,36 +282,36 @@ unsigned int LayerTools::resolve_mixed_1based(unsigned int filament_id) const
                                             this->current_object);
 }
 
-// Return a zero based extruder from the region, or extruder_override if overriden.
+// 从区域返回基于零的挤出机，如果覆盖则返回extruder_override。
 unsigned int LayerTools::wall_filament(const PrintRegion &region) const
 {
-	assert(region.config().wall_filament.value > 0);
-	unsigned int id = (this->extruder_override == 0) ? region.config().wall_filament.value : this->extruder_override;
-	return resolve_mixed_1based(id) - 1;
+    assert(region.config().wall_filament.value > 0);
+    unsigned int id = (this->extruder_override == 0) ? region.config().wall_filament.value : this->extruder_override;
+    return resolve_mixed_1based(id) - 1;
 }
 
 unsigned int LayerTools::sparse_infill_filament(const PrintRegion &region) const
 {
-	assert(region.config().wall_filament.value > 0);
-	unsigned int id = (this->extruder_override == 0) ? sparse_infill_filament_id_1based(region) : this->extruder_override;
+    assert(region.config().wall_filament.value > 0);
+    unsigned int id = (this->extruder_override == 0) ? sparse_infill_filament_id_1based(region) : this->extruder_override;
     const unsigned int grouped = grouped_manual_pattern_infill_filament_1based(*this, region, id);
-	return ((grouped != 0) ? grouped : resolve_mixed_1based(id)) - 1;
+    return ((grouped != 0) ? grouped : resolve_mixed_1based(id)) - 1;
 }
 
 unsigned int LayerTools::solid_infill_filament(const PrintRegion &region) const
 {
-	assert(region.config().solid_infill_filament.value > 0);
-	unsigned int id = (this->extruder_override == 0) ? region.config().solid_infill_filament.value : this->extruder_override;
+    assert(region.config().solid_infill_filament.value > 0);
+    unsigned int id = (this->extruder_override == 0) ? region.config().solid_infill_filament.value : this->extruder_override;
     const unsigned int grouped = grouped_manual_pattern_infill_filament_1based(*this, region, id);
-	return ((grouped != 0) ? grouped : resolve_mixed_1based(id)) - 1;
+    return ((grouped != 0) ? grouped : resolve_mixed_1based(id)) - 1;
 }
 
-// Returns a zero based extruder this eec should be printed with, according to PrintRegion config or extruder_override if overriden.
+// 返回应使用此eec打印的基于零的挤出机，根据PrintRegion配置或挤出机覆盖（如被覆盖）。
 unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, const PrintRegion &region) const
 {
-	assert(region.config().wall_filament.value > 0);
-	assert(region.config().sparse_infill_filament.value > 0);
-	assert(region.config().solid_infill_filament.value > 0);
+    assert(region.config().wall_filament.value > 0);
+    assert(region.config().sparse_infill_filament.value > 0);
+    assert(region.config().solid_infill_filament.value > 0);
     if (extrusions.has_infill()) {
         const ExtrusionRole role = extrusions.entities.empty() ? erNone : extrusions.entities.front()->role();
         if (internal_solid_infill_uses_sparse_filament(region, role))
@@ -331,27 +330,27 @@ static double calc_max_layer_height(const PrintConfig &config, double max_object
             mlh = 0.75 * config.nozzle_diameter.values[i];
         max_layer_height = std::min(max_layer_height, mlh);
     }
-    // The Prusa3D Fast (0.35mm layer height) print profile sets a higher layer height than what is normally allowed
-    // by the nozzle. This is a hack and it works by increasing extrusion width. See GH #3919.
+    // Prusa3D Fast（0.35mm层高）打印配置文件设置的层高高于喷嘴通常允许的值。
+    // 这是一个hack，通过增加挤出宽度来实现。参见GH #3919。
     return std::max(max_layer_height, max_object_layer_height);
 }
 
-// For the use case when each object is printed separately
-// (print->config().print_sequence == PrintSequence::ByObject is true).
+// 用于每个对象单独打印的情况
+// (print->config().print_sequence == PrintSequence::ByObject为真)。
 ToolOrdering::ToolOrdering(const PrintObject &object, unsigned int first_extruder, bool prime_multi_material)
 {
     m_is_BBL_printer = object.print()->is_BBL_printer();
     m_print_full_config = &object.print()->full_print_config();
     m_print_config_ptr = &object.print()->config();
     m_print_object_ptr = &object;
-    // Mixed filament support.
+    // 混合丝材支持。
     m_mixed_mgr   = &object.print()->mixed_filament_manager();
     m_num_physical = object.print()->config().filament_diameter.size();
     update_mixed_layer_height_settings();
     if (object.layers().empty())
         return;
 
-    // Initialize the print layers for just a single object.
+    // 为单个对象初始化打印层。
     {
         std::vector<coordf_t> zs;
         zs.reserve(zs.size() + object.layers().size() + object.support_layers().size());
@@ -363,11 +362,11 @@ ToolOrdering::ToolOrdering(const PrintObject &object, unsigned int first_extrude
     }
     double max_layer_height = calc_max_layer_height(object.print()->config(), object.config().layer_height);
 
-    // Collect extruders reuqired to print the layers.
+    // 收集打印层所需的挤出机。
     this->collect_extruders(object, std::vector<std::pair<double, unsigned int>>());
 
     // BBS
-    // Reorder the extruders to minimize tool switches.
+    // 重新排序挤出机以最小化工具切换。
     std::vector<unsigned int> first_layer_tool_order;
     if (first_extruder == (unsigned int) -1) {
         first_layer_tool_order = generate_first_layer_tool_order(object);
@@ -390,7 +389,7 @@ bool ToolOrdering::insert_wipe_tower_extruder()
 {
     if(!m_print_config_ptr->enable_prime_tower)
         return false;
-    // In case that wipe_tower_extruder is set to non-zero, we must make sure that the extruder will be in the list.
+    // 如果wipe_tower_extruder设置为非零，我们必须确保挤出机在列表中。
     bool changed = false;
     if (m_print_config_ptr->wipe_tower_filament != 0) {
         for (LayerTools& lt : m_layer_tools) {
@@ -399,24 +398,24 @@ bool ToolOrdering::insert_wipe_tower_extruder()
                 sort_remove_duplicates(lt.extruders);
                 changed = true;
             }
-        }  
+        }
     }
     return changed;
 }
 
-// For the use case when all objects are printed at once.
-// (print->config().print_sequence == PrintSequence::ByObject is false).
+// 用于所有对象同时打印的情况。
+// (print->config().print_sequence == PrintSequence::ByObject为假)。
 ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool prime_multi_material)
 {
     m_is_BBL_printer = print.is_BBL_printer();
     m_print_full_config = &print.full_print_config();
     m_print_config_ptr = &print.config();
-    // Mixed filament support.
+    // 混合丝材支持。
     m_mixed_mgr   = &print.mixed_filament_manager();
     m_num_physical = print.config().filament_diameter.size();
     update_mixed_layer_height_settings();
 
-    // Initialize the print layers for all objects and all layers.
+    // 初始化所有对象和所有层的打印层。
     coordf_t object_bottom_z = 0.;
     coordf_t max_layer_height = 0.;
     {
@@ -428,7 +427,7 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
             for (auto layer : object->support_layers())
                 zs.emplace_back(layer->print_z);
 
-            // Find first object layer that is not empty and save its print_z
+            // 找到非空的第一个对象层并保存其print_z
             for (const Layer* layer : object->layers())
                 if (layer->has_extrusions()) {
                     object_bottom_z = layer->print_z - layer->height;
@@ -441,26 +440,26 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
     }
     max_layer_height = calc_max_layer_height(print.config(), max_layer_height);
 
-	// Use the extruder switches from Model::custom_gcode_per_print_z to override the extruder to print the object.
-	// Do it only if all the objects were configured to be printed with a single extruder.
-	std::vector<std::pair<double, unsigned int>> per_layer_extruder_switches;
+    // 使用Model::custom_gcode_per_print_z的挤出机切换来覆盖打印对象的挤出机。
+    // 仅当所有对象配置为使用单个挤出机打印时才这样做。
+    std::vector<std::pair<double, unsigned int>> per_layer_extruder_switches;
 
     // BBS
-	if (auto num_physical = unsigned(print.config().filament_diameter.size());
-		num_physical > 1 && print.object_extruders().size() == 1 && // the current Print's configuration is CustomGCode::MultiAsSingle
-        //BBS: replace model custom gcode with current plate custom gcode
+    if (auto num_physical = unsigned(print.config().filament_diameter.size());
+        num_physical > 1 && print.object_extruders().size() == 1 && // 当前Print的配置是CustomGCode::MultiAsSingle
+        //BBS: 用当前板块自定义gcode替换模型自定义gcode
         print.model().get_curr_plate_custom_gcodes().mode == CustomGCode::MultiAsSingle) {
-		// Printing a single extruder platter on a printer with more than 1 extruder (or single-extruder multi-material).
-		// There may be custom per-layer tool changes available at the model.
+        // 在具有1个以上挤出机（或单挤出机多材料）的打印机上打印单个挤出机拼盘。
+        // 可能有可用的自定义逐层工具更改。
         const size_t num_filaments = (m_mixed_mgr == nullptr) ? num_physical : m_mixed_mgr->total_filaments(num_physical);
         per_layer_extruder_switches = custom_tool_changes(print.model().get_curr_plate_custom_gcodes(), num_filaments);
-	}
+    }
 
-    // Collect extruders reuqired to print the layers.
+    // 收集打印层所需的挤出机。
     for (auto object : print.objects())
         this->collect_extruders(*object, per_layer_extruder_switches);
 
-    // Reorder the extruders to minimize tool switches.
+    // 重新排序挤出机以最小化工具切换。
     std::vector<unsigned int> first_layer_tool_order;
     if (first_extruder == (unsigned int)-1) {
         first_layer_tool_order = generate_first_layer_tool_order(print);
@@ -495,7 +494,7 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
     }*/
 
     if (this->insert_wipe_tower_extruder()) {
-        // Now convert the 0-based list to 1-based again, because that is what reorder_extruder expects.
+        // 现在将基于0的列表再次转换为基于1的，因为这就是reorder_extruder所期望的。
         for (LayerTools& lt : m_layer_tools) {
             for (auto& extruder : lt.extruders)
                 ++extruder;
@@ -565,7 +564,7 @@ std::vector<unsigned int> ToolOrdering::generate_first_layer_tool_order(const Pr
         auto first_layer = object->get_layer(0);
         for (auto layerm : first_layer->regions()) {
             int extruder_id = layerm->region().config().option("wall_filament")->getInt();
-            
+
             for (auto expoly : layerm->raw_slices) {
                 const double nozzle_diameter = print.config().nozzle_diameter.get_at(0);
                 const coordf_t initial_layer_line_width = print.config().get_abs_value("initial_layer_line_width", nozzle_diameter);
@@ -650,19 +649,19 @@ std::vector<unsigned int> ToolOrdering::generate_first_layer_tool_order(const Pr
 void ToolOrdering::initialize_layers(std::vector<coordf_t> &zs)
 {
     sort_remove_duplicates(zs);
-    // Merge numerically very close Z values.
+    // 合并数值非常接近的Z值。
     for (size_t i = 0; i < zs.size();) {
-        // Find the last layer with roughly the same print_z.
+        // 找到具有大致相同print_z的最后一层。
         size_t j = i + 1;
         coordf_t zmax = zs[i] + EPSILON;
         for (; j < zs.size() && zs[j] <= zmax; ++ j) ;
-        // Assign an average print_z to the set of layers with nearly equal print_z.
+        // 为具有几乎相等print_z的层集合分配平均print_z。
         m_layer_tools.emplace_back(LayerTools(0.5 * (zs[i] + zs[j-1])));
         i = j;
     }
 }
 
-// Collect extruders reuqired to print layers.
+// 收集打印层所需的挤出机。
 void ToolOrdering::collect_extruders(const PrintObject &object, const std::vector<std::pair<double, unsigned int>> &per_layer_extruder_switches)
 {
     for (LayerTools &layer_tools : m_layer_tools) {
@@ -671,12 +670,12 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         layer_tools.mixed_layer_height_a     = m_mixed_layer_height_a;
         layer_tools.mixed_layer_height_b     = m_mixed_layer_height_b;
         layer_tools.mixed_base_layer_height  = m_mixed_base_layer_height;
-        // Set per-object context for the duration of this collect_extruders call.
-        // Reset after the loops below so unrelated callers see nullptr.
+        // 为此collect_extruders调用期间设置每对象上下文。
+        // 在下面的循环后重置，以便不相关的调用者看到nullptr。
         layer_tools.current_object           = &object;
     }
 
-    // Collect the support extruders.
+    // 收集支撑挤出机。
     for (auto support_layer : object.support_layers()) {
         LayerTools   &layer_tools = this->tools_for_layer(support_layer->print_z);
         layer_tools.layer_height = support_layer->height;
@@ -703,41 +702,41 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         }
     }
 
-    // Extruder overrides are ordered by print_z.
+    // 挤出机覆盖按print_z排序。
     std::vector<std::pair<double, unsigned int>>::const_iterator it_per_layer_extruder_override;
-	it_per_layer_extruder_override = per_layer_extruder_switches.begin();
+    it_per_layer_extruder_override = per_layer_extruder_switches.begin();
     unsigned int extruder_override = 0;
 
-    // BBS: collect first layer extruders of an object's wall, which will be used by brim generator
+    // BBS: 收集对象壁的第一层挤出机，供brim生成器使用
     int layerCount = 0;
     std::vector<int> firstLayerExtruders;
     firstLayerExtruders.clear();
 
-    // Collect the object extruders.
+    // 收集对象挤出机。
     for (auto layer : object.layers()) {
         LayerTools &layer_tools = this->tools_for_layer(layer->print_z);
-        // Store the sequential layer index and mixed-filament context for resolution.
+        // 存储顺序层索引和混合丝材上下文以供解析。
         layer_tools.layer_index       = layerCount;
         layer_tools.object_layer_count = int(object.layers().size());
         layer_tools.layer_height      = layer->height;
 
-        // Override extruder with the next 
-    	for (; it_per_layer_extruder_override != per_layer_extruder_switches.end() && it_per_layer_extruder_override->first < layer->print_z + EPSILON; ++ it_per_layer_extruder_override)
-    		extruder_override = (int)it_per_layer_extruder_override->second;
+        // 用下一个挤出机覆盖覆盖
+        for (; it_per_layer_extruder_override != per_layer_extruder_switches.end() && it_per_layer_extruder_override->first < layer->print_z + EPSILON; ++ it_per_layer_extruder_override)
+            extruder_override = (int)it_per_layer_extruder_override->second;
 
-        // Store the current extruder override (set to zero if no overriden), so that layer_tools.wiping_extrusions().is_overridable_and_mark() will use it.
+        // 存储当前挤出机覆盖（如果未覆盖则设为零），以便layer_tools.wiping_extrusions().is_overridable_and_mark()使用它。
         layer_tools.extruder_override = extruder_override;
 
-        // What extruders are required to print this object layer?
+        // 打印此对象层需要哪些挤出机？
         for (const LayerRegion *layerm : layer->regions()) {
             const PrintRegion &region = layerm->region();
 
             if (! layerm->perimeters.entities.empty()) {
                 bool something_nonoverriddable = true;
 
-                if (m_print_config_ptr) { // in this case print->config().print_sequence != PrintSequence::ByObject (see ToolOrdering constructors)
+                if (m_print_config_ptr) { // 在这种情况下print->config().print_sequence != PrintSequence::ByObject（参见ToolOrdering构造函数）
                     something_nonoverriddable = false;
-                    for (const auto& eec : layerm->perimeters.entities) // let's check if there are nonoverriddable entities
+                    for (const auto& eec : layerm->perimeters.entities) // 让我们检查是否有不可覆盖的实体
                         if (!layer_tools.wiping_extrusions().is_overriddable_and_mark(dynamic_cast<const ExtrusionEntityCollection&>(*eec), *m_print_config_ptr, object, region))
                             something_nonoverriddable = true;
                 }
@@ -782,7 +781,7 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             bool has_solid_infill  = false;
             bool something_nonoverriddable = false;
             for (const ExtrusionEntity *ee : layerm->fills.entities) {
-                // fill represents infill extrusions of a single island.
+                // fill表示单个岛的填充挤出。
                 const auto *fill = dynamic_cast<const ExtrusionEntityCollection*>(ee);
                 ExtrusionRole role = fill->entities.empty() ? erNone : fill->entities.front()->role();
                 if (internal_solid_infill_uses_sparse_filament(region, role))
@@ -799,20 +798,20 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             }
 
             if (something_nonoverriddable || !m_print_config_ptr) {
-            	if (extruder_override == 0) {
-	                if (has_solid_infill) {
-		                    layer_tools.extruders.emplace_back(layer_tools.solid_infill_filament(region) + 1);
-	                }
-	                if (has_sparse_infill) {
-		                    layer_tools.extruders.emplace_back(layer_tools.sparse_infill_filament(region) + 1);
-	                }
-            	} else if (has_solid_infill || has_sparse_infill) {
-            		layer_tools.extruders.emplace_back(resolve_mixed(extruder_override,
+                if (extruder_override == 0) {
+                    if (has_solid_infill) {
+                        layer_tools.extruders.emplace_back(layer_tools.solid_infill_filament(region) + 1);
+                    }
+                    if (has_sparse_infill) {
+                        layer_tools.extruders.emplace_back(layer_tools.sparse_infill_filament(region) + 1);
+                    }
+                } else if (has_solid_infill || has_sparse_infill) {
+                    layer_tools.extruders.emplace_back(resolve_mixed(extruder_override,
                                                                       layerCount,
                                                                       float(layer->print_z),
                                                                       float(layer->height),
                                                                       &object));
-            	}
+                }
             }
             if (has_solid_infill || has_sparse_infill)
                 layer_tools.has_object = true;
@@ -829,24 +828,24 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         else
             sort_remove_duplicates(layer.extruders);
 
-        // make sure that there are some tools for each object layer (e.g. tall wiping object will result in empty extruders vector)
+        // 确保每个对象层都有一些工具（例如，高擦拭对象将导致空的挤出机向量）
         if (layer.extruders.empty() && layer.has_object)
-            layer.extruders.emplace_back(0); // 0="dontcare" extruder - it will be taken care of in reorder_extruders
+            layer.extruders.emplace_back(0); // 0="不关心"挤出机 - 将在reorder_extruders中处理
 
-        // Reset per-object context now that this object's collection is done.
+        // 现在此对象的收集已完成，重置每对象上下文。
         layer.current_object = nullptr;
     }
 }
 
-// Reorder extruders to minimize layer changes.
+// 重新排序挤出机以最小化层更改。
 void ToolOrdering::reorder_extruders(unsigned int last_extruder_id)
 {
     if (m_layer_tools.empty())
         return;
 
     if (last_extruder_id == (unsigned int)-1) {
-        // The initial print extruder has not been decided yet.
-        // Initialize the last_extruder_id with the first non-zero extruder id used for the print.
+        // 初始打印挤出机尚未确定。
+        // 用打印使用的第一个非零挤出机id初始化last_extruder_id。
         last_extruder_id = 0;
         for (size_t i = 0; i < m_layer_tools.size() && last_extruder_id == 0; ++ i) {
             const LayerTools &lt = m_layer_tools[i];
@@ -857,10 +856,10 @@ void ToolOrdering::reorder_extruders(unsigned int last_extruder_id)
                 }
         }
         if (last_extruder_id == 0)
-            // Nothing to extrude.
+            // 没有要挤出的东西。
             return;
     } else
-        // 1 based index
+        // 基于1的索引
         ++ last_extruder_id;
 
     for (LayerTools &lt : m_layer_tools) {
@@ -870,47 +869,47 @@ void ToolOrdering::reorder_extruders(unsigned int last_extruder_id)
             lt.extruders.front() = last_extruder_id;
         else {
             if (lt.extruders.front() == 0)
-                // Pop the "don't care" extruder, the "don't care" region will be merged with the next one.
+                // 弹出"不关心"挤出机，"不关心"区域将与下一个合并。
                 lt.extruders.erase(lt.extruders.begin());
             if (lt.preserve_extruder_order) {
                 last_extruder_id = lt.extruders.back();
                 continue;
             }
-            // Reorder the extruders to start with the last one.
+            // 重新排序挤出机以从最后一个开始。
             for (size_t i = 1; i < lt.extruders.size(); ++ i)
                 if (lt.extruders[i] == last_extruder_id) {
-                    // Move the last extruder to the front.
+                    // 将最后一个挤出机移到前面。
                     memmove(lt.extruders.data() + 1, lt.extruders.data(), i * sizeof(unsigned int));
                     lt.extruders.front() = last_extruder_id;
                     break;
                 }
 
             if (lt == m_layer_tools[0]) {
-                // On first layer with wipe tower, prefer a soluble extruder
-                // at the beginning, so it is not wiped on the first layer.
+                // 在第一层使用擦拭塔时，优先在开头使用可溶性挤出机，
+                // 这样它就不会被擦拭在第一层上。
                 if (m_print_config_ptr && m_print_config_ptr->enable_prime_tower) {
                     for (size_t i = 0; i<lt.extruders.size(); ++i)
-                        if (m_print_config_ptr->filament_soluble.get_at(lt.extruders[i]-1)) { // 1-based...
+                        if (m_print_config_ptr->filament_soluble.get_at(lt.extruders[i]-1)) { // 基于1的...
                             std::swap(lt.extruders[i], lt.extruders.front());
                             break;
                         }
                 }
 
-                // Then, if we specified the tool order, apply it now
+                // 然后，如果我们指定了工具顺序，现在应用它
                 apply_first_layer_order(m_print_full_config, lt.extruders);
             }
         }
         last_extruder_id = lt.extruders.back();
     }
 
-    // Reindex the extruders, so they are zero based, not 1 based.
+    // 重新索引挤出机，使它们基于0，而不是基于1。
     for (LayerTools &lt : m_layer_tools)
         for (unsigned int &extruder_id : lt.extruders) {
             assert(extruder_id > 0);
             -- extruder_id;
         }
 
-    // reorder the extruders for minimum flush volume
+    // 为最小冲洗体积重新排序挤出机
     reorder_extruders_for_minimum_flush_volume();
 }
 
@@ -923,7 +922,7 @@ void ToolOrdering::reorder_extruders(std::vector<unsigned int> tool_order_layer0
     if (tool_order_layer0.empty())
         return;
 
-    // Reorder the extruders of first layer
+    // 重新排序第一层的挤出机
     {
         LayerTools& lt = m_layer_tools[0];
         if (!lt.preserve_extruder_order) {
@@ -945,7 +944,7 @@ void ToolOrdering::reorder_extruders(std::vector<unsigned int> tool_order_layer0
                     lt.extruders.push_back(extruder_id);
             }
 
-            // all extruders are zero
+            // 所有挤出机都是零
             if (lt.extruders.empty()) {
                 lt.extruders.push_back(tool_order_layer0[0]);
             }
@@ -962,16 +961,16 @@ void ToolOrdering::reorder_extruders(std::vector<unsigned int> tool_order_layer0
             lt.extruders.front() = last_extruder_id;
         else {
             if (lt.extruders.front() == 0)
-                // Pop the "don't care" extruder, the "don't care" region will be merged with the next one.
+                // 弹出"不关心"挤出机，"不关心"区域将与下一个合并。
                 lt.extruders.erase(lt.extruders.begin());
             if (lt.preserve_extruder_order) {
                 last_extruder_id = lt.extruders.back();
                 continue;
             }
-            // Reorder the extruders to start with the last one.
+            // 重新排序挤出机以从最后一个开始。
             for (size_t i = 1; i < lt.extruders.size(); ++i)
                 if (lt.extruders[i] == last_extruder_id) {
-                    // Move the last extruder to the front.
+                    // 将最后一个挤出机移到前面。
                     memmove(lt.extruders.data() + 1, lt.extruders.data(), i * sizeof(unsigned int));
                     lt.extruders.front() = last_extruder_id;
                     break;
@@ -980,14 +979,14 @@ void ToolOrdering::reorder_extruders(std::vector<unsigned int> tool_order_layer0
         last_extruder_id = lt.extruders.back();
     }
 
-    // Reindex the extruders, so they are zero based, not 1 based.
+    // 重新索引挤出机，使它们基于0，而不是基于1。
     for (LayerTools& lt : m_layer_tools)
         for (unsigned int& extruder_id : lt.extruders) {
             assert(extruder_id > 0);
             --extruder_id;
         }
 
-    // reorder the extruders for minimum flush volume
+    // 为最小冲洗体积重新排序挤出机
     reorder_extruders_for_minimum_flush_volume();
 }
 
@@ -996,33 +995,33 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
     if (m_layer_tools.empty())
         return;
 
-    // Count the minimum number of tool changes per layer.
+    // 计算每层的最小工具更改次数。
     size_t last_extruder = size_t(-1);
     for (LayerTools &lt : m_layer_tools) {
         lt.wipe_tower_partitions = lt.extruders.size();
         if (! lt.extruders.empty()) {
             if (last_extruder == size_t(-1) || last_extruder == lt.extruders.front())
-                // The first extruder on this layer is equal to the current one, no need to do an initial tool change.
+                // 此层上的第一个挤出机与当前挤出机相同，无需进行初始工具更改。
                 -- lt.wipe_tower_partitions;
             last_extruder = lt.extruders.back();
         }
     }
 
-    // Propagate the wipe tower partitions down to support the upper partitions by the lower partitions.
+    // 将擦拭塔分区向下传播，以支持下层对上层分区的支撑。
     for (int i = int(m_layer_tools.size()) - 2; i >= 0; -- i)
         m_layer_tools[i].wipe_tower_partitions = std::max(m_layer_tools[i + 1].wipe_tower_partitions, m_layer_tools[i].wipe_tower_partitions);
 
-    //FIXME this is a hack to get the ball rolling.
+    //FIXME 这是一个让事情运转起来的hack。
     for (LayerTools &lt : m_layer_tools)
         lt.has_wipe_tower = (lt.has_object && (config.timelapse_type == TimelapseType::tlSmooth || lt.wipe_tower_partitions > 0))
             || lt.print_z < object_bottom_z + EPSILON;
 
-    // Test for a raft, insert additional wipe tower layer to fill in the raft separation gap.
+    // 测试是否有支撑，插入额外的擦拭塔层以填充支撑分离间隙。
     for (size_t i = 0; i + 1 < m_layer_tools.size(); ++ i) {
         const LayerTools &lt      = m_layer_tools[i];
         const LayerTools &lt_next = m_layer_tools[i + 1];
         if (lt.print_z < object_bottom_z + EPSILON && lt_next.print_z >= object_bottom_z + EPSILON) {
-            // lt is the last raft layer. Find the 1st object layer.
+            // lt是最后一个支撑层。找到第一个对象层。
             size_t j = i + 1;
             for (; j < m_layer_tools.size() && ! m_layer_tools[j].has_wipe_tower; ++ j);
             if (j < m_layer_tools.size()) {
@@ -1030,20 +1029,20 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
                 coordf_t gap = lt_object.print_z - lt.print_z;
                 assert(gap > 0.f);
                 if (gap > max_layer_height + EPSILON) {
-                    // Insert one additional wipe tower layer between lh.print_z and lt_object.print_z.
+                    // 在lh.print_z和lt_object.print_z之间插入一个额外的擦拭塔层。
                     LayerTools lt_new(0.5f * (lt.print_z + lt_object.print_z));
-                    // Find the 1st layer above lt_new.
+                    // 找到lt_new上方的第一层。
                     for (j = i + 1; j < m_layer_tools.size() && m_layer_tools[j].print_z < lt_new.print_z - EPSILON; ++ j);
                     if (std::abs(m_layer_tools[j].print_z - lt_new.print_z) < EPSILON) {
-						m_layer_tools[j].has_wipe_tower = true;
-					} else {
-						LayerTools &lt_extra = *m_layer_tools.insert(m_layer_tools.begin() + j, lt_new);
+                        m_layer_tools[j].has_wipe_tower = true;
+                    } else {
+                        LayerTools &lt_extra = *m_layer_tools.insert(m_layer_tools.begin() + j, lt_new);
                         //LayerTools &lt_prev  = m_layer_tools[j];
                         LayerTools &lt_next  = m_layer_tools[j + 1];
                         assert(! m_layer_tools[j - 1].extruders.empty() && ! lt_next.extruders.empty());
-                        // FIXME: Following assert tripped when running combine_infill.t. I decided to comment it out for now.
-                        // If it is a bug, it's likely not critical, because this code is unchanged for a long time. It might
-                        // still be worth looking into it more and decide if it is a bug or an obsolete assert.
+                        // FIXME: 运行combine_infill.t时触发了以下断言。我决定暂时注释掉它。
+                        // 如果这是一个bug，可能不严重，因为这段代码已经很长时间没有改变了。它可能
+                        // 仍然值得进一步研究，以确定是bug还是过时的断言。
                         //assert(lt_prev.extruders.back() == lt_next.extruders.front());
                         lt_extra.has_wipe_tower = true;
                         lt_extra.extruders.push_back(lt_next.extruders.front());
@@ -1055,11 +1054,11 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
         }
     }
 
-    // If the model contains empty layers (such as https://github.com/prusa3d/Slic3r/issues/1266), there might be layers
-    // that were not marked as has_wipe_tower, even when they should have been. This produces a crash with soluble supports
-    // and maybe other problems. We will therefore go through layer_tools and detect and fix this.
-    // So, if there is a non-object layer starting with different extruder than the last one ended with (or containing more than one extruder),
-    // we'll mark it with has_wipe tower.
+    // 如果模型包含空层（如https://github.com/prusa3d/Slic3r/issues/1266），可能存在
+    // 未标记为has_wipe_tower的层，即使它们应该被标记。这会导致可溶性支撑崩溃
+    // 和其他问题。因此，我们将遍历layer_tools并检测和修复此问题。
+    // 所以，如果有一个非对象层，其开始的挤出机与最后一层结束的挤出机不同（或包含多个挤出机），
+    // 我们将用has_wipe tower标记它。
     for (unsigned int i=0; i+1<m_layer_tools.size(); ++i) {
         LayerTools& lt = m_layer_tools[i];
         LayerTools& lt_next = m_layer_tools[i+1];
@@ -1067,7 +1066,7 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
             break;
         if (!lt_next.has_wipe_tower && (lt_next.extruders.front() != lt.extruders.back() || lt_next.extruders.size() > 1))
             lt_next.has_wipe_tower = true;
-        // We should also check that the next wipe tower layer is no further than max_layer_height:
+        // 我们还应该检查下一个擦拭塔层不超过max_layer_height：
         unsigned int j = i+1;
         double last_wipe_tower_print_z = lt_next.print_z;
         while (++j < m_layer_tools.size()-1 && !m_layer_tools[j].has_wipe_tower)
@@ -1077,7 +1076,7 @@ void ToolOrdering::fill_wipe_tower_partitions(const PrintConfig &config, coordf_
             }
     }
 
-    // Calculate the wipe_tower_layer_height values.
+    // 计算wipe_tower_layer_height值。
     coordf_t wipe_tower_print_z_last = 0.;
     for (LayerTools &lt : m_layer_tools)
         if (lt.has_wipe_tower) {
@@ -1109,8 +1108,8 @@ void ToolOrdering::collect_extruder_statistics(bool prime_multi_material)
     }
 
     if (prime_multi_material && ! m_all_printing_extruders.empty()) {
-        // Reorder m_all_printing_extruders in the sequence they will be primed, the last one will be m_first_printing_extruder.
-        // Then set m_first_printing_extruder to the 1st extruder primed.
+        // 按初始顺序重新排序m_all_printing_extruders，最后一个将是m_first_printing_extruder。
+        // 然后将m_first_printing_extruder设置为第一个初始化的挤出机。
         m_all_printing_extruders.erase(
             std::remove_if(m_all_printing_extruders.begin(), m_all_printing_extruders.end(),
                 [ this ](const unsigned int eid) { return eid == m_first_printing_extruder; }),
@@ -1130,17 +1129,17 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume()
     if (!print_config || m_layer_tools.empty())
         return;
 
-    // Get wiping matrix to get number of extruders and convert vector<double> to vector<float>:
+    // 获取擦拭矩阵以获取挤出机数量并将vector<double>转换为vector<float>：
     std::vector<float> flush_matrix(cast<float>(print_config->flush_volumes_matrix.values));
     const unsigned int number_of_extruders = (unsigned int) (sqrt(flush_matrix.size()) + EPSILON);
-    // Extract purging volumes for each extruder pair:
+    // 提取每对挤出机的冲洗体积：
     std::vector<std::vector<float>> wipe_volumes;
     if ((print_config->purge_in_prime_tower && print_config->single_extruder_multi_material) || m_is_BBL_printer) {
         for (unsigned int i = 0; i < number_of_extruders; ++i)
             wipe_volumes.push_back( std::vector<float>(flush_matrix.begin() + i * number_of_extruders,
                                                        flush_matrix.begin() + (i + 1) * number_of_extruders));
     } else {
-        // populate wipe_volumes with prime_volume
+        // 用prime_volume填充wipe_volumes
         for (unsigned int i = 0; i < number_of_extruders; ++i)
             wipe_volumes.push_back(std::vector<float>(number_of_extruders, print_config->prime_volume));
     }
@@ -1148,7 +1147,7 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume()
     auto extruders_to_hash_key = [](const std::vector<unsigned int>& extruders,
                                     std::optional<unsigned int>      initial_extruder_id) -> uint32_t {
         uint32_t hash_key = 0;
-        // high 16 bit define initial extruder ,low 16 bit define extruder set
+        // 高16位定义初始挤出机，低16位定义挤出机集合
         if (initial_extruder_id)
             hash_key |= (1 << (16 + *initial_extruder_id));
         for (auto item : extruders)
@@ -1165,7 +1164,7 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume()
         other_layers_seqs = get_other_layers_print_sequence(sequence_nums, print_sequence);
     }
 
-    // other_layers_seq: the layer_idx and extruder_idx are base on 1
+    // other_layers_seq: layer_idx和extruder_idx基于1
     auto get_custom_seq = [&other_layers_seqs](int layer_idx, std::vector<int>& out_seq) -> bool {
         for (size_t idx = other_layers_seqs.size() - 1; idx != size_t(-1); --idx) {
             const auto &other_layers_seq = other_layers_seqs[idx];
@@ -1203,7 +1202,7 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume()
             continue;
         }
 
-        // The algorithm complexity is O(n2*2^n)
+        // 算法复杂度为O(n2*2^n)
         if (i != 0) {
             auto hash_key = extruders_to_hash_key(lt.extruders, current_extruder_id);
             auto iter = m_tool_order_cache.find(hash_key);
@@ -1227,15 +1226,15 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume()
     }
 }
 
-// Layers are marked for infinite skirt aka draft shield. Not all the layers have to be printed.
+// 层被标记为无限裙边即防尘罩。并非所有层都需要打印。
 void ToolOrdering::mark_skirt_layers(const PrintConfig &config, coordf_t max_layer_height)
 {
     if (m_layer_tools.empty())
         return;
 
     if (m_layer_tools.front().extruders.empty()) {
-        // Empty first layer, no skirt will be printed.
-        //FIXME throw an exception?
+        // 第一层为空，不打印裙边。
+        //FIXME 抛出异常？
         return;
     }
 
@@ -1244,21 +1243,21 @@ void ToolOrdering::mark_skirt_layers(const PrintConfig &config, coordf_t max_lay
         m_layer_tools[i].has_skirt = true;
         size_t j = i + 1;
         for (; j < m_layer_tools.size() && ! m_layer_tools[j].has_object; ++ j);
-        // i and j are two successive layers printing an object.
+        // i和j是两个连续的打印对象的层。
         if (j == m_layer_tools.size())
-            // Don't print skirt above the last object layer.
+            // 不在最后一个对象层上方打印裙边。
             break;
-        // Mark some printing intermediate layers as having skirt.
+        // 将一些打印中间层标记为有裙边。
         double last_z = m_layer_tools[i].print_z;
         for (size_t k = i + 1; k < j; ++ k) {
             if (m_layer_tools[k + 1].print_z - last_z > max_layer_height + EPSILON) {
-                // Layer k is the last one not violating the maximum layer height.
-                // Don't extrude skirt on empty layers.
+                // 层k是最后一个不违反最大层高的层。
+                // 不在空层上挤出裙边。
                 while (m_layer_tools[k].extruders.empty())
                     -- k;
                 if (m_layer_tools[k].has_skirt) {
-                    // Skirt cannot be generated due to empty layers, there would be a missing layer in the skirt.
-                    //FIXME throw an exception?
+                    // 由于空层无法生成裙边，因为裙边中会缺少一层。
+                    //FIXME 抛出异常？
                     break;
                 }
                 m_layer_tools[k].has_skirt = true;
@@ -1269,74 +1268,73 @@ void ToolOrdering::mark_skirt_layers(const PrintConfig &config, coordf_t max_lay
     }
 }
 
-// Assign a pointer to a custom G-code to the respective ToolOrdering::LayerTools.
-// Ignore color changes, which are performed on a layer and for such an extruder, that the extruder will not be printing above that layer.
-// If multiple events are planned over a span of a single layer, use the last one.
+// 将自定义G-code的指针分配给相应的ToolOrdering::LayerTools。
+// 忽略在层上执行且对于该挤出机在该层以上不会打印的挤出机的颜色更改。
+// 如果单个层跨越多个事件，使用最后一个。
 
-// BBS: replace model custom gcode with current plate custom gcode
+// BBS: 用当前板块自定义gcode替换模型自定义gcode
 static CustomGCode::Info custom_gcode_per_print_z;
 void ToolOrdering::assign_custom_gcodes(const Print &print)
 {
-	// Only valid for non-sequential print.
-	assert(print.config().print_sequence == PrintSequence::ByLayer);
+    // 仅对非顺序打印有效。
+    assert(print.config().print_sequence == PrintSequence::ByLayer);
 
     custom_gcode_per_print_z = print.model().get_curr_plate_custom_gcodes();
-	if (custom_gcode_per_print_z.gcodes.empty())
-		return;
+    if (custom_gcode_per_print_z.gcodes.empty())
+        return;
 
     // BBS
-	auto 						num_filaments = unsigned(print.config().filament_diameter.size());
-	CustomGCode::Mode 			mode          =
-		(num_filaments == 1) ? CustomGCode::SingleExtruder :
-		print.object_extruders().size() == 1 ? CustomGCode::MultiAsSingle : CustomGCode::MultiExtruder;
+    auto                        num_filaments = unsigned(print.config().filament_diameter.size());
+    CustomGCode::Mode           mode          =
+        (num_filaments == 1) ? CustomGCode::SingleExtruder :
+        print.object_extruders().size() == 1 ? CustomGCode::MultiAsSingle : CustomGCode::MultiExtruder;
     CustomGCode::Mode           model_mode    = print.model().get_curr_plate_custom_gcodes().mode;
-	std::vector<unsigned char> 	extruder_printing_above(num_filaments, false);
-	auto 						custom_gcode_it = custom_gcode_per_print_z.gcodes.rbegin();
-	// Tool changes and color changes will be ignored, if the model's tool/color changes were entered in mm mode and the print is in non mm mode
-	// or vice versa.
-	bool 						ignore_tool_and_color_changes = (mode == CustomGCode::MultiExtruder) != (model_mode == CustomGCode::MultiExtruder);
-	// If printing on a single extruder machine, make the tool changes trigger color change (M600) events.
-	bool 						tool_changes_as_color_changes = mode == CustomGCode::SingleExtruder && model_mode == CustomGCode::MultiAsSingle;
+    std::vector<unsigned char>  extruder_printing_above(num_filaments, false);
+    auto                        custom_gcode_it = custom_gcode_per_print_z.gcodes.rbegin();
+    // 如果模型的工具/颜色更改是以mm模式输入的，而打印模式不是mm模式，则工具更改和颜色更改将被忽略。
+    bool                        ignore_tool_and_color_changes = (mode == CustomGCode::MultiExtruder) != (model_mode == CustomGCode::MultiExtruder);
+    // 如果在单挤出机机器上打印，使工具更改触发颜色更改（M600）事件。
+    bool                        tool_changes_as_color_changes = mode == CustomGCode::SingleExtruder && model_mode == CustomGCode::MultiAsSingle;
 
-	// From the last layer to the first one:
+    // 从最后一层到第一层：
     coordf_t print_z_above = std::numeric_limits<coordf_t>::lowest();
-	for (auto it_lt = m_layer_tools.rbegin(); it_lt != m_layer_tools.rend(); ++ it_lt) {
-		LayerTools &lt = *it_lt;
-		// Add the extruders of the current layer to the set of extruders printing at and above this print_z.
-		for (unsigned int i : lt.extruders)
-			extruder_printing_above[i] = true;
-		// Skip all custom G-codes above this layer and skip all extruder switches.
-		for (; custom_gcode_it != custom_gcode_per_print_z.gcodes.rend() && (
+    for (auto it_lt = m_layer_tools.rbegin(); it_lt != m_layer_tools.rend(); ++ it_lt) {
+        LayerTools &lt = *it_lt;
+        // 将当前层的挤出机添加到在此print_z及以上打印的挤出机集合中。
+        for (unsigned int i : lt.extruders)
+            extruder_printing_above[i] = true;
+        // 跳过此层以上的所有自定义G-code并跳过所有挤出机切换。
+        for (; custom_gcode_it != custom_gcode_per_print_z.gcodes.rend() && (
             (print_z_above > lt.print_z && custom_gcode_it->print_z > 0.5 * (lt.print_z + print_z_above))
             || custom_gcode_it->type == CustomGCode::ToolChange); ++ custom_gcode_it);
         print_z_above = lt.print_z;
-		if (custom_gcode_it == custom_gcode_per_print_z.gcodes.rend())
-			// Custom G-codes were processed.
-			break;
-		// Some custom G-code is configured for this layer or a layer below.
-		const CustomGCode::Item &custom_gcode = *custom_gcode_it;
-		// print_z of the layer below the current layer.
-		coordf_t print_z_below = 0.;
-		if (auto it_lt_below = it_lt; ++ it_lt_below != m_layer_tools.rend())
-			print_z_below = it_lt_below->print_z;
+        if (custom_gcode_it == custom_gcode_per_print_z.gcodes.rend())
+            // 自定义G-code已处理。
+            break;
+        // 为当前层或以下层配置了一些自定义G-code。
+        const CustomGCode::Item &custom_gcode = *custom_gcode_it;
+        // 当前层以下层的print_z。
+        coordf_t print_z_below = 0.;
+        if (auto it_lt_below = it_lt; ++ it_lt_below != m_layer_tools.rend())
+            print_z_below = it_lt_below->print_z;
         if (custom_gcode.print_z > 0.5 * (print_z_below + lt.print_z)) {
-			// The custom G-code applies to the current layer.
-			bool color_change = custom_gcode.type == CustomGCode::ColorChange;
-			bool tool_change  = custom_gcode.type == CustomGCode::ToolChange;
-			bool pause_or_custom_gcode = ! color_change && ! tool_change;
-			bool apply_color_change = ! ignore_tool_and_color_changes &&
-				// If it is color change, it will actually be useful as the exturder above will print.
+            // 自定义G-code适用于当前层。
+            bool color_change = custom_gcode.type == CustomGCode::ColorChange;
+            bool tool_change  = custom_gcode.type == CustomGCode::ToolChange;
+            bool pause_or_custom_gcode = ! color_change && ! tool_change;
+            bool apply_color_change = ! ignore_tool_and_color_changes &&
+                // 如果是颜色更改，它实际上将在上方的挤出机上打印时有用。
                 // BBS
-				(color_change ? 
-					mode == CustomGCode::SingleExtruder || 
-						(custom_gcode.extruder <= int(num_filaments) && extruder_printing_above[unsigned(custom_gcode.extruder - 1)]) :
-				 	tool_change && tool_changes_as_color_changes);
-			if (pause_or_custom_gcode || apply_color_change)
-        		lt.custom_gcode = &custom_gcode;
-			// Consume that custom G-code event.
-			++ custom_gcode_it;
-		}
-	}
+                (color_change ?
+                    mode == CustomGCode::SingleExtruder ||
+                        (custom_gcode.extruder <= int(num_filaments) && extruder_printing_above[unsigned(custom_gcode.extruder - 1)]) :
+                    tool_change && tool_changes_as_color_changes);
+            if (pause_or_custom_gcode || apply_color_change)
+                lt.custom_gcode = &custom_gcode;
+            // 消耗该自定义G-code事件。
+            ++ custom_gcode_it;
+        }
+    }
 }
 
 const LayerTools& ToolOrdering::tools_for_layer(coordf_t print_z) const
@@ -1355,17 +1353,17 @@ const LayerTools& ToolOrdering::tools_for_layer(coordf_t print_z) const
     return *it_layer_tools;
 }
 
-// This function is called from Print::mark_wiping_extrusions and sets extruder this entity should be printed with (-1 .. as usual)
+// 此函数从Print::mark_wiping_extrusions调用，设置此实体应使用的挤出机（-1 .. 表示正常）
 void WipingExtrusions::set_extruder_override(const ExtrusionEntity* entity, const PrintObject* object, size_t copy_id, int extruder, size_t num_of_copies)
 {
     something_overridden = true;
 
-    auto entity_map_it = (entity_map.emplace(std::make_tuple(entity, object), ExtruderPerCopy())).first; // (add and) return iterator
+    auto entity_map_it = (entity_map.emplace(std::make_tuple(entity, object), ExtruderPerCopy())).first; // （添加并）返回迭代器
     ExtruderPerCopy& copies_vector = entity_map_it->second;
     copies_vector.resize(num_of_copies, -1);
 
     if (copies_vector[copy_id] != -1)
-        std::cout << "ERROR: Entity extruder overriden multiple times!!!\n";    // A debugging message - this must never happen.
+        std::cout << "ERROR: 实体挤出机被多次覆盖！！！\n";    // 调试消息 - 这绝不能发生。
 
     copies_vector[copy_id] = extruder;
 }
@@ -1383,7 +1381,7 @@ void WipingExtrusions::set_support_interface_extruder_override(const PrintObject
     support_intf_map.emplace(object, extruder);
 }
 
-// Finds first non-soluble extruder on the layer
+// 找到层上的第一个非可溶性挤出机
 int WipingExtrusions::first_nonsoluble_extruder_on_layer(const PrintConfig& print_config) const
 {
     const LayerTools& lt = *m_layer_tools;
@@ -1394,7 +1392,7 @@ int WipingExtrusions::first_nonsoluble_extruder_on_layer(const PrintConfig& prin
     return (-1);
 }
 
-// Finds last non-soluble extruder on the layer
+// 找到层上的最后一个非可溶性挤出机
 int WipingExtrusions::last_nonsoluble_extruder_on_layer(const PrintConfig& print_config) const
 {
     const LayerTools& lt = *m_layer_tools;
@@ -1405,7 +1403,7 @@ int WipingExtrusions::last_nonsoluble_extruder_on_layer(const PrintConfig& print
     return (-1);
 }
 
-// Decides whether this entity could be overridden
+// 决定此实体是否可被覆盖
 bool WipingExtrusions::is_overriddable(const ExtrusionEntityCollection& eec, const PrintConfig& print_config, const PrintObject& object, const PrintRegion& region) const
 {
     if (print_config.filament_soluble.get_at(m_layer_tools->extruder(eec, region)))
@@ -1439,23 +1437,23 @@ bool WipingExtrusions::is_support_overriddable(const ExtrusionRole role, const P
     return false;
 }
 
-// Following function iterates through all extrusions on the layer, remembers those that could be used for wiping after toolchange
-// and returns volume that is left to be wiped on the wipe tower.
+// 以下函数遍历层上的所有挤出，记住那些可在工具更换后用于擦拭的挤出
+// 并返回在擦拭塔上仍需擦拭的体积。
 float WipingExtrusions::mark_wiping_extrusions(const Print& print, unsigned int old_extruder, unsigned int new_extruder, float volume_to_wipe)
 {
     const LayerTools& lt = *m_layer_tools;
-    const float min_infill_volume = 0.f; // ignore infill with smaller volume than this
+    const float min_infill_volume = 0.f; // 忽略小于此体积的填充
 
     if (! this->something_overridable || volume_to_wipe <= 0. || print.config().filament_soluble.get_at(old_extruder) || print.config().filament_soluble.get_at(new_extruder))
-        return std::max(0.f, volume_to_wipe); // Soluble filament cannot be wiped in a random infill, neither the filament after it
+        return std::max(0.f, volume_to_wipe); // 可溶性丝材不能被随机填充擦拭，它后面的丝材也不行
 
     // BBS
     if (print.config().filament_is_support.get_at(old_extruder) || print.config().filament_is_support.get_at(new_extruder))
-        return std::max(0.f, volume_to_wipe); // Support filament cannot be used to print support, infill, wipe_tower, etc.
+        return std::max(0.f, volume_to_wipe); // 支撑丝材不能用于打印支撑、填充、擦拭塔等。
 
-    // we will sort objects so that dedicated for wiping are at the beginning:
+    // 我们将对对象进行排序，以便用于擦拭的在前面：
     ConstPrintObjectPtrs object_list = print.objects().vector();
-    // BBS: fix the exception caused by not fixed order between different objects
+    // BBS: 修复由不同对象之间顺序不固定引起的异常
     std::sort(object_list.begin(), object_list.end(), [object_list](const PrintObject* a, const PrintObject* b) {
         if (a->config().flush_into_objects != b->config().flush_into_objects) {
             return a->config().flush_into_objects.getBool();
@@ -1465,30 +1463,30 @@ float WipingExtrusions::mark_wiping_extrusions(const Print& print, unsigned int 
         }
     });
 
-    // We will now iterate through
-    //  - first the dedicated objects to mark perimeters or infills (depending on infill_first)
-    //  - second through the dedicated ones again to mark infills or perimeters (depending on infill_first)
-    //  - then all the others to mark infills (in case that !infill_first, we must also check that the perimeter is finished already
-    // this is controlled by the following variable:
+    // 我们现在将遍历
+    //  - 首先专用对象以标记周长或填充（取决于infill_first）
+    //  - 其次再次遍历专用对象以标记填充或周长（取决于infill_first）
+    //  - 然后所有其他对象以标记填充（如果!infill_first，我们还必须检查周长是否已完成
+    // 这由以下变量控制：
     bool perimeters_done = false;
 
     for (int i=0 ; i<(int)object_list.size() + (perimeters_done ? 0 : 1); ++i) {
-        if (!perimeters_done && (i==(int)object_list.size() || !object_list[i]->config().flush_into_objects)) { // we passed the last dedicated object in list
+        if (!perimeters_done && (i==(int)object_list.size() || !object_list[i]->config().flush_into_objects)) { // 我们通过了列表中的最后一个专用对象
             perimeters_done = true;
-            i=-1;   // let's go from the start again
+            i=-1;   // 让我们从头再来
             continue;
         }
 
         const PrintObject* object = object_list[i];
 
-        // Finds this layer:
+        // 找到此层：
         const Layer* this_layer = object->get_layer_at_printz(lt.print_z, EPSILON);
         if (this_layer == nullptr)
-        	continue;
+            continue;
 
         size_t num_of_copies = object->instances().size();
 
-        // iterate through copies (aka PrintObject instances) first, so that we mark neighbouring infills to minimize travel moves
+        // 首先遍历副本（即PrintObject实例），以便我们标记相邻的填充以最小化移动移动
         for (unsigned int copy = 0; copy < num_of_copies; ++copy) {
             for (const LayerRegion *layerm : this_layer->regions()) {
                 const auto &region = layerm->region();
@@ -1498,29 +1496,29 @@ float WipingExtrusions::mark_wiping_extrusions(const Print& print, unsigned int 
                 bool wipe_into_infill_only = !object->config().flush_into_objects && object->config().flush_into_infill;
                 bool is_infill_first = region.config().is_infill_first;
                 if (is_infill_first != perimeters_done || wipe_into_infill_only) {
-                    for (const ExtrusionEntity* ee : layerm->fills.entities) {                      // iterate through all infill Collections
+                    for (const ExtrusionEntity* ee : layerm->fills.entities) {                      // 遍历所有填充Collection
                         auto* fill = dynamic_cast<const ExtrusionEntityCollection*>(ee);
 
                         if (!is_overriddable(*fill, print.config(), *object, region))
                             continue;
 
                         if (wipe_into_infill_only && ! is_infill_first)
-                            // In this case we must check that the original extruder is used on this layer before the one we are overridding
-                            // (and the perimeters will be finished before the infill is printed):
+                            // 在这种情况下，我们必须检查原始挤出机是否在此层之前于我们正在覆盖的挤出机之前使用
+                            // （并且周长将在填充之前完成）：
                             if (!lt.is_extruder_order(lt.wall_filament(region), new_extruder))
                                 continue;
 
                         if ((!is_entity_overridden(fill, object, copy) && fill->total_volume() > min_infill_volume))
-                        {     // this infill will be used to wipe this extruder
+                        {     // 此填充将用于擦拭此挤出机
                             set_extruder_override(fill, object, copy, new_extruder, num_of_copies);
                             if ((volume_to_wipe -= float(fill->total_volume())) <= 0.f)
-                            	// More material was purged already than asked for.
-	                            return 0.f;
+                                // 已经冲洗了比要求的更多的材料。
+                                return 0.f;
                         }
                     }
                 }
 
-                // Now the same for perimeters - see comments above for explanation:
+                // 现在周长同理 - 见上面解释的注释：
                 if (object->config().flush_into_objects && is_infill_first == perimeters_done)
                 {
                     for (const ExtrusionEntity* ee : layerm->perimeters.entities) {
@@ -1528,8 +1526,8 @@ float WipingExtrusions::mark_wiping_extrusions(const Print& print, unsigned int 
                         if (is_overriddable(*fill, print.config(), *object, region) && !is_entity_overridden(fill, object, copy) && fill->total_volume() > min_infill_volume) {
                             set_extruder_override(fill, object, copy, new_extruder, num_of_copies);
                             if ((volume_to_wipe -= float(fill->total_volume())) <= 0.f)
-                            	// More material was purged already than asked for.
-	                            return 0.f;
+                                // 已经冲洗了比要求的更多的材料。
+                                return 0.f;
                         }
                     }
                 }
@@ -1575,34 +1573,32 @@ float WipingExtrusions::mark_wiping_extrusions(const Print& print, unsigned int 
             }
         }
     }
-	// Some purge remains to be done on the Wipe Tower.
+    // 一些冲洗需要在擦拭塔上完成。
     assert(volume_to_wipe > 0.);
     return volume_to_wipe;
 }
 
 
 
-// Called after all toolchanges on a layer were mark_infill_overridden. There might still be overridable entities,
-// that were not actually overridden. If they are part of a dedicated object, printing them with the extruder
-// they were initially assigned to might mean violating the perimeter-infill order. We will therefore go through
-// them again and make sure we override it.
+// 在层上的所有工具更改都调用了mark_infill_overridden后调用。可能仍存在可覆盖的实体，
+// 但实际上并未被覆盖。如果它们是专用对象的一部分，用最初分配给它们的挤出机打印它们可能意味着违反周长-填充顺序。因此，我们将再次遍历它们并确保我们覆盖它们。
 void WipingExtrusions::ensure_perimeters_infills_order(const Print& print)
 {
-	if (! this->something_overridable)
-		return;
+    if (! this->something_overridable)
+        return;
 
     const LayerTools& lt = *m_layer_tools;
     unsigned int first_nonsoluble_extruder = first_nonsoluble_extruder_on_layer(print.config());
     unsigned int last_nonsoluble_extruder = last_nonsoluble_extruder_on_layer(print.config());
 
     for (const PrintObject* object : print.objects()) {
-        // Finds this layer:
+        // 找到此层：
         const Layer* this_layer = object->get_layer_at_printz(lt.print_z, EPSILON);
         if (this_layer == nullptr)
-        	continue;
+            continue;
         size_t num_of_copies = object->instances().size();
 
-        for (size_t copy = 0; copy < num_of_copies; ++copy) {    // iterate through copies first, so that we mark neighbouring infills to minimize travel moves
+        for (size_t copy = 0; copy < num_of_copies; ++copy) {    // 首先遍历副本，以便标记相邻的填充以最小化移动移动
             for (const LayerRegion *layerm : this_layer->regions()) {
                 const auto &region = layerm->region();
                 //BBS
@@ -1610,32 +1606,32 @@ void WipingExtrusions::ensure_perimeters_infills_order(const Print& print)
                     continue;
 
                 bool is_infill_first = region.config().is_infill_first;
-                for (const ExtrusionEntity* ee : layerm->fills.entities) {                      // iterate through all infill Collections
+                for (const ExtrusionEntity* ee : layerm->fills.entities) {                      // 遍历所有填充Collection
                     auto* fill = dynamic_cast<const ExtrusionEntityCollection*>(ee);
 
                     if (!is_overriddable(*fill, print.config(), *object, region)
                      || is_entity_overridden(fill, object, copy) )
                         continue;
 
-                    // This infill could have been overridden but was not - unless we do something, it could be
-                    // printed before its perimeter, or not be printed at all (in case its original extruder has
-                    // not been added to LayerTools
-                    // Either way, we will now force-override it with something suitable:
+                    // 此填充本可以被覆盖但没有 - 除非我们采取措施，否则它可能
+                    // 在其周长之前被打印，或根本不被打印（如果其原始挤出机
+                    // 未添加到LayerTools中）
+                    // 无论哪种方式，我们现在将强制用适当的内容覆盖它：
                     //BBS
                     if (is_infill_first
                     //BBS
-                    //|| object->config().flush_into_objects  // in this case the perimeter is overridden, so we can override by the last one safely
-                    || lt.is_extruder_order(lt.wall_filament(region), last_nonsoluble_extruder    // !infill_first, but perimeter is already printed when last extruder prints
-                    || ! lt.has_extruder(lt.sparse_infill_filament(region)))) // we have to force override - this could violate infill_first (FIXME)
+                    //|| object->config().flush_into_objects  // 在这种情况下周长已被覆盖，因此我们可以安全地用最后一个覆盖
+                    || lt.is_extruder_order(lt.wall_filament(region), last_nonsoluble_extruder    // !infill_first，但最后一个挤出机打印时周长已打印
+                    || ! lt.has_extruder(lt.sparse_infill_filament(region)))) // 我们必须强制覆盖 - 这可能违反infill_first（FIXME）
                         set_extruder_override(fill, object, copy, (is_infill_first ? first_nonsoluble_extruder : last_nonsoluble_extruder), num_of_copies);
                     else {
-                        // In this case we can (and should) leave it to be printed normally.
-                        // Force overriding would mean it gets printed before its perimeter.
+                        // 在这种情况下，我们可以（也应该）让它正常打印。
+                        // 强制覆盖将意味着它在周长之前被打印。
                     }
                 }
 
-                // Now the same for perimeters - see comments above for explanation:
-                for (const ExtrusionEntity* ee : layerm->perimeters.entities) {                      // iterate through all perimeter Collections
+                // 现在周长同理 - 见上面解释的注释：
+                for (const ExtrusionEntity* ee : layerm->perimeters.entities) {                      // 遍历所有周长Collection
                     auto* fill = dynamic_cast<const ExtrusionEntityCollection*>(ee);
                     if (is_overriddable(*fill, print.config(), *object, region) && ! is_entity_overridden(fill, object, copy))
                         set_extruder_override(fill, object, copy, (is_infill_first ? last_nonsoluble_extruder : first_nonsoluble_extruder), num_of_copies);
@@ -1645,22 +1641,22 @@ void WipingExtrusions::ensure_perimeters_infills_order(const Print& print)
     }
 }
 
-// Following function is called from GCode::process_layer and returns pointer to vector with information about which extruders should be used for given copy of this entity.
-// If this extrusion does not have any override, nullptr is returned.
-// Otherwise it modifies the vector in place and changes all -1 to correct_extruder_id (at the time the overrides were created, correct extruders were not known,
-// so -1 was used as "print as usual").
-// The resulting vector therefore keeps track of which extrusions are the ones that were overridden and which were not. If the extruder used is overridden,
-// its number is saved as is (zero-based index). Regular extrusions are saved as -number-1 (unfortunately there is no negative zero).
+// 以下函数从GCode::process_layer调用，返回指向向量的指针，其中包含有关应为此实体副本使用哪些挤出机的信息。
+// 如果此挤出没有任何覆盖，则返回nullptr。
+// 否则，它就地修改向量并将所有-1更改为correct_extruder_id（创建覆盖时，正确的挤出机未知，
+// 因此使用-1表示"正常打印"）。
+// 因此，结果向量跟踪哪些挤出是被覆盖的，哪些不是。如果使用的挤出机是被覆盖的，
+// 其数字原样保存（基于零的索引）。常规挤出保存为-number-1（不幸的是没有负零）。
 const WipingExtrusions::ExtruderPerCopy* WipingExtrusions::get_extruder_overrides(const ExtrusionEntity* entity, const PrintObject* object, int correct_extruder_id, size_t num_of_copies)
 {
-	ExtruderPerCopy *overrides = nullptr;
+    ExtruderPerCopy *overrides = nullptr;
     auto entity_map_it = entity_map.find(std::make_tuple(entity, object));
     if (entity_map_it != entity_map.end()) {
         overrides = &entity_map_it->second;
-    	overrides->resize(num_of_copies, -1);
-	    // Each -1 now means "print as usual" - we will replace it with actual extruder id (shifted it so we don't lose that information):
-	    std::replace(overrides->begin(), overrides->end(), -1, -correct_extruder_id-1);
-	}
+        overrides->resize(num_of_copies, -1);
+        // 每个-1现在表示"正常打印" - 我们将用实际挤出机id替换它（移位以便我们不丢失该信息）：
+        std::replace(overrides->begin(), overrides->end(), -1, -correct_extruder_id-1);
+    }
     return overrides;
 }
 
@@ -1683,7 +1679,7 @@ int WipingExtrusions::get_support_interface_extruder_overrides(const PrintObject
     return -1;
 }
 
-// Resolve a 1-based filament ID through the mixed-filament manager.
+// 通过混合丝材管理器解析基于1的丝材ID。
 unsigned int ToolOrdering::resolve_mixed(unsigned int filament_id_1based,
                                          int          layer_index,
                                          float        layer_print_z,

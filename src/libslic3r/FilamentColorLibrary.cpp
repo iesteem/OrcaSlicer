@@ -85,7 +85,7 @@ std::vector<std::string> NormalizeColorList(const std::vector<std::string>& colo
 
 boost::filesystem::path FilamentsColoursPath()
 {
-    // Prefer the system copy, fall back to bundled resources for a fresh install.
+    // 优先使用系统副本，如果是全新安装则回退到捆绑资源。
     boost::filesystem::path path = boost::filesystem::path(Slic3r::data_dir());
     path /= "system";
     path /= "Snapmaker";
@@ -488,7 +488,7 @@ bool FilamentColorLibrary::LoadIndex()
             if ((colorItem.colorData.mode == FilamentColorMode::Gradient && colorItem.colorData.colors.size() < 2) ||
                 (colorItem.colorData.mode == FilamentColorMode::Segment && colorItem.colorData.colors.size() > 2))
             {
-                // Gradient requires at least 2 colors; segment supports at most 2 colors.
+                // 渐变模式至少需要2种颜色；分段模式最多支持2种颜色。
                 BOOST_LOG_TRIVIAL(warning) << "Skip color item with invalid color count: " << colorItem.sku;
                 continue;
             }

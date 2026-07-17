@@ -32,8 +32,8 @@ bool Line::intersection_infinite(const Line &other, Point* point) const
     Vec2d result = (a1 + t1 * v1);
     if (result.x() > std::numeric_limits<coord_t>::max() || result.x() < std::numeric_limits<coord_t>::lowest() ||
         result.y() > std::numeric_limits<coord_t>::max() || result.y() < std::numeric_limits<coord_t>::lowest()) {
-        // Intersection has at least one of the coordinates much bigger (or smaller) than coord_t maximum value (or minimum).
-        // So it can not be stored into the Point without integer overflows. That could mean that input lines are parallel or near parallel.
+        // 交点至少有一个坐标远大于（或小于）coord_t的最大值（或最小值）。
+        // 因此它无法在不发生整数溢出的情况下存储到Point中。这可能意味着输入线段是平行或接近平行的。
         return false;
     }
     *point = (result).cast<coord_t>();

@@ -20,7 +20,7 @@ using LinesIt                     = Lines::iterator;
 using ColoredLinesIt              = ColoredLines::iterator;
 using ColoredLinesConstIt         = ColoredLines::const_iterator;
 
-// Explicit template instantiation.
+// 显式模板实例化。
 template LinesIt::reference VoronoiUtils::get_source_segment(const VoronoiDiagram::cell_type &, LinesIt, LinesIt);
 template VD::SegmentIt::reference VoronoiUtils::get_source_segment(const VoronoiDiagram::cell_type &, VD::SegmentIt, VD::SegmentIt);
 template ColoredLinesIt::reference VoronoiUtils::get_source_segment(const VoronoiDiagram::cell_type &, ColoredLinesIt, ColoredLinesIt);
@@ -114,8 +114,8 @@ typename boost::polygon::enable_if<typename boost::polygon::gtl_if<typename boos
 VoronoiUtils::discretize_parabola(const Point &source_point, const Segment &source_segment, const Point &start, const Point &end, const coord_t approximate_step_size, float transitioning_angle)
 {
     Points discretized;
-    // x is distance of point projected on the segment ab
-    // xx is point projected on the segment ab
+    // x是点在线段ab上的投影距离
+    // xx是点在线段ab上的投影点
     const Point   a       = source_segment.from();
     const Point   b       = source_segment.to();
     const Point   ab      = b - a;
@@ -221,10 +221,10 @@ VoronoiUtils::compute_segment_cell_range(const VD::cell_type &cell, const Segmen
     const Vec2i64  from_i64       = from.template cast<int64_t>();
     const Vec2i64  to_i64         = to.template cast<int64_t>();
 
-    // FIXME @hejllukas: Ensure that there is no infinite edge during iteration between edge_begin and edge_end.
+    // FIXME @hejllukas: 确保在edge_begin和edge_end之间迭代时没有无限边。
     SegmentCellRange cell_range(to, from);
 
-    // Find starting edge and end edge
+    // 查找起始边和结束边
     bool                 seen_possible_start             = false;
     bool                 after_start                     = false;
     bool                 ending_edge_is_set_before_start = false;
@@ -268,13 +268,13 @@ VoronoiUtils::compute_point_cell_range(const VD::cell_type &cell, const SegmentI
 
     const Point source_point = Geometry::VoronoiUtils::get_source_point(cell, segment_begin, segment_end);
 
-    // We want to ignore (by returning PointCellRange without assigned edge_begin and edge_end) cells outside the input polygon.
+    // 我们希望忽略输入多边形外的单元（通过返回未分配edge_begin和edge_end的PointCellRange）。
     PointCellRange cell_range(source_point);
 
     const VD::edge_type *edge = cell.incident_edge();
     if (edge->is_infinite() || !is_in_range<CoordType>(*edge)) {
-        // Ignore infinite edges, because they only occur outside the polygon.
-        // Also ignore edges with endpoints that don't fit into CoordType, because such edges are definitely outside the polygon.
+        // 忽略无限边，因为它们只出现在多边形外部。
+        // 也忽略端点不适合CoordType的边，因为这样的边肯定在多边形外部。
         return cell_range;
     }
 
@@ -283,10 +283,9 @@ VoronoiUtils::compute_point_cell_range(const VD::cell_type &cell, const SegmentI
     const Point                       edge_v1          = Geometry::VoronoiUtils::to_point(edge->vertex1()).template cast<CoordType>();
     const Point                       edge_query_point = (edge_v0 == source_point) ? edge_v1 : edge_v0;
 
-    // Check if the edge has another endpoint inside the corner of the polygon.
+    // 检查边是否有另一个端点位于多边形拐角内部。
     if (!Geometry::is_point_inside_polygon_corner(source_point_idx.prev().p(), source_point_idx.p(), source_point_idx.next().p(), edge_query_point)) {
-        // If the endpoint isn't inside the corner of the polygon, it means that
-        // the whole cell isn't inside the polygons, and we will ignore such cells.
+        // 如果端点不在多边形拐角内部，则意味着整个单元不在多边形内部，我们将忽略此类单元。
         return cell_range;
     }
 
@@ -299,9 +298,9 @@ VoronoiUtils::compute_point_cell_range(const VD::cell_type &cell, const SegmentI
             cell_range.edge_begin = edge->next();
             cell_range.edge_end   = edge;
         } else {
-            // FIXME @hejllukas: With Arachne, we don't support polygons with collinear edges,
-            //                   because with collinear edges we have to handle secondary edges.
-            //                   Such edges goes through the endpoints of the input segments.
+            // FIXME @hejllukas: 使用Arachne时，我们不支持具有共线边的多边形，
+            //                   因为共线边需要处理辅助边。
+            //                   此类边穿过输入线段的端点。
             assert((Geometry::VoronoiUtils::to_point(edge->vertex0()) == source_point_i64 || edge->is_primary()) && "Point cells must end in the point! They cannot cross the point with an edge, because collinear edges are not allowed in the input.");
         }
     } while (edge = edge->next(), edge != cell.incident_edge());

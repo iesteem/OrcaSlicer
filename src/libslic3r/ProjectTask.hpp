@@ -52,7 +52,7 @@ struct FilamentInfo
     std::vector<std::string> colors = std::vector<std::string>();
     int         mapping_result = 0;
 
-    /*for new ams mapping*/
+    /*用于新的AMS映射*/
     std::string ams_id;
     std::string slot_id;
 };

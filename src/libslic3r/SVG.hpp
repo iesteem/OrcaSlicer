@@ -70,7 +70,7 @@ public:
     void draw(const Point &point, std::string fill = "black", coord_t radius = 0);
     void draw(const Points &points, std::string fill = "black", coord_t radius = 0);
 
-    // Support for rendering the ClipperLib paths
+    // 支持渲染ClipperLib路径
     void draw(const ClipperLib::Path  &polygon, double scale, std::string fill = "grey", coordf_t stroke_width = 0);
     void draw(const ClipperLib::Paths &polygons, double scale, std::string fill = "grey", coordf_t stroke_width = 0);
 
@@ -160,13 +160,13 @@ public:
         coord_t			radius_points { 0 };
     };
 
-    // Paint the expolygons in the order they are presented, thus the latter overwrites the former expolygon.
-    // 1) Paint all areas with the provided ExPolygonAttributes::color_fill and ExPolygonAttributes::fill_opacity.
-    // 2) Optionally paint outlines of the areas if ExPolygonAttributes::outline_width > 0.
-    //    Paint with ExPolygonAttributes::color_contour and ExPolygonAttributes::color_holes.
-    //    If color_contour is empty, color_fill is used. If color_hole is empty, color_contour is used.
-    // 3) Optionally paint points of all expolygon contours with ExPolygonAttributes::radius_points if radius_points > 0.
-    // 4) Paint ExPolygonAttributes::legend into legend using the ExPolygonAttributes::color_fill if legend is not empty. 
+    // 按照提供的顺序绘制expolygons，后面的会覆盖前面的expolygon。
+    // 1) 使用提供的ExPolygonAttributes::color_fill和ExPolygonAttributes::fill_opacity绘制所有区域。
+    // 2) 如果ExPolygonAttributes::outline_width > 0，可选绘制区域轮廓。
+    //    使用ExPolygonAttributes::color_contour和ExPolygonAttributes::color_holes绘制。
+    //    如果color_contour为空，则使用color_fill。如果color_hole为空，则使用color_contour。
+    // 3) 如果radius_points > 0，可选使用ExPolygonAttributes::radius_points绘制所有expolygon轮廓的点。
+    // 4) 如果legend不为空，使用ExPolygonAttributes::color_fill将ExPolygonAttributes::legend绘制到图例中。 
     static void export_expolygons(const char *path, const std::vector<std::pair<Slic3r::ExPolygons, ExPolygonAttributes>> &expolygons_with_attributes);
     static void export_expolygons(const std::string &path, const std::vector<std::pair<Slic3r::ExPolygons, ExPolygonAttributes>> &expolygons_with_attributes) 
         { export_expolygons(path.c_str(), expolygons_with_attributes); }

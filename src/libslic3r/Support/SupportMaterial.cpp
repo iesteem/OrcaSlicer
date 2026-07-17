@@ -33,7 +33,7 @@
 
 // #define SLIC3R_DEBUG
 // #define SUPPORT_TREE_DEBUG_TO_SVG
-// Make assert active if SLIC3R_DEBUG
+// 如果定义了 SLIC3R_DEBUG，则启用断言
 #if defined(SLIC3R_DEBUG) || defined(SUPPORT_TREE_DEBUG_TO_SVG)
     #define DEBUG
     #define _DEBUG
@@ -51,15 +51,15 @@
 
 namespace Slic3r {
 
-// how much we extend support around the actual contact area
-//FIXME this should be dependent on the nozzle diameter!
-// BBS: change from 1.5 to 1.2
+// 我们在实际接触区域周围扩展多少支撑
+//FIXME 这应该取决于喷嘴直径！
+// BBS: 从 1.5 改为 1.2
 #define SUPPORT_MATERIAL_MARGIN 1.2
 
-// Increment used to reach MARGIN in steps to avoid trespassing thin objects
+// 用于逐步达到 MARGIN 的增量，以避免越过薄物体
 #define NUM_MARGIN_STEPS 3
 
-// Dimensions of a tree-like structure to save material
+// 树状结构的尺寸，以节省材料
 #define PILLAR_SIZE (2.5)
 #define PILLAR_SPACING 10
 
@@ -73,14 +73,14 @@ static constexpr bool support_with_sheath = false;
 const char* support_surface_type_to_color_name(const SupporLayerType surface_type)
 {
     switch (surface_type) {
-        case SupporLayerType::TopContact:     return "rgb(255,0,0)"; // "red";
-        case SupporLayerType::TopInterface:   return "rgb(0,255,0)"; // "green";
-        case SupporLayerType::Base:           return "rgb(0,0,255)"; // "blue";
-        case SupporLayerType::BottomInterface:return "rgb(255,255,128)"; // yellow 
-        case SupporLayerType::BottomContact:  return "rgb(255,0,255)"; // magenta
+        case SupporLayerType::TopContact:     return "rgb(255,0,0)"; // "红";
+        case SupporLayerType::TopInterface:   return "rgb(0,255,0)"; // "绿";
+        case SupporLayerType::Base:           return "rgb(0,0,255)"; // "蓝";
+        case SupporLayerType::BottomInterface:return "rgb(255,255,128)"; // 黄色
+        case SupporLayerType::BottomContact:  return "rgb(255,0,255)"; // 品红
         case SupporLayerType::RaftInterface:  return "rgb(0,255,255)";
         case SupporLayerType::RaftBase:       return "rgb(128,128,128)";
-        case SupporLayerType::Unknown:        return "rgb(128,0,0)"; // maroon
+        case SupporLayerType::Unknown:        return "rgb(128,0,0)"; // 栗色
         default:                                            return "rgb(64,64,64)";
     };
 }
@@ -92,7 +92,7 @@ Point export_support_surface_type_legend_to_svg_box_size()
 
 void export_support_surface_type_legend_to_svg(SVG &svg, const Point &pos)
 {
-    // 1st row
+    // 第一行
     coord_t pos_x0 = pos(0) + scale_(1.);
     coord_t pos_x = pos_x0;
     coord_t pos_y = pos(1) + scale_(1.5);
@@ -106,7 +106,7 @@ void export_support_surface_type_legend_to_svg(SVG &svg, const Point &pos)
     svg.draw_legend(Point(pos_x, pos_y), "bottom iface"   , support_surface_type_to_color_name(SupporLayerType::BottomInterface));
     pos_x += step_x;
     svg.draw_legend(Point(pos_x, pos_y), "bottom contact" , support_surface_type_to_color_name(SupporLayerType::BottomContact));
-    // 2nd row
+    // 第二行
     pos_x = pos_x0;
     pos_y = pos(1)+scale_(2.8);
     svg.draw_legend(Point(pos_x, pos_y), "raft interface" , support_surface_type_to_color_name(SupporLayerType::RaftInterface));
@@ -200,13 +200,13 @@ static std::vector<unsigned char> rasterize_polygons(const Vec2i32 &grid_size, c
     agg::render_scanlines(rasterizer, scanline, renderer);
     return data;
 }
-// Grid has to have the boundary pixels unset.
+// 网格必须具有未设置的边界像素。
 static Polygons contours_simplified(const Vec2i32 &grid_size, const double pixel_size, Point left_bottom, const std::vector<unsigned char> &grid, coord_t offset, bool fill_holes)
 {
     assert(std::abs(2 * offset) < pixel_size - 10);
 
-    // Fill in empty cells, which have a left / right neighbor filled.
-    // Fill in empty cells, which have the top / bottom neighbor filled.
+    // 填充左侧/右侧邻居已填充的空单元格。
+    // 填充顶部/底部邻居已填充的空单元格。
     std::vector<unsigned char>        cell_inside_data;
     const std::vector<unsigned char> &cell_inside = fill_holes ? cell_inside_data : grid;
     if (fill_holes) {
@@ -221,7 +221,7 @@ static Polygons contours_simplified(const Vec2i32 &grid_size, const double pixel
         }
     }
 
-    // 1) Collect the lines.
+    // 1) 收集线段。
     std::vector<Line> lines;
     std::vector<std::pair<Point, int>> start_point_to_line_idx;
     for (int r = 1; r < grid_size.y(); ++ r) {
@@ -248,7 +248,7 @@ static Polygons contours_simplified(const Vec2i32 &grid_size, const double pixel
     }
     std::sort(start_point_to_line_idx.begin(), start_point_to_line_idx.end(), [](const auto &l, const auto &r){ return l.first < r.first; });
 
-    // 2) Chain the lines.
+    // 2) 链接线段。
     std::vector<char> line_processed(lines.size(), false);
     Polygons out;
     for (int i_candidate = 0; i_candidate < int(lines.size()); ++ i_candidate) {
@@ -261,12 +261,12 @@ static Polygons contours_simplified(const Vec2i32 &grid_size, const double pixel
         for (;;) {
             auto line_range = std::equal_range(std::begin(start_point_to_line_idx), std::end(start_point_to_line_idx), 
                 std::make_pair(lines[i_line_current].b, 0), [](const auto& l, const auto& r) { return l.first < r.first; });
-            // The interval has to be non empty, there shall be at least one line continuing the current one.
+            // 区间必须非空，必须至少有一条线段延续当前线段。
             assert(line_range.first != line_range.second);
             int i_next = -1;
             for (auto it = line_range.first; it != line_range.second; ++ it) {
                 if (it->second == i_candidate) {
-                    // closing the loop.
+                    // 闭合回路。
                     goto end_of_poly;
                 }
                 if (line_processed[it->second])
@@ -274,15 +274,14 @@ static Polygons contours_simplified(const Vec2i32 &grid_size, const double pixel
                 if (i_next == -1) {
                     i_next = it->second;
                 } else {
-                    // This is a corner, where two lines meet exactly. Pick the line, which encloses a smallest angle with
-                    // the current edge.
+                    // 这是一个角落，两条线在此精确相交。选择与当前边缘夹角最小的线。
                     const Line &line_current = lines[i_line_current];
                     const Line &line_next = lines[it->second];
                     const Vector v1 = line_current.vector();
                     const Vector v2 = line_next.vector();
                     int64_t cross = int64_t(v1(0)) * int64_t(v2(1)) - int64_t(v2(0)) * int64_t(v1(1));
                     if (cross > 0) {
-                        // This has to be a convex right angle. There is no better next line.
+                        // 这必须是一个凸直角。没有更好的下一条线。
                         i_next = it->second;
                         break;
                     }
@@ -296,7 +295,7 @@ static Polygons contours_simplified(const Vec2i32 &grid_size, const double pixel
         out.push_back(std::move(poly));
     }
 
-    // 3) Scale the polygons back into world, shrink slightly and remove collinear points.
+    // 3) 将多边形缩放回世界坐标，稍微缩小并移除共线点。
     for (Polygon &poly : out) {
         for (Point &p : poly.points) {
 #if 0
@@ -307,8 +306,8 @@ static Polygons contours_simplified(const Vec2i32 &grid_size, const double pixel
             p += left_bottom;
 #endif
         }
-        // Shrink the contour slightly, so if the same contour gets discretized and simplified again, one will get the same result.
-        // Remove collinear points.
+        // 稍微缩小轮廓，这样如果同一个轮廓再次被离散化和简化，将得到相同的结果。
+        // 移除共线的点。
         Points pts;
         pts.reserve(poly.points.size());
         for (size_t j = 0; j < poly.points.size(); ++ j) {
@@ -316,7 +315,7 @@ static Polygons contours_simplified(const Vec2i32 &grid_size, const double pixel
             size_t j2 = (j + 1 == poly.points.size()) ? 0 : j + 1;
             Point  v  = poly.points[j2] - poly.points[j0];
             if (v(0) != 0 && v(1) != 0) {
-                // This is a corner point. Copy it to the output contour.
+                // 这是一个角点。将其复制到输出轮廓中。
                 Point p = poly.points[j];
                 p(1) += (v(0) < 0) ? - offset : offset;
                 p(0) += (v(1) > 0) ? - offset : offset;
@@ -338,7 +337,7 @@ PrintObjectSupportMaterial::PrintObjectSupportMaterial(const PrintObject *object
 {
 }
 
-// Using the std::deque as an allocator.
+// 使用 std::deque 作为分配器。
 inline SupportGeneratorLayer& layer_allocate(
     std::deque<SupportGeneratorLayer> &layer_storage, 
     SupporLayerType      layer_type)
@@ -366,7 +365,7 @@ inline void layers_append(SupportGeneratorLayersPtr &dst, const SupportGenerator
     dst.insert(dst.end(), src.begin(), src.end());
 }
 
-// Support layer that is covered by some form of dense interface.
+// 被某种形式的致密接口覆盖的支撑层。
 static constexpr const std::initializer_list<SupporLayerType> support_types_interface { 
     SupporLayerType::RaftInterface, SupporLayerType::BottomContact, SupporLayerType::BottomInterface, SupporLayerType::TopContact, SupporLayerType::TopInterface
 };
@@ -379,24 +378,23 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
     for (size_t i = 0; i < object.layer_count(); ++ i)
         max_object_layer_height = std::max(max_object_layer_height, object.layers()[i]->height);
 
-    // Layer instances will be allocated by std::deque and they will be kept until the end of this function call.
-    // The layers will be referenced by various LayersPtr (of type std::vector<Layer*>)
+    // Layer 实例将由 std::deque 分配，并将保持到该函数调用结束。
+    // 这些层将由各种 LayersPtr（类型为 std::vector<Layer*>）引用。
     SupportGeneratorLayerStorage layer_storage;
 
     BOOST_LOG_TRIVIAL(info) << "Support generator - Creating top contacts";
 
-    // Per object layer projection of the object below the layer into print bed.
+    // 每个物体层在打印床上的投影。
     std::vector<Polygons> buildplate_covered = this->buildplate_covered(object);
 
-    // Determine the top contact surfaces of the support, defined as:
+    // 确定支撑的顶部接触面，定义为：
     // contact = overhangs - clearance + margin
-    // This method is responsible for identifying what contact surfaces
-    // should the support material expose to the object in order to guarantee
-    // that it will be effective, regardless of how it's built below.
-    // If raft is to be generated, the 1st top_contact layer will contain the 1st object layer silhouette without holes.
+    // 此方法负责识别支撑材料应暴露给物体哪些接触面，
+    // 以确保支撑有效，无论其下方如何构建。
+    // 如果要生成筏层，第一个 top_contact 层将包含第一个物体层的轮廓（无孔洞）。
     SupportGeneratorLayersPtr top_contacts = this->top_contact_layers(object, buildplate_covered, layer_storage);
     if (top_contacts.empty())
-        // Nothing is supported, no supports are generated.
+        // 没有需要支撑的部分，不生成支撑。
         return;
 
     if (object.print()->canceled())
@@ -413,10 +411,10 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
 
     BOOST_LOG_TRIVIAL(info) << "Support generator - Creating bottom contacts";
 
-    // Determine the bottom contact surfaces of the supports over the top surfaces of the object.
-    // Depending on whether the support is soluble or not, the contact layer thickness is decided.
-    // layer_support_areas contains the per object layer support areas. These per object layer support areas
-    // may get merged and trimmed by this->generate_base_layers() if the support layers are not synchronized with object layers.
+    // 确定物体顶部表面上方的支撑底部接触面。
+    // 根据支撑是否可溶，决定接触层的厚度。
+    // layer_support_areas 包含每个物体层的支撑区域。如果支撑层未与物体层同步，
+    // 这些每物体层的支撑区域可能会被 this->generate_base_layers() 合并和修剪。
     std::vector<Polygons> layer_support_areas;
     SupportGeneratorLayersPtr bottom_contacts = this->bottom_contact_layers_and_layer_support_areas(
         object, top_contacts, buildplate_covered,
@@ -434,11 +432,11 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
 
     BOOST_LOG_TRIVIAL(info) << "Support generator - Creating intermediate layers - indices";
 
-    // Allocate empty layers between the top / bottom support contact layers
-    // as placeholders for the base and intermediate support layers.
-    // The layers may or may not be synchronized with the object layers, depending on the configuration.
-    // For example, a single nozzle multi material printing will need to generate a waste tower, which in turn
-    // wastes less material, if there are as little tool changes as possible.
+    // 在顶部/底部支撑接触层之间分配空层，
+    // 作为基础和中间支撑层的占位符。
+    // 这些层可能同步也可能不同步于物体层，具体取决于配置。
+    // 例如，单喷嘴多材料打印需要生成废料塔，如果工具更换尽可能少，
+    // 则浪费的材料也更少。
     SupportGeneratorLayersPtr intermediate_layers = this->raft_and_intermediate_support_layers(
         object, bottom_contacts, top_contacts, layer_storage);
 
@@ -453,7 +451,7 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
 
     BOOST_LOG_TRIVIAL(info) << "Support generator - Creating base layers";
 
-    // Fill in intermediate layers between the top / bottom support contact layers, trim them by the object.
+    // 填充顶部/底部支撑接触层之间的中间层，并用物体对象修剪它们。
     this->generate_base_layers(object, bottom_contacts, top_contacts, intermediate_layers, layer_support_areas);
 
 #ifdef SLIC3R_DEBUG
@@ -465,25 +463,25 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
 
     BOOST_LOG_TRIVIAL(info) << "Support generator - Trimming top contacts by bottom contacts";
 
-    // Because the top and bottom contacts are thick slabs, they may overlap causing over extrusion 
-    // and unwanted strong bonds to the object.
-    // Rather trim the top contacts by their overlapping bottom contacts to leave a gap instead of over extruding
-    // top contacts over the bottom contacts.
+    // 因为顶部和底部接触层是厚板，它们可能重叠，导致过度挤出
+    // 以及与物体的不希望的强粘合。
+    // 与其在底部接触层上过度挤出顶部接触层，
+    // 不如用重叠的底部接触层修剪顶部接触层以留下间隙。
     this->trim_top_contacts_by_bottom_contacts(object, bottom_contacts, top_contacts);
 
 
     BOOST_LOG_TRIVIAL(info) << "Support generator - Creating interfaces";
 
-    // Propagate top / bottom contact layers to generate interface layers 
-    // and base interface layers (for soluble interface / non souble base only)
+    // 传播顶部/底部接触层以生成接口层
+    // 和基础接口层（仅适用于可溶接口/非可溶基础）
 	SupportGeneratorLayersPtr empty_layers;
     auto [interface_layers, base_interface_layers] = generate_interface_layers(*m_object_config, m_support_params, bottom_contacts, top_contacts, empty_layers, empty_layers, intermediate_layers, layer_storage);
 
     BOOST_LOG_TRIVIAL(info) << "Support generator - Creating raft";
 
-    // If raft is to be generated, the 1st top_contact layer will contain the 1st object layer silhouette with holes filled.
-    // There is also a 1st intermediate layer containing bases of support columns.
-    // Inflate the bases of the support columns and create the raft base under the object.
+    // 如果要生成筏层，第一个 top_contact 层将包含第一个物体层的轮廓（孔洞已填充）。
+    // 还有一个包含支撑柱底部的第一个中间层。
+    // 膨胀支撑柱的底部并在物体下方创建筏层基础。
     SupportGeneratorLayersPtr raft_layers = generate_raft_base(object, m_support_params, m_slicing_params, top_contacts, interface_layers, base_interface_layers, intermediate_layers, layer_storage);
 
     if (object.print()->canceled())
@@ -510,7 +508,7 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
 
     BOOST_LOG_TRIVIAL(info) << "Support generator - Creating layers";
 
-// For debugging purposes, one may want to show only some of the support extrusions.
+// 出于调试目的，可能只想显示部分支撑挤出物。
 //    raft_layers.clear();
 //    bottom_contacts.clear();
 //    top_contacts.clear();
@@ -528,8 +526,8 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
     {
         size_t layer_id = 0;
         for (int i = 0; i < int(layers_sorted.size());) {
-            // Find the last layer with roughly the same print_z, find the minimum layer height of all.
-            // Due to the floating point inaccuracies, the print_z may not be the same even if in theory they should.
+            // 找到具有大致相同 print_z 的最后一层，找到所有层的最小层高。
+            // 由于浮点数精度问题，即使理论上应该相同，print_z 也可能不同。
             int j = i + 1;
             coordf_t zmax = layers_sorted[i]->print_z + EPSILON;
             bool empty = true;
@@ -551,15 +549,15 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
     }
 #endif /* SLIC3R_DEBUG */
 
-    // Generate the actual toolpaths and save them into each layer.
+    // 生成实际刀具路径并保存到每个层中。
     generate_support_toolpaths(object.support_layers(), *m_object_config, m_support_params, m_slicing_params, raft_layers, bottom_contacts, top_contacts, intermediate_layers, interface_layers, base_interface_layers);
 
 #ifdef SLIC3R_DEBUG
     {
         size_t layer_id = 0;
         for (int i = 0; i < int(layers_sorted.size());) {
-            // Find the last layer with roughly the same print_z, find the minimum layer height of all.
-            // Due to the floating point inaccuracies, the print_z may not be the same even if in theory they should.
+            // 找到具有大致相同 print_z 的最后一层，找到所有层的最小层高。
+            // 由于浮点数精度问题，即使理论上应该相同，print_z 也可能不同。
             int j = i + 1;
             coordf_t zmax = layers_sorted[i]->print_z + EPSILON;
             bool empty = true;
@@ -584,7 +582,7 @@ void PrintObjectSupportMaterial::generate(PrintObject &object)
     BOOST_LOG_TRIVIAL(info) << "Support generator - End";
 }
 
-// Collect all polygons of all regions in a layer with a given surface type.
+// 收集层中所有具有给定表面类型的区域的多边形。
 Polygons collect_region_slices_by_type(const Layer &layer, SurfaceType surface_type)
 {
     // 1) Count the new polygons first.
@@ -603,8 +601,8 @@ Polygons collect_region_slices_by_type(const Layer &layer, SurfaceType surface_t
     return out;
 }
 
-// Collect outer contours of all slices of this layer.
-// This is useful for calculating the support base with holes filled.
+// 收集该层所有切片的外轮廓。
+// 这对于计算填充孔洞后的支撑基础非常有用。
 Polygons collect_slices_outer(const Layer &layer)
 {
     Polygons out;
@@ -638,9 +636,9 @@ class SupportGridPattern
 {
 public:
     SupportGridPattern(
-        // Support islands, to be stretched into a grid. Already trimmed with min(lower_layer_offset, m_gap_xy)
+        // 支撑岛，将被拉伸成网格。已用 min(lower_layer_offset, m_gap_xy) 修剪
         const Polygons          *support_polygons, 
-        // Trimming polygons, to trim the stretched support islands. support_polygons were already trimmed with trimming_polygons.
+        // 修剪多边形，用于修剪拉伸后的支撑岛。support_polygons 已用 trimming_polygons 修剪。
         const Polygons          *trimming_polygons,
         const SupportGridParams &params) :
         m_style(params.style),
@@ -655,9 +653,9 @@ public:
         switch (m_style) {
         case smsGrid:
         {
-            // Prepare the grid data, it will be reused when extracting support structures.
+            // 准备网格数据，将在提取支撑结构时重用。
             if (m_support_angle != 0.) {
-                // Create a copy of the rotated contours.
+                // 创建旋转后的轮廓副本。
                 m_support_polygons_rotated  = *support_polygons;
                 m_trimming_polygons_rotated = *trimming_polygons;
                 m_support_polygons  = &m_support_polygons_rotated;

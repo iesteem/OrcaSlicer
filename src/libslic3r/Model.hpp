@@ -20,11 +20,11 @@
 #include "EmbossShape.hpp"
 #include "TriangleSelector.hpp"
 
-//BBS: add bbs 3mf
+//BBS：添加 bbs 3mf
 #include "Format/bbs_3mf.hpp"
-//BBS: add step
+//BBS：添加 step
 #include "Format/STEP.hpp"
-//BBS: add stl
+//BBS：添加 stl
 #include "Format/STL.hpp"
 #include "Format/OBJ.hpp"
 
@@ -59,7 +59,7 @@ class ModelWipeTower;
 class Print;
 class SLAPrint;
 class TriangleSelector;
-//BBS: add Preset
+//BBS：添加 Preset
 class Preset;
 class BBLProject;
 
@@ -92,7 +92,7 @@ private:
     Timestamp          timestamp() const throw() override { return this->ModelConfig::timestamp(); }
     bool               object_id_and_timestamp_match(const ModelConfigObject &rhs) const throw() { return this->id() == rhs.id() && this->timestamp() == rhs.timestamp(); }
 
-    // called by ModelObject::assign_copy()
+    // 由 ModelObject::assign_copy() 调用
 	ModelConfigObject& operator=(const ModelConfigObject &rhs) = default;
     ModelConfigObject& operator=(ModelConfigObject &&rhs) = default;
 
@@ -126,24 +126,24 @@ typedef std::vector<ModelVolume*> ModelVolumePtrs;
 typedef std::vector<ModelInstance*> ModelInstancePtrs;
 
 #define OBJECTBASE_DERIVED_COPY_MOVE_CLONE(TYPE) \
-    /* Copy a model, copy the IDs. The Print::apply() will call the TYPE::copy() method */ \
-    /* to make a private copy for background processing. */ \
+    /* 复制模型，复制 ID。Print::apply() 将调用 TYPE::copy() 方法 */ \
+    /* 以制作后台处理的私有副本。 */ \
     static TYPE* new_copy(const TYPE &rhs)  { auto *ret = new TYPE(rhs); assert(ret->id() == rhs.id()); return ret; } \
     static TYPE* new_copy(TYPE &&rhs)       { auto *ret = new TYPE(std::move(rhs)); assert(ret->id() == rhs.id()); return ret; } \
     static TYPE  make_copy(const TYPE &rhs) { TYPE ret(rhs); assert(ret.id() == rhs.id()); return ret; } \
     static TYPE  make_copy(TYPE &&rhs)      { TYPE ret(std::move(rhs)); assert(ret.id() == rhs.id()); return ret; } \
     TYPE&        assign_copy(const TYPE &rhs); \
     TYPE&        assign_copy(TYPE &&rhs); \
-    /* Copy a TYPE, generate new IDs. The front end will use this call. */ \
+    /* 复制 TYPE，生成新 ID。前端将使用此调用。 */ \
     static TYPE* new_clone(const TYPE &rhs) { \
-        /* Default constructor assigning an invalid ID. */ \
+        /* 默认构造函数分配无效 ID。 */ \
         auto obj = new TYPE(-1); \
         obj->assign_clone(rhs); \
         assert(obj->id().valid() && obj->id() != rhs.id()); \
         return obj; \
 	} \
     TYPE         make_clone(const TYPE &rhs) { \
-        /* Default constructor assigning an invalid ID. */ \
+        /* 默认构造函数分配无效 ID。 */ \
         TYPE obj(-1); \
         obj.assign_clone(rhs); \
         assert(obj.id().valid() && obj.id() != rhs.id()); \
@@ -157,13 +157,13 @@ typedef std::vector<ModelInstance*> ModelInstancePtrs;
 		return *this; \
     }
 
-// Material, which may be shared across multiple ModelObjects of a single Model.
+// 材料，可以在单个模型的多个 ModelObjects 之间共享。
 class ModelMaterial final : public ObjectBase
 {
 public:
-    // Attributes are defined by the AMF file format, but they don't seem to be used by Slic3r for any purpose.
+    // 属性由 AMF 文件格式定义，但似乎 Slic3r 不将其用于任何目的。
     t_model_material_attributes attributes;
-    // Dynamic configuration storage for the object specific configuration values, overriding the global configuration.
+    // 用于对象特定配置值的动态配置存储，覆盖全局配置。
     ModelConfigObject config;
 
     Model* get_model() const { return m_model; }
@@ -171,10 +171,10 @@ public:
         { this->attributes.insert(attributes.begin(), attributes.end()); }
 
 private:
-    // Parent, owning this material.
+    // 拥有此材料的父对象。
     Model *m_model;
 
-    // To be accessed by the Model.
+    // 由 Model 访问。
     friend class Model;
 	// Constructor, which assigns a new unique ID to the material and to its config.
 	ModelMaterial(Model *model) : m_model(model) { assert(this->id().valid()); }
@@ -230,7 +230,7 @@ private:
     // Move constructor copies the ID.
     explicit LayerHeightProfile(LayerHeightProfile &&rhs) = default;
 
-    // called by ModelObject::assign_copy()
+    // 由 ModelObject::assign_copy() 调用
     LayerHeightProfile& operator=(const LayerHeightProfile &rhs) = default;
     LayerHeightProfile& operator=(LayerHeightProfile &&rhs) = default;
 

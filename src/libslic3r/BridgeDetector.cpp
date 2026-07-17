@@ -1,4 +1,4 @@
-#include "BridgeDetector.hpp"
+﻿#include "BridgeDetector.hpp"
 #include "ClipperUtils.hpp"
 #include "Geometry.hpp"
 #include <algorithm>
@@ -9,9 +9,9 @@ BridgeDetector::BridgeDetector(
     ExPolygon         _expolygon,
     const ExPolygons &_lower_slices, 
     coord_t           _spacing) :
-    // The original infill polygon, not inflated.
+    // 原始填充多边形，未膨胀。
     expolygons(expolygons_owned),
-    // All surfaces of the object supporting this region.
+    // 支持此区域的对象的所有表面。
     lower_slices(_lower_slices),
     spacing(_spacing)
 {
@@ -23,9 +23,9 @@ BridgeDetector::BridgeDetector(
     const ExPolygons  &_expolygons,
     const ExPolygons  &_lower_slices,
     coord_t            _spacing) : 
-    // The original infill polygon, not inflated.
+    // 原始填充多边形，未膨胀。
     expolygons(_expolygons),
-    // All surfaces of the object supporting this region.
+    // 支持此区域的对象的所有表面。
     lower_slices(_lower_slices),
     spacing(_spacing)
 {
@@ -34,12 +34,12 @@ BridgeDetector::BridgeDetector(
 
 void BridgeDetector::initialize()
 {
-    // 5 degrees stepping
+    // 5 度步进
     this->resolution = PI/36.0; 
-    // output angle not known
+    // 输出角度未知
     this->angle = -1.;
 
-    // Outset our bridge by an arbitrary amout; we'll use this outer margin for detecting anchors.
+    // 将桥接区域向外扩展任意量；我们将使用此外边距来检测锚点。
     Polygons grown = offset(this->expolygons, float(this->spacing));
     
     // Detect possible anchoring edges of this bridging region.
@@ -75,7 +75,7 @@ void BridgeDetector::initialize()
 bool BridgeDetector::detect_angle(double bridge_direction_override)
 {
     if (this->_edges.empty() || this->_anchor_regions.empty()) 
-        // The bridging region is completely in the air, there are no anchors available at the layer below.
+        // 桥接区域完全悬空，下层没有可用的锚点。
         return false;
 
     std::vector<BridgeDirection> candidates;

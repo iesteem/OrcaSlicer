@@ -1,4 +1,4 @@
-#ifndef CSGMESH_HPP
+﻿#ifndef CSGMESH_HPP
 #define CSGMESH_HPP
 
 #include <libslic3r/AnyPtr.hpp>
@@ -6,65 +6,63 @@
 
 namespace Slic3r { namespace csg {
 
-// A CSGPartT should be an object that can provide at least a mesh + trafo and an
-// associated csg operation. A collection of CSGPartT objects can then
-// be interpreted as one model and used in various contexts. It can be assembled
-// with CGAL or OpenVDB, rendered with OpenCSG or provided to a ray-tracer to
-// deal with various parts of it according to the supported CSG types...
+//// 一个 CSGPartT 应为一个对象，该可以提供至少一个 mesh + trafo 和一个
+//// 关联的 csg 操作。一组 CSGPartT 对象可以则
+//// 被解释为一个 model 并在各种上下文（contexts）中使用。它可以被组装
+//// 使用 CGAL 或 OpenVDB，使用 OpenCSG 渲染或提供给光线追踪器以
+//// 根据支持的 CSG 类型处理其各个部分...
 //
-// A few simple templated interface functions are provided here and a default
-// CSGPart class that implements the necessary means to be usable as a
-// CSGPartT object.
+//// 一些简单的模板化接口函数在此提供，以及一个默认
+//// CSGPart 类，该类实现了作为 CSGPartT 对象使用的必要手段。
 
-// Supported CSG operation types
+//// 支持的 CSG 操作类型
 enum class CSGType { Union, Difference, Intersection };
 
-// A CSG part can instruct the processing to push the sub-result until a new
-// csg part with a pop instruction appears. This can be used to implement
-// parentheses in a CSG expression represented by the collection of csg parts.
-// A CSG part can not contain another CSG collection, only a mesh, this is why
-// its easier to do this stacking instead of recursion in the data definition.
-// CSGStackOp::Continue means no stack operation required.
-// When a CSG part contains a Push instruction, it is expected that the CSG
-// operation it contains refers to the whole collection spanning to the nearest
-// part with a Pop instruction.
-// e.g.:
-// {
-//      CUBE1: { mesh: cube, op: Union, stack op: Continue },
-//      CUBE2: { mesh: cube, op: Difference, stack op: Push},
-//      CUBE3: { mesh: cube, op: Union, stack op: Pop}
-// }
-// is a collection of csg parts representing the expression CUBE1 - (CUBE2 + CUBE3)
+//// 一个 CSG part 可以指示处理程序将子结果推入栈中，直到一个
+//// 带有弹出指令的新 csg part 出现。这可以用于实现
+//// 由一组 csg parts 表示的 CSG 表达式中的括号。
+//// 一个 CSG part 不能包含另一个 CSG 集合，仅一个 mesh，这就是为什么
+// 在数据定义中做这种栈操作比递归更容易。
+//// CSGStackOp::Continue 表示无需栈操作。
+//// 当一个 CSG part 包含 Push 指令时，它包含的 CSG
+// 操作涉及直到最近的带有 Pop 指令的 part 的整个集合。
+//// 例如：
+//// {
+//// CUBE1: { mesh: cube, op: Union, 栈操作: Continue },
+//// CUBE2: { mesh: cube, op: 差异, 栈操作: Push},
+//// CUBE3: { mesh: cube, op: Union, 栈操作: Pop}
+//// }
+//// 是一组 csg parts 表示表达式 CUBE1 - (CUBE2 + CUBE3)
 enum class CSGStackOp { Push, Continue, Pop };
 
-// Get the CSG operation of the part. Can be overriden for any type
+//// 获取 part 的 CSG 操作。可以被任何类型重写
 template<class CSGPartT> CSGType get_operation(const CSGPartT &part)
 {
     return part.operation;
 }
 
-// Get the stack operation required by the CSG part.
+//// 获取 CSG part 所需的栈操作。
 template<class CSGPartT> CSGStackOp get_stack_operation(const CSGPartT &part)
 {
     return part.stack_operation;
 }
 
-// Get the mesh for the part. Can be overriden for any type
+//// 获取 part 的网格。可以被任何类型重写
 template<class CSGPartT>
 const indexed_triangle_set *get_mesh(const CSGPartT &part)
 {
     return part.its_ptr.get();
 }
 
-// Get the transformation associated with the mesh inside a CSGPartT object.
-// Can be overriden for any type.
+//// 获取与 CSGPartT 对象中的网格关联的变换。
+//// 可以被任何类型重写。
 template<class CSGPartT>
 Transform3f get_transform(const CSGPartT &part)
 {
     return part.trafo;
 }
 
-// Default implementation
+//// 默认实现
 struct CSGPart {
     AnyPtr<const indexed_triangle_set> its_ptr;
     Transform3f trafo;
@@ -82,8 +80,8 @@ struct CSGPart {
     {}
 };
 
-//Prusa
-// Check if there are only positive parts (Union) within the collection.
+//// Prusa
+//// 检查集合中是否只有正 parts（Union）。
 template<class Cont> bool is_all_positive(const Cont &csgmesh)
 {
     bool is_all_pos =
@@ -96,9 +94,8 @@ template<class Cont> bool is_all_positive(const Cont &csgmesh)
     return is_all_pos;
 }
 
-//Prusa
-// Merge all the positive parts of the collection into a single triangle mesh without performing
-// any booleans.
+//// Prusa
+//// 合并集合中所有正 parts 为一个三角网格，不执行任何布尔运算。
 template<class Cont>
 indexed_triangle_set csgmesh_merge_positive_parts(const Cont &csgmesh)
 {

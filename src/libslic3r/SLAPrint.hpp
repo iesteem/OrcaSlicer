@@ -60,11 +60,11 @@ public:
     struct Instance {
         Instance(ObjectID inst_id, const Point &shft, float rot) : instance_id(inst_id), shift(shft), rotation(rot) {}
         bool operator==(const Instance &rhs) const { return this->instance_id == rhs.instance_id && this->shift == rhs.shift && this->rotation == rhs.rotation; }
-        // ID of the corresponding ModelInstance.
+        // 对应的ModelInstance的ID。
         ObjectID instance_id;
-        // Slic3r::Point objects in scaled G-code coordinates
+        // 缩放G-code坐标中的Slic3r::Point对象
         Point 	shift;
-        // Rotation along the Z axis, in radians.
+        // 沿Z轴的旋转，弧度为单位。
         float 	rotation;
     };
     const std::vector<Instance>& instances() const { return m_instances; }
@@ -72,18 +72,18 @@ public:
     bool                    has_mesh(SLAPrintObjectStep step) const;
     TriangleMesh            get_mesh(SLAPrintObjectStep step) const;
 
-    // Get a support mesh centered around origin in XY, and with zero rotation around Z applied.
-    // Support mesh is only valid if this->is_step_done(slaposSupportTree) is true.
+    // 获取围绕XY原点居中且绕Z轴零旋转的支撑网格。
+    // 仅当this->is_step_done(slaposSupportTree)为true时支撑网格才有效。
     const TriangleMesh&     support_mesh() const;
-    // Get a pad mesh centered around origin in XY, and with zero rotation around Z applied.
-    // Support mesh is only valid if this->is_step_done(slaposPad) is true.
+    // 获取围绕XY原点居中且绕Z轴零旋转的底座网格。
+    // 仅当this->is_step_done(slaposPad)为true时底座网格才有效。
     const TriangleMesh&     pad_mesh() const;
 
-    // Ready after this->is_step_done(slaposDrillHoles) is true
+    // 当this->is_step_done(slaposDrillHoles)为true后准备就绪
     const indexed_triangle_set &hollowed_interior_mesh() const;
 
-    // Get the mesh that is going to be printed with all the modifications
-    // like hollowing and drilled holes.
+    // 获取将要打印的带有所有修改的网格
+    // 例如中空化和钻孔。
     const TriangleMesh & get_mesh_to_print() const {
         return (m_hollowing_data && is_step_done(slaposDrillHoles)) ? m_hollowing_data->hollow_mesh_with_holes_trimmed : transformed_mesh();
     }
@@ -92,38 +92,38 @@ public:
         return (m_hollowing_data && is_step_done(slaposDrillHoles)) ? m_hollowing_data->hollow_mesh_with_holes : transformed_mesh();
     }
 
-    // This will return the transformed mesh which is cached
+    // 这将返回已缓存的变换后的网格
     const TriangleMesh&     transformed_mesh() const;
 
     sla::SupportPoints      transformed_support_points() const;
     sla::DrainHoles         transformed_drainhole_points() const;
 
-    // Get the needed Z elevation for the model geometry if supports should be
-    // displayed. This Z offset should also be applied to the support
-    // geometries. Note that this is not the same as the value stored in config
-    // as the pad height also needs to be considered.
+    // 如果需要显示支撑，获取模型几何所需的高度提升。
+    // 此Z偏移也应应用于支撑几何。
+    // 注意，这与配置中存储的值不同，
+    // 因为底座高度也需要考虑。
     double get_elevation() const;
 
-    // This method returns the needed elevation according to the processing
-    // status. If the supports are not ready, it is zero, if they are and the
-    // pad is not, then without the pad, otherwise the full value is returned.
+    // 此方法根据处理状态返回所需的高度提升。
+    // 如果支撑未就绪，则为零；如果支撑已就绪但底座未就绪，则不带底座；
+    // 否则返回完整值。
     double get_current_elevation() const;
 
-    // This method returns the support points of this SLAPrintObject.
+    // 此方法返回此 SLAPrintObject 的支撑点。
     const std::vector<sla::SupportPoint>& get_support_points() const;
 
-    // The public Slice record structure. It corresponds to one printable layer.
+    // 公共切片记录结构。对应一个可打印层。
     class SliceRecord {
     public:
-        // this will be the max limit of size_t
+        // 这是 size_t 的最大限制
         static const size_t NONE = size_t(-1);
 
         static const SliceRecord EMPTY;
 
     private:
-        coord_t   m_print_z = 0;      // Top of the layer
-        float     m_slice_z = 0.f;    // Exact level of the slice
-        float     m_height  = 0.f;     // Height of the sliced layer
+        coord_t   m_print_z = 0;      // 层的顶部
+        float     m_slice_z = 0.f;    // 切片的精确高度
+        float     m_height  = 0.f;     // 切片层的高度
 
         size_t m_model_slices_idx = NONE;
         size_t m_support_slices_idx = NONE;
@@ -134,20 +134,20 @@ public:
         SliceRecord(coord_t key, float slicez, float height):
             m_print_z(key), m_slice_z(slicez), m_height(height) {}
 
-        // The key will be the integer height level of the top of the layer.
+        // 键将是层顶部的整数高度级别。
         coord_t print_level() const { return m_print_z; }
 
-        // Returns the exact floating point Z coordinate of the slice
+        // 返回切片的精确浮点Z坐标
         float slice_level() const { return m_slice_z; }
 
-        // Returns the current layer height
+        // 返回当前层高
         float layer_height() const { return m_height; }
 
         bool is_valid() const { return m_po && ! std::isnan(m_slice_z); }
 
         const SLAPrintObject* print_obj() const { return m_po; }
 
-        // Methods for setting the indices into the slice vectors.
+        // 用于设置切片向量索引的方法。
         void set_model_slice_idx(const SLAPrintObject &po, size_t id) {
             m_po = &po; m_model_slices_idx = id;
         }
@@ -179,11 +179,10 @@ private:
                    : SliceRecord{0, float(val), 0.f};
     }
 
-    // This is a template method for searching the slice index either by
-    // an integer key: print_level or a floating point key: slice_level.
-    // The eps parameter gives the max deviation in + or - direction.
+    // 这是一个模板方法，用于通过整数键（print_level）或浮点键（slice_level）搜索切片索引。
+    // eps 参数给出了正负方向的最大偏差。
     //
-    // This method can be used in const or non-const contexts as well.
+    // 此方法可在 const 或非 const 上下文中使用。
     template<class Container, class T>
     static auto closest_slice_record(
             Container& cont,

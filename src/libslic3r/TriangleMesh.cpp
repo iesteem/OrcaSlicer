@@ -78,13 +78,13 @@ TriangleMesh::TriangleMesh(indexed_triangle_set &&its, const RepairedMeshErrors&
 
 static void trianglemesh_repair_on_import(stl_file &stl)
 {
-    // admesh fails when repairing empty meshes
+    // admesh 在修复空网格时会失败
     if (stl.stats.number_of_facets == 0)
         return;
 
     BOOST_LOG_TRIVIAL(debug) << "TriangleMesh::repair() started";
 
-    // checking exact
+    // 检查精确匹配
 #ifdef SLIC3R_TRACE_REPAIR
     BOOST_LOG_TRIVIAL(trace) << "\tstl_check_faces_exact";
 #endif /* SLIC3R_TRACE_REPAIR */
@@ -94,17 +94,17 @@ static void trianglemesh_repair_on_import(stl_file &stl)
     stl.stats.facets_w_1_bad_edge = (stl.stats.connected_facets_2_edge - stl.stats.connected_facets_3_edge);
     stl.stats.facets_w_2_bad_edge = (stl.stats.connected_facets_1_edge - stl.stats.connected_facets_2_edge);
     stl.stats.facets_w_3_bad_edge = (stl.stats.number_of_facets - stl.stats.connected_facets_1_edge);
-    
-    // checking nearby
+
+    // 检查附近匹配
     //int last_edges_fixed = 0;
     float tolerance = (float)stl.stats.shortest_edge;
     float increment = (float)stl.stats.bounding_diameter / 10000.0f;
     int iterations = 2;
     if (stl.stats.connected_facets_3_edge < int(stl.stats.number_of_facets)) {
-        // Not a manifold, some triangles have unconnected edges.
+        // 不是流形，一些三角形有未连接的边。
         for (int i = 0; i < iterations; ++ i) {
             if (stl.stats.connected_facets_3_edge < int(stl.stats.number_of_facets)) {
-                // Still not a manifold, some triangles have unconnected edges.
+                // 仍然不是流形，一些三角形有未连接的边。
                 //printf("Checking nearby. Tolerance= %f Iteration=%d of %d...", tolerance, i + 1, iterations);
 #ifdef SLIC3R_TRACE_REPAIR
                 BOOST_LOG_TRIVIAL(trace) << "\tstl_check_faces_nearby";
@@ -119,8 +119,8 @@ static void trianglemesh_repair_on_import(stl_file &stl)
         }
     }
     assert(stl_validate(&stl));
-    
-    // remove_unconnected
+
+    // 移除未连接的面
     if (stl.stats.connected_facets_3_edge < (int)stl.stats.number_of_facets) {
 #ifdef SLIC3R_TRACE_REPAIR
         BOOST_LOG_TRIVIAL(trace) << "\tstl_remove_unconnected_facets";
@@ -128,11 +128,11 @@ static void trianglemesh_repair_on_import(stl_file &stl)
         stl_remove_unconnected_facets(&stl);
         assert(stl_validate(&stl));
     }
-    
-    // fill_holes
+
+    // 填充孔洞
 #if 0
-    // Don't fill holes, the current algorithm does more harm than good on complex holes.
-    // Rather let the slicing algorithm close gaps in 2D slices.
+    // 不填充孔洞，当前算法对于复杂孔洞弊大于利。
+    // 而是让切片算法在2D切片中闭合间隙。
     if (stl.stats.connected_facets_3_edge < stl.stats.number_of_facets) {
 #ifdef SLIC3R_TRACE_REPAIR
         BOOST_LOG_TRIVIAL(trace) << "\tstl_fill_holes";
@@ -142,36 +142,36 @@ static void trianglemesh_repair_on_import(stl_file &stl)
     }
 #endif
 
-    // normal_directions
+    // 法线方向
 #ifdef SLIC3R_TRACE_REPAIR
     BOOST_LOG_TRIVIAL(trace) << "\tstl_fix_normal_directions";
 #endif /* SLIC3R_TRACE_REPAIR */
     stl_fix_normal_directions(&stl);
     assert(stl_validate(&stl));
 
-    // normal_values
+    // 法线值
 #ifdef SLIC3R_TRACE_REPAIR
     BOOST_LOG_TRIVIAL(trace) << "\tstl_fix_normal_values";
 #endif /* SLIC3R_TRACE_REPAIR */
     stl_fix_normal_values(&stl);
     assert(stl_validate(&stl));
-    
-    // always calculate the volume and reverse all normals if volume is negative
+
+    // 始终计算体积，如果体积为负则反转所有法线
 #ifdef SLIC3R_TRACE_REPAIR
     BOOST_LOG_TRIVIAL(trace) << "\tstl_calculate_volume";
 #endif /* SLIC3R_TRACE_REPAIR */
-    // If the volume is negative, all the facets are flipped and added to stats.facets_reversed.
+    // 如果体积为负，所有面被翻转并添加到 stats.facets_reversed 中。
     stl_calculate_volume(&stl);
     assert(stl_validate(&stl));
-    
-    // neighbors
+
+    // 邻居
 #ifdef SLIC3R_TRACE_REPAIR
     BOOST_LOG_TRIVIAL(trace) << "\tstl_verify_neighbors";
 #endif /* SLIC3R_TRACE_REPAIR */
     stl_verify_neighbors(&stl);
     assert(stl_validate(&stl));
 
-    //FIXME The admesh repair function may break the face connectivity, rather refresh it here as the slicing code relies on it.
+    //FIXME admesh 修复函数可能破坏面的连接性，因此在此刷新，因为切片代码依赖它。
     if (auto nr_degenerated = stl.stats.degenerate_facets; stl.stats.number_of_facets > 0 && nr_degenerated > 0)
         stl_check_facets_exact(&stl);
 
@@ -246,13 +246,13 @@ void TriangleMesh::scale(float factor)
 
 void TriangleMesh::scale(const Vec3f &versor)
 {
-    // Scale extents.
+    // 缩放范围。
     auto s = versor.array();
     m_stats.min.array() *= s;
     m_stats.max.array() *= s;
-    // Scale size.
+    // 缩放尺寸。
     m_stats.size.array() *= s;
-    // Scale volume.
+    // 缩放体积。
     if (m_stats.volume > 0.0)
         m_stats.volume *= s(0) * s(1) * s(2);
     if (versor.x() == versor.y() && versor.x() == versor.z()) {
@@ -380,7 +380,7 @@ void TriangleMesh::rotate(double angle, Point* center)
 }
 
 /**
- * Calculates whether or not the mesh is splittable.
+ * 计算网格是否可分割。
  */
 bool TriangleMesh::is_splittable() const
 {
@@ -393,10 +393,10 @@ std::vector<TriangleMesh> TriangleMesh::split() const
     std::vector<TriangleMesh> out;
     out.reserve(itss.size());
     for (indexed_triangle_set &m : itss) {
-        // The TriangleMesh constructor shall fill in the mesh statistics including volume.
+        // TriangleMesh 构造函数应填充网格统计信息，包括体积。
         out.emplace_back(std::move(m));
         if (TriangleMesh &triangle_mesh = out.back(); triangle_mesh.volume() < 0)
-            // Some source mesh parts may be incorrectly oriented. Correct them.
+            // 某些源网格部分可能方向不正确。纠正它们。
             triangle_mesh.flip_triangles();
 
     }
@@ -409,14 +409,14 @@ void TriangleMesh::merge(const TriangleMesh &mesh)
     m_stats = m_stats.merge(mesh.m_stats);
 }
 
-// Calculate projection of the mesh into the XY plane, in scaled coordinates.
-//FIXME This could be extremely slow! Use it for tiny meshes only!
+// 计算网格在 XY 平面上的投影，使用缩放坐标。
+//FIXME 这可能非常慢！仅用于微小网格！
 ExPolygons TriangleMesh::horizontal_projection() const
 {
     return union_ex(project_mesh(this->its, Transform3d::Identity(), []() {}));
 }
 
-// 2D convex hull of a 3D mesh projected into the Z=0 plane.
+// 投影到 Z=0 平面的 3D 网格的 2D 凸包。
 Polygon TriangleMesh::convex_hull() const
 {
     Points pp;
@@ -447,7 +447,7 @@ BoundingBoxf3 TriangleMesh::transformed_bounding_box(const Transform3d &trafo) c
 
 BoundingBoxf3 TriangleMesh::transformed_bounding_box(const Transform3d& trafod, double world_min_z) const
 {
-    // 1) Allocate transformed vertices with their position with respect to print bed surface.
+    // 1) 分配变换后的顶点及其相对于打印床表面的位置。
     std::vector<char>           sides;
     size_t                      num_above = 0;
     Eigen::AlignedBox<float, 3> bbox;
@@ -458,26 +458,26 @@ BoundingBoxf3 TriangleMesh::transformed_bounding_box(const Transform3d& trafod, 
         const int        sign = pt.z() > world_min_z ? 1 : pt.z() < world_min_z ? -1 : 0;
         sides.emplace_back(sign);
         if (sign >= 0) {
-            // Vertex above or on print bed surface. Test whether it is inside the build volume.
+            // 顶点在打印床表面上或上方。测试它是否在构建体积内。
             ++ num_above;
             bbox.extend(pt);
         }
     }
 
-    // 2) Calculate intersections of triangle edges with the build surface.
+    // 2) 计算三角形边与构建表面的交点。
     if (num_above < its.vertices.size()) {
-        // Not completely above the build surface and status may still change by testing edges intersecting the build platform.
+        // 未完全在构建表面上，状态可能仍会因测试与构建平台相交的边而改变。
         for (const stl_triangle_vertex_indices &tri : its.indices) {
             const int s[3] = { sides[tri(0)], sides[tri(1)], sides[tri(2)] };
             if (std::min(s[0], std::min(s[1], s[2])) < 0 && std::max(s[0], std::max(s[1], s[2])) > 0) {
-                // Some edge of this triangle intersects the build platform. Calculate the intersection.
+                // 此三角形的某些边与构建平台相交。计算交点。
                 int iprev = 2;
                 for (int iedge = 0; iedge < 3; ++ iedge) {
                     if (s[iprev] * s[iedge] == -1) {
-                        // edge intersects the build surface. Calculate intersection point.
+                        // 边与构建表面相交。计算交点。
                         const stl_vertex p1 = trafo * its.vertices[tri(iprev)];
                         const stl_vertex p2 = trafo * its.vertices[tri(iedge)];
-                        // Edge crosses the z plane. Calculate intersection point with the plane.
+                        // 边穿过 z 平面。计算与平面的交点。
                         const float t = (world_min_z - p1.z()) / (p2.z() - p1.z());
                         bbox.extend(Vec3f(p1.x() + (p2.x() - p1.x()) * t, p1.y() + (p2.y() - p1.y()) * t, world_min_z));
                     }
@@ -499,14 +499,14 @@ BoundingBoxf3 TriangleMesh::transformed_bounding_box(const Transform3d& trafod, 
 TriangleMesh TriangleMesh::convex_hull_3d() const
 {
     TriangleMesh mesh(its_convex_hull(this->its));
-    // Quite often qhull produces non-manifold mesh.
+    // qhull 经常产生非流形网格。
     // assert(mesh.stats().manifold());
     return mesh;
 }
 
 std::vector<ExPolygons> TriangleMesh::slice(const std::vector<double> &z) const
 {
-    // convert doubles to floats
+    // 将 double 转换为 float
     std::vector<float> z_f(z.begin(), z.end());
     return slice_mesh_ex(this->its, z_f, 0.0004f);
 }
@@ -517,15 +517,15 @@ size_t TriangleMesh::memsize() const
     return memsize;
 }
 
-// Create a mapping from triangle edge into face.
+// 创建从三角形边到面的映射。
 struct EdgeToFace {
-    // Index of the 1st vertex of the triangle edge. vertex_low <= vertex_high.
+    // 三角形边的第一个顶点索引。vertex_low <= vertex_high。
     int  vertex_low;
-    // Index of the 2nd vertex of the triangle edge.
+    // 三角形边的第二个顶点索引。
     int  vertex_high;
-    // Index of a triangular face.
+    // 三角形面的索引。
     int  face;
-    // Index of edge in the face, starting with 1. Negative indices if the edge was stored reverse in (vertex_low, vertex_high).
+    // 面中边的索引，从1开始。如果边以逆序存储在(vertex_low, vertex_high)中，则为负索引。
     int  face_edge;
     bool operator==(const EdgeToFace &other) const { return vertex_low == other.vertex_low && vertex_high == other.vertex_high; }
     bool operator<(const EdgeToFace &other) const { return vertex_low < other.vertex_low || (vertex_low == other.vertex_low && vertex_high < other.vertex_high); }
@@ -545,12 +545,12 @@ static std::vector<EdgeToFace> create_edge_map(
                 e2f.vertex_low  = its.indices[facet_idx][i];
                 e2f.vertex_high = its.indices[facet_idx][(i + 1) % 3];
                 e2f.face        = facet_idx;
-                // 1 based indexing, to be always strictly positive.
+                // 从1开始索引，始终保持严格正数。
                 e2f.face_edge   = i + 1;
                 if (e2f.vertex_low > e2f.vertex_high) {
-                    // Sort the vertices
+                    // 对顶点排序
                     std::swap(e2f.vertex_low, e2f.vertex_high);
-                    // and make the face_edge negative to indicate a flipped edge.
+                    // 并将 face_edge 设为负值以表示翻转的边。
                     e2f.face_edge = - e2f.face_edge;
                 }
             }
@@ -560,8 +560,8 @@ static std::vector<EdgeToFace> create_edge_map(
     return edges_map;
 }
 
-// Map from a face edge to a unique edge identifier or -1 if no neighbor exists.
-// Two neighbor faces share a unique edge identifier even if they are flipped.
+// 从面边到唯一边标识符的映射，如果不存在邻居则为-1。
+// 即使相邻面翻转，两个相邻面也共享唯一的边标识符。
 template<typename FaceFilter, typename ThrowOnCancelCallback>
 static inline std::vector<Vec3i32> its_face_edge_ids_impl(const indexed_triangle_set &its, FaceFilter face_filter, ThrowOnCancelCallback throw_on_cancel)
 {
@@ -569,40 +569,39 @@ static inline std::vector<Vec3i32> its_face_edge_ids_impl(const indexed_triangle
 
     std::vector<EdgeToFace> edges_map = create_edge_map(its, face_filter, throw_on_cancel);
 
-    // Assign a unique common edge id to touching triangle edges.
+    // 为接触的三角形边分配唯一的公共边ID。
     int num_edges = 0;
     for (size_t i = 0; i < edges_map.size(); ++ i) {
         EdgeToFace &edge_i = edges_map[i];
         if (edge_i.face == -1)
-            // This edge has been connected to some neighbor already.
+            // 此边已连接到某个邻居。
             continue;
-        // Unconnected edge. Find its neighbor with the correct orientation.
+        // 未连接的边。找到其方向正确的邻居。
         size_t j;
         bool found = false;
         for (j = i + 1; j < edges_map.size() && edge_i == edges_map[j]; ++ j)
             if (edge_i.face_edge * edges_map[j].face_edge < 0 && edges_map[j].face != -1) {
-                // Faces touching with opposite oriented edges and none of the edges is connected yet.
+                // 面以相反方向的边接触，且两个边均未连接。
                 found = true;
                 break;
             }
         if (! found) {
-            //FIXME Vojtech: Trying to find an edge with equal orientation. This smells.
-            // admesh can assign the same edge ID to more than two facets (which is 
-            // still topologically correct), so we have to search for a duplicate of 
-            // this edge too in case it was already seen in this orientation
+            //FIXME Vojtech: 试图找到方向相同的边。这有问题。
+            // admesh 可以将同一个边ID分配给两个以上的面（这在拓扑上仍然正确），
+            // 因此我们也要搜索此边的重复项，以防它已经以此方向出现过。
             for (j = i + 1; j < edges_map.size() && edge_i == edges_map[j]; ++ j)
                 if (edges_map[j].face != -1) {
-                    // Faces touching with equally oriented edges and none of the edges is connected yet.
+                    // 面以相同方向的边接触，且两个边均未连接。
                     found = true;
                     break;
                 }
         }
-        // Assign an edge index to the 1st face.
+        // 为第一个面分配边索引。
         out[edge_i.face](std::abs(edge_i.face_edge) - 1) = num_edges;
         if (found) {
             EdgeToFace &edge_j = edges_map[j];
             out[edge_j.face](std::abs(edge_j.face_edge) - 1) = num_edges;
-            // Mark the edge as connected.
+            // 将边标记为已连接。
             edge_j.face = -1;
         }
         ++ num_edges;
@@ -628,10 +627,10 @@ std::vector<Vec3i32> its_face_edge_ids(const indexed_triangle_set &its, const st
     return its_face_edge_ids_impl(its, [&face_mask](const uint32_t idx){ return face_mask[idx]; }, [](){});
 }
 
-// Having the face neighbors available, assign unique edge IDs to face edges for chaining of polygons over slices.
+// 在面邻居可用的情况下，为面边分配唯一的边ID，用于在切片上连接多边形。
 std::vector<Vec3i32> its_face_edge_ids(const indexed_triangle_set &its, std::vector<Vec3i32> &face_neighbors, bool assign_unbound_edges, int *num_edges)
 {
-    // out elements are not initialized!
+    // out 元素未初始化！
     std::vector<Vec3i32> out(face_neighbors.size());
     int last_edge_id = 0;
     for (int i = 0; i < int(face_neighbors.size()); ++ i) {
@@ -643,13 +642,13 @@ std::vector<Vec3i32> its_face_edge_ids(const indexed_triangle_set &its, std::vec
                 const stl_triangle_vertex_indices &triangle2 = its.indices[n];
                 int   edge_id = last_edge_id ++;
                 Vec2i32 edge    = its_triangle_edge(triangle, j);
-                // First find an edge with opposite orientation.
+                // 首先找到相反方向的边。
                 std::swap(edge(0), edge(1));
                 int   k       = its_triangle_edge_index(triangle2, edge);
-                //FIXME is the following realistic? Could face_neighbors contain such faces?
-                // And if it does, do we want to produce the same edge ID for those mutually incorrectly oriented edges?
+                //FIXME 以下情况现实吗？face_neighbors 可能包含这样的面吗？
+                // 如果包含，我们是否希望为那些相互方向错误的边生成相同的边ID？
                 if (k == -1) {
-                    // Second find an edge with the same orientation (the neighbor triangle may be flipped).
+                    // 其次找到相同方向的边（邻居三角形可能已被翻转）。
                     std::swap(edge(0), edge(1));
                     k = its_triangle_edge_index(triangle2, edge);
                 }
@@ -659,9 +658,9 @@ std::vector<Vec3i32> its_face_edge_ids(const indexed_triangle_set &its, std::vec
             } else if (n == -1) {
                 out[i](j) = assign_unbound_edges ? last_edge_id ++ : -1;
             } else {
-                // Triangle shall never be neighbor of itself.
+                // 三角形永远不能成为自身的邻居。
                 assert(n < i);
-                // Don't do anything, the neighbor will assign us an edge ID in later iterations.
+                // 不做任何操作，邻居将在后续迭代中为我们分配边ID。
             }
         }
     }
@@ -673,7 +672,7 @@ std::vector<Vec3i32> its_face_edge_ids(const indexed_triangle_set &its, std::vec
 // Merge duplicate vertices, return number of vertices removed.
 int its_merge_vertices(indexed_triangle_set &its, bool shrink_to_fit)
 {
-    // 1) Sort indices to vertices lexicographically by coordinates AND vertex index.
+    // 1) 按坐标和顶点索引的字典序对顶点索引进行排序。
     auto sorted = reserve_vector<int>(its.vertices.size());
     for (int i = 0; i < int(its.vertices.size()); ++ i)
         sorted.emplace_back(i);
@@ -702,7 +701,7 @@ int its_merge_vertices(indexed_triangle_set &its, bool shrink_to_fit)
         i = j;
     }
 
-    // 3) Shrink its.vertices, update map_vertices with the new vertex indices.
+    // 3) 收缩 its.vertices，用新的顶点索引更新 map_vertices。
     int k = 0;
     for (int i = 0; i < int(its.vertices.size()); ++ i) {
         if (map_vertices[i] == -1) {
@@ -719,13 +718,13 @@ int its_merge_vertices(indexed_triangle_set &its, bool shrink_to_fit)
     int num_erased = int(its.vertices.size()) - k;
 
     if (num_erased) {
-        // Shrink the vertices.
+        // 收缩顶点数组。
         its.vertices.erase(its.vertices.begin() + k, its.vertices.end());
-        // Remap face indices.
+        // 重新映射面索引。
         for (stl_triangle_vertex_indices &face : its.indices)
             for (int i = 0; i < 3; ++ i)
                 face(i) = map_vertices[face(i)];
-        // Optionally shrink to fit (reallocate) vertices.
+        // 可选地收缩以适应（重新分配）顶点。
         if (shrink_to_fit)
             its.vertices.shrink_to_fit();
     }
@@ -756,13 +755,13 @@ int its_remove_degenerate_faces(indexed_triangle_set &its, bool shrink_to_fit)
 
 int its_compactify_vertices(indexed_triangle_set &its, bool shrink_to_fit)
 {
-    // First used to mark referenced vertices, later used for mapping old vertex index to a new one.
+    // 首先用于标记被引用的顶点，之后用于将旧顶点索引映射到新顶点索引。
     std::vector<int> vertex_map(its.vertices.size(), 0);
-    // Mark referenced vertices.
+    // 标记被引用的顶点。
     for (const stl_triangle_vertex_indices &face : its.indices)
         for (int i = 0; i < 3; ++ i)
             vertex_map[face(i)] = 1;
-    // Compactify vertices, update map from old vertex index to a new one.
+    // 压缩顶点，更新从旧顶点索引到新顶点索引的映射。
     int last = 0;
     for (int i = 0; i < int(vertex_map.size()); ++ i)
         if (vertex_map[i]) {
@@ -773,11 +772,11 @@ int its_compactify_vertices(indexed_triangle_set &its, bool shrink_to_fit)
     int removed = int(its.vertices.size()) - last;
     if (removed) {
         its.vertices.erase(its.vertices.begin() + last, its.vertices.end());
-        // Update faces with the new vertex indices.
+        // 使用新的顶点索引更新面。
         for (stl_triangle_vertex_indices &face : its.indices)
             for (int i = 0; i < 3; ++ i)
                 face(i) = vertex_map[face(i)];
-        // Optionally shrink the vertices.
+        // 可选地收缩顶点数组。
         if (shrink_to_fit)
             its.vertices.shrink_to_fit();
     }
@@ -843,7 +842,7 @@ void its_collect_mesh_projection_points_above(const indexed_triangle_set &its, c
             const Vec3f &p1 = pts[iprev];
             const Vec3f &p2 = pts[iedge];
             if ((p1.z() < z && p2.z() > z) || (p2.z() < z && p1.z() > z)) {
-                // Edge crosses the z plane. Calculate intersection point with the plane.
+                // 边穿过 z 平面。计算与平面的交点。
                 float t = (z - p1.z()) / (p2.z() - p1.z());
                 all_pts.emplace_back(scaled<coord_t>(p1.x() + (p2.x() - p1.x()) * t), scaled<coord_t>(p1.y() + (p2.y() - p1.y()) * t));
             }
@@ -897,7 +896,7 @@ indexed_triangle_set its_make_cube(double xd, double yd, double zd)
 
 indexed_triangle_set its_make_prism(float width, float length, float height)
 {
-    // We need two upward facing triangles
+    // 我们需要两个朝上的三角形
     float x = width / 2.f, y = length / 2.f;
     return {
         {
@@ -914,9 +913,8 @@ indexed_triangle_set its_make_prism(float width, float length, float height)
     };
 }
 
-// Generate the mesh for a cylinder and return it, using 
-// the generated angle to calculate the top mesh triangles.
-// Default is 360 sides, angle fa is in radians.
+// 生成圆柱体网格并返回，使用生成的角度计算顶部网格三角形。
+// 默认是360边，角度 fa 以弧度为单位。
 indexed_triangle_set its_make_cylinder(double r, double h, double fa)
 {
     indexed_triangle_set mesh;
@@ -928,14 +926,13 @@ indexed_triangle_set its_make_cylinder(double r, double h, double fa)
     vertices.reserve(2 * n_steps + 2);
     facets.reserve(4 * n_steps);
 
-    // 2 special vertices, top and bottom center, rest are relative to this
+    // 2个特殊顶点，顶部和底部中心，其余相对于此
     vertices.emplace_back(Vec3f(0.f, 0.f, 0.f));
     vertices.emplace_back(Vec3f(0.f, 0.f, float(h)));
 
-    // for each line along the polygon approximating the top/bottom of the
-    // circle, generate four points and four facets (2 for the wall, 2 for the
-    // top and bottom.
-    // Special case: Last line shares 2 vertices with the first line.
+    // 对于沿着近似圆顶部/底部的多边形的每条线，
+    // 生成四个点和四个面片（2个用于壁面，2个用于顶部和底部）。
+    // 特殊情况：最后一行与第一行共享2个顶点。
     Vec2f p = Eigen::Rotation2Df(0.f) * Eigen::Vector2f(0, r);
     vertices.emplace_back(Vec3f(p(0), p(1), 0.f));
     vertices.emplace_back(Vec3f(p(0), p(1), float(h)));
@@ -970,14 +967,13 @@ indexed_triangle_set its_make_frustum(double r, double h, double fa)
     vertices.reserve(2 * n_steps + 2);
     facets.reserve(4 * n_steps);
 
-    // 2 special vertices, top and bottom center, rest are relative to this
+    // 2个特殊顶点，顶部和底部中心，其余相对于此
     vertices.emplace_back(Vec3f(0.f, 0.f, 0.f));
     vertices.emplace_back(Vec3f(0.f, 0.f, float(h)));
 
-    // for each line along the polygon approximating the top/bottom of the
-    // circle, generate four points and four facets (2 for the wall, 2 for the
-    // top and bottom.
-    // Special case: Last line shares 2 vertices with the first line.
+    // 对于沿着近似圆顶部/底部的多边形的每条线，
+    // 生成四个点和四个面片（2个用于壁面，2个用于顶部和底部）。
+    // 特殊情况：最后一行与第一行共享2个顶点。
     Vec2f vec_top = Eigen::Rotation2Df(0.f) * Eigen::Vector2f(0, 0.5f*r);
     Vec2f vec_botton = Eigen::Rotation2Df(0.f) * Eigen::Vector2f(0, r);
 
@@ -1004,28 +1000,28 @@ indexed_triangle_set its_make_frustum(double r, double h, double fa)
     return mesh;
 }
 
-// Generate the mesh for a torus
-// r: major radius (distance from center of tube to center of torus)
-// h: minor radius (radius of the tube)
-// fa: angular step in radians (smaller = more segments)
+// 生成环形网格
+// r: 主半径（管中心到环中心的距离）
+// h: 次半径（管的半径）
+// fa: 角度步长（弧度）（越小 = 段越多）
 indexed_triangle_set its_make_torus(double r, double h, double fa)
 {
     indexed_triangle_set mesh;
     auto& vertices = mesh.vertices;
     auto& facets = mesh.indices;
 
-    // Number of segments around the main ring and the tube
+    // 主环和管周围的段数
     size_t n_major = (size_t)ceil(2. * PI / fa);
     size_t n_minor = (size_t)ceil(2. * PI / fa);
 
     double major_step = 2. * PI / n_major;
     double minor_step = 2. * PI / n_minor;
 
-    // Reserve memory for performance
+    // 为性能预留内存
     vertices.reserve(n_major * n_minor);
     facets.reserve(n_major * n_minor * 2);
 
-    // Generate vertices
+    // 生成顶点
     for (size_t i = 0; i < n_major; ++i) {
         double major_angle = i * major_step;
         double cos_major = cos(major_angle);
@@ -1034,7 +1030,7 @@ indexed_triangle_set its_make_torus(double r, double h, double fa)
             double minor_angle = j * minor_step;
             double cos_minor = cos(minor_angle);
             double sin_minor = sin(minor_angle);
-            // Parametric equation for torus
+            // 环面的参数方程
             float x = float((r + h * cos_minor) * cos_major);
             float y = float((r + h * cos_minor) * sin_major);
             float z = float(h * sin_minor);
@@ -1042,7 +1038,7 @@ indexed_triangle_set its_make_torus(double r, double h, double fa)
         }
     }
 
-    // Generate faces
+    // 生成面
     for (size_t i = 0; i < n_major; ++i) {
         size_t inext = (i + 1) % n_major;
         for (size_t j = 0; j < n_minor; ++j) {
@@ -1051,7 +1047,7 @@ indexed_triangle_set its_make_torus(double r, double h, double fa)
             int v1 = int(inext * n_minor + j);
             int v2 = int(inext * n_minor + jnext);
             int v3 = int(i * n_minor + jnext);
-            // Two triangles per quad
+            // 每个四边形两个三角形
             facets.emplace_back(v0, v1, v2);
             facets.emplace_back(v0, v2, v3);
         }
@@ -1067,7 +1063,7 @@ indexed_triangle_set its_make_cone(double r, double h, double fa)
     auto& facets = mesh.indices;
     vertices.reserve(3 + 2 * size_t(2 * PI / fa));
 
-    // base center and top vertex
+    // 底部中心和顶部顶点
     vertices.emplace_back(Vec3f::Zero());
     vertices.emplace_back(Vec3f(0., 0., h));
 
@@ -1080,7 +1076,7 @@ indexed_triangle_set its_make_cone(double r, double h, double fa)
         }
         ++i;
     }
-    facets.emplace_back(0, 2, i+1); // close the shape
+    facets.emplace_back(0, 2, i+1); // 闭合形状
     facets.emplace_back(1, i+1, 2);
 
     return mesh;
@@ -1105,10 +1101,9 @@ indexed_triangle_set its_make_pyramid(float base, float height)
     };
 }
 
-// Generates mesh for a sphere centered about the origin, using the generated angle
-// to determine the granularity. 
-// Default angle is 1 degree.
-//FIXME better to discretize an Icosahedron recursively http://www.songho.ca/opengl/gl_sphere.html
+// 生成以原点为中心的球体网格，使用生成的角度确定粒度。
+// 默认角度为1度。
+//FIXME 最好递归离散化二十面体 http://www.songho.ca/opengl/gl_sphere.html
 indexed_triangle_set its_make_sphere(double radius, double fa)
 {
     int   sectorCount = int(ceil(2. * M_PI / fa));
@@ -1120,7 +1115,7 @@ indexed_triangle_set its_make_sphere(double radius, double fa)
     auto& vertices = mesh.vertices;
     vertices.reserve((stackCount - 1) * sectorCount + 2);
     for (int i = 0; i <= stackCount; ++ i) {
-        // from pi/2 to -pi/2
+        // 从 pi/2 到 -pi/2
         double stackAngle = 0.5 * M_PI - stackStep * i;
         double xy = radius * cos(stackAngle);
         double z  = radius * sin(stackAngle);
@@ -1128,7 +1123,7 @@ indexed_triangle_set its_make_sphere(double radius, double fa)
             vertices.emplace_back(Vec3f(float(xy), 0.f, float(z)));
         else
             for (int j = 0; j < sectorCount; ++ j) {
-                // from 0 to 2pi
+                // 从 0 到 2pi
                 double sectorAngle = sectorStep * j;
                 vertices.emplace_back(Vec3d(xy * std::cos(sectorAngle), xy * std::sin(sectorAngle), z).cast<float>());
             }
@@ -1137,10 +1132,10 @@ indexed_triangle_set its_make_sphere(double radius, double fa)
     auto& facets = mesh.indices;
     facets.reserve(2 * (stackCount - 1) * sectorCount);
     for (int i = 0; i < stackCount; ++ i) {
-        // Beginning of current stack.
+        // 当前堆栈的开始。
         int k1 = (i == 0) ? 0 : (1 + (i - 1) * sectorCount);
         int k1_first = k1;
-        // Beginning of next stack.
+        // 下一个堆栈的开始。
         int k2 = (i == 0) ? 1 : (k1 + sectorCount);
         int k2_first = k2;
         for (int j = 0; j < sectorCount; ++ j) {
@@ -1175,7 +1170,7 @@ indexed_triangle_set its_make_frustum_dowel(double radius, double h, int sectorC
     auto& vertices = mesh.vertices;
     vertices.reserve((stackCount - 1) * sectorCount + 2);
     for (int i = 0; i <= stackCount; ++i) {
-        // from pi/2 to -pi/2
+        // 从 pi/2 到 -pi/2
         double stackAngle = 0.5 * M_PI - stackStep * i;
         double xy = radius * cos(stackAngle);
         double z = radius * sin(stackAngle);
@@ -1183,7 +1178,7 @@ indexed_triangle_set its_make_frustum_dowel(double radius, double h, int sectorC
             vertices.emplace_back(Vec3f(float(xy), 0.f, float(h * sin(stackAngle))));
         else
             for (int j = 0; j < sectorCount; ++j) {
-                // from 0 to 2pi
+                // 从 0 到 2pi
                 double sectorAngle = sectorStep * j + 0.25 * M_PI;
                 vertices.emplace_back(Vec3d(xy * std::cos(sectorAngle), xy * std::sin(sectorAngle), z).cast<float>());
             }
@@ -1192,10 +1187,10 @@ indexed_triangle_set its_make_frustum_dowel(double radius, double h, int sectorC
     auto& facets = mesh.indices;
     facets.reserve(2 * (stackCount - 1) * sectorCount);
     for (int i = 0; i < stackCount; ++i) {
-        // Beginning of current stack.
+        // 当前堆栈的开始。
         int k1 = (i == 0) ? 0 : (1 + (i - 1) * sectorCount);
         int k1_first = k1;
-        // Beginning of next stack.
+        // 下一个堆栈的开始。
         int k2 = (i == 0) ? 1 : (k1 + sectorCount);
         int k2_first = k2;
         for (int j = 0; j < sectorCount; ++j) {
@@ -1283,7 +1278,7 @@ indexed_triangle_set its_make_snap(double r, double h, float space_proportion, f
         auto& vertices = mesh.vertices;
         auto& facets     = mesh.indices;
 
-        // 2 special vertices, top and bottom center, rest are relative to this
+        // 2个特殊顶点，顶部和底部中心，其余相对于此
         vertices.emplace_back(Vec3f(center_x, 0.f, b_height));
         vertices.emplace_back(Vec3f(center_x, 0.f, t_height));
 

@@ -1,4 +1,4 @@
-#ifndef slic3r_Extruder_hpp_
+﻿#ifndef slic3r_Extruder_hpp_
 #define slic3r_Extruder_hpp_
 
 #include "libslic3r.h"
@@ -34,26 +34,26 @@ public:
     double unretract();
     double E() const { return m_share_extruder ? m_share_E : m_E; }
     void   reset_E() { m_E = 0.; m_share_E = 0.; }
-    // e_per_mm is extrusion_per_mm = geometric volume * (filament flow ratio / cross-sectional area)  [Doesn't account for print_flow_ratio, or modifiers like bridge flow ratio etc.]
+    // e_per_mm 是 extrusion_per_mm = 几何体积 * (耗材流量比 / 横截面积) [不考虑 print_flow_ratio 或桥接流量比等修饰符]
     double e_per_mm(double mm3_per_mm) const { return mm3_per_mm * m_e_per_mm3; }
-    // e_per_mm3 is extrusion_per_mm3 = filament flow ratio / cross-sectional area    [Doesn't account for print_flow_ratio, or modifiers like bridge flow ratio etc.]
+    // e_per_mm3 是 extrusion_per_mm3 = 耗材流量比 / 横截面积 [不考虑 print_flow_ratio 或桥接流量比等修饰符]
     double e_per_mm3() const { return m_e_per_mm3; }
-    // Used filament volume in mm^3.
+    // 已使用的耗材体积，单位 mm^3。
     double extruded_volume() const;
-    // Used filament length in mm.
+    // 已使用的耗材长度，单位 mm。
     double used_filament() const;
     
     // Getters for the PlaceholderParser.
     // Get current extruder position. Only applicable with absolute extruder addressing.
     double position() const { return m_E; }
-    // Get current retraction value. Only non-negative values.
+    // 获取当前回抽值。仅非负值。
     double retracted() const { return m_retracted; }
-    // Get extra retraction planned after
+    // 获取计划后的额外回抽
     double restart_extra() const { return m_restart_extra; }
     // Setters for the PlaceholderParser.
     // Set current extruder position. Only applicable with absolute extruder addressing.
     void   set_position(double e) { m_E = e; }
-    // Sets current retraction value & restart extra filament amount if retracted > 0.
+    // 设置当前回抽值和额外重启耗材量（如果 retracted > 0）。
     void   set_retracted(double retracted, double restart_extra);
     
     double filament_diameter() const;
@@ -74,20 +74,20 @@ public:
     bool   use_firmware_retraction() const;
 
 private:
-    // Private constructor to create a key for a search in std::set.
+    // 私有构造函数，用于创建 std::set 中搜索的键。
     Extruder(unsigned int id) : m_id(id) {}
 
-    // Reference to GCodeWriter instance owned by GCodeWriter.
+    // 引用 GCodeWriter 拥有的 GCodeWriter 实例。
     GCodeConfig *m_config;
-    // Print-wide global ID of this extruder.
+    // 此挤出机的打印范围全局 ID。
     unsigned int m_id;
-    // Current state of the extruder axis, may be resetted if use_relative_e_distances.
+    // 挤出机轴的当前状态，如果使用相对 e 距离可能会重置。
     double       m_E;
-    // Current state of the extruder tachometer, used to output the extruded_volume() and used_filament() statistics.
+    // 挤出机转速计的当前状态，用于输出 extruded_volume() 和 used_filament() 统计信息。
     double       m_absolute_E;
-    // Current positive amount of retraction.
+    // 当前正回抽量。
     double       m_retracted;
-    // When retracted, this value stores the extra amount of priming on deretraction.
+    // 当回抽时，此值存储在取消回抽时的额外预挤出量。
     double       m_restart_extra;
     double       m_e_per_mm3;
 
@@ -98,7 +98,7 @@ private:
     static double m_share_retracted;
 };
 
-// Sort Extruder objects by the extruder id by default.
+// 默认按挤出机 ID 对 Extruder 对象排序。
 inline bool operator==(const Extruder &e1, const Extruder &e2) { return e1.id() == e2.id(); }
 inline bool operator!=(const Extruder &e1, const Extruder &e2) { return e1.id() != e2.id(); }
 inline bool operator< (const Extruder &e1, const Extruder &e2) { return e1.id() < e2.id(); }

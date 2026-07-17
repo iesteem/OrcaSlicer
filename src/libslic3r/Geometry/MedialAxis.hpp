@@ -20,24 +20,24 @@ public:
     void build(Polylines* polylines);
     
 private:
-    // Input
+    // 输入
     const ExPolygon     &m_expolygon;
     Lines                m_lines;
-    // for filtering of the skeleton edges
+    // 用于过滤骨架边
     double               m_min_width;
     double               m_max_width;
 
-    // Voronoi Diagram.
+    // 沃罗诺伊图。
     using VD = VoronoiDiagram;
     VD                   m_vd;
 
-    // Annotations of the VD skeleton edges.
+    // VD骨架边的注解。
     struct EdgeData {
         bool    active      { false };
         double  width_start { 0 };
         double  width_end   { 0 };
     };
-    // Returns a reference to EdgeData and a "reversed" boolean.
+    // 返回EdgeData的引用和"反向"布尔值。
     std::pair<EdgeData&, bool> edge_data(const VD::edge_type &edge) {
         size_t edge_id = &edge - &m_vd.edges().front();
         return { m_edge_data[edge_id / 2], (edge_id & 1) != 0 };

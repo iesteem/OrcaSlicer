@@ -1,4 +1,4 @@
-#ifndef slic3r_ExPolygonsIndex_hpp_
+﻿#ifndef slic3r_ExPolygonsIndex_hpp_
 #define slic3r_ExPolygonsIndex_hpp_
 
 #include "ExPolygon.hpp"
@@ -10,7 +10,7 @@ namespace Slic3r {
 /// </summary>
 struct ExPolygonsIndex
 {
-    // index of ExPolygons
+    // ExPolygons 的索引
     uint32_t expolygons_index;
 
     // index of Polygon
@@ -18,7 +18,7 @@ struct ExPolygonsIndex
     // N .. hole[N-1]
     uint32_t polygon_index;
 
-    // index of point in polygon
+    // 多边形中点的索引
     uint32_t point_index;
 
     bool is_contour() const { return polygon_index == 0; }
@@ -37,7 +37,7 @@ struct ExPolygonsIndex
 class ExPolygonsIndices
 {
     std::vector<std::vector<uint32_t>> m_offsets;
-    // for check range of index
+    // 用于检查索引范围
     uint32_t m_count; // count of points
 public:
     ExPolygonsIndices(const ExPolygons &shapes);

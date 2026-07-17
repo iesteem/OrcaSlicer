@@ -296,7 +296,7 @@ std::string SVG::get_path_d(const ClipperLib::Path &path, double scale, bool clo
     return d.str();
 }
 
-// font_size: font-size={font_size*10}px
+// font_size: font-size={font_size*10}像素
 void SVG::draw_text(const Point &pt, const char *text, const char *color, int font_size)
 {
     fprintf(this->f,
@@ -323,7 +323,7 @@ void SVG::draw_legend(const Point &pt, const char *text, const char *color)
 //BBS
 void SVG::draw_grid(const BoundingBox& bbox, const std::string& stroke, coordf_t stroke_width, coordf_t step)
 {
-    // draw grid
+    // 绘制网格
     Point bbox_size = bbox.size();
     if (bbox_size(0) < step || bbox_size(1) < step)
         return;
@@ -366,29 +366,29 @@ void SVG::export_expolygons(const char *path, const BoundingBox &bbox, const Sli
     svg.Close();
 }
 
-// Paint the expolygons in the order they are presented, thus the latter overwrites the former expolygon.
-// 1) Paint all areas with the provided ExPolygonAttributes::color_fill and ExPolygonAttributes::fill_opacity.
-// 2) Optionally paint outlines of the areas if ExPolygonAttributes::outline_width > 0.
-//    Paint with ExPolygonAttributes::color_contour and ExPolygonAttributes::color_holes.
-//    If color_contour is empty, color_fill is used. If color_hole is empty, color_contour is used.
-// 3) Optionally paint points of all expolygon contours with ExPolygonAttributes::radius_points if radius_points > 0.
-// 4) Paint ExPolygonAttributes::legend into legend using the ExPolygonAttributes::color_fill if legend is not empty.
+// Paint the expolygons in the order they are presented, thus the latter overwrites the former expolygon. 按照提供的顺序绘制expolygons，后面的会覆盖前面的expolygon。
+// 1) Paint all areas with the provided ExPolygonAttributes::color_fill and ExPolygonAttributes::fill_opacity. 使用提供的ExPolygonAttributes::color_fill和ExPolygonAttributes::fill_opacity绘制所有区域。
+// 2) Optionally paint outlines of the areas if ExPolygonAttributes::outline_width > 0. 如果ExPolygonAttributes::outline_width > 0，可选绘制区域轮廓。
+//    Paint with ExPolygonAttributes::color_contour and ExPolygonAttributes::color_holes. 使用ExPolygonAttributes::color_contour和ExPolygonAttributes::color_holes绘制。
+//    If color_contour is empty, color_fill is used. If color_hole is empty, color_contour is used. 如果color_contour为空，则使用color_fill。如果color_hole为空，则使用color_contour。
+// 3) Optionally paint points of all expolygon contours with ExPolygonAttributes::radius_points if radius_points > 0. 如果radius_points > 0，可选使用ExPolygonAttributes::radius_points绘制所有expolygon轮廓的点。
+// 4) Paint ExPolygonAttributes::legend into legend using the ExPolygonAttributes::color_fill if legend is not empty. 如果legend不为空，使用ExPolygonAttributes::color_fill将ExPolygonAttributes::legend绘制到图例中。
 void SVG::export_expolygons(const char *path, const std::vector<std::pair<Slic3r::ExPolygons, ExPolygonAttributes>> &expolygons_with_attributes)
 {
     if (expolygons_with_attributes.empty())
         return;
 
     size_t num_legend = std::count_if(expolygons_with_attributes.begin(), expolygons_with_attributes.end(), [](const auto &v){ return ! v.second.legend.empty(); });
-    // Format in num_columns.
+    // 列数格式。
     size_t num_columns = 3;
-    // Width of the column.
+    // 列的宽度。
     coord_t step_x = scale_(20.);
     Point legend_size(scale_(1.) + num_columns * step_x, scale_(0.4 + 1.3 * (num_legend + num_columns - 1) / num_columns));
 
     BoundingBox bbox = get_extents(expolygons_with_attributes.front().first);
     for (size_t i = 0; i < expolygons_with_attributes.size(); ++ i)
         bbox.merge(get_extents(expolygons_with_attributes[i].first));
-    // Legend y.
+    // 图例的Y坐标。
     coord_t pos_y  = bbox.max.y() + scale_(1.5);
     bbox.merge(Point(std::max(bbox.min.x() + legend_size.x(), bbox.max.x()), bbox.max.y() + legend_size.y()));
 
@@ -411,8 +411,8 @@ void SVG::export_expolygons(const char *path, const std::vector<std::pair<Slic3r
 			for (const ExPolygon &expoly : exp_with_attr.first)
     			svg.draw(to_points(expoly), exp_with_attr.second.color_points, exp_with_attr.second.radius_points);
 
-    // Export legend.
-    // 1st row
+    // 导出图例。
+    // 第1行
     coord_t pos_x0 = bbox.min.x() + scale_(1.);
     coord_t pos_x  = pos_x0;
     size_t  i_legend = 0;

@@ -14,7 +14,7 @@ bool internal_solid_infill_uses_sparse_filament(const PrintRegionConfig &config,
 
 } // namespace
 
-// 1-based extruder identifier for this region and role.
+// 基于 1 的挤出机标识符，用于此区域和角色。
 unsigned int PrintRegion::extruder(FlowRole role) const
 {
     size_t extruder = 0;
@@ -35,8 +35,8 @@ Flow PrintRegion::flow(const PrintObject &object, FlowRole role, double layer_he
 {
     const PrintConfig          &print_config = object.print()->config();
     ConfigOptionFloatOrPercent config_width;
-    // Get extrusion width from configuration.
-    // (might be an absolute value, or a percent value, or zero for auto)
+    // 从配置中获取挤出宽度。
+    // （可以是绝对值、百分比值或零表示自动）
     if (first_layer && print_config.initial_layer_line_width.value > 0) {
         config_width = print_config.initial_layer_line_width;
     } else if (role == frExternalPerimeter) {
@@ -56,8 +56,8 @@ Flow PrintRegion::flow(const PrintObject &object, FlowRole role, double layer_he
     if (config_width.value == 0)
         config_width = object.config().line_width;
     
-    // Get the configured nozzle_diameter for the extruder associated to the flow role requested.
-    // Here this->extruder(role) - 1 may underflow to MAX_INT, but then the get_at() will follback to zero'th element, so everything is all right.
+    // 获取与请求的流量角色关联的挤出机的配置喷嘴直径。
+    // 这里 this->extruder(role) - 1 可能下溢到 MAX_INT，但随后 get_at() 将回退到第零个元素，所以一切正常。
     auto nozzle_diameter = float(print_config.nozzle_diameter.get_at(this->extruder(role) - 1));
     return Flow::new_from_config_width(role, config_width, nozzle_diameter, float(layer_height));
 }
@@ -76,7 +76,7 @@ coordf_t PrintRegion::bridging_height_avg(const PrintConfig &print_config) const
 
 void PrintRegion::collect_object_printing_extruders(const PrintConfig &print_config, const PrintRegionConfig &region_config, const bool has_brim, std::vector<unsigned int> &object_extruders)
 {
-    // These checks reflect the same logic used in the GUI for enabling/disabling extruder selection fields.
+    // 这些检查反映了 GUI 中用于启用/禁用挤出机选择字段的相同逻辑。
     // BBS
     auto num_extruders = (int)print_config.filament_diameter.size();
     auto emplace_extruder = [num_extruders, &object_extruders](int extruder_id) {
@@ -93,8 +93,8 @@ void PrintRegion::collect_object_printing_extruders(const PrintConfig &print_con
 
 void PrintRegion::collect_object_printing_extruders(const Print &print, std::vector<unsigned int> &object_extruders) const
 {
-    // PrintRegion, if used by some PrintObject, shall have all the extruders set to an existing printer extruder.
-    // If not, then there must be something wrong with the Print::apply() function.
+    // 如果 PrintRegion 被某个 PrintObject 使用，则所有挤出机应设置为现有的打印机挤出机。
+    // 否则，Print::apply() 函数一定有问题。
 #ifndef NDEBUG
     // BBS
     auto num_extruders = int(print.config().filament_diameter.size());

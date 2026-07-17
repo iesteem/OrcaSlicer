@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #ifndef UTILS_VOXEL_UTILS_H
 #define UTILS_VOXEL_UTILS_H
@@ -15,24 +15,24 @@ namespace Slic3r
 using GridPoint3 = Vec3crd;
 
 /*!
- * Class for holding the relative positiongs wrt a reference cell on which to perform a dilation.
+ * 用于存储相对于参考单元的膨胀（dilation）偏移位置的类。
  */
 struct DilationKernel
 {
     /*!
-     * A cubic kernel checks all voxels in a cube around a reference voxel.
+     * 立方体核检查参考体素周围一个立方体中的所有体素。
      *  _____
      * |\ ___\
      * | |    |
      *  \|____|
      *
-     * A diamond kernel uses a manhattan distance to create a diamond shape around a reference voxel.
+     * 菱形核使用曼哈顿距离在参考体素周围创建菱形形状。
      *  /|\
      * /_|_\
      * \ | /
      *  \|/
      *
-     * A prism kernel is diamond in XY, but extrudes straight in Z around a reference voxel.
+     * 棱柱核在 XY 方向为菱形，但在 Z 方向围绕参考体素垂直延伸。
      *   / \
      *  /   \
      * |\   /|
@@ -47,17 +47,17 @@ struct DilationKernel
         DIAMOND,
         PRISM
     };
-    GridPoint3 kernel_size_; //!< Size of the kernel in number of voxel cells
+    GridPoint3 kernel_size_; //!< 核的大小（以体素单元格数量计）
     Type type_;
-    std::vector<GridPoint3> relative_cells_; //!< All offset positions relative to some reference cell which is to be dilated
+    std::vector<GridPoint3> relative_cells_; //!< 相对于某个要膨胀的参考单元格的所有偏移位置
 
     DilationKernel(GridPoint3 kernel_size, Type type);
 };
 
 /*!
- * Utility class for walking over a 3D voxel grid.
+ * 用于遍历 3D 体素网格的实用类。
  *
- * Contains the math for intersecting voxels with lines, polgons, areas, etc.
+ * 包含体素与直线、多边形、区域等的相交计算。
  */
 class VoxelUtils
 {
@@ -72,37 +72,37 @@ public:
     }
 
     /*!
-     * Process voxels which a line segment crosses.
+     * 处理线段穿过的体素。
      *
-     * \param start Start point of the line
-     * \param end End point of the line
-     * \param process_cell_func Function to perform on each cell the line crosses
-     * \return Whether executing was stopped short as indicated by the \p cell_processing_function
+     * \param start 线的起点
+     * \param end 线的终点
+     * \param process_cell_func 对每个线穿过的单元格执行的函数
+     * \return 执行是否因 \p cell_processing_function 指示而提前停止
      */
     bool walkLine(Vec3crd start, Vec3crd end, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
     /*!
-     * Process voxels which the line segments of a polygon crosses.
+     * 处理多边形线段穿过的体素。
      *
-     * \warning Voxels may be processed multiple times!
+     * \warning 体素可能被多次处理！
      *
-     * \param polys The polygons to walk
-     * \param z The height at which the polygons occur
-     * \param process_cell_func Function to perform on each voxel cell
-     * \return Whether executing was stopped short as indicated by the \p cell_processing_function
+     * \param polys 要遍历的多边形
+     * \param z 多边形所在的高度
+     * \param process_cell_func 对每个体素单元格执行的函数
+     * \return 执行是否因 \p cell_processing_function 指示而提前停止
      */
     bool walkPolygons(const ExPolygon& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
     /*!
-     * Process voxels near the line segments of a polygon.
-     * For each voxel the polygon crosses we process each of the offset voxels according to the kernel.
+     * 处理多边形线段附近的体素。
+     * 对于多边形穿过的每个体素，我们根据核处理每个偏移体素。
      *
-     * \warning Voxels may be processed multiple times!
+     * \warning 体素可能被多次处理！
      *
-     * \param polys The polygons to walk
-     * \param z The height at which the polygons occur
-     * \param process_cell_func Function to perform on each voxel cell
-     * \return Whether executing was stopped short as indicated by the \p cell_processing_function
+     * \param polys 要遍历的多边形
+     * \param z 多边形所在的高度
+     * \param process_cell_func 对每个体素单元格执行的函数
+     * \return 执行是否因 \p cell_processing_function 指示而提前停止
      */
     bool walkDilatedPolygons(const ExPolygon& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
     bool walkDilatedPolygons(const ExPolygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const
@@ -118,33 +118,33 @@ public:
 
 private:
     /*!
-     * \warning the \p polys is assumed to be translated by half the cell_size in xy already
+     * \warning 假定 \p polys 已在 xy 方向上平移 cell_size 的一半
      */
     bool _walkAreas(const ExPolygon& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
 public:
     /*!
-     * Process all voxels inside the area of a polygons object.
+     * 处理多边形对象区域内的所有体素。
      *
-     * \warning The voxels along the area are not processed. Thin areas might not process any voxels at all.
+     * \warning 区域边缘的体素不处理。薄区域可能不处理任何体素。
      *
-     * \param polys The area to fill
-     * \param z The height at which the polygons occur
-     * \param process_cell_func Function to perform on each voxel cell
-     * \return Whether executing was stopped short as indicated by the \p cell_processing_function
+     * \param polys 要填充的区域
+     * \param z 多边形所在的高度
+     * \param process_cell_func 对每个体素单元格执行的函数
+     * \return 执行是否因 \p cell_processing_function 指示而提前停止
      */
     bool walkAreas(const ExPolygon& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
     /*!
-     * Process all voxels inside the area of a polygons object.
-     * For each voxel inside the polygon we process each of the offset voxels according to the kernel.
+     * 处理多边形对象区域内的所有体素。
+     * 对于多边形内的每个体素，我们根据核处理每个偏移体素。
      *
-     * \warning The voxels along the area are not processed. Thin areas might not process any voxels at all.
+     * \warning 区域边缘的体素不处理。薄区域可能不处理任何体素。
      *
-     * \param polys The area to fill
-     * \param z The height at which the polygons occur
-     * \param process_cell_func Function to perform on each voxel cell
-     * \return Whether executing was stopped short as indicated by the \p cell_processing_function
+     * \param polys 要填充的区域
+     * \param z 多边形所在的高度
+     * \param process_cell_func 对每个体素单元格执行的函数
+     * \return 执行是否因 \p cell_processing_function 指示而提前停止
      */
     bool walkDilatedAreas(const ExPolygon& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
     bool walkDilatedAreas(const ExPolygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const
@@ -159,14 +159,14 @@ public:
     }
 
     /*!
-     * Dilate with a kernel.
+     * 使用核进行膨胀。
      *
-     * Extends the \p process_cell_func, so that for each cell we process nearby cells as well.
+     * 扩展 \p process_cell_func，以便对于每个单元格也处理附近的单元格。
      *
-     * Apply this function to a process_cell_func to create a new process_cell_func which applies the effect to nearby voxels as well.
+     * 将此函数应用于 process_cell_func，以创建一个新的 process_cell_func，该函数也将效果应用到附近的体素。
      *
-     * \param kernel The offset positions relative to the input of \p process_cell_func
-     * \param process_cell_func Function to perform on each voxel cell
+     * \param kernel 相对于 \p process_cell_func 输入的偏移位置
+     * \param process_cell_func 对每个体素单元格执行的函数
      */
     std::function<bool(GridPoint3)> dilate(const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const;
 
@@ -193,7 +193,7 @@ public:
     }
 
     /*!
-     * Returns a rectangular polygon equal to the cross section of a voxel cell at coordinate \p p
+     * 返回等于坐标 \p p 处体素单元格横截面的矩形多边形
      */
     Polygon toPolygon(const GridPoint3 p) const
     {

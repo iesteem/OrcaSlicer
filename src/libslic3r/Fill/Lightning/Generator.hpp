@@ -18,42 +18,40 @@ namespace FillLightning
 {
 
 /*!
- * Generates the Lightning Infill pattern.
+ * 生成闪电填充图案。
  *
- * The lightning infill pattern is designed to use a minimal amount of material
- * to support the top skin of the print, while still printing with reasonably
- * consistently flowing lines. It sacrifices strength completely in favour of
- * top surface quality and reduced print time / material usage.
+ * 闪电填充图案旨在使用最少的材料
+ * 支撑打印件的顶部表皮，同时以合理一致的流动线进行打印。
+ * 它完全牺牲强度以换取
+ * 顶部表面质量并减少打印时间/材料用量。
  *
- * Lightning Infill is so named because the patterns it creates resemble a
- * forked path with one main path and many small lines on the side. These paths
- * grow out from the sides of the model just below where the top surface needs
- * to be supported from the inside, so that minimal material is needed.
+ * 闪电填充因其创建的图案类似于一条
+ * 分叉路径而得名，该路径有一条主路径和许多侧边小线。这些路径
+ * 从模型侧面刚好在需要从内部支撑顶部表面的下方生长出来，
+ * 从而需要最少的材料。
  *
- * This pattern is based on a paper called "Ribbed Support Vaults for 3D
- * Printing of Hollowed Objects" by Tricard, Claux and Lefebvre:
+ * 此图案基于 Tricard、Claux 和 Lefebvre 的论文
+ * "Ribbed Support Vaults for 3D Printing of Hollowed Objects"：
  * https://www.researchgate.net/publication/333808588_Ribbed_Support_Vaults_for_3D_Printing_of_Hollowed_Objects
  */
 class Generator  // "Just like Nicola used to make!"
 {
 public:
     /*!
-     * Create a generator to fill a certain mesh with infill.
+     * 创建一个生成器，用填充填充特定网格。
      *
-     * This generator will pre-compute things in preparation of generating
-     * Lightning Infill for the infill areas in that mesh. The infill areas must
-     * already be calculated at this point.
+     * 此生成器将预计算内容，以准备为该网格中的填充区域生成
+     * 闪电填充。此时填充区域必须
+     * 已经计算好。
      */
     explicit Generator(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback);
 
     /*!
-     * Get a tree of paths generated for a certain layer of the mesh.
+     * 获取为网格特定层生成的路径树。
      *
-     * This tree represents the paths that must be traced to print the infill.
-     * \param layer_id The layer number to get the path tree for. This is within
-     * the range of layers of the mesh (not the global layer numbers).
-     * \return A tree structure representing paths to print to create the
-     * Lightning Infill pattern.
+     * 该树表示打印填充必须追踪的路径。
+     * \param layer_id 要获取路径树的层号。在网格的层范围内（不是全局层号）。
+     * \return 表示打印路径的树结构，用于创建闪电填充图案。
      */
     const Layer& getTreesForLayer(const size_t& layer_id) const;
 
@@ -65,17 +63,15 @@ public:
 
 protected:
     /*!
-     * Calculate the overhangs above the infill areas that need to be supported
-     * by infill.
+     * 计算填充区域上方需要由填充支撑的悬垂部分。
      *
-     * Normally, overhangs are only generated for the outside of the model and
-     * only when support is generated. For this pattern, we also need to
-     * generate overhang areas for the inside of the model.
+     * 通常，悬垂仅对模型外部生成，并且仅当生成支撑时。
+     * 对于此图案，我们还需要为模型内部生成悬垂区域。
      */
     void generateInitialInternalOverhangs(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback);
 
     /*!
-     * Calculate the tree structure of all layers.
+     * 计算所有层的树结构。
      */
     void generateTrees(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback);
     void generateTreesforSupport(std::vector<Polygons>& contours, const std::function<void()> &throw_on_cancel_callback);
@@ -83,49 +79,46 @@ protected:
     float m_infill_extrusion_width;
 
     /*!
-     * How far each piece of infill can support skin in the layer above.
+     * 每个填充片段可以支撑上层表皮的距离。
      */
     coord_t m_supporting_radius;
 
     /*!
-     * How far a wall can support the wall above it. If a wall completely
-     * supports the wall above it, no infill needs to support that.
+     * 壁可以支撑其上方壁的距离。如果壁完全支撑其上方壁，
+     * 则不需要填充来支撑。
      *
-     * This is similar to the overhang distance calculated for support. It is
-     * determined by the lightning_infill_overhang_angle setting.
+     * 这类似于为支撑计算的悬垂距离。它由 lightning_infill_overhang_angle 设置决定。
      */
     coord_t m_wall_supporting_radius;
 
     /*!
-     * How far each piece of infill can support other infill in the layer above.
+     * 每个填充片段可以支撑上层其他填充的距离。
      *
-     * This may be different than \ref supporting_radius, because the infill is
-     * printed with one end floating in mid-air. This endpoint will sag more, so
-     * an infill line may need to be supported more than a skin line.
+     * 这可能与 \ref supporting_radius 不同，因为填充是
+     * 一端悬空打印的。该端点会下垂更多，因此
+     * 填充线可能比表皮线需要更多支撑。
      */
     coord_t m_prune_length;
 
     /*!
-     * How far a line may be shifted in order to straighten the line out.
+     * 为拉直线条，线条可以移动的距离。
      *
-     * Straightening the line reduces material and time usage and reduces
-     * accelerations needed to print the pattern. However it makes the infill
-     * weak if lines are partially suspended next to the line on the previous
-     * layer.
+     * 拉直线条可减少材料和时间用量，并减少打印图案所需的加速度。
+     * 但是，如果线条部分悬挂在前一层线条旁边，则会使填充变弱。
      */
     coord_t m_straightening_max_distance;
 
     /*!
-     * For each layer, the overhang that needs to be supported by the pattern.
+     * 每一层需要由图案支撑的悬垂部分。
      *
-     * This is generated by \ref generateInitialInternalOverhangs.
+     * 由 \ref generateInitialInternalOverhangs 生成。
      */
     std::vector<Polygons> m_overhang_per_layer;
 
     /*!
-     * For each layer, the generated lightning paths.
+     * 每一层生成的闪电路径。
      *
-     * This is generated by \ref generateTrees.
+     * 由 \ref generateTrees 生成。
      */
     std::vector<Layer> m_lightning_layers;
 

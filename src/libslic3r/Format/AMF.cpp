@@ -38,16 +38,16 @@ namespace pt = boost::property_tree;
 
 #include <assert.h>
 
-// VERSION NUMBERS
-// 0 : .amf, .amf.xml and .zip.amf files saved by older slic3r. No version definition in them.
-// 1 : Introduction of amf versioning. No other change in data saved into amf files.
-// 2 : Added z component of offset
-//     Added x and y components of rotation
-//     Added x, y and z components of scale
-//     Added x, y and z components of mirror
-// 3 : Added volumes' matrices and source data, meshes transformed back to their coordinate system on loading.
-// WARNING !! -> the version number has been rolled back to 2
-//               the next change should use 4
+// 版本号
+// 0 : 旧版slic3r保存的.amf、.amf.xml和.zip.amf文件。其中没有版本定义。
+// 1 : 引入amf版本控制。保存到amf文件中的数据没有其他变化。
+// 2 : 添加了偏移量的z分量
+//     添加了旋转的x和y分量
+//     添加了缩放的x、y和z分量
+//     添加了镜像的x、y和z分量
+// 3 : 添加了体积矩阵和源数据，加载时将网格转换回其坐标系。
+// 警告 !! -> 版本号已回滚到2
+//              下一次更改应使用4
 //const unsigned int VERSION_AMF = 2;
 //const unsigned int VERSION_AMF_COMPATIBLE = 3;
 //const char* SLIC3RPE_AMF_VERSION = "slic3rpe_amf_version";
@@ -57,8 +57,8 @@ namespace pt = boost::property_tree;
 namespace Slic3r
 {
 
-//! macro used to mark string used at localization,
-//! return same string
+//! 用于标记本地化使用的字符串的宏，
+//! 返回相同的字符串
 #define L(s) (s)
 #define _(s) Slic3r::I18N::translate(s)
 
@@ -85,9 +85,9 @@ struct AMFParserContext
     bool        error()         const { return m_error; }
     const char* error_message() const {
         return m_error ?
-            // The error was signalled by the user code, not the expat parser.
+            // 错误由用户代码发出，而不是expat解析器。
             (m_error_message.empty() ? "Parse AMF file failed" : m_error_message.c_str()) :
-            // The error was signalled by the expat parser.
+            // 错误由expat解析器发出。
             XML_ErrorString(XML_GetErrorCode(m_parser));
     }
 
@@ -108,7 +108,7 @@ struct AMFParserContext
         ctx->endElement(name);
     }
 
-    /* s is not 0 terminated. */
+    /* s不是以0结尾的。 */
     static void XMLCALL characters(void *userData, const XML_Char *s, int len)
     {
         AMFParserContext *ctx = (AMFParserContext*)userData;
@@ -180,39 +180,39 @@ struct AMFParserContext
             , scalex_set(false), scaley_set(false), scalez_set(false)
             , mirrorx_set(false), mirrory_set(false), mirrorz_set(false)
             , printable(true) {}
-        // Shift in the X axis.
+        // X轴上的偏移。
         float deltax;
         bool  deltax_set;
-        // Shift in the Y axis.
+        // Y轴上的偏移。
         float deltay;
         bool  deltay_set;
-        // Shift in the Z axis.
+        // Z轴上的偏移。
         float deltaz;
         bool  deltaz_set;
-        // Rotation around the X axis.
+        // 绕X轴的旋转。
         float rx;
         bool  rx_set;
-        // Rotation around the Y axis.
+        // 绕Y轴的旋转。
         float ry;
         bool  ry_set;
-        // Rotation around the Z axis.
+        // 绕Z轴的旋转。
         float rz;
         bool  rz_set;
-        // Scaling factors
+        // 缩放因子
         float scalex;
         bool  scalex_set;
         float scaley;
         bool  scaley_set;
         float scalez;
         bool  scalez_set;
-        // Mirroring factors
+        // 镜像因子
         float mirrorx;
         bool  mirrorx_set;
         float mirrory;
         bool  mirrory_set;
         float mirrorz;
         bool  mirrorz_set;
-        // printable property
+        // 可打印属性
         bool  printable;
 
         bool anything_set() const { return deltax_set || deltay_set || deltaz_set ||
@@ -227,41 +227,41 @@ struct AMFParserContext
         std::vector<Instance>   instances;
     };
 
-    // Version of the amf file
+    // amf文件的版本
     //unsigned int             m_version { 0 };
-    // Current Expat XML parser instance.
+    // 当前的Expat XML解析器实例。
     XML_Parser               m_parser;
-    // Error code returned by the application side of the parser. In that case the expat may not reliably deliver the error state
-    // after returning from XML_Parse() function, thus we keep the error state here.
+    // 由解析器应用程序端返回的错误代码。在这种情况下，expat在从XML_Parse()函数返回后可能无法可靠地传递错误状态，
+    // 因此我们将错误状态保留在这里。
     bool                     m_error { false };
     std::string              m_error_message;
-    // Model to receive objects extracted from an AMF file.
+    // 从AMF文件接收提取的对象的模型。
     Model                   &m_model;
-    // Current parsing path in the XML file.
+    // XML文件中的当前解析路径。
     std::vector<AMFNodeType> m_path;
-    // Current object allocated for an amf/object XML subtree.
+    // 为amf/object XML子树分配的当前对象。
     ModelObject             *m_object { nullptr };
-    // Map from obect name to object idx & instances.
+    // 从对象名称到对象idx和实例的映射。
     std::map<std::string, Object> m_object_instances_map;
-    // Vertices parsed for the current m_object.
+    // 为当前m_object解析的顶点。
     std::vector<Vec3f>       m_object_vertices;
-    // Current volume allocated for an amf/object/mesh/volume subtree.
+    // 为amf/object/mesh/volume子树分配的当前体积。
     ModelVolume             *m_volume { nullptr };
-    // Faces collected for the current m_volume.
+    // 为当前m_volume收集的面。
     std::vector<Vec3i32>       m_volume_facets;
-    // Transformation matrix of a volume mesh from its coordinate system to Object's coordinate system.
+    // 体积网格从其坐标系到对象坐标系的变换矩阵。
     Transform3d 			 m_volume_transform;
-    // Current material allocated for an amf/metadata subtree.
+    // 为amf/metadata子树分配的当前材质。
     ModelMaterial           *m_material { nullptr };
-    // Current instance allocated for an amf/constellation/instance subtree.
+    // 为amf/constellation/instance子树分配的当前实例。
     Instance                *m_instance { nullptr };
-    // Generic string buffer for vertices, face indices, metadata etc.
+    // 用于顶点、面索引、元数据等的通用字符串缓冲区。
     std::string              m_value[5];
-    // Pointer to config to update if config data are stored inside the amf file
+    // 如果配置数据存储在amf文件中，则指向要更新的配置的指针。
     DynamicPrintConfig      *m_config { nullptr };
-    // Config substitution rules and collected config substitution log.
+    // 配置替换规则和收集的配置替换日志。
     ConfigSubstitutionContext *m_config_substitutions { nullptr };
-    //BBS: add units logic
+    //BBS: 添加单位逻辑
     bool                     m_use_inches { false };
 
 private:
@@ -273,7 +273,7 @@ void AMFParserContext::startElement(const char *name, const char **atts)
     AMFNodeType node_type_new = NODE_TYPE_UNKNOWN;
     switch (m_path.size()) {
     case 0: {
-        // An AMF file must start with an <amf> tag.
+        // AMF文件必须以<amf>标签开头。
         node_type_new = NODE_TYPE_AMF;
         if (strcmp(name, "amf") != 0) this->stop();
         // BBS: add units logic
@@ -511,7 +511,7 @@ void AMFParserContext::endElement(const char * /* name */)
     assert(is_decimal_separator_point());
     switch (m_path.back()) {
 
-    // Constellation transformation:
+    // 星座变换：
     case NODE_TYPE_DELTAX:
         assert(m_instance);
         m_instance->deltax = float(atof(m_value[0].c_str()));
@@ -600,17 +600,17 @@ void AMFParserContext::endElement(const char * /* name */)
         m_value[0].clear();
         break;
 
-    // Object vertices:
+    // 对象顶点：
     case NODE_TYPE_VERTEX:
         assert(m_object);
-        // Parse the vertex data
+        // 解析顶点数据
         m_object_vertices.emplace_back(float(atof(m_value[0].c_str())), float(atof(m_value[1].c_str())), float(atof(m_value[2].c_str())));
         m_value[0].clear();
         m_value[1].clear();
         m_value[2].clear();
         break;
 
-    // Faces of the current volume:
+    // 当前体积的面：
     case NODE_TYPE_TRIANGLE:
         assert(m_object && m_volume);
         m_volume_facets.emplace_back(atoi(m_value[0].c_str()), atoi(m_value[1].c_str()), atoi(m_value[2].c_str()));
@@ -619,7 +619,7 @@ void AMFParserContext::endElement(const char * /* name */)
         m_value[2].clear();
         break;
 
-    // Closing the current volume. Create an STL from m_volume_facets pointing to m_object_vertices.
+    // 关闭当前体积。从指向m_object_vertices的m_volume_facets创建STL。
     case NODE_TYPE_VOLUME:
     {
 		assert(m_object && m_volume);
@@ -629,7 +629,7 @@ void AMFParserContext::endElement(const char * /* name */)
         }
 
         {
-            // Verify validity of face indices, find the vertex span.
+            // 验证面索引的有效性，找到顶点范围。
             int min_id = m_volume_facets.front()[0];
             int max_id = min_id;
             for (const Vec3i32& face : m_volume_facets) {
@@ -643,7 +643,7 @@ void AMFParserContext::endElement(const char * /* name */)
                 }
             }
 
-            // rebase indices to the current vertices list
+            // 将索引重新定位到当前顶点列表
             for (Vec3i32 &face : m_volume_facets)
                 face -= Vec3i32(min_id, min_id, min_id);
 
@@ -654,7 +654,7 @@ void AMFParserContext::endElement(const char * /* name */)
             m_volume->set_mesh(std::move(its));
         }
 
-        // stores the volume matrix taken from the metadata, if present
+        // 存储从元数据中获取的体积矩阵（如果存在）
         if (bool has_transform = !m_volume_transform.isApprox(Transform3d::Identity(), 1e-10); has_transform)
             m_volume->source.transform = Slic3r::Geometry::Transformation(m_volume_transform);
 
@@ -663,7 +663,7 @@ void AMFParserContext::endElement(const char * /* name */)
             m_volume->source.volume_idx = (int)m_model.objects.back()->volumes.size() - 1;
             m_volume->center_geometry_after_creation();
         } else
-            // pass false if the mesh offset has been already taken from the data 
+            // 如果网格偏移已从数据中获取，则传递false
             m_volume->center_geometry_after_creation(m_volume->source.input_file.empty());
 
         m_volume->calculate_convex_hull();
@@ -882,14 +882,14 @@ void AMFParserContext::endDocument()
     }
 }
 
-// Load an AMF file into a provided model.
-//BBS: add inches check logic
+// 将AMF文件加载到提供的模型中。
+//BBS: 添加英寸检查逻辑
 bool load_amf_file(const char *path, DynamicPrintConfig *config, ConfigSubstitutionContext *config_substitutions, Model *model, bool *use_inches)
 {
     if ((path == nullptr) || (model == nullptr))
         return false;
 
-    XML_Parser parser = XML_ParserCreate(nullptr); // encoding
+    XML_Parser parser = XML_ParserCreate(nullptr); // 编码
     if (!parser) {
         BOOST_LOG_TRIVIAL(error) << "Couldn't allocate memory for parser";
         return false;
@@ -945,7 +945,7 @@ bool load_amf_file(const char *path, DynamicPrintConfig *config, ConfigSubstitut
     return result;
 }
 
-//BBS: add inches logic
+//BBS: 添加英寸逻辑
 bool extract_model_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, bool* use_inches)
 {
     if (stat.m_uncomp_size == 0)
@@ -955,7 +955,7 @@ bool extract_model_from_archive(mz_zip_archive& archive, const mz_zip_archive_fi
         return false;
     }
 
-    XML_Parser parser = XML_ParserCreate(nullptr); // encoding
+    XML_Parser parser = XML_ParserCreate(nullptr); // 编码
     if (!parser) {
         BOOST_LOG_TRIVIAL(error) << "Couldn't allocate memory for parser";
         close_zip_reader(&archive);
@@ -1039,7 +1039,7 @@ bool load_amf_archive(const char* path, DynamicPrintConfig* config, ConfigSubsti
     mz_uint num_entries = mz_zip_reader_get_num_files(&archive);
 
     mz_zip_archive_file_stat stat;
-    // we first loop the entries to read from the archive the .amf file only, in order to extract the version from it
+    // 我们首先循环条目，仅从存档中读取.amf文件，以便从中提取版本
     for (mz_uint i = 0; i < num_entries; ++i)
     {
         if (mz_zip_reader_file_stat(&archive, i, &stat))
@@ -1057,7 +1057,7 @@ bool load_amf_archive(const char* path, DynamicPrintConfig* config, ConfigSubsti
                 }
                 catch (const std::exception& e)
                 {
-                    // ensure the zip archive is closed and rethrow the exception
+                    // 确保zip存档已关闭并重新抛出异常
                     close_zip_reader(&archive);
                     throw Slic3r::FileIOError(e.what());
                 }
@@ -1088,12 +1088,12 @@ bool load_amf_archive(const char* path, DynamicPrintConfig* config, ConfigSubsti
     return true;
 }
 
-// Load an AMF file into a provided model.
-// If config is not a null pointer, updates it if the amf file/archive contains config data
-//BBS: refine the amf logic
+// 将AMF文件加载到提供的模型中。
+// 如果config不是空指针，则在amf文件/存档包含配置数据时更新它
+//BBS: 优化amf逻辑
 bool load_amf(const char *path, DynamicPrintConfig *config, ConfigSubstitutionContext *config_substitutions, Model *model, bool* use_inches)
 {
-    CNumericLocalesSetter locales_setter; // use "C" locales and point as a decimal separator
+    CNumericLocalesSetter locales_setter; // 使用"C"区域设置和点作为小数分隔符
 
     if (boost::iends_with(path, ".amf"))
     {

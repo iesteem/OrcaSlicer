@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #include <algorithm> //For std::partition_copy and std::min_element.
 #include <unordered_set>
@@ -53,7 +53,7 @@ WallToolPathsParams make_paths_params(const int layer_id, const PrintObjectConfi
         input_params.wall_transition_angle   = print_object_config.wall_transition_angle.value;
         input_params.wall_distribution_count = print_object_config.wall_distribution_count.value;
 
-        input_params.is_top_or_bottom_layer = false; // Set to default value
+        input_params.is_top_or_bottom_layer = false; // 设置为默认值
     }
 
     return input_params;
@@ -111,7 +111,7 @@ void simplify(Polygon &thiss, const int64_t smallest_line_segment_squared, const
     for (size_t point_idx = 0; point_idx < thiss.points.size(); point_idx++) {
         current = thiss.points.at(point_idx % thiss.points.size());
 
-        //Check if the accumulated area doesn't exceed the maximum.
+        //// 检查 如果 the accumulated 面积 doesn't exceed the 最大.
         Point next;
         if (point_idx + 1 < thiss.points.size()) {
             next = thiss.points.at(point_idx + 1);
@@ -126,7 +126,7 @@ void simplify(Polygon &thiss, const int64_t smallest_line_segment_squared, const
 
         const int64_t length2 = (current - previous).cast<int64_t>().squaredNorm();
         if (length2 < scaled<int64_t>(25.)) {
-            // We're allowed to always delete segments of less than 5 micron.
+            //// We're allowed to always 删除 段 of less than 5 micron.
             continue;
         }
 
@@ -135,13 +135,13 @@ void simplify(Polygon &thiss, const int64_t smallest_line_segment_squared, const
 
         if (base_length_2 == 0) //Two line segments form a line back and forth with no area.
             continue; //Remove the vertex.
-        //We want to check if the height of the triangle formed by previous, current and next vertices is less than allowed_error_distance_squared.
-        //1/2 L = A           [actual area is half of the computed shoelace value] // Shoelace formula is .5*(...) , but we simplify the computation and take out the .5
-        //A = 1/2 * b * h     [triangle area formula]
-        //L = b * h           [apply above two and take out the 1/2]
+        //// We want to 检查 如果 the 高度 of the triangle formed by 上一个, 当前 and 下一个 顶点 是 less than allowed_error_distance_squared.
+        //// 1/2 L = A           [actual 面积 是 half of the computed shoelace 值] // Shoelace formula 是 .5*(...) , but we simplify the computation and take out the .5
+        //// A = 1/2 * b * h     [triangle 面积 formula]
+        //// L = b * h           [apply above two and take out the 1/2]
         //h = L / b           [divide by b]
-        //h^2 = (L / b)^2     [square it]
-        //h^2 = L^2 / b^2     [factor the divisor]
+        //// h^2 = (L / b)^2     [square it]
+        //// h^2 = L^2 / b^2     [factor the divisor]
         const int64_t height_2 = double(area_removed_so_far) * double(area_removed_so_far) / double(base_length_2);
         if ((height_2 <= Slic3r::sqr(scaled<coord_t>(0.005)) //Almost exactly colinear (barring rounding errors).
              && Line::distance_to_infinite(current, previous, next) <= scaled<double>(0.005))) // make sure that height_2 is not small because of cancellation of positive and negative areas
@@ -152,10 +152,10 @@ void simplify(Polygon &thiss, const int64_t smallest_line_segment_squared, const
         {
             const int64_t next_length2 = (current - next).cast<int64_t>().squaredNorm();
             if (next_length2 > 4 * smallest_line_segment_squared) {
-                // Special case; The next line is long. If we were to remove this, it could happen that we get quite noticeable artifacts.
-                // We should instead move this point to a location where both edges are kept and then remove the previous point that we wanted to keep.
-                // By taking the intersection of these two lines, we get a point that preserves the direction (so it makes the corner a bit more pointy).
-                // We just need to be sure that the intersection point does not introduce an artifact itself.
+                //// 特殊 情况; The 下一个 线 是 long. 如果 we were to 移除 此, it 可能 happen 该 we get quite noticeable artifacts.
+                //// We 应 instead move 此 点 to a location 其中 both 边 是 kept and 则 移除 the 上一个 点 该 we wanted to keep.
+                //// By taking the 相交 of 这些 two 线, we get a 点 该 preserves the 方向 (so it makes the corner a bit more pointy).
+                //// We 仅 需要 to 为 sure 该 the 相交 点 does 不 introduce an artifact itself.
                 Point intersection_point;
                 bool has_intersection = Line(previous_previous, previous).intersection_infinite(Line(current, next), &intersection_point);
                 if (!has_intersection
@@ -163,13 +163,13 @@ void simplify(Polygon &thiss, const int64_t smallest_line_segment_squared, const
                     || (intersection_point - previous).cast<int64_t>().squaredNorm() > smallest_line_segment_squared  // The intersection point is way too far from the 'previous'
                     || (intersection_point - next).cast<int64_t>().squaredNorm() > smallest_line_segment_squared)     // and 'next' points, so it shouldn't replace 'current'
                 {
-                    // We can't find a better spot for it, but the size of the line is more than 5 micron.
-                    // So the only thing we can do here is leave it in...
+                    //// 用于 it 的 We 可以't 查找 a better spot, but the 大小 of the 线 是 more than 5 micron.
+                    //// So the 仅 thing we 可以 do 此处 是 leave it in...
                 }
                 else {
-                    // New point seems like a valid one.
+                    //// New 点 seems like a 有效 one.
                     current = intersection_point;
-                    // If there was a previous point added, remove it.
+                    //// 如果 此处 was a 上一个 点 added, 移除 it.
                     if(!new_path.empty()) {
                         new_path.points.pop_back();
                         previous = previous_previous;
@@ -179,7 +179,7 @@ void simplify(Polygon &thiss, const int64_t smallest_line_segment_squared, const
                 continue; //Remove the vertex.
             }
         }
-        //Don't remove the vertex.
+        //// Don't 移除 the 顶点.
         accumulated_area_removed = removed_area_next; // so that in the next iteration it's the area between the origin, [previous] and [current]
         previous_previous = previous;
         previous = current; //Note that "previous" is only updated if we don't remove the vertex.
@@ -259,7 +259,7 @@ void fixSelfIntersections(const coord_t epsilon, Polygons &thiss)
 
     const int64_t half_epsilon = (epsilon + 1) / 2;
 
-    // Points too close to line segments should be moved a little away from those line segments, but less than epsilon,
+    //// 点 太 close to 线 段 应 为 moved a little away from 那些 线 段, but less than epsilon,
     //   so at least half-epsilon distance between points can still be guaranteed.
     const coord_t grid_size  = scaled<coord_t>(2.);
     auto              query_grid = createLocToLineGrid(thiss, grid_size);
@@ -319,7 +319,7 @@ void removeDegenerateVerts(Polygons &thiss)
 
             const Point &next = (idx + 1 == poly.size()) ? result[0] : poly[idx + 1];
             if (isDegenerate(last, poly[idx], next)) { // lines are in the opposite direction
-                // don't add vert to the result
+                //// don't 添加 vert to the 结果
                 isChanged = true;
                 while (result.size() > 1 && isDegenerate(result[result.size() - 2], result.back(), next))
                     result.points.pop_back();
@@ -351,16 +351,16 @@ void removeSmallAreas(Polygons &thiss, const double min_area_size, const bool re
     auto new_end = thiss.end();
     if (remove_holes) {
         for (auto it = thiss.begin(); it < new_end;) {
-            // All polygons smaller than target are removed by replacing them with a polygon from the back of the vector.
+            // 所有小于目标的多边形都将被移除，并用来自向量末尾的多边形替换。
             if (fabs(ClipperLib::Area(to_path(*it))) < min_area_size) {
                 --new_end;
                 *it = std::move(*new_end);
-                continue; // Don't increment the iterator such that the polygon just swapped in is checked next.
+                continue; // 不要递增迭代器，以便刚交换进来的多边形将在下次被检查。
             }
             ++it;
         }
     } else {
-        // For each polygon, computes the signed area, move small outlines at the end of the vector and keep pointer on small holes
+        // 对每个多边形计算有符号面积，将小轮廓移到向量末尾并保持指向小孔的指针
         Polygons small_holes;
         for (auto it = thiss.begin(); it < new_end;) {
             if (double area = ClipperLib::Area(to_path(*it)); fabs(area) < min_area_size) {
@@ -369,7 +369,7 @@ void removeSmallAreas(Polygons &thiss, const double min_area_size, const bool re
                     if (it < new_end) {
                         std::swap(*new_end, *it);
                         continue;
-                    } else { // Don't self-swap the last Path
+                    } else { // 不要自交换最后一个路径
                         break;
                     }
                 } else {
@@ -379,8 +379,8 @@ void removeSmallAreas(Polygons &thiss, const double min_area_size, const bool re
             ++it;
         }
 
-        // Removes small holes that have their first point inside one of the removed outlines
-        // Iterating in reverse ensures that unprocessed small holes won't be moved
+        // 移除第一个点位于被移除轮廓内部的小孔
+        // 反向迭代确保未处理的小孔不会被移动
         const auto removed_outlines_start = new_end;
         for (auto hole_it = small_holes.rbegin(); hole_it < small_holes.rend(); hole_it++)
             for (auto outline_it = removed_outlines_start; outline_it < thiss.end(); outline_it++)
@@ -395,7 +395,7 @@ void removeSmallAreas(Polygons &thiss, const double min_area_size, const bool re
 
 void removeColinearEdges(Polygon &poly, const double max_deviation_angle)
 {
-    // TODO: Can be made more efficient (for example, use pointer-types for process-/skip-indices, so we can swap them without copy).
+    // TODO: 可以更高效（例如，对处理/跳过索引使用指针类型，以便无需复制即可交换它们）。
     size_t num_removed_in_iteration = 0;
     do {
         num_removed_in_iteration = 0;
@@ -414,14 +414,14 @@ void removeColinearEdges(Polygon &poly, const double max_deviation_angle)
 
             Polygon new_path;
             for (size_t point_idx = 0; point_idx < pathlen; ++point_idx) {
-                // Don't iterate directly over process-indices, but do it this way, because there are points _in_ process-indices that should nonetheless
-                // be skipped:
+                // 不要直接迭代处理索引，而是以这种方式进行，因为处理索引中有些点仍应被跳过：
+                // 应被跳过：
                 if (!process_indices[point_idx]) {
                     new_path.points.push_back(rpath[point_idx]);
                     continue;
                 }
 
-                // Should skip the last point for this iteration if the old first was removed (which can be seen from the fact that the new first was skipped):
+                // 如果旧的第一个点被移除（从新的第一个点被跳过可以看出），则本次迭代应跳过最后一个点：
                 if (point_idx == (pathlen - 1) && skip_indices[0]) {
                     skip_indices[new_path.size()] = true;
                     go                            = true;
@@ -434,14 +434,14 @@ void removeColinearEdges(Polygon &poly, const double max_deviation_angle)
                 const Point &next = rpath[(point_idx + 1) % pathlen];
 
                 float angle = LinearAlg2D::getAngleLeft(prev, pt, next); // [0 : 2 * pi]
-                if (angle >= float(M_PI)) { angle -= float(M_PI); }                    // map [pi : 2 * pi] to [0 : pi]
+                if (angle >= float(M_PI)) { angle -= float(M_PI); }                    // 将 [pi : 2 * pi] 映射到 [0 : pi]
 
-                // Check if the angle is within limits for the point to 'make sense', given the maximum deviation.
-                // If the angle indicates near-parallel segments ignore the point 'pt'
+                // 检查角度是否在限制范围内，使该点'有意义'，给定最大偏差。
+                // 如果角度表示近乎平行的段，则忽略点 'pt'
                 if (angle > max_deviation_angle && angle < M_PI - max_deviation_angle) {
                     new_path.points.push_back(pt);
                 } else if (point_idx != (pathlen - 1)) {
-                    // Skip the next point, since the current one was removed:
+                    // 跳过下一个点，因为当前点已被移除：
                     skip_indices[new_path.size()] = true;
                     go                            = true;
                     new_path.points.push_back(next);
@@ -479,22 +479,22 @@ const std::vector<VariableWidthLines> &WallToolPaths::generate()
     const double  transitioning_angle = Geometry::deg2rad(m_params.wall_transition_angle);
     const coord_t discretization_step_size = scaled<coord_t>(0.8);
 
-    // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
-    // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
+    //// 用于 boost 的 Simplify outline::voronoi consumption. Absolutely 无 self 相交 or near-self 相交 allowed:
+    //// TODO: 用于 manifold 的 Open question: Does 此 indeed fix 所有 (or 所有-but-one-in-a-million) cases but otherwise possibly 复杂 多边形?
     Polygons prepared_outline = offset(offset(offset(outline, -epsilon_offset), epsilon_offset * 2), -epsilon_offset);
     simplify(prepared_outline, smallest_segment, allowed_distance);
     fixSelfIntersections(epsilon_offset, prepared_outline);
     removeDegenerateVerts(prepared_outline);
     removeColinearEdges(prepared_outline, 0.005);
-    // Removing collinear edges may introduce self intersections, so we need to fix them again
+    //// 移除中 collinear 边 可以 introduce self 相交, so we 需要 to fix them again
     fixSelfIntersections(epsilon_offset, prepared_outline);
     removeDegenerateVerts(prepared_outline);
     removeSmallAreas(prepared_outline, small_area_length * small_area_length, false);
 
-    // The functions above could produce intersecting polygons that could cause a crash inside Arachne.
-    // Applying Clipper union should be enough to get rid of this issue.
-    // Clipper union also fixed an issue in Arachne that in post-processing Voronoi diagram, some edges
-    // didn't have twin edges. (a non-planar Voronoi diagram probably caused this).
+    //// The functions above 可能 produce intersecting 多边形 该 可能 cause a crash 内部 Arachne.
+    //// Applying Clipper union 应 为 enough to get rid of 此 issue.
+    //// Clipper union 也 fixed an issue in Arachne 该 in post-处理中 Voronoi diagram, 某些 边
+    //// didn't 有 twin 边. (a non-planar Voronoi diagram probably caused 此).
     prepared_outline = union_(prepared_outline);
 
     if (area(prepared_outline) <= 0) {
@@ -585,20 +585,20 @@ void WallToolPaths::stitchToolPaths(std::vector<VariableWidthLines> &toolpaths, 
                     size_t                      color_idx = 0;
                     for (auto& inset : toolpaths)
                         for (auto& line2 : inset) {
-                            // svg.writePolyline(line2.toPolygon(), col);
+                            //// svg.writePolyline(line2.toPolygon(), col);
 
                             Polygon poly = line2.toPolygon();
                             Point last = poly.front();
                             for (size_t idx = 1 ; idx < poly.size(); idx++) {
                                 Point here = poly[idx];
                                 svg.draw(Line(last, here), colors[color_idx]);
-//                                svg.draw_text((last + here) / 2, std::to_string(line2.junctions[idx].region_id).c_str(), "black");
+//// svg.draw_text((最后一个 + 此处) / 2, std::to_string(line2.连接点[idx].region_id).c_str(), "black");
                                 last = here;
                             }
                             svg.draw(poly[0], colors[color_idx]);
-                            // svg.nextLayer();
-                            // svg.writePoints(poly, true, 0.1);
-                            // svg.nextLayer();
+                            //// svg.nextLayer();
+                            //// svg.writePoints(poly, true, 0.1);
+                            //// svg.nextLayer();
                             color_idx = (color_idx + 1) % colors.size();
                         }
                 }
@@ -638,9 +638,9 @@ void WallToolPaths::stitchToolPaths(std::vector<VariableWidthLines> &toolpaths, 
                 continue;
             }
 
-            // PolylineStitcher, in some cases, produced closed extrusion (polygons),
-            // but the endpoints differ by a small distance. So we reconnect them.
-            // FIXME Lukas H.: Investigate more deeply why it is happening.
+            //// PolylineStitcher, in 某些 cases, produced closed 挤出 (多边形),
+            //// but the endpoints differ by a small 距离. So we reconnect them.
+            //// FIXME Lukas H.: Investigate more deeply why it 是 happening.
             if (wall_polygon.junctions.front().p != wall_polygon.junctions.back().p &&
                 (wall_polygon.junctions.back().p - wall_polygon.junctions.front().p).cast<double>().norm() < stitch_distance) {
                 wall_polygon.junctions.emplace_back(wall_polygon.junctions.front());
@@ -678,7 +678,7 @@ void WallToolPaths::removeSmallLines(std::vector<VariableWidthLines> &toolpaths)
             coord_t        min_width = std::numeric_limits<coord_t>::max();
             for (const ExtrusionJunction &j : line)
                 min_width = std::min(min_width, j.w);
-            // Only use min_length_factor for non-topmost, to prevent top gaps. Otherwise use default value.
+            //// 用于 non 的 仅 使用 min_length_factor-topmost, to 防止 顶部 gaps. Otherwise 使用 默认 值.
             if (line.is_odd && !line.is_closed && shorterThan(line, m_params.is_top_or_bottom_layer ? (min_width / 2) : (min_width * m_params.min_length_factor))) { // remove line
                 line = std::move(inset.back());
                 inset.erase(--inset.end());
@@ -711,7 +711,7 @@ const std::vector<VariableWidthLines> &WallToolPaths::getToolPaths()
 
 void WallToolPaths::separateOutInnerContour()
 {
-    //We'll remove all 0-width paths from the original toolpaths and store them separately as polygons.
+    //// We'll 移除 所有 0-宽度 路径 from the 原始 刀具路径 and 存储 them separately as 多边形.
     std::vector<VariableWidthLines> actual_toolpaths;
     actual_toolpaths.reserve(toolpaths.size()); //A bit too much, but the correct order of magnitude.
     std::vector<VariableWidthLines> contour_paths;
@@ -752,11 +752,11 @@ void WallToolPaths::separateOutInnerContour()
     else
         toolpaths.clear();
 
-    //The output walls from the skeletal trapezoidation have no known winding order, especially if they are joined together from polylines.
-    //They can be in any direction, clockwise or counter-clockwise, regardless of whether the shapes are positive or negative.
-    //To get a correct shape, we need to make the outside contour positive and any holes inside negative.
-    //This can be done by applying the even-odd rule to the shape. This rule is not sensitive to the winding order of the polygon.
-    //The even-odd rule would be incorrect if the polygon self-intersects, but that should never be generated by the skeletal trapezoidation.
+    //// The 输出 壁 from the skeletal trapezoidation 有 无 known winding 顺序, especially 如果 they 是 joined together from 折线.
+    //// They 可以 为 in 任何 方向, 顺时针 or 逆时针, regardless of whether the shapes 是 正 or 负.
+    //// To get a 正确 shape, we 需要 to make the 外部 轮廓 正 and 任何 孔 内部 负.
+    //// 此 可以 为 done by applying the 甚至-odd rule to the shape. 此 rule 是 不 sensitive to the winding 顺序 of the 多边形.
+    //// The 甚至-odd rule 会 为 不正确 如果 the 多边形 self-intersects, but 该 应 never 为 generated by the skeletal trapezoidation.
     inner_contour = union_(inner_contour, ClipperLib::PolyFillType::pftEvenOdd);
 }
 
@@ -793,12 +793,12 @@ bool WallToolPaths::removeEmptyToolPaths(std::vector<VariableWidthLines> &toolpa
 WallToolPaths::ExtrusionLineSet WallToolPaths::getRegionOrder(const std::vector<ExtrusionLine *> &input, const bool outer_to_inner)
 {
     ExtrusionLineSet order_requirements;
-    // We build a grid where we map toolpath vertex locations to toolpaths,
+    //// We 构建 a 网格 其中 we 映射 刀具路径 顶点 locations to 刀具路径,
     // so that we can easily find which two toolpaths are next to each other,
     // which is the requirement for there to be an order constraint.
     //
-    // We use a PointGrid rather than a LineGrid to save on computation time.
-    // In very rare cases two insets might lie next to each other without having neighboring vertices, e.g.
+    //// We 使用 a PointGrid rather than a LineGrid to save on computation time.
+    //// In 非常 rare cases two 内缩 可能 lie 下一个 to 每个 other 不包含 having neighboring 顶点, e.g.
     //  \            .
     //   |  /        .
     //   | /         .
@@ -806,12 +806,12 @@ WallToolPaths::ExtrusionLineSet WallToolPaths::getRegionOrder(const std::vector<
     //   | \         .
     //   |  \        .
     //  /            .
-    // However, because of how Arachne works this will likely never be the case for two consecutive insets.
-    // On the other hand one could imagine that two consecutive insets of a very large circle
-    // could be simplify()ed such that the remaining vertices of the two insets don't align.
-    // In those cases the order requirement is not captured,
-    // which means that the PathOrderOptimizer *might* result in a violation of the user set path order.
-    // This problem is expected to be not so severe and happen very sparsely.
+    //// 用于 two 的 However, because of how Arachne works 此 将 likely never 为 the 情况 consecutive 内缩.
+    //// On the other hand one 可能 imagine 该 two consecutive 内缩 of a 非常 large circle
+    //// 可能 为 simplify()ed such 该 the remaining 顶点 of the two 内缩 don't align.
+    //// In 那些 cases the 顺序 requirement 是 不 captured,
+    //// 其 means 该 the PathOrderOptimizer *可能* 结果 in a violation of the 用户 设置 路径 顺序.
+    //// 此 problem 是 expected to 为 不 so severe and happen 非常 sparsely.
 
     coord_t max_line_w = 0u;
     for (const ExtrusionLine *line : input) // compute max_line_w
@@ -830,12 +830,12 @@ WallToolPaths::ExtrusionLineSet WallToolPaths::getRegionOrder(const std::vector<
         Point operator()(const LineLoc &elem) { return elem.j.p; }
     };
 
-    // How much farther two verts may be apart due to corners.
-    // This distance must be smaller than 2, because otherwise
+    //// How much farther two verts 可以 为 apart due to corners.
+    //// 此 距离 必须 为 smaller than 2, because otherwise
     // we could create an order requirement between e.g.
     // wall 2 of one region and wall 3 of another region,
     // while another wall 3 of the first region would lie in between those two walls.
-    // However, higher values are better against the limitations of using a PointGrid rather than a LineGrid.
+    //// However, higher 值 是 better against the limitations of 使用 a PointGrid rather than a LineGrid.
     constexpr float diagonal_extension = 1.9f;
     const auto      searching_radius   = coord_t(max_line_w * diagonal_extension);
     using GridT                        = SparsePointGrid<LineLoc, Locator>;

@@ -1,5 +1,5 @@
-// Measure extents of the planned extrusions.
-// To be used for collision reporting.
+// 测量计划挤出的范围。
+// 用于碰撞报告。
 
 #ifndef slic3r_PrintExtents_hpp_
 #define slic3r_PrintExtents_hpp_
@@ -12,17 +12,17 @@ class Print;
 class PrintObject;
 class BoundingBoxf;
 
-// Returns a bounding box of a projection of the brim and skirt.
+// 返回裙边和 skirt 投影的边界框。
 BoundingBoxf get_print_extrusions_extents(const Print &print);
 
-// Returns a bounding box of a projection of the object extrusions at z <= max_print_z.
+// 返回z <= max_print_z处对象挤出投影的边界框。
 BoundingBoxf get_print_object_extrusions_extents(const PrintObject &print_object, const coordf_t max_print_z);
 
-// Returns a bounding box of a projection of the wipe tower for the layers <= max_print_z.
-// The projection does not contain the priming regions.
+// 返回z <= max_print_z层擦拭塔投影的边界框。
+// 投影不包含初始区域。
 BoundingBoxf get_wipe_tower_extrusions_extents(const Print &print, const coordf_t max_print_z);
 
-// Returns a bounding box of the wipe tower priming extrusions.
+// 返回擦拭塔初始挤出的边界框。
 BoundingBoxf get_wipe_tower_priming_extrusions_extents(const Print &print);
 
 };

@@ -8,22 +8,22 @@
 
 namespace Slic3r {
 
-// Run post processing script / scripts if defined.
-// Returns true if a post-processing script was executed.
-// Returns false if no post-processing script was defined.
-// Throws an exception on error.
-// host is one of "File", "PrusaLink", "Repetier", "SL1Host", "OctoPrint", "FlashAir", "Duet", "AstroBox" ...
-// If make_copy, then a temp file will be created for src_path by adding a ".pp" suffix and src_path will be updated.
-// In that case the caller is responsible to delete the temp file created.
-// output_name is the final name of the G-code on SD card or when uploaded to PrusaLink or OctoPrint.
-// If uploading to PrusaLink or OctoPrint, then the file will be renamed to output_name first on the target host.
-// The post-processing script may change the output_name.
+// 如果定义了后处理脚本，则运行该脚本。
+// 如果后处理脚本被执行，则返回true。
+// 如果没有定义后处理脚本，则返回false。
+// 出错时抛出异常。
+// host是"File"、"PrusaLink"、"Repetier"、"SL1Host"、"OctoPrint"、"FlashAir"、"Duet"、"AstroBox"...
+// 如果make_copy，则通过添加".pp"后缀为src_path创建临时文件，并更新src_path。
+// 在这种情况下，调用者负责删除创建的临时文件。
+// output_name是G-code在SD卡上或上传到PrusaLink或OctoPrint时的最终名称。
+// 如果上传到PrusaLink或OctoPrint，则文件首先在目标主机上重命名为output_name。
+// 后处理脚本可能会更改output_name。
 extern bool run_post_process_scripts(std::string &src_path, bool make_copy, const std::string &host, std::string &output_name, const DynamicPrintConfig &config);
 
 inline bool run_post_process_scripts(std::string &src_path, const DynamicPrintConfig &config)
 {
-	std::string src_path_name = src_path;
-	return run_post_process_scripts(src_path, false, "File", src_path_name, config);
+    std::string src_path_name = src_path;
+    return run_post_process_scripts(src_path, false, "File", src_path_name, config);
 }
 
 // BBS

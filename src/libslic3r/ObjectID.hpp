@@ -10,18 +10,18 @@ namespace UndoRedo {
 	class StackImpl;
 };
 
-// Unique identifier of a mutable object accross the application.
-// Used to synchronize the front end (UI) with the back end (BackgroundSlicingProcess / Print / PrintObject)
-// (for Model, ModelObject, ModelVolume, ModelInstance or ModelMaterial classes)
-// and to serialize / deserialize an object onto the Undo / Redo stack.
-// Valid IDs are strictly positive (non zero).
-// It is declared as an object, as some compilers (notably msvcc) consider a typedef size_t equivalent to size_t
-// for parameter overload.
+// 跨应用程序的可变对象的唯一标识符。
+// 用于将前端（UI）与后端（BackgroundSlicingProcess / Print / PrintObject）同步
+// （针对 Model、ModelObject、ModelVolume、ModelInstance 或 ModelMaterial 类）
+// 以及将对象序列化/反序列化到撤销/重做栈上。
+// 有效的 ID 严格为正（非零）。
+// 它被声明为一个对象，因为某些编译器（特别是 msvcc）认为 typedef size_t 等价于 size_t
+// 用于参数重载。
 class ObjectID
 {
 public:
 	ObjectID(size_t id) : id(id) {}
-	// Default constructor constructs an invalid ObjectID.
+	// 默认构造函数构造一个无效的 ObjectID。
 	ObjectID() : id(0) {}
 
 	bool operator==(const ObjectID &rhs) const { return this->id == rhs.id; }
@@ -41,34 +41,32 @@ private:
 	template<class Archive> void serialize(Archive &ar) { ar(id); }
 };
 
-// Base for Model, ModelObject, ModelVolume, ModelInstance or ModelMaterial to provide a unique ID
-// to synchronize the front end (UI) with the back end (BackgroundSlicingProcess / Print / PrintObject).
-// Also base for Print, PrintObject, SLAPrint, SLAPrintObject to provide a unique ID for matching Model / ModelObject
-// with their corresponding Print / PrintObject objects by the notification center at the UI when processing back-end warnings.
-// Achtung! The s_last_id counter is not thread safe, so it is expected, that the ObjectBase derived instances
-// are only instantiated from the main thread.
+// Model、ModelObject、ModelVolume、ModelInstance 或 ModelMaterial 的基类，提供唯一 ID
+// 以同步前端（UI）与后端（BackgroundSlicingProcess / Print / PrintObject）。
+// 同时也是 Print、PrintObject、SLAPrint、SLAPrintObject 的基类，提供唯一 ID，
+// 用于在处理后端警告时，通过 UI 的通知中心将 Model / ModelObject 与对应的 Print / PrintObject 对象匹配。
+// 注意！s_last_id 计数器不是线程安全的，因此预期 ObjectBase 派生实例
+// 仅从主线程实例化。
 class ObjectBase
 {
 public:
     using Timestamp = uint64_t;
 
     ObjectID     		id() const { return m_id; }
-    // Return an optional timestamp of this object.
-    // If the timestamp returned is non-zero, then the serialization framework will
-    // only save this object on the Undo/Redo stack if the timestamp is different
-    // from the timestmap of the object at the top of the Undo / Redo stack.
+    // 返回此对象的可选时间戳。
+    // 如果返回的时间戳非零，则序列化框架将仅在时间戳与撤销/重做栈顶部的对象时间戳不同时，
+    // 才将此对象保存到撤销/重做栈上。
     virtual Timestamp	timestamp() const { return 0; }
 
 protected:
-    // Constructors to be only called by derived classes.
-    // Default constructor to assign a unique ID.
+    // 构造函数仅由派生类调用。
+    // 默认构造函数分配唯一 ID。
     ObjectBase() : m_id(generate_new_id()) {}
-    // Constructor with ignored int parameter to assign an invalid ID, to be replaced
-    // by an existing ID copied from elsewhere.
+    // 带有忽略的 int 参数的构造函数，分配无效 ID，将由从别处复制的现有 ID 替换。
     ObjectBase(int) : m_id(ObjectID(0)) {}
 
     ObjectBase(const ObjectID id) : m_id(id) {}
-	// The class tree will have virtual tables and type information.
+	// 类树将具有虚函数表和类型信息。
 	virtual ~ObjectBase() = default;
 
     // Use with caution!
@@ -101,20 +99,18 @@ protected:
     // Constructors to be only called by derived classes.
     // Default constructor to assign a new timestamp unique to this object's history.
 	ObjectWithTimestamp() = default;
-    // Constructor with ignored int parameter to assign an invalid ID, to be replaced
-    // by an existing ID copied from elsewhere.
+    // 带有忽略的 int 参数的构造函数，分配无效 ID，将由从别处复制的现有 ID 替换。
     ObjectWithTimestamp(int) : ObjectBase(-1) {}
-	// The class tree will have virtual tables and type information.
+	// 类树将具有虚函数表和类型信息。
 	virtual ~ObjectWithTimestamp() = default;
 
-    // The timestamp uniquely identifies content of the derived class' data, therefore it makes sense to copy the timestamp if the content data was copied.
+    // 时间戳唯一标识派生类数据的内容，因此如果内容数据被复制，复制时间戳是有意义的。
     void                copy_timestamp(const ObjectWithTimestamp& rhs) { m_timestamp = rhs.m_timestamp; }
 
 public:
-    // Return an optional timestamp of this object.
-    // If the timestamp returned is non-zero, then the serialization framework will
-    // only save this object on the Undo/Redo stack if the timestamp is different
-    // from the timestmap of the object at the top of the Undo / Redo stack.
+    // 返回此对象的可选时间戳。
+    // 如果返回的时间戳非零，则序列化框架将仅在时间戳与撤销/重做栈顶部的对象时间戳不同时，
+    // 才将此对象保存到撤销/重做栈上。
     Timestamp	        timestamp() const throw() override { return m_timestamp; }
     bool 				timestamp_matches(const ObjectWithTimestamp &rhs) const throw() { return m_timestamp == rhs.m_timestamp; }
     bool 				object_id_and_timestamp_match(const ObjectWithTimestamp &rhs) const throw() { return this->id() == rhs.id() && m_timestamp == rhs.m_timestamp; }
@@ -140,12 +136,11 @@ class CutObjectBase : public ObjectBase
 public:
     // Default Constructor to assign an invalid ID
     CutObjectBase() : ObjectBase(-1) {}
-    // Constructor with ignored int parameter to assign an invalid ID, to be replaced
-    // by an existing ID copied from elsewhere.
+    // 带有忽略的 int 参数的构造函数，分配无效 ID，将由从别处复制的现有 ID 替换。
     CutObjectBase(int) : ObjectBase(-1) {}
     // Constructor to initialize full information from 3mf
     CutObjectBase(ObjectID id, size_t check_sum, size_t connectors_cnt) : ObjectBase(id), m_check_sum(check_sum), m_connectors_cnt(connectors_cnt) {}
-    // The class tree will have virtual tables and type information.
+    // 类树将具有虚函数表和类型信息。
     virtual ~CutObjectBase() = default;
 
     bool operator<(const CutObjectBase &other) const { return other.id() > this->id(); }

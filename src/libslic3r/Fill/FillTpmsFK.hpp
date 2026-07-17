@@ -17,12 +17,11 @@ public:
     FillTpmsFK() {}
     Fill* clone() const override { return new FillTpmsFK(*this); }
 
-    // require bridge flow since most of this pattern hangs in air
+    // 需要桥接流量，因为此图案大部分悬空
     bool use_bridge_flow() const override { return false; }
   
 
-    // Correction applied to regular infill angle to maximize printing
-    // speed in default configuration (degrees)
+    // 应用于常规填充角度的校正，以最大化默认配置下的打印速度（度）
     static constexpr float CorrectionAngle = -45.;
 
     void _fill_surface_single(const FillParams&              params,

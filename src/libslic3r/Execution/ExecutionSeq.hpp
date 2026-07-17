@@ -1,4 +1,4 @@
-#ifndef EXECUTIONSEQ_HPP
+﻿﻿#ifndef EXECUTIONSEQ_HPP
 #define EXECUTIONSEQ_HPP
 
 #ifdef PRUSASLICER_USE_EXECUTION_STD // Conflicts with our version of TBB
@@ -9,7 +9,7 @@
 
 namespace Slic3r {
 
-// Execution policy implementing dummy sequential algorithms
+//// Execution policy implementing dummy sequential algorithms
 struct ExecutionSeq {};
 
 template<> struct IsExecutionPolicy_<ExecutionSeq> : public std::true_type {};

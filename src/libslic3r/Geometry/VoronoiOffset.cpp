@@ -24,14 +24,14 @@ namespace Slic3r {
 namespace Voronoi {
 
 namespace detail {
-    // Intersect a circle with a ray, return the two parameters.
-    // Currently used for unbounded Voronoi edges only.
+    // 将圆与射线相交，返回两个参数。
+    // 目前仅用于无界Voronoi边。
 	double first_circle_segment_intersection_parameter(
 		const Vec2d &center, const double r, const Vec2d &pt, const Vec2d &v)
 	{
 		const Vec2d 	d = pt - center;
 #ifndef NDEBUG
-        // Start point should be inside, end point should be outside the circle.
+        // 起点应在圆内，终点应在圆外。
         double          d0 = (pt - center).norm();
         double          d1 = (pt + v - center).norm();
         assert(d0 < r + SCALED_EPSILON);
@@ -45,7 +45,7 @@ namespace detail {
 		assert(u > - EPSILON);
 		double          t;
 		if (u <= 0) {
-			// Degenerate to a single closest point.
+			// 退化为单个最近点。
 			t = - b / (2. * a);
 			assert(t >= - EPSILON && t <= 1. + EPSILON);
 			return std::clamp(t, 0., 1.);
@@ -54,7 +54,7 @@ namespace detail {
 			out.first = 2;
 			double t0 = (- b - u) / (2. * a);
 			double t1 = (- b + u) / (2. * a);
-			// One of the intersections shall be found inside the segment.
+			// 其中一个交点应位于线段内部。
 			assert((t0 >= - EPSILON && t0 <= 1. + EPSILON) || (t1 >= - EPSILON && t1 <= 1. + EPSILON));
 			if (t1 < 0.)
 				return 0.;
@@ -70,10 +70,10 @@ namespace detail {
         Vec2d   pts[2];
     };
 
-    // Return maximum two points, that are at distance "d" from both points
+    // 返回最多两个点，它们到两个点的距离均为"d"
     Intersections point_point_equal_distance_points(const Point &pt1, const Point &pt2, const double d)
     {
-        // Calculate the two intersection points.
+        // 计算两个交点。
         // With the help of Python package sympy:
         //      res = solve([(x - cx)**2 + (y - cy)**2 - d**2, x**2 + y**2 - d**2], [x, y])
         //      ccode(cse((res[0][0], res[0][1], res[1][0], res[1][1])))
@@ -85,10 +85,10 @@ namespace detail {
         double cl = cx * cx + cy * cy;
         double discr = 4. * d * d - cl;
         if (discr < 0.) {
-            // No intersection point found, the two circles are too far away.
+            // 未找到交点，两个圆距离太远。
             return Intersections { 0, { Vec2d(), Vec2d() } };
         }
-        // Avoid division by zero if a gets too small.
+        // 如果a太小则避免除以零。
         bool   xy_swapped = std::abs(cx) < std::abs(cy);
         if (xy_swapped)
             std::swap(cx, cy);
@@ -157,7 +157,7 @@ namespace detail {
         }
 #endif // NDEBUG
 
-        // Calculate the two intersection points.
+        // 计算两个交点。
         // With the help of Python package sympy:
         //      res = solve([a * x + b * y + c - d * sqrt(a**2 + b**2), x**2 + y**2 - d**2], [x, y])
         //      ccode(cse((res[0][0], res[0][1], res[1][0], res[1][1])))
@@ -172,7 +172,7 @@ namespace detail {
             return Intersections { 0 };
         double u;
         int    cnt;
-        // Avoid division by zero if a gets too small.
+        // 如果a太小则避免除以零。
         bool   xy_swapped = std::abs(a) < std::abs(b);
         if (xy_swapped)
             std::swap(a, b);

@@ -7,7 +7,7 @@
 
 namespace Slic3r {
 
-// Forward declarations.
+// 前向声明。
 class ExPolygon;
 class Layer;
 class Polyline;
@@ -18,11 +18,11 @@ public:
     bool    travel_inside_internal_regions(const Layer &layer, const Polyline &travel);
 
 private:
-    // Last object layer visited, for which a cache of internal islands was created.
+    // 上次访问的对象层，为其创建了内部岛缓存。
     const Layer                        *m_layer;
-    // Internal islands only, referencing data owned by m_layer->regions()->surfaces().
+    // 仅内部岛，引用由m_layer->regions()->surfaces()拥有的数据。
     std::vector<const ExPolygon*>       m_internal_islands;
-    // Search structure over internal islands.
+    // 内部岛的搜索结构。
     using AABBTree = AABBTreeIndirect::Tree<2, coord_t>;
     AABBTree                            m_aabbtree_internal_islands;
 };

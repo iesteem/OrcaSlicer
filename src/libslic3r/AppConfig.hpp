@@ -1,4 +1,4 @@
-#ifndef slic3r_AppConfig_hpp_
+﻿#ifndef slic3r_AppConfig_hpp_
 #define slic3r_AppConfig_hpp_
 
 #include <set>
@@ -100,7 +100,7 @@ public:
 
 	// Clear and reset to defaults.
 	void 			   	reset();
-	// Override missing or keys with their defaults.
+	// 用默认值覆盖缺失的键。
 	void 			   	set_defaults();
 
 	// Load the slic3r.ini from a user profile directory (or a datadir, if configured).

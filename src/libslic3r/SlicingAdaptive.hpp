@@ -1,4 +1,4 @@
-// Based on implementation by @platsch
+// 基于@platsch的实现
 
 #ifndef slic3r_SlicingAdaptive_hpp_
 #define slic3r_SlicingAdaptive_hpp_
@@ -17,9 +17,9 @@ public:
     void  clear();
     void  set_slicing_parameters(SlicingParameters params) { m_slicing_params = params; }
     void  prepare(const ModelObject &object);
-    // Return next layer height starting from the last print_z, using a quality measure
-    // (quality in range from 0 to 1, 0 - highest quality at low layer heights, 1 - lowest print quality at high layer heights).
-    // The layer height curve shall be centered roughly around the default profile's layer height for quality 0.5.
+    // 从上一个print_z返回下一个层高，使用质量度量
+    //（质量范围从0到1，0 - 低层高时的最高质量，1 - 高层高时的最低打印质量）。
+    // 对于质量0.5，层高曲线应大致以默认配置文件的层高为中心。
 	float next_layer_height(const float print_z, float quality, size_t &current_facet);
     float horizontal_facet_distance(float z);
 

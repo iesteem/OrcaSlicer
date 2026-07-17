@@ -1,13 +1,13 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #ifndef SKELETAL_TRAPEZOIDATION_H
 #define SKELETAL_TRAPEZOIDATION_H
 
 #include <boost/polygon/voronoi.hpp>
 #include <ankerl/unordered_dense.h>
-#include <memory> // smart pointers
-#include <utility> // pair
+#include <memory> // 智能指针
+#include <utility> // 对组
 #include <list>
 #include <vector>
 
@@ -64,14 +64,14 @@ class SkeletalTrapezoidation
     template<typename T>
     using ptr_vector_t = std::vector<std::shared_ptr<T>>;
 
-    double  transitioning_angle; //!< How pointy a region should be before we apply the method. Equals 180* - limit_bisector_angle
-    coord_t discretization_step_size; //!< approximate size of segments when parabolic VD edges get discretized (and vertex-vertex edges)
-    coord_t transition_filter_dist; //!< Filter transition mids (i.e. anchors) closer together than this
-    coord_t allowed_filter_deviation; //!< The allowed line width deviation induced by filtering
-    coord_t beading_propagation_transition_dist; //!< When there are different beadings propagated from below and from above, use this transitioning distance
-    //!< Filter areas marked as 'central' smaller than this
+    double  transitioning_angle; //!< 区域在应用方法前应有多尖。等于 180* - limit_bisector_angle
+    coord_t discretization_step_size; //!< 抛物线VD边被离散化时（以及顶点-顶点边）的段的大致大小
+    coord_t transition_filter_dist; //!< 过滤比此值更接近的过渡中点（即锚点）
+    coord_t allowed_filter_deviation; //!< 过滤引起的允许线宽偏差
+    coord_t beading_propagation_transition_dist; //!< 当从下方和上方传播不同的 beading 时，使用此过渡距离
+    //!< 过滤标记为'central'且小于此值的区域
     inline coord_t central_filter_dist() { return scaled<coord_t>(0.02); }
-    //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
+    //!< 一般算术不精确性。仅用于确定过渡是否真的需要插入额外边。
     inline coord_t snap_dist() { return scaled<coord_t>(0.02); }
 
     /*!
@@ -172,7 +172,7 @@ protected:
      */
     ankerl::unordered_dense::map<const VD::edge_type *, edge_t *> vd_edge_to_he_edge;
     ankerl::unordered_dense::map<const VD::vertex_type *, node_t *> vd_node_to_he_node;
-    node_t &makeNode(const VD::vertex_type &vd_node, Point p); //!< Get the node which the VD node maps to, or create a new mapping if there wasn't any yet.
+    node_t &makeNode(const VD::vertex_type &vd_node, Point p); //!< 获取VD节点映射到的节点，如果尚不存在则创建新映射。
 
     /*!
      * (Eventual) returned 'polylines per index' result (from generateToolpaths):
@@ -220,7 +220,7 @@ protected:
     void separatePointyQuadEndNodes();
 
 
-    // ^ init | v transitioning
+    // ^ 初始化 | v 过渡处理
 
     void updateIsCentral(); // Update the "is_central" flag for each edge based on the transitioning_angle
 
@@ -421,9 +421,9 @@ protected:
      */
     void generateExtraRibs();
 
-    // ^ transitioning ^
+    // ^ 过渡处理 ^
 
-    // v toolpath generation v
+    // v 刀具路径生成 v
 
     /*!
      * \param[out] segments the generated segments

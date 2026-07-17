@@ -1,5 +1,5 @@
-// Copyright (c) 2020 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿// Copyright (c) 2020 Ultimaker B.V.
+// CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #ifndef CURAENGINE_WALLTOOLPATHS_H
 #define CURAENGINE_WALLTOOLPATHS_H
@@ -39,103 +39,99 @@ class WallToolPaths
 {
 public:
     /*!
-     * A class that creates the toolpaths given an outline, nominal bead width and maximum amount of walls
-     * \param outline An outline of the area in which the ToolPaths are to be generated
-     * \param bead_width_0 The bead width of the first wall used in the generation of the toolpaths
-     * \param bead_width_x The bead width of the inner walls used in the generation of the toolpaths
-     * \param inset_count The maximum number of parallel extrusion lines that make up the wall
-     * \param wall_0_inset How far to inset the outer wall, to make it adhere better to other walls.
+     * 一个类，给定轮廓、标称珠子宽度和最大壁数，创建刀具路径。
+     * \param outline 将要生成刀具路径的区域的轮廓
+     * \param bead_width_0 生成刀具路径时使用的外壁宽度
+     * \param bead_width_x 生成刀具路径时使用的内壁宽度；如果使用 nominal_bead_width 构造函数调用 WallToolPaths，则此值与 bead_width_0 相同
+     * \param inset_count 构成壁的最大平行挤出线数量
+     * \param wall_0_inset 外壁的缩进量，使其更好地粘附其他壁。
      */
     WallToolPaths(const Polygons& outline, coord_t bead_width_0, coord_t bead_width_x, size_t inset_count, coord_t wall_0_inset, coordf_t layer_height, const WallToolPathsParams &params);
 
     /*!
-     * Generates the Toolpaths
-     * \return A reference to the newly create  ToolPaths
+     * 生成刀具路径
+     * \return 对新创建的刀具路径的引用
      */
     const std::vector<VariableWidthLines> &generate();
 
     /*!
-     * Gets the toolpaths, if this called before \p generate() it will first generate the Toolpaths
-     * \return a reference to the toolpaths
+     * 获取刀具路径，如果在 \p generate() 之前调用此函数，将首先生成刀具路径
+     * \return 对刀具路径的引用
      */
     const std::vector<VariableWidthLines> &getToolPaths();
 
     /*!
-     * Compute the inner contour of the walls. This contour indicates where the walled area ends and its infill begins.
-     * The inside can then be filled, e.g. with skin/infill for the walls of a part, or with a pattern in the case of
-     * infill with extra infill walls.
+     * 计算壁的内轮廓。此轮廓指示壁区域结束和其填充开始的位置。
+     * 内部随后可以被填充，例如使用零件的蒙皮/填充，或者在使用额外填充壁的情况下使用图案填充。
      */
     void separateOutInnerContour();
 
     /*!
-     * Gets the inner contour of the area which is inside of the generated tool
-     * paths.
+     * 获取生成的刀具路径内部区域的内轮廓。
      *
-     * If the walls haven't been generated yet, this will lazily call the
-     * \p generate() function to generate the walls with variable width.
-     * The resulting polygon will snugly match the inside of the variable-width
-     * walls where the walls get limited by the LimitedBeadingStrategy to a
-     * maximum wall count.
-     * If there are no walls, the outline will be returned.
-     * \return The inner contour of the generated walls.
+     * 如果壁尚未生成，这将惰性地调用
+     * \p generate() 函数以生成可变宽度的壁。
+     * 生成的多边形将精确匹配可变宽度壁的内部，
+     * 其中壁受 LimitedBeadingStrategy 限制为最大壁数。
+     * 如果没有壁，将返回轮廓。
+     * \return 生成壁的内轮廓。
      */
     const Polygons& getInnerContour();
 
     /*!
-     * Removes empty paths from the toolpaths
-     * \param toolpaths the VariableWidthPaths generated with \p generate()
-     * \return true if there are still paths left. If all toolpaths were removed it returns false
+     * 从刀具路径中移除空路径。
+     * \param toolpaths 使用 \p generate() 生成的 VariableWidthPaths
+     * \return 如果仍有路径剩余则返回 true。如果所有刀具路径都被移除则返回 false
      */
     static bool removeEmptyToolPaths(std::vector<VariableWidthLines> &toolpaths);
 
     using ExtrusionLineSet = ankerl::unordered_dense::set<std::pair<const ExtrusionLine *, const ExtrusionLine *>, boost::hash<std::pair<const ExtrusionLine *, const ExtrusionLine *>>>;
 
     /*!
-     * Get the order constraints of the insets when printing walls per region / hole.
-     * Each returned pair consists of adjacent wall lines where the left has an inset_idx one lower than the right.
+     * 获取按区域/孔打印壁时的缩进排序约束。
+     * 返回的每对由相邻的壁线组成，其中左侧的 inset_idx 比右侧低一个。
      *
-     * Odd walls should always go after their enclosing wall polygons.
+     * 奇数壁应始终在其包围的壁多边形之后。
      *
-     * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
+     * \param outer_to_inner 具有较低 inset_idx 的壁多边形是否应优先于具有较高 inset_idx 的。
      */
     static ExtrusionLineSet getRegionOrder(const std::vector<ExtrusionLine *> &input, bool outer_to_inner);
 
 protected:
     /*!
-     * Stitch the polylines together and form closed polygons.
+     * 将折线拼接在一起并形成闭合多边形。
      *
-     * Works on both toolpaths and inner contours simultaneously.
+     * 同时处理刀具路径和内轮廓。
      */
     static void stitchToolPaths(std::vector<VariableWidthLines> &toolpaths, coord_t bead_width_x);
 
     /*!
-     * Remove polylines shorter than half the smallest line width along that polyline.
+     * 移除长度小于该折线最小线宽一半的折线。
      */
     void removeSmallLines(std::vector<VariableWidthLines> &toolpaths);
 
     /*!
-     * Simplifies the variable-width toolpaths by calling the simplify on every line in the toolpath using the provided
-     * settings.
-     * \param settings The settings as provided by the user
+     * 通过对路径中的每条线使用提供的设置调用简化函数，来简化可变宽度刀具路径。
+     * \param settings 用户提供的设置
      * \return
      */
     static void simplifyToolPaths(std::vector<VariableWidthLines>  &toolpaths);
 
 private:
-    const Polygons& outline; //<! A reference to the outline polygon that is the designated area
-    coord_t bead_width_0; //<! The nominal or first extrusion line width with which libArachne generates its walls
-    coord_t bead_width_x; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor this is the same as bead_width_0
-    size_t inset_count; //<! The maximum number of walls to generate
-    coord_t wall_0_inset; //<! How far to inset the outer wall. Should only be applied when printing the actual walls, not extra infill/skin/support walls.
+    const Polygons& outline; //<! 作为指定区域的轮廓多边形的引用
+    coord_t bead_width_0; //<! 用于 libArachne 生成壁的标称或第一挤出线宽度
+    coord_t bead_width_x; //<! 用于 libArachne 生成后续壁的挤出线宽度；如果使用标称宽度构造函数调用 WallToolPaths，则与 bead_width_0 相同
+    size_t inset_count; //<! 生成的最大壁数
+    coord_t wall_0_inset; //<! 外壁缩进量。仅应在打印实际壁时应用，而不是额外的填充/蒙皮/支撑壁。
     coordf_t layer_height;
-    bool print_thin_walls; //<! Whether to enable the widening beading meta-strategy for thin features
-    coord_t min_feature_size; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
-    coord_t min_bead_width;  //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
-    double small_area_length; //<! The length of the small features which are to be filtered out, this is squared into a surface
-    coord_t wall_transition_filter_deviation; //!< The allowed line width deviation induced by filtering
-    bool toolpaths_generated; //<! Are the toolpaths generated
-    std::vector<VariableWidthLines> toolpaths; //<! The generated toolpaths
-    Polygons inner_contour;  //<! The inner contour of the generated toolpaths
+    bool print_thin_walls; //<! 是否启用薄特征的加宽珠子元策略
+    coord_t min_feature_size; //<! 可通过加宽珠子元策略加宽的最小特征尺寸。比此更薄的特征将不会被打印
+    coord_t min_bead_width;  //<! 使用加宽珠子元策略加宽薄模型特征时要使用的最小珠子尺寸
+    double small_area_length; //<! 将被过滤掉的小特征的长度，平方为面积
+    coord_t wall_transition_filter_deviation; //!< 过滤引起的允许线宽偏差
+    bool toolpaths_generated; //<! 刀具路径是否已生成
+    std::vector<VariableWidthLines> toolpaths; //<! 生成的刀具路径
+    Polygons inner_contour;  //<! 生成刀具路径的内轮廓
     const WallToolPathsParams m_params;
 };
 

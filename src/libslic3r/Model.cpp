@@ -1086,7 +1086,7 @@ static void add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelV
     vol->set_type(type);
 
     vol->name = src_volume->name + suffix;
-    // Don't copy the config's ID.
+    // 不复制配置的ID。
     vol->config.assign_config(src_volume->config);
     assert(vol->config.id().valid());
     assert(vol->config.id() != src_volume->config.id());
@@ -1100,7 +1100,7 @@ ModelObject::~ModelObject()
     this->clear_instances();
 }
 
-// maintains the m_model pointer
+// 维护 m_model 指针
 ModelObject& ModelObject::assign_copy(const ModelObject &rhs)
 {
 	assert(this->id().invalid() || this->id() == rhs.id());
@@ -1111,7 +1111,7 @@ ModelObject& ModelObject::assign_copy(const ModelObject &rhs)
     //BBS: add module name
     this->module_name                 = rhs.module_name;
     this->input_file                  = rhs.input_file;
-    // Copies the config's ID
+    // 复制配置的ID
     this->config                      = rhs.config;
     assert(this->config.id() == rhs.config.id());
     this->sla_support_points          = rhs.sla_support_points;
@@ -1151,7 +1151,7 @@ ModelObject& ModelObject::assign_copy(ModelObject &&rhs)
     //BBS: add module name
     this->module_name                 = std::move(rhs.module_name);
     this->input_file                  = std::move(rhs.input_file);
-    // Moves the config's ID
+    // 移动配置的ID
     this->config                      = std::move(rhs.config);
     assert(this->config.id() == rhs.config.id());
     this->sla_support_points          = std::move(rhs.sla_support_points);
@@ -1188,8 +1188,8 @@ void ModelObject::assign_new_unique_ids_recursive()
     this->layer_height_profile.set_new_unique_id();
 }
 
-// Clone this ModelObject including its volumes and instances, keep the IDs of the copies equal to the original.
-// Called by Print::apply() to clone the Model / ModelObject hierarchy to the back end for background processing.
+// 克隆此 ModelObject，包括其体积和实例，保持副本的ID与原始相同。
+// 由 Print::apply() 调用，将 Model/ModelObject 层次结构克隆到后端进行后台处理。
 //ModelObject* ModelObject::clone(Model *parent)
 //{
 //    return new ModelObject(parent, *this, true);
@@ -1199,12 +1199,12 @@ void ModelObject::assign_new_unique_ids_recursive()
 // BBS: production extension
 int ModelObject::get_backup_id() const { return m_model ? get_model()->get_object_backup_id(*this) : -1; }
 
-// BBS: Boolean Operations impl. - MusangKing
+// BBS: 布尔运算实现 - MusangKing
 bool ModelObject::make_boolean(ModelObject *cut_object, const std::string &boolean_opts)
 {
-    // merge meshes into single volume instead of multi-parts object
+    // 将网格合并为单个体积而不是多部分对象
     if (this->volumes.size() != 1) {
-        // we can't merge meshes if there's not just one volume
+        // 如果不止一个体积，则无法合并网格
         return false;
     }
     std::vector<TriangleMesh> new_meshes;
@@ -1813,7 +1813,7 @@ void ModelObject::convert_units(ModelObjectPtrs& new_objects, ConversionType con
             ModelVolume* vol = new_object->add_volume(mesh);
             vol->name = volume->name;
             vol->set_type(volume->type());
-            // Don't copy the config's ID.
+            // 不复制配置的ID。
             vol->config.assign_config(volume->config);
             assert(vol->config.id().valid());
             assert(vol->config.id() != volume->config.id());
@@ -2022,12 +2022,12 @@ void ModelObject::split(ModelObjectPtrs* new_objects)
             //use object as basic, and add volume's config
             if (meshes.size() == 1) {
                 new_object->name = volume->name;
-                // Don't copy the config's ID.
+                // 不复制配置的ID。
                 //new_object->config.assign_config(this->config.size() > 0 ? this->config : volume->config);
             }
             else {
                 new_object->name = this->name + (meshes.size() > 1 ? "_" + std::to_string(counter++) : "");
-                // Don't copy the config's ID.
+                // 不复制配置的ID。
                 //new_object->config.assign_config(this->config);
             }
             new_object->config.assign_config(this->config);

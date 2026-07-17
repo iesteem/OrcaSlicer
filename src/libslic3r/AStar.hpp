@@ -1,4 +1,4 @@
-#ifndef ASTAR_HPP
+﻿#ifndef ASTAR_HPP
 #define ASTAR_HPP
 
 #include <cmath> // std::isinf() is here
@@ -8,7 +8,7 @@
 
 namespace Slic3r { namespace astar {
 
-// Borrowed from C++20
+// 从 C++20 借用
 template<class T> using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 
 // Input interface for the Astar algorithm. Specialize this struct for a
@@ -16,7 +16,7 @@ template<class T> using remove_cvref_t = std::remove_cv_t<std::remove_reference_
 // to register the new type for the astar implementation.
 template<class T> struct TracerTraits_
 {
-    // The type of a node used by this tracer. Usually a point in space.
+    // 此追踪器使用的节点类型。通常为空间中的点。
     using Node = typename T::Node;
 
     // Call fn for every new node reachable from node 'src'. fn should have the
@@ -34,20 +34,20 @@ template<class T> struct TracerTraits_
     // cost) in order for Astar to work.
     static float goal_heuristic(const T &tracer, const Node &n) { return tracer.goal_heuristic(n); }
 
-    // Return a unique identifier (hash) for node 'n'.
+    // 返回节点 'n' 的唯一标识符（哈希值）。
     static size_t unique_id(const T &tracer, const Node &n) { return tracer.unique_id(n); }
 };
 
-// Helper definition to get the node type of a tracer
+// 获取追踪器节点类型的辅助定义
 template<class T> using TracerNodeT = typename TracerTraits_<remove_cvref_t<T>>::Node;
 
 constexpr auto Unassigned = std::numeric_limits<size_t>::max();
 
 template<class Tracer> struct QNode // Queue node. Keeps track of scores g, and h
 {
-    TracerNodeT<Tracer> node;     // The actual node itself
-    size_t              queue_id; // Position in the open queue or Unassigned if closed
-    size_t              parent;   // unique id of the parent or Unassigned
+    TracerNodeT<Tracer> node;     // 实际的节点本身
+    size_t              queue_id; // 在开放队列中的位置，如果已关闭则为 Unassigned
+    size_t              parent;   // 父节点的唯一 id 或 Unassigned
 
     float g, h;
     float f() const { return g + h; }

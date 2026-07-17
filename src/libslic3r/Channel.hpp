@@ -1,4 +1,4 @@
-#ifndef slic3r_Channel_hpp_
+﻿#ifndef slic3r_Channel_hpp_
 #define slic3r_Channel_hpp_
 
 #include <memory>
@@ -21,14 +21,14 @@ public:
     {
     public:
         Unlocker(UniqueLock lock) : m_lock(std::move(lock)) {}
-        Unlocker(const Unlocker &other) noexcept : m_lock(std::move(other.m_lock)) {}     // XXX: done beacuse of MSVC 2013 not supporting init of deleter by move
+        Unlocker(const Unlocker &other) noexcept : m_lock(std::move(other.m_lock)) {}     // XXX: 因为 MSVC 2013 不支持通过移动初始化删除器
         Unlocker(Unlocker &&other) noexcept : m_lock(std::move(other.m_lock)) {}
         Unlocker& operator=(const Unlocker &other) = delete;
         Unlocker& operator=(Unlocker &&other) { m_lock = std::move(other.m_lock); }
 
         void operator()(Ptr*) { m_lock.unlock(); }
     private:
-        mutable UniqueLock m_lock;    // XXX: mutable: see above
+        mutable UniqueLock m_lock;    // XXX: mutable：见上文
     };
 
     using Queue = std::deque<T>;
@@ -77,7 +77,7 @@ public:
         }
     }
 
-    // Unlocked observer/hint. Thread unsafe! Keep in mind you need to re-verify the result after locking.
+    // 未加锁的观察器/提示。线程不安全！请记住需要在加锁后重新验证结果。
     size_t size_hint() const noexcept { return m_queue.size(); }
 
     LockedConstPtr lock_read() const

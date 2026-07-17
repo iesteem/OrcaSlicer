@@ -30,7 +30,7 @@ template<int Dimension, typename NumberType>
 PolynomialCurve<Dimension, NumberType> fit_polynomial(const std::vector<Vec<Dimension, NumberType>> &observations,
         const std::vector<NumberType> &observation_points,
         const std::vector<NumberType> &weights, size_t order) {
-    // check to make sure inputs are correct
+    // 检查以确保输入正确
     size_t cols = order + 1;
     assert(observation_points.size() >= cols);
     assert(observation_points.size() == weights.size());
@@ -41,7 +41,7 @@ PolynomialCurve<Dimension, NumberType> fit_polynomial(const std::vector<Vec<Dime
     for (size_t i = 0; i < weights.size(); ++i) {
         auto squared_weight = sqrt(weights[i]);
         data_points.col(i) = observations[i] * squared_weight;
-        // Populate the matrix
+        // 填充矩阵
         auto x = squared_weight;
         auto c = observation_points[i];
         for (size_t j = 0; j < cols; ++j, x *= c)
@@ -50,7 +50,7 @@ PolynomialCurve<Dimension, NumberType> fit_polynomial(const std::vector<Vec<Dime
 
     const auto QR = T.householderQr();
     Eigen::MatrixXf coefficients(Dimension, cols);
-    // Solve for linear least square fit
+    // 求解线性最小二乘拟合
     for (size_t dim = 0; dim < Dimension; ++dim) {
         coefficients.row(dim) = QR.solve(data_points.row(dim).transpose());
     }
@@ -70,9 +70,9 @@ struct PiecewiseFittedCurve {
     Vec<Dimension, NumberType> get_fitted_value(const NumberType &observation_point) const {
         Vec<Dimension, NumberType> result = Vec<Dimension, NumberType>::Zero();
 
-        //find corresponding segment index; expects kernels to be centered
+        // 查找对应的段索引；期望核居中
         int middle_right_segment_index = floor((observation_point - start) / segment_size);
-        //find index of first segment that is affected by the point i; this can be deduced from kernel_span
+        // 查找受点i影响的第一个段的索引；这可以从kernel_span推导出来
         int start_segment_idx = middle_right_segment_index - Kernel::kernel_span / 2 + 1;
         for (int segment_index = start_segment_idx; segment_index < int(start_segment_idx + Kernel::kernel_span);
                 segment_index++) {
@@ -87,12 +87,12 @@ struct PiecewiseFittedCurve {
     }
 };
 
-// observations: data to be fitted by the curve
-// observation points: growing sequence of points where the observations were made.
-//      In other words, for function f(x) = y, observations are y0...yn, and observation points are x0...xn
-// weights: how important the observation is
-// segments_count: number of segments inside the valid length of the curve
-// endpoints_level_of_freedom: number of additional parameters at each end; reasonable values depend on the kernel span
+// observations: 待曲线拟合的数据
+// observation points: 观测点的递增序列
+//      换句话说，对于函数f(x) = y，observations是y0...yn，observation points是x0...xn
+// weights: 观测的重要性
+// segments_count: 曲线有效长度内的段数
+// endpoints_level_of_freedom: 每端额外参数的数量；合理值取决于核跨度
 template<typename Kernel, int Dimension, typename NumberType>
 PiecewiseFittedCurve<Dimension, NumberType, Kernel> fit_curve(
         const std::vector<Vec<Dimension, NumberType>> &observations,
@@ -101,21 +101,21 @@ PiecewiseFittedCurve<Dimension, NumberType, Kernel> fit_curve(
         size_t segments_count,
         size_t endpoints_level_of_freedom) {
 
-    // check to make sure inputs are correct
+    // 检查以确保输入正确
     assert(segments_count > 0);
     assert(observations.size() > 0);
     assert(observation_points.size() == observations.size());
     assert(observation_points.size() == weights.size());
     assert(segments_count <= observations.size());
 
-    //prepare sqrt of weights, which will then be applied to both matrix T and observed data: https://en.wikipedia.org/wiki/Weighted_least_squares
+    // 准备权重的平方根，然后将其应用于矩阵T和观测数据：https://en.wikipedia.org/wiki/Weighted_least_squares
     std::vector<NumberType> sqrt_weights(weights.size());
     for (size_t index = 0; index < weights.size(); ++index) {
         assert(weights[index] > 0);
         sqrt_weights[index] = sqrt(weights[index]);
     }
 
-    // prepare result and compute metadata
+    // 准备结果并计算元数据
     PiecewiseFittedCurve<Dimension, NumberType, Kernel> result { };
 
     NumberType valid_length = observation_points.back() - observation_points.front();
@@ -124,24 +124,24 @@ PiecewiseFittedCurve<Dimension, NumberType, Kernel> fit_curve(
     result.segment_size = segment_size;
     result.endpoints_level_of_freedom = endpoints_level_of_freedom;
 
-    // prepare observed data
-    // Eigen defaults to column major memory layout.
+    // 准备观测数据
+    // Eigen默认使用列主序内存布局。
     Eigen::MatrixXf data_points(Dimension, observations.size());
     for (size_t index = 0; index < observations.size(); ++index) {
         data_points.col(index) = observations[index] * sqrt_weights[index];
     }
-    // parameters count is always increased by one to make the parametric space of the curve symmetric.
-    // without this fix, the end of the curve is less flexible than the beginning
+    // 参数数量始终增加1，以使曲线的参数空间对称。
+    // 如果没有这个修正，曲线的末端灵活性不如前端
     size_t parameters_count = segments_count + 1 + 2 * endpoints_level_of_freedom;
-    //Create weight matrix T for each point and each segment;
+    // 为每个点和每个段创建权重矩阵T；
     Eigen::MatrixXf T(observation_points.size(), parameters_count);
     T.setZero();
-    //Fill the weight matrix
+    // 填充权重矩阵
     for (size_t i = 0; i < observation_points.size(); ++i) {
         NumberType observation_point = observation_points[i];
-        //find corresponding segment index; expects kernels to be centered
+        // 查找对应的段索引；期望核居中
         int middle_right_segment_index = floor((observation_point - result.start) / result.segment_size);
-        //find index of first segment that is affected by the point i; this can be deduced from kernel_span
+        // 查找受点i影响的第一个段的索引；这可以从kernel_span推导出来
         int start_segment_idx = middle_right_segment_index - int(Kernel::kernel_span / 2) + 1;
         for (int segment_index = start_segment_idx; segment_index < int(start_segment_idx + Kernel::kernel_span);
                 segment_index++) {
@@ -165,7 +165,7 @@ PiecewiseFittedCurve<Dimension, NumberType, Kernel> fit_curve(
     std::cout << std::endl;
 #endif
 
-    // Solve for linear least square fit
+    // 求解线性最小二乘拟合
     result.coefficients.resize(Dimension, parameters_count);
     const auto QR = T.fullPivHouseholderQr();
     for (size_t dim = 0; dim < Dimension; ++dim) {

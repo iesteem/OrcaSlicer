@@ -1,4 +1,4 @@
-#include "clipper/clipper_z.hpp"
+﻿#include "clipper/clipper_z.hpp"
 
 #include "ClipperUtils.hpp"
 #include "EdgeGrid.hpp"
@@ -113,23 +113,23 @@ static ConstPrintObjectPtrs get_top_level_objects_with_brim(const Print &print, 
         ClipperLib_Z::Path &island_clip = islands_clip.back();
         island_clip.reserve(poly.points.size());
         int island_idx = int(&poly - &islands.front());
-        // The Z coordinate carries index of the island used to get the pointer to the object.
+        // Z 坐标携带用于获取对象指针的岛屿索引。
         for (const Point &pt : poly.points)
             island_clip.emplace_back(pt.x(), pt.y(), island_idx + 1);
     }
 
-    // Init Clipper
+    // 初始化 Clipper
     ClipperLib_Z::Clipper clipper;
-    // Assign the maximum Z from four points. This values is valid index of the island
+    // 从四个点分配最大 Z 值。该值是岛屿的有效索引
     clipper.ZFillFunction([](const ClipperLib_Z::IntPoint &e1bot, const ClipperLib_Z::IntPoint &e1top, const ClipperLib_Z::IntPoint &e2bot,
                              const ClipperLib_Z::IntPoint &e2top, ClipperLib_Z::IntPoint &pt) {
         pt.z() = std::max(std::max(e1bot.z(), e1top.z()), std::max(e2bot.z(), e2top.z()));
     });
-    // Add islands
+    // 添加岛屿
     clipper.AddPaths(islands_clip, ClipperLib_Z::ptSubject, true);
-    // Execute union operation to construct polytree
+    // 执行合并操作以构建多边形树
     ClipperLib_Z::PolyTree islands_polytree;
-    //FIXME likely pftNonZero or ptfPositive would be better. Why are we using ptfEvenOdd for Unions?
+    //FIXME pftNonZero 或 ptfPositive 可能更好。为什么我们在合并操作中使用 ptfEvenOdd？
     clipper.Execute(ClipperLib_Z::ctUnion, islands_polytree, ClipperLib_Z::pftEvenOdd, ClipperLib_Z::pftEvenOdd);
 
     std::unordered_set<size_t> processed_objects_idx;

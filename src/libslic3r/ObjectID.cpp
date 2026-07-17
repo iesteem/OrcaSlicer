@@ -4,7 +4,7 @@ namespace Slic3r {
 
 size_t ObjectBase::s_last_id = 0;
 
-// Unique object / instance ID for the wipe tower.
+// 擦拭塔的唯一对象/实例 ID。
 ObjectID wipe_tower_object_id()
 {
     static ObjectBase mine;

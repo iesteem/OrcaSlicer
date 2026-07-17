@@ -31,7 +31,7 @@ public:
     const Extruder*      extruder()     const   { return m_extruder; }
 
     void                 apply_print_config(const PrintConfig &print_config);
-    // Extruders are expected to be sorted in an increasing order.
+    // 挤出机预期按递增顺序排序。
     void                 set_extruders(std::vector<unsigned int> extruder_ids);
     const std::vector<Extruder>& extruders() const { return m_extruders; }
     std::vector<unsigned int> extruder_ids() const { 
@@ -51,31 +51,30 @@ public:
     std::string set_print_acceleration(unsigned int acceleration)   { return set_acceleration_internal(Acceleration::Print, acceleration); }
     std::string set_travel_acceleration(unsigned int acceleration)  { return set_acceleration_internal(Acceleration::Travel, acceleration); }
     std::string set_jerk_xy(double jerk);
-    // Orca: set acceleration and jerk in one command for Klipper
+    // Orca：为 Klipper 在一个命令中设置加速度和加加速度
     std::string set_accel_and_jerk(unsigned int acceleration, double jerk);
     std::string set_junction_deviation(double junction_deviation); 
     std::string set_pressure_advance(double pa) const;
     std::string set_input_shaping(char axis, float damp, float freq) const;
     std::string reset_e(bool force = false);
     std::string update_progress(unsigned int num, unsigned int tot, bool allow_100 = false) const;
-    // return false if this extruder was already selected
+    // 如果此挤出机已被选中则返回 false
     bool        need_toolchange(unsigned int extruder_id) const 
         { return m_extruder == nullptr || m_extruder->id() != extruder_id; }
     std::string set_extruder(unsigned int extruder_id)
         { return this->need_toolchange(extruder_id) ? this->toolchange(extruder_id) : ""; }
-    // Prefix of the toolchange G-code line, to be used by the CoolingBuffer to separate sections of the G-code
-    // printed with the same extruder.
+    // 换刀 G-code 行的前缀，由 CoolingBuffer 用于分隔使用同一挤出机打印的 G-code 部分。
     std::string toolchange_prefix() const;
     std::string toolchange(unsigned int extruder_id);
     std::string set_speed(double F, const std::string &comment = std::string(), const std::string &cooling_marker = std::string());
-    // SoftFever NOTE: the returned speed is mm/minute
+    // SoftFever 注意：返回的速度单位为 mm/分钟
     double      get_current_speed() const { return m_current_speed;}
     std::string travel_to_xy(const Vec2d &point, const std::string &comment = std::string());
     std::string travel_to_xyz(const Vec3d &point, const std::string &comment = std::string(), bool force_z = false);
     std::string travel_to_z(double z, const std::string &comment = std::string(), bool force = false);
     bool        will_move_z(double z) const;
     std::string extrude_to_xy(const Vec2d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
-    //BBS: generate G2 or G3 extrude which moves by arc
+    //BBS：生成 G2 或 G3 圆弧移动挤出
     std::string extrude_arc_to_xy(const Vec2d &point, const Vec2d &center_offset, double dE, const bool is_ccw, const std::string &comment = std::string(), bool force_no_extrusion = false);
     std::string extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
     std::string retract(bool before_wipe = false, double retract_length = 0);
@@ -88,10 +87,10 @@ public:
     void        set_position(const Vec3d& in) { m_pos = in; }
     double      get_zhop() const { return m_lifted; }
 
-    //BBS: set offset for gcode writer
+    //BBS：为 GCode 写入器设置偏移
     void set_xy_offset(double x, double y) { m_x_offset = x; m_y_offset = y; }
     Vec2f get_xy_offset() { return Vec2f{m_x_offset, m_y_offset}; };
-    // To be called by the CoolingBuffer from another thread.
+    // 由 CoolingBuffer 从另一个线程调用。
     static std::string set_fan(const GCodeFlavor gcode_flavor, unsigned int speed);
     // To be called by the main thread. It always emits the G-code, it does not remember the previous state.
     // Keeping the state is left to the CoolingBuffer, which runs asynchronously on another thread.

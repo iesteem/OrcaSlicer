@@ -1,10 +1,9 @@
-// Configuration store of Slic3r.
+// Slic3r 的配置存储。
 //
-// The configuration store is either static or dynamic.
-// DynamicPrintConfig is used mainly at the user interface. while the StaticPrintConfig is used
-// during the slicing and the g-code generation.
+// 配置存储分为静态和动态两种。
+// DynamicPrintConfig 主要用于用户界面，而 StaticPrintConfig 用于切片和 G-code 生成。
 //
-// The classes derived from StaticPrintConfig form a following hierarchy.
+// 从 StaticPrintConfig 派生的类形成以下层次结构。
 //
 // FullPrintConfig
 //    PrintObjectConfig
@@ -261,10 +260,9 @@ enum DraftShield {
 
 enum class PerimeterGeneratorType
 {
-    // Classic perimeter generator using Clipper offsets with constant extrusion width.
+    // 经典周长生成器，使用 Clipper 偏移和恒定挤出宽度。
     Classic,
-    // Perimeter generator with variable extrusion width based on the paper
-    // "A framework for adaptive width control of dense contour-parallel toolpaths in fused deposition modeling" ported from Cura.
+    // 基于论文 "A framework for adaptive width control of dense contour-parallel toolpaths in fused deposition modeling" 的可变挤出宽度周长生成器，从 Cura 移植。
     Arachne
 };
 
@@ -493,8 +491,8 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 
 class DynamicPrintConfig;
 
-// Defines each and every confiuration option of Slic3r, including the properties of the GUI dialogs.
-// Does not store the actual values, but defines default values.
+// 定义 Slic3r 的每一个配置选项，包括 GUI 对话框的属性。
+// 不存储实际值，但定义默认值。
 class PrintConfigDef : public ConfigDef
 {
 public:
@@ -530,21 +528,20 @@ private:
     std::vector<std::string>    m_filament_retract_keys;
 };
 
-// The one and only global definition of SLic3r configuration options.
-// This definition is constant.
+// Slic3r 配置选项的唯一全局定义。
+// 此定义为常量。
 extern const PrintConfigDef print_config_def;
 
 class StaticPrintConfig;
 
-// Minimum object distance for arrangement, based on printer technology.
+// 基于打印机技术的最小物体排列距离。
 double min_object_distance(const ConfigBase &cfg);
 
-// Slic3r dynamic configuration, used to override the configuration
-// per object, per modification volume or per printing material.
-// The dynamic configuration is also used to store user modifications of the print global parameters,
-// so the modified configuration values may be diffed against the active configuration
-// to invalidate the proper slicing resp. g-code generation processing steps.
-// This object is mapped to Perl as Slic3r::Config.
+// Slic3r 动态配置，用于覆盖每个物体、每个修改体积或每个打印材料的配置。
+// 动态配置也用于存储用户对打印全局参数的修改，
+// 因此修改后的配置值可以与活动配置进行差异比较，
+// 以使相应的切片或 G-code 生成处理步骤失效。
+// 此对象映射到 Perl 作为 Slic3r::Config。
 class DynamicPrintConfig : public DynamicConfig
 {
 public:
@@ -560,12 +557,12 @@ public:
     static DynamicPrintConfig  full_print_config();
     static DynamicPrintConfig* new_from_defaults_keys(const std::vector<std::string> &keys);
 
-    // Overrides ConfigBase::def(). Static configuration definition. Any value stored into this ConfigBase shall have its definition here.
+    // 覆盖 ConfigBase::def()。静态配置定义。存储在此 ConfigBase 中的任何值都应有其定义。
     const ConfigDef*    def() const override { return &print_config_def; }
 
     void                normalize_fdm(int used_filaments = 0);
     void                normalize_fdm_1();
-    //return the changed param set
+    // 返回已更改的参数集
     t_config_option_keys normalize_fdm_2(int num_objects, int used_filaments = 0);
 
     void                set_num_extruders(unsigned int num_extruders);
@@ -574,23 +571,23 @@ public:
     void                set_num_filaments(unsigned int num_filaments);
 
     //BBS
-    // Validate the PrintConfig. Returns an empty string on success, otherwise an error message is returned.
+    // 验证 PrintConfig。成功时返回空字符串，否则返回错误信息。
     std::map<std::string, std::string>         validate(bool under_cli = false);
 
-    // Verify whether the opt_key has not been obsoleted or renamed.
-    // Both opt_key and value may be modified by handle_legacy().
-    // If the opt_key is no more valid in this version of Slic3r, opt_key is cleared by handle_legacy().
-    // handle_legacy() is called internally by set_deserialize().
+    // 验证 opt_key 是否已废弃或重命名。
+    // opt_key 和 value 都可能被 handle_legacy() 修改。
+    // 如果 opt_key 在此版本的 Slic3r 中不再有效，handle_legacy() 会清空 opt_key。
+    // handle_legacy() 由 set_deserialize() 内部调用。
     void                handle_legacy(t_config_option_key &opt_key, std::string &value) const override
         { PrintConfigDef::handle_legacy(opt_key, value); }
 
-    // Called after a config is loaded as a whole.
-    // Perform composite conversions, for example merging multiple keys into one key.
-    // For conversion of single options, the handle_legacy() method above is called.
+    // 在整体加载配置后调用。
+    // 执行复合转换，例如将多个键合并为一个键。
+    // 对于单个选项的转换，调用上面的 handle_legacy() 方法。
     void                handle_legacy_composite() override
         { PrintConfigDef::handle_legacy_composite(*this); }
 
-    //BBS special case Support G/ Support W
+    //BBS 特殊情况 Support G/ Support W
     std::string get_filament_type(std::string &displayed_filament_type, int id = 0);
 
     bool is_custom_defined();
@@ -603,25 +600,25 @@ class StaticPrintConfig : public StaticConfig
 public:
     StaticPrintConfig() {}
 
-    // Overrides ConfigBase::def(). Static configuration definition. Any value stored into this ConfigBase shall have its definition here.
+    // 覆盖 ConfigBase::def()。静态配置定义。存储在此 ConfigBase 中的任何值都应有其定义。
     const ConfigDef*    def() const override { return &print_config_def; }
-    // Reference to the cached list of keys.
+    // 对缓存键列表的引用。
     virtual const t_config_option_keys& keys_ref() const = 0;
 
 protected:
-    // Verify whether the opt_key has not been obsoleted or renamed.
-    // Both opt_key and value may be modified by handle_legacy().
-    // If the opt_key is no more valid in this version of Slic3r, opt_key is cleared by handle_legacy().
-    // handle_legacy() is called internally by set_deserialize().
+    // 验证 opt_key 是否已废弃或重命名。
+    // opt_key 和 value 都可能被 handle_legacy() 修改。
+    // 如果 opt_key 在此版本的 Slic3r 中不再有效，handle_legacy() 会清空 opt_key。
+    // handle_legacy() 由 set_deserialize() 内部调用。
     void                handle_legacy(t_config_option_key &opt_key, std::string &value) const override
         { PrintConfigDef::handle_legacy(opt_key, value); }
 
-    // Internal class for keeping a dynamic map to static options.
+    // 用于维护静态选项动态映射的内部类。
     class StaticCacheBase
     {
     public:
-        // To be called during the StaticCache setup.
-        // Add one ConfigOption into m_map_name_to_offset.
+        // 在 StaticCache 设置期间调用。
+        // 将一个 ConfigOption 添加到 m_map_name_to_offset。
         template<typename T>
         void                opt_add(const std::string &name, const char *base_ptr, const T &opt)
         {
@@ -633,12 +630,12 @@ protected:
         std::map<std::string, ptrdiff_t>    m_map_name_to_offset;
     };
 
-    // Parametrized by the type of the topmost class owning the options.
+    // 由拥有选项的最顶层类的类型参数化。
     template<typename T>
     class StaticCache : public StaticCacheBase
     {
     public:
-        // Calling the constructor of m_defaults with 0 forces m_defaults to not run the initialization.
+        // 使用 0 调用 m_defaults 的构造函数强制 m_defaults 不运行初始化。
         StaticCache() : m_defaults(nullptr) {}
         ~StaticCache() { delete m_defaults; m_defaults = nullptr; }
 
@@ -659,9 +656,9 @@ protected:
         const std::vector<std::string>& keys()      const { return m_keys; }
         const T&                        defaults()  const { return *m_defaults; }
 
-        // To be called during the StaticCache setup.
-        // Collect option keys from m_map_name_to_offset,
-        // assign default values to m_defaults.
+        // 在 StaticCache 设置期间调用。
+        // 从 m_map_name_to_offset 收集选项键，
+        // 将默认值分配给 m_defaults。
         void                finalize(T *defaults, const ConfigDef *defs)
         {
             assert(defs != nullptr);
@@ -669,10 +666,10 @@ protected:
             m_keys.clear();
             m_keys.reserve(m_map_name_to_offset.size());
             for (const auto &kvp : defs->options) {
-                // Find the option given the option name kvp.first by an offset from (char*)m_defaults.
+                // 通过相对于 (char*)m_defaults 的偏移量根据选项名称 kvp.first 查找选项。
                 ConfigOption *opt = this->optptr(kvp.first, m_defaults);
                 if (opt == nullptr)
-                    // This option is not defined by the ConfigBase of type T.
+                    // 此选项未由类型 T 的 ConfigBase 定义。
                     continue;
                 m_keys.emplace_back(kvp.first);
                 const ConfigOptionDef *def = defs->get(kvp.first);
@@ -690,13 +687,13 @@ protected:
 
 #define STATIC_PRINT_CONFIG_CACHE_BASE(CLASS_NAME) \
 public: \
-    /* Overrides ConfigBase::optptr(). Find ando/or create a ConfigOption instance for a given name. */ \
+    /* 覆盖 ConfigBase::optptr()。根据给定名称查找并/或创建一个 ConfigOption 实例。 */ \
     const ConfigOption*      optptr(const t_config_option_key &opt_key) const override \
         { return s_cache_##CLASS_NAME.optptr(opt_key, this); } \
-    /* Overrides ConfigBase::optptr(). Find ando/or create a ConfigOption instance for a given name. */ \
+    /* 覆盖 ConfigBase::optptr()。根据给定名称查找并/或创建一个 ConfigOption 实例。 */ \
     ConfigOption*            optptr(const t_config_option_key &opt_key, bool create = false) override \
         { return s_cache_##CLASS_NAME.optptr(opt_key, this); } \
-    /* Overrides ConfigBase::keys(). Collect names of all configuration values maintained by this configuration store. */ \
+    /* 覆盖 ConfigBase::keys()。收集此配置存储维护的所有配置值的名称。 */ \
     t_config_option_keys     keys() const override { return s_cache_##CLASS_NAME.keys(); } \
     const t_config_option_keys& keys_ref() const override { return s_cache_##CLASS_NAME.keys(); } \
     static const CLASS_NAME& defaults() { assert(s_cache_##CLASS_NAME.initialized()); return s_cache_##CLASS_NAME.defaults(); } \
@@ -711,24 +708,24 @@ private: \
             s_cache_##CLASS_NAME.finalize(inst, inst->def()); \
         } \
     } \
-    /* Cache object holding a key/option map, a list of option keys and a copy of this static config initialized with the defaults. */ \
+    /* 缓存对象，包含键/选项映射、选项键列表以及使用默认值初始化的此静态配置的副本。 */ \
     static StaticPrintConfig::StaticCache<CLASS_NAME> s_cache_##CLASS_NAME;
 
 #define STATIC_PRINT_CONFIG_CACHE(CLASS_NAME) \
     STATIC_PRINT_CONFIG_CACHE_BASE(CLASS_NAME) \
 public: \
-    /* Public default constructor will initialize the key/option cache and the default object copy if needed. */ \
+    /* 公共默认构造函数将初始化键/选项缓存和默认对象副本（如果需要）。 */ \
     CLASS_NAME() { assert(s_cache_##CLASS_NAME.initialized()); *this = s_cache_##CLASS_NAME.defaults(); } \
 protected: \
-    /* Protected constructor to be called when compounded. */ \
+    /* 合成时要调用的受保护构造函数。 */ \
     CLASS_NAME(int) {}
 
 #define STATIC_PRINT_CONFIG_CACHE_DERIVED(CLASS_NAME) \
     STATIC_PRINT_CONFIG_CACHE_BASE(CLASS_NAME) \
 public: \
-    /* Overrides ConfigBase::def(). Static configuration definition. Any value stored into this ConfigBase shall have its definition here. */ \
+    /* 覆盖 ConfigBase::def()。静态配置定义。存储在此 ConfigBase 中的任何值都应有其定义。 */ \
     const ConfigDef*    def() const override { return &print_config_def; } \
-    /* Handle legacy and obsoleted config keys */ \
+    /* 处理遗留和废弃的配置键 */ \
     void                handle_legacy(t_config_option_key &opt_key, std::string &value) const override \
         { PrintConfigDef::handle_legacy(opt_key, value); }
 
@@ -780,7 +777,7 @@ protected: \
 #define PRINT_CONFIG_CLASS_DERIVED_EQUAL(r, data, elem) \
     if (! (*static_cast<const elem*>(this) == static_cast<const elem&>(rhs))) return false;
 
-// Generic version, with or without new parameters. Don't use this directly.
+// 通用版本，带或不带新参数。不要直接使用。
 #define PRINT_CONFIG_CLASS_DERIVED_DEFINE1(CLASS_NAME, CLASSES_PARENTS_TUPLE, PARAMETER_DEFINITION, PARAMETER_REGISTRATION, PARAMETER_HASHES, PARAMETER_EQUALS) \
 class CLASS_NAME : PRINT_CONFIG_CLASS_DERIVED_CLASS_LIST(CLASSES_PARENTS_TUPLE) { \
     STATIC_PRINT_CONFIG_CACHE_DERIVED(CLASS_NAME) \
@@ -808,10 +805,10 @@ protected: \
         PARAMETER_REGISTRATION \
     } \
 };
-// Variant without adding new parameters.
+// 不添加新参数的变体。
 #define PRINT_CONFIG_CLASS_DERIVED_DEFINE0(CLASS_NAME, CLASSES_PARENTS_TUPLE) \
     PRINT_CONFIG_CLASS_DERIVED_DEFINE1(CLASS_NAME, CLASSES_PARENTS_TUPLE, BOOST_PP_EMPTY(), BOOST_PP_EMPTY(), BOOST_PP_EMPTY(), BOOST_PP_EMPTY())
-// Variant with adding new parameters.
+// 添加新参数的变体。
 #define PRINT_CONFIG_CLASS_DERIVED_DEFINE(CLASS_NAME, CLASSES_PARENTS_TUPLE, PARAMETER_DEFINITION_SEQ) \
     PRINT_CONFIG_CLASS_DERIVED_DEFINE1(CLASS_NAME, CLASSES_PARENTS_TUPLE, \
         BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_DEFINITION, _, PARAMETER_DEFINITION_SEQ), \
@@ -819,7 +816,7 @@ protected: \
         BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_HASH, _, PARAMETER_DEFINITION_SEQ), \
         BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_EQUAL, _, PARAMETER_DEFINITION_SEQ))
 
-// This object is mapped to Perl as Slic3r::Config::PrintObject.
+// 此对象映射到 Perl 作为 Slic3r::Config::PrintObject。
 PRINT_CONFIG_CLASS_DEFINE(
     PrintObjectConfig,
 
@@ -834,7 +831,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,                 elefant_foot_compensation_layers))
     ((ConfigOptionFloat,               max_bridge_length))
     ((ConfigOptionFloatOrPercent,      line_width))
-    // Force the generation of solid shells between adjacent materials/volumes.
+    // 强制在相邻材料/体积之间生成实体外壳。
     ((ConfigOptionBool,                interface_shells))
     ((ConfigOptionFloat,               layer_height))
     ((ConfigOptionFloat,               mmu_segmented_region_max_width))
@@ -849,9 +846,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               slice_closing_radius))
     ((ConfigOptionEnum<SlicingMode>,   slicing_mode))
     ((ConfigOptionBool,                enable_support))
-    // Automatic supports (generated based on support_threshold_angle).
+    // 自动支撑（基于 support_threshold_angle 生成）。
     ((ConfigOptionEnum<SupportType>,   support_type))
-    // Direction of the support pattern (in XY plane).`
+    // 支撑图案方向（在 XY 平面中）。`
     ((ConfigOptionFloat,               support_angle))
     ((ConfigOptionBool,                support_on_build_plate_only))
     ((ConfigOptionBool,                support_critical_regions_only))
@@ -866,26 +863,26 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,                 support_interface_filament))
     ((ConfigOptionInt,                 support_interface_top_layers))
     ((ConfigOptionInt,                 support_interface_bottom_layers))
-    // Spacing between interface lines (the hatching distance). Set zero to get a solid interface.
+    // 接口线之间的间距（填充线距离）。设为零以获得实体接口。
     ((ConfigOptionFloat,               support_interface_spacing))
     ((ConfigOptionFloat,               support_interface_speed))
     ((ConfigOptionEnum<SupportMaterialPattern>, support_base_pattern))
     ((ConfigOptionEnum<SupportMaterialInterfacePattern>, support_interface_pattern))
-    // Spacing between support material lines (the hatching distance).
+    // 支撑材料线之间的间距（填充线距离）。
     ((ConfigOptionFloat,               support_base_pattern_spacing))
     ((ConfigOptionFloat,               support_expansion))
     ((ConfigOptionFloat,               support_speed))
     ((ConfigOptionEnum<SupportMaterialStyle>, support_style))
     // BBS
     //((ConfigOptionBool,                independent_support_layer_height))
-    // Orca internal thick bridge
+    // Orca 内部厚桥接
     ((ConfigOptionBool,                thick_bridges))
     ((ConfigOptionBool,                thick_internal_bridges))
     ((ConfigOptionEnum<InternalBridgeFilter>,  dont_filter_internal_bridges))
     // Orca
     ((ConfigOptionEnum<EnableExtraBridgeLayer>,  enable_extra_bridge_layer))
     ((ConfigOptionPercent,              internal_bridge_density))
-    // Overhang angle threshold.
+    // 悬垂角度阈值。
     ((ConfigOptionInt,                 support_threshold_angle))
     ((ConfigOptionFloatOrPercent,      support_threshold_overlap))
     ((ConfigOptionFloat,               support_object_xy_distance))
@@ -933,7 +930,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<GapFillTarget>,gap_fill_target))
     ((ConfigOptionFloat,              min_length_factor))
 
-    // Move all acceleration and jerk settings to object
+    // 将所有加速度和加加速度设置移至物体
     ((ConfigOptionFloat,              default_acceleration))
     ((ConfigOptionFloat,              outer_wall_acceleration))
     ((ConfigOptionFloat,              inner_wall_acceleration))
@@ -961,8 +958,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,  interlocking_depth))
     ((ConfigOptionInt,  interlocking_boundary_avoidance))
 
-    // Orca: internal use only
-    ((ConfigOptionBool,  calib_flowrate_topinfill_special_order)) // ORCA: special flag for flow rate calibration
+    // Orca: 仅内部使用
+    ((ConfigOptionBool,  calib_flowrate_topinfill_special_order)) // ORCA：流量校准的特殊标志
 
 
 )
@@ -1025,7 +1022,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Orca:
     ((ConfigOptionFloatOrPercent,                infill_combination_max_layer_height))
     ((ConfigOptionInt,                  fill_multiline))
-    // Ironing options
+    // 熨烫选项
     ((ConfigOptionEnum<IroningType>, ironing_type))
     ((ConfigOptionEnum<InfillPattern>, ironing_pattern))
     ((ConfigOptionPercent, ironing_flow))
@@ -1034,19 +1031,19 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat, ironing_direction))
     ((ConfigOptionFloat, ironing_speed))
     ((ConfigOptionFloat, ironing_angle))
-    // Detect bridging perimeters
+    // 检测桥接周长
     ((ConfigOptionBool, detect_overhang_wall))
     ((ConfigOptionInt, wall_filament))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
     ((ConfigOptionFloat, inner_wall_speed))
-    // Total number of perimeters.
+    // 周长总数。
     ((ConfigOptionInt, wall_loops))
     ((ConfigOptionBool, alternate_extra_wall))
     ((ConfigOptionFloat, minimum_sparse_infill_area))
     ((ConfigOptionInt, solid_infill_filament))
     ((ConfigOptionFloatOrPercent, internal_solid_infill_line_width))
     ((ConfigOptionFloat, internal_solid_infill_speed))
-    // Detect thin walls.
+    // 检测薄壁。
     ((ConfigOptionBool, detect_thin_wall))
     ((ConfigOptionFloatOrPercent, top_surface_line_width))
     ((ConfigOptionInt, top_shell_layers))
@@ -1113,7 +1110,7 @@ PRINT_CONFIG_CLASS_DEFINE(
 PRINT_CONFIG_CLASS_DEFINE(
     MachineEnvelopeConfig,
 
-    // Orca: whether emit machine limits into the beginning of the G-code.
+    // Orca: 是否将机器限制输出到 G-code 的开头。
     ((ConfigOptionBool,                 emit_machine_limits_to_gcode))
     // M201 X... Y... Z... E... [mm/sec^2]
     ((ConfigOptionFloats,               machine_max_acceleration_x))
@@ -1143,7 +1140,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     // M205 S... [mm/sec]
     ((ConfigOptionFloats,               machine_min_extruding_rate))
 
-    //resonance avoidance ported from qidi slicer
+    // 共振避让，从 qidi slicer 移植
     ((ConfigOptionBool,                 resonance_avoidance))
     ((ConfigOptionFloat,                min_resonance_avoidance_speed))
     ((ConfigOptionFloat,                max_resonance_avoidance_speed))
@@ -1163,7 +1160,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloats,              filament_flow_ratio))
     ((ConfigOptionBools,               enable_pressure_advance))
     ((ConfigOptionFloats,              pressure_advance))
-    // Orca: adaptive pressure advance and calibration model
+    // Orca: 自适应压力提前和校准模型
     ((ConfigOptionBools,                adaptive_pressure_advance))
     ((ConfigOptionBools,                adaptive_pressure_advance_overhangs))
     ((ConfigOptionStrings,             adaptive_pressure_advance_model))
@@ -1280,7 +1277,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                ramming_pressure_advance_value))
     ((ConfigOptionBool,                support_multi_bed_types))
 
-    // Small Area Infill Flow Compensation
+    // 小面积填充流量补偿
     ((ConfigOptionStrings,              small_area_infill_flow_compensation_model))
 
     ((ConfigOptionBool,                has_scarf_joint_seam))
@@ -1498,140 +1495,137 @@ PRINT_CONFIG_CLASS_DEFINE(
 
     ((ConfigOptionFloat, layer_height))
 
-    //Number of the layers needed for the exposure time fade [3;20]
+    // 曝光时间淡出所需的层数 [3;20]
     ((ConfigOptionInt,  faded_layers))/*= 10*/
 
     ((ConfigOptionFloat, slice_closing_radius))
 
-    // Enabling or disabling support creation
+    // 启用或禁用支撑生成
     ((ConfigOptionBool,  supports_enable))
 
-    // Diameter in mm of the pointing side of the head.
+    // 支撑头尖端的直径（毫米）。
     ((ConfigOptionFloat, support_head_front_diameter))/*= 0.2*/
 
-    // How much the pinhead has to penetrate the model surface
+    // 支撑头需穿透模型表面的深度
     ((ConfigOptionFloat, support_head_penetration))/*= 0.2*/
 
-    // Width in mm from the back sphere center to the front sphere center.
+    // 从后球心到前球心的宽度（毫米）。
     ((ConfigOptionFloat, support_head_width))/*= 1.0*/
 
-    // Radius in mm of the support pillars.
+    // 支撑柱的半径（毫米）。
     ((ConfigOptionFloat, support_pillar_diameter))/*= 0.8*/
 
-    // The percentage of smaller pillars compared to the normal pillar diameter
-    // which are used in problematic areas where a normal pilla cannot fit.
+    // 较小支柱占正常支柱直径的百分比，
+    // 用于正常支柱无法容纳的问题区域。
     ((ConfigOptionPercent, support_small_pillar_diameter_percent))
 
-    // How much bridge (supporting another pinhead) can be placed on a pillar.
+    // 一个支柱上可放置的桥接数量。
     ((ConfigOptionInt,   support_max_bridges_on_pillar))
 
-    // How the pillars are bridged together
+    // 支柱之间的桥接连接方式
     ((ConfigOptionEnum<SLAPillarConnectionMode>, support_pillar_connection_mode))
 
-    // Generate only ground facing supports
+    // 仅生成面向底板的支撑
     ((ConfigOptionBool, support_buildplate_only))
 
-    // TODO: unimplemented at the moment. This coefficient will have an impact
-    // when bridges and pillars are merged. The resulting pillar should be a bit
-    // thicker than the ones merging into it. How much thicker? I don't know
-    // but it will be derived from this value.
+    // TODO: 目前尚未实现。此系数将影响桥接和支柱合并时的效果。
+    // 合并后的支柱应比合并前的支柱略粗。
+    // 具体粗多少尚不确定，但将由该值推导得出。
     ((ConfigOptionFloat, support_pillar_widening_factor))
 
-    // Radius in mm of the pillar base.
+    // 支柱底座的半径（毫米）。
     ((ConfigOptionFloat, support_base_diameter))/*= 2.0*/
 
-    // The height of the pillar base cone in mm.
+    // 支柱底座锥体的高度（毫米）。
     ((ConfigOptionFloat, support_base_height))/*= 1.0*/
 
-    // The minimum distance of the pillar base from the model in mm.
+    // 支柱底座与模型之间的最小距离（毫米）。
     ((ConfigOptionFloat, support_base_safety_distance)) /*= 1.0*/
 
-    // The default angle for connecting support sticks and junctions.
+    // 连接支撑杆和节点的默认角度。
     ((ConfigOptionFloat, support_critical_angle))/*= 45*/
 
-    // The max length of a bridge in mm
+    // 桥接的最大长度（毫米）
     ((ConfigOptionFloat, support_max_bridge_length))/*= 15.0*/
 
-    // The max distance of two pillars to get cross linked.
+    // 两个支柱可交叉连接的最大距离。
     ((ConfigOptionFloat, support_max_pillar_link_distance))
 
-    // The elevation in Z direction upwards. This is the space between the pad
-    // and the model object's bounding box bottom. Units in mm.
+    // 向上的 Z 方向抬升高度。这是垫板与模型物体边界框底部之间的空间。单位：毫米。
     ((ConfigOptionFloat, support_object_elevation))/*= 5.0*/
 
-    /////// Following options influence automatic support points placement:
+    /////// 以下选项影响自动支撑点放置：
     ((ConfigOptionInt, support_points_density_relative))
     ((ConfigOptionFloat, support_points_minimal_distance))
 
-    // Now for the base pool (pad) /////////////////////////////////////////////
+    // 基础垫板 /////////////////////////////////////////////
 
-    // Enabling or disabling support creation
+    // 启用或禁用垫板
     ((ConfigOptionBool,  pad_enable))
 
-    // The thickness of the pad walls
+    // 垫板壁的厚度
     ((ConfigOptionFloat, pad_wall_thickness))/*= 2*/
 
-    // The height of the pad from the bottom to the top not considering the pit
+    // 垫板从底部到顶部的高度，不考虑凹坑
     ((ConfigOptionFloat, pad_wall_height))/*= 5*/
 
-    // How far should the pad extend around the contained geometry
+    // 垫板应围绕包含的几何体延伸多远
     ((ConfigOptionFloat, pad_brim_size))
 
-    // The greatest distance where two individual pads are merged into one. The
-    // distance is measured roughly from the centroids of the pads.
+    // 两个独立垫板合并为一个的最大距离。
+    // 距离大致从垫板的质心测量。
     ((ConfigOptionFloat, pad_max_merge_distance))/*= 50*/
 
-    // The smoothing radius of the pad edges
+    // 垫板边缘的平滑半径
     // ((ConfigOptionFloat, pad_edge_radius))/*= 1*/;
 
-    // The slope of the pad wall...
+    // 垫板壁的倾斜度...
     ((ConfigOptionFloat, pad_wall_slope))
 
     // /////////////////////////////////////////////////////////////////////////
-    // Zero elevation mode parameters:
-    //    - The object pad will be derived from the model geometry.
-    //    - There will be a gap between the object pad and the generated pad
-    //      according to the support_base_safety_distance parameter.
-    //    - The two pads will be connected with tiny connector sticks
+    // 零抬升模式参数：
+    //    - 物体垫板将从模型几何体派生。
+    //    - 物体垫板和生成的垫板之间将根据
+    //      support_base_safety_distance 参数存在间隙。
+    //    - 两个垫板将通过微小的连接棒连接。
     // /////////////////////////////////////////////////////////////////////////
 
-    // Disable the elevation (ignore its value) and use the zero elevation mode
+    // 禁用抬升（忽略其值）并使用零抬升模式
     ((ConfigOptionBool, pad_around_object))
 
     ((ConfigOptionBool, pad_around_object_everywhere))
 
-    // This is the gap between the object bottom and the generated pad
+    // 物体底部与生成的垫板之间的间隙
     ((ConfigOptionFloat, pad_object_gap))
 
-    // How far to place the connector sticks on the object pad perimeter
+    // 在物体垫板周长上放置连接棒的间距
     ((ConfigOptionFloat, pad_object_connector_stride))
 
-    // The width of the connectors sticks
+    // 连接棒的宽度
     ((ConfigOptionFloat, pad_object_connector_width))
 
-    // How much should the tiny connectors penetrate into the model body
+    // 微小连接器应穿透模型本体的深度
     ((ConfigOptionFloat, pad_object_connector_penetration))
 
     // /////////////////////////////////////////////////////////////////////////
-    // Model hollowing parameters:
-    //   - Models can be hollowed out as part of the SLA print process
-    //   - Thickness of the hollowed model walls can be adjusted
+    // 模型掏空参数：
+    //   - 模型可以在 SLA 打印过程中被掏空
+    //   - 掏空模型壁的厚度可以调整
     //   -
-    //   - Additional holes will be drilled into the hollow model to allow for
-    //   - resin removal.
+    //   - 将在掏空模型上钻额外的孔以便树脂排出
     // /////////////////////////////////////////////////////////////////////////
 
     ((ConfigOptionBool, hollowing_enable))
 
-    // The minimum thickness of the model walls to maintain. Note that the
-    // resulting walls may be thicker due to smoothing out fine cavities where
-    // resin could stuck.
+    // 要维持的模型壁的最小厚度。注意，
+    // 由于平滑处理可能导致树脂卡住的细小空腔，
+    // 最终壁可能会更厚。
     ((ConfigOptionFloat, hollowing_min_thickness))
 
-    // Indirectly controls the voxel size (resolution) used by openvdb
+    // 间接控制 openvdb 使用的体素大小（分辨率）
     ((ConfigOptionFloat, hollowing_quality))
 
-    // Indirectly controls the minimum size of created cavities.
+    // 间接控制创建的空腔的最小尺寸。
     ((ConfigOptionFloat, hollowing_closing_distance))
 )
 
@@ -1730,10 +1724,10 @@ public:
 };
 
 typedef std::string t_custom_gcode_key;
-// This map containes list of specific placeholders for each custom G-code, if any exist
+// 此映射包含每个自定义 G-code 的特定占位符列表（如果存在）
 const std::map<t_custom_gcode_key, t_config_option_keys>& custom_gcode_specific_placeholders();
 
-// Next classes define placeholders used by GUI::EditGCodeDialog.
+// 接下来定义的类用于 GUI::EditGCodeDialog 使用的占位符。
 
 class ReadOnlySlicingStatesConfigDef : public ConfigDef
 {
@@ -1789,7 +1783,7 @@ public:
     OtherPresetsConfigDef();
 };
 
-// This classes defines all custom G-code specific placeholders.
+// 此类定义所有自定义 G-code 特定的占位符。
 class CustomGcodeSpecificConfigDef : public ConfigDef
 {
 public:
@@ -1797,13 +1791,13 @@ public:
 };
 extern const CustomGcodeSpecificConfigDef    custom_gcode_specific_config_def;
 
-// This class defines the command line options representing actions.
+// 此类定义代表操作的命令行选项。
 extern const CLIActionsConfigDef    cli_actions_config_def;
 
-// This class defines the command line options representing transforms.
+// 此类定义代表变换的命令行选项。
 extern const CLITransformConfigDef  cli_transform_config_def;
 
-// This class defines all command line options that are not actions or transforms.
+// 此类定义所有既不是操作也不是变换的命令行选项。
 extern const CLIMiscConfigDef       cli_misc_config_def;
 
 class DynamicPrintAndCLIConfig : public DynamicPrintConfig
@@ -1812,13 +1806,13 @@ public:
     DynamicPrintAndCLIConfig() {}
     DynamicPrintAndCLIConfig(const DynamicPrintAndCLIConfig &other) : DynamicPrintConfig(other) {}
 
-    // Overrides ConfigBase::def(). Static configuration definition. Any value stored into this ConfigBase shall have its definition here.
+    // 覆盖 ConfigBase::def()。静态配置定义。存储在此 ConfigBase 中的任何值都应有其定义。
     const ConfigDef*        def() const override { return &s_def; }
 
-    // Verify whether the opt_key has not been obsoleted or renamed.
-    // Both opt_key and value may be modified by handle_legacy().
-    // If the opt_key is no more valid in this version of Slic3r, opt_key is cleared by handle_legacy().
-    // handle_legacy() is called internally by set_deserialize().
+    // 验证 opt_key 是否已废弃或重命名。
+    // opt_key 和 value 都可能被 handle_legacy() 修改。
+    // 如果 opt_key 在此版本的 Slic3r 中不再有效，handle_legacy() 会清空 opt_key。
+    // handle_legacy() 由 set_deserialize() 内部调用。
     void                    handle_legacy(t_config_option_key &opt_key, std::string &value) const override;
 
 private:
@@ -1833,7 +1827,7 @@ private:
             for (const auto &kvp : this->options)
                 this->by_serialization_key_ordinal[kvp.second.serialization_key_ordinal] = &kvp.second;
         }
-        // Do not release the default values, they are handled by print_config_def & cli_actions_config_def / cli_transform_config_def / cli_misc_config_def.
+        // 不要释放默认值，它们由 print_config_def 和 cli_actions_config_def / cli_transform_config_def / cli_misc_config_def 管理。
         ~PrintAndCLIConfigDef() { this->options.clear(); }
     };
     static PrintAndCLIConfigDef s_def;
@@ -1850,30 +1844,26 @@ Slic3r::Polygon get_bed_shape_with_excluded_area(const PrintConfig& cfg);
 bool has_skirt(const DynamicPrintConfig& cfg);
 float get_real_skirt_dist(const DynamicPrintConfig& cfg);
 
-// ModelConfig is a wrapper around DynamicPrintConfig with an addition of a timestamp.
-// Each change of ModelConfig is tracked by assigning a new timestamp from a global counter.
-// The counter is used for faster synchronization of the background slicing thread
-// with the front end by skipping synchronization of equal config dictionaries.
-// The global counter is also used for avoiding unnecessary serialization of config
-// dictionaries when taking an Undo snapshot.
+// ModelConfig 是在 DynamicPrintConfig 基础上添加了时间戳的封装。
+// ModelConfig 的每次更改都通过从全局计数器分配新时间戳来跟踪。
+// 该计数器用于通过跳过相等配置字典的同步来加快后台切片线程与前端的同步速度。
+// 全局计数器还用于在执行撤销快照时避免不必要的配置字典序列化。
 //
-// The global counter is NOT thread safe, therefore it is recommended to use ModelConfig from
-// the main thread only.
+// 全局计数器不是线程安全的，因此建议仅从主线程使用 ModelConfig。
 //
-// As there is a global counter and it is being increased with each change to any ModelConfig,
-// if two ModelConfig dictionaries differ, they should differ with their timestamp as well.
-// Therefore copying the ModelConfig including its timestamp is safe as there is no harm
-// in having multiple ModelConfig with equal timestamps as long as their dictionaries are equal.
+// 由于存在全局计数器且每次对任何 ModelConfig 的更改都会增加它，
+// 如果两个 ModelConfig 字典不同，它们的时间戳也应不同。
+// 因此，复制包含时间戳的 ModelConfig 是安全的，只要字典相等，
+// 拥有多个具有相同时间戳的 ModelConfig 是无害的。
 //
-// The timestamp is used by the Undo/Redo stack. As zero timestamp means invalid timestamp
-// to the Undo/Redo stack (zero timestamp means the Undo/Redo stack needs to serialize and
-// compare serialized data for differences), zero timestamp shall never be used.
-// Timestamp==1 shall only be used for empty dictionaries.
+// 时间戳由撤销/重做栈使用。由于零时间戳对撤销/重做栈意味着无效时间戳
+//（零时间戳意味着撤销/重做栈需要序列化并比较序列化数据的差异），
+// 因此绝不应使用零时间戳。
+// Timestamp==1 仅应用于空字典。
 class ModelConfig
 {
 public:
-    // Following method clears the config and increases its timestamp, so the deleted
-    // state is considered changed from perspective of the undo/redo stack.
+    // 以下方法清除配置并增加其时间戳，以便从撤销/重做栈的角度认为已删除状态已更改。
     void         reset() { m_data.clear(); touch(); }
 
     void         assign_config(const ModelConfig &rhs) {
@@ -1890,9 +1880,9 @@ public:
         }
     }
 
-    // Modification of the ModelConfig is not thread safe due to the global timestamp counter!
-    // Don't call modification methods from the back-end!
-    // Assign methods don't assign if src==dst to not having to bump the timestamp in case they are equal.
+    // 由于全局时间戳计数器，ModelConfig 的修改不是线程安全的！
+    // 不要从后端调用修改方法！
+    // 如果 src==dst，分配方法不会进行分配，以避免在相等时增加时间戳。
     void         assign_config(const DynamicPrintConfig &rhs)  { if (m_data != rhs) { m_data = rhs; this->touch(); } }
     void         assign_config(DynamicPrintConfig &&rhs)       { if (m_data != rhs) { m_data = std::move(rhs); this->touch(); } }
     void         apply(const ModelConfig &other, bool ignore_nonexistent = false) { this->apply(other.get(), ignore_nonexistent); }
@@ -1906,8 +1896,8 @@ public:
         { m_data.set_deserialize(opt_key, str, substitution_context, append); this->touch(); }
     bool         erase(const t_config_option_key &opt_key) { bool out = m_data.erase(opt_key); if (out) this->touch(); return out; }
 
-    // Getters are thread safe.
-    // The following implicit conversion breaks the Cereal serialization.
+    // Getter 是线程安全的。
+    // 以下隐式转换会破坏 Cereal 序列化。
 //    operator const DynamicPrintConfig&() const throw() { return this->get(); }
     const DynamicPrintConfig&   get() const throw() { return m_data; }
     bool                        empty() const throw() { return m_data.empty(); }
@@ -1927,13 +1917,12 @@ public:
     }
     std::string                 opt_serialize(const t_config_option_key &opt_key) const { return m_data.opt_serialize(opt_key); }
 
-    // Return an optional timestamp of this object.
-    // If the timestamp returned is non-zero, then the serialization framework will
-    // only save this object on the Undo/Redo stack if the timestamp is different
-    // from the timestmap of the object at the top of the Undo / Redo stack.
+    // 返回此对象的可选时间戳。
+    // 如果返回的时间戳非零，则序列化框架仅在时间戳与撤销/重做栈顶部对象的时间戳不同时，
+    // 才将此对象保存在撤销/重做栈上。
     virtual uint64_t    timestamp() const throw() { return m_timestamp; }
     bool                timestamp_matches(const ModelConfig &rhs) const throw() { return m_timestamp == rhs.m_timestamp; }
-    // Not thread safe! Should not be called from other than the main thread!
+    // 不是线程安全的！不应在主线程之外调用！
     void                touch() { m_timestamp = ++ s_last_timestamp; }
 
 private:
@@ -1948,9 +1937,9 @@ private:
 
 } // namespace Slic3r
 
-// Serialization through the Cereal library
+// 通过 Cereal 库进行序列化
 namespace cereal {
-    // Let cereal know that there are load / save non-member functions declared for DynamicPrintConfig, ignore serialize / load / save from parent class DynamicConfig.
+    // 让 cereal 知道 DynamicPrintConfig 声明了 load/save 非成员函数，忽略父类 DynamicConfig 的 serialize/load/save。
     template <class Archive> struct specialize<Archive, Slic3r::DynamicPrintConfig, cereal::specialization::non_member_load_save> {};
 
     template<class Archive> void load(Archive& archive, Slic3r::DynamicPrintConfig &config)

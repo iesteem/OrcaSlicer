@@ -13,8 +13,7 @@
 
 namespace Slic3r {
 
-// RAII wrapper that sets LC_NUMERIC to "C" on construction
-// and restores the old value on destruction.
+// RAII 包装器，在构造时设置 LC_NUMERIC 为 "C"，在析构时恢复旧值。
 class CNumericLocalesSetter {
 public:
     CNumericLocalesSetter();
@@ -30,15 +29,14 @@ private:
 
 };
 
-// A function to check that current C locale uses decimal point as a separator.
-// Intended mostly for asserts.
+// 检查当前 C 语言环境是否使用小数点作为分隔符的函数。
+// 主要用于断言。
 bool is_decimal_separator_point();
 
 
-// A substitute for std::to_string that works according to
-// C++ locales, not C locale. Meant to be used when we need
-// to be sure that decimal point is used as a separator.
-// (We use user C locales and "C" C++ locales in most of the code.)
+// std::to_string 的替代品，根据 C++ 语言环境工作，而不是 C 语言环境。
+// 在我们需要确保使用小数点作为分隔符时使用。
+// （我们在大部分代码中使用用户 C 语言环境和 "C" C++ 语言环境。）
 std::string float_to_string_decimal_point(double value, int precision = -1);
 //std::string float_to_string_decimal_point(float value,  int precision = -1);
 double string_to_double_decimal_point(const std::string_view str, size_t* pos = nullptr);

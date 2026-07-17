@@ -17,21 +17,20 @@ Point circle_center_taubin_newton(const Points::const_iterator& input_begin, con
 	return Point::new_scale(center.x(), center.y());
 }
 
-/// Adapted from work in "Circular and Linear Regression: Fitting circles and lines by least squares", pg 126
-/// Returns a point corresponding to the center of a circle for which all of the points from input_begin to input_end
-/// lie on.
+/// 改编自《Circular and Linear Regression: Fitting circles and lines by least squares》第126页
+/// 返回一个圆心点，使得从input_begin到input_end的所有点都位于该圆上。
 Vec2d circle_center_taubin_newton(const Vec2ds::const_iterator& input_begin, const Vec2ds::const_iterator& input_end, size_t cycles)
 {
-    // calculate the centroid of the data set
+    // 计算数据集的中心
     const Vec2d sum = std::accumulate(input_begin, input_end, Vec2d(0,0));
     const size_t n = std::distance(input_begin, input_end);
     const double n_flt = static_cast<double>(n);
     const Vec2d centroid { sum / n_flt };
 
-    // Compute the normalized moments of the data set.
+    // 计算数据集的归一化矩。
     double Mxx = 0, Myy = 0, Mxy = 0, Mxz = 0, Myz = 0, Mzz = 0;
     for (auto it = input_begin; it < input_end; ++it) {
-        // center/normalize the data.
+        // 中心化/归一化数据。
         double Xi {it->x() - centroid.x()};
         double Yi {it->y() - centroid.y()};
         double Zi {Xi*Xi + Yi*Yi};
@@ -43,7 +42,7 @@ Vec2d circle_center_taubin_newton(const Vec2ds::const_iterator& input_begin, con
         Mzz += (Zi*Zi);
     }
 
-    // divide by number of points to get the moments
+    // 除以点数以获得矩
     Mxx /= n_flt;
     Myy /= n_flt;
     Mxy /= n_flt;
@@ -51,10 +50,10 @@ Vec2d circle_center_taubin_newton(const Vec2ds::const_iterator& input_begin, con
     Myz /= n_flt;
     Mzz /= n_flt;
 
-    // Compute the coefficients of the characteristic polynomial for the circle
-    // eq 5.60
+    // 计算圆的特征多项式的系数
+    // 方程5.60
     const double Mz {Mxx + Myy}; // xx + yy = z
-    const double Cov_xy {Mxx*Myy - Mxy*Mxy}; // this shows up a couple times so cache it here.
+    const double Cov_xy {Mxx*Myy - Mxy*Mxy}; // 这个值出现多次，因此在此缓存。
     const double C3 {4.0*Mz};
     const double C2 {-3.0*(Mz*Mz) - Mzz};
     const double C1 {Mz*(Mzz - (Mz*Mz)) + 4.0*Mz*Cov_xy - (Mxz*Mxz) - (Myz*Myz)};
@@ -63,7 +62,7 @@ Vec2d circle_center_taubin_newton(const Vec2ds::const_iterator& input_begin, con
     const double C22 = {C2 + C2};
     const double C33 = {C3 + C3 + C3};
 
-    // solve the characteristic polynomial with Newton's method.
+    // 使用牛顿法求解特征多项式。
     double xnew = 0.0;
     double ynew = 1e20;
 
@@ -79,15 +78,15 @@ Vec2d circle_center_taubin_newton(const Vec2ds::const_iterator& input_begin, con
         const double xold {xnew};
         xnew = xold - (ynew / Dy);
 
-        if (std::abs((xnew-xold) / xnew) < 1e-12) i = cycles; // converged, we're done here
+        if (std::abs((xnew-xold) / xnew) < 1e-12) i = cycles; // 已收敛，完成
 
         if (xnew < 0) {
-            // reset, we went negative
+            // 重置，变为负数
             xnew = 0.0;
         }
     }
     
-    // compute the determinant and the circle's parameters now that we've solved.
+    // 求解后计算行列式和圆的参数。
     double DET = xnew*xnew - xnew*Mz + Cov_xy;
 
     Vec2d center(Mxz * (Myy - xnew) - Myz * Mxy, Myz * (Mxx - xnew) - Mxz*Mxy);

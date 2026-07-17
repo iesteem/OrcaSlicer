@@ -1,4 +1,4 @@
-#include "ArcFitter.hpp"
+﻿#include "ArcFitter.hpp"
 #include "Polyline.hpp"
 
 #include <cmath>
@@ -54,7 +54,7 @@ void ArcFitter::do_arc_fitting(const Points& points, std::vector<PathFittingData
                                              tolerance,
                                              DEFAULT_ARC_LENGTH_PERCENT_TOLERANCE);
         if (can_fit) {
-            //BBS: can be fit as arc, then save arc data temperarily
+            //BBS: 可以拟合为圆弧，然后临时保存圆弧数据
             last_arc = target_arc;
             if (back_index == points.size() - 1) {
                 result.emplace_back(std::move(PathFittingData{ front_index,
@@ -72,7 +72,7 @@ void ArcFitter::do_arc_fitting(const Points& points, std::vector<PathFittingData
                                    last_arc.direction == ArcDirection::Arc_Dir_CCW ? EMovePathType::Arc_move_ccw : EMovePathType::Arc_move_cw,
                                    last_arc }));
             } else {
-                //BBS: save the first segment as line move when 3 point-line can't be fit as arc move
+                //BBS: 当 3 个点无法拟合为圆弧移动时，将第一个线段保存为直线移动
                 if (result.empty() || result.back().path_type != EMovePathType::Linear_move)
                     result.emplace_back(std::move(PathFittingData{front_index, front_index + 1, EMovePathType::Linear_move, ArcSegment()}));
                 else if(result.back().path_type == EMovePathType::Linear_move)
@@ -96,21 +96,21 @@ void ArcFitter::do_arc_fitting(const Points& points, std::vector<PathFittingData
 
 void ArcFitter::do_arc_fitting_and_simplify(Points& points, std::vector<PathFittingData>& result, double tolerance)
 {
-    //BBS: 1 do arc fit first
+    //BBS: 1 先进行圆弧拟合
     if (abs(tolerance) > SCALED_EPSILON)
         ArcFitter::do_arc_fitting(points, result, tolerance);
     else
         result.push_back(PathFittingData{ 0, points.size() - 1, EMovePathType::Linear_move, ArcSegment() });
 
-    //BBS: 2 for straight part which can't fit arc, use DP simplify
-    //for arc part, only need to keep start and end point
+    //BBS: 2 对于无法拟合为圆弧的直线部分，使用 DP 简化
+    //对于圆弧部分，只需要保留起点和终点
     if (result.size() == 1 && result[0].path_type == EMovePathType::Linear_move) {
-        //BBS: all are straight segment, directly use DP simplify
+        //BBS: 全部是直线段，直接使用 DP 简化
         points = MultiPoint::_douglas_peucker(points, tolerance);
         result[0].end_point_index = points.size() - 1;
         return;
     } else {
-        //BBS: has both arc part and straight part, we should spilit the straight part out and do DP simplify
+        //BBS: 同时有圆弧部分和直线部分，应将直线部分分离出来进行 DP 简化
         Points simplified_points;
         simplified_points.reserve(points.size());
         simplified_points.push_back(points[0]);
@@ -129,16 +129,16 @@ void ArcFitter::do_arc_fitting_and_simplify(Points& points, std::vector<PathFitt
             for (size_t j = start_index; j <= end_index; j++)
                 straight_or_arc_part.push_back(points[j]);
             straight_or_arc_part = MultiPoint::_douglas_peucker(straight_or_arc_part, tolerance);
-            //BBS: how many point has been reduced
+            //BBS: 已经减少了多少个点
             reduce_count[i] = end_index - start_index + 1 - straight_or_arc_part.size();
-            //BBS: save the simplified result
+            //BBS: 保存简化结果
             for (size_t j = 1; j < straight_or_arc_part.size(); j++) {
                 simplified_points.push_back(straight_or_arc_part[j]);
             }
         }
-        //BBS: save and will return the simplified_points
+        //BBS: 保存并返回简化后的点
         points = simplified_points;
-        //BBS: modify the index in result because the point index must be changed to match the simplified points
+        //BBS: 修改结果中的索引，因为点索引必须更改以匹配简化后的点
         for (size_t j = 1; j < reduce_count.size(); j++)
             reduce_count[j] += reduce_count[j - 1];
         for (size_t j = 0; j < result.size(); j++)

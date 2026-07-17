@@ -15,7 +15,7 @@ using PolygonsSegmentIndexConstIt = std::vector<Arachne::PolygonsSegmentIndex>::
 using LinesIt                     = Lines::iterator;
 using ColoredLinesConstIt         = ColoredLines::const_iterator;
 
-// Explicit template instantiation.
+// 显式模板实例化。
 template void VoronoiDiagram::construct_voronoi(LinesIt, LinesIt, bool);
 template void VoronoiDiagram::construct_voronoi(ColoredLinesConstIt, ColoredLinesConstIt, bool);
 template void VoronoiDiagram::construct_voronoi(PolygonsSegmentIndexConstIt, PolygonsSegmentIndexConstIt, bool);
@@ -92,14 +92,14 @@ void VoronoiDiagram::copy_to_local(voronoi_diagram_type &voronoi_diagram) {
     m_cells.clear();
     m_vertices.clear();
 
-    // Copy Voronoi edges.
+    // 复制Voronoi边。
     m_edges.reserve(voronoi_diagram.num_edges());
     for (const edge_type &edge : voronoi_diagram.edges()) {
         m_edges.emplace_back(edge.is_linear(), edge.is_primary());
         m_edges.back().color(edge.color());
     }
 
-    // Copy Voronoi cells.
+    // 复制Voronoi单元。
     m_cells.reserve(voronoi_diagram.num_cells());
     for (const cell_type &cell : voronoi_diagram.cells()) {
         m_cells.emplace_back(cell.source_index(), cell.source_category());
@@ -111,7 +111,7 @@ void VoronoiDiagram::copy_to_local(voronoi_diagram_type &voronoi_diagram) {
         }
     }
 
-    // Copy Voronoi vertices.
+    // 复制Voronoi顶点。
     m_vertices.reserve(voronoi_diagram.num_vertices());
     for (const vertex_type &vertex : voronoi_diagram.vertices()) {
         m_vertices.emplace_back(vertex.x(), vertex.y());
@@ -123,7 +123,7 @@ void VoronoiDiagram::copy_to_local(voronoi_diagram_type &voronoi_diagram) {
         }
     }
 
-    // Assign all pointers for each Voronoi edge.
+    // 为每个Voronoi边分配所有指针。
     for (const edge_type &old_edge : voronoi_diagram.edges()) {
         size_t     edge_idx = &old_edge - voronoi_diagram.edges().data();
         edge_type &new_edge = m_edges[edge_idx];
@@ -170,7 +170,7 @@ VoronoiDiagram::detect_known_issues(const VoronoiDiagram &voronoi_diagram, Segme
     } else if (const IssueType cell_issue_type = detect_known_voronoi_cell_issues(voronoi_diagram, segment_begin, segment_end); cell_issue_type != IssueType::NO_ISSUE_DETECTED) {
         return cell_issue_type;
     } else if (!VoronoiUtilsCgal::is_voronoi_diagram_planar_angle(voronoi_diagram, segment_begin, segment_end)) {
-        // Detection of non-planar Voronoi diagram detects at least GH issues #8474, #8514 and #8446.
+        // 非平面Voronoi图检测至少检测到GH问题 #8474, #8514 和 #8446。
         return IssueType::NON_PLANAR_VORONOI_DIAGRAM;
     }
 
@@ -192,31 +192,31 @@ VoronoiDiagram::detect_known_voronoi_cell_issues(const VoronoiDiagram &voronoi_d
 
     for (VD::cell_type cell : voronoi_diagram.cells()) {
         if (cell.is_degenerate() || !cell.contains_segment())
-            continue; // Skip degenerated cell that has no spoon. Also, skip a cell that doesn't contain a segment.
+            continue; // 跳过没有内容的退化单元。同时，跳过不包含线段的单元。
 
         if (const SegmentCellRange cell_range = VoronoiUtils::compute_segment_cell_range(cell, segment_begin, segment_end); cell_range.is_valid()) {
-            // Detection if Voronoi edge is intersecting input segment.
-            // It detects this type of issue at least in GH issues #8446, #8474 and #8514.
+            // 检测Voronoi边是否与输入线段相交。
+            // 它至少检测到GH问题 #8446, #8474 和 #8514 中的此类问题。
 
             const Segment &source_segment      = Geometry::VoronoiUtils::get_source_segment(cell, segment_begin, segment_end);
             const Vec2d    source_segment_from = boost::polygon::segment_traits<Segment>::get(source_segment, boost::polygon::LOW).template cast<double>();
             const Vec2d    source_segment_to   = boost::polygon::segment_traits<Segment>::get(source_segment, boost::polygon::HIGH).template cast<double>();
             const Vec2d    source_segment_vec  = source_segment_to - source_segment_from;
 
-            // All Voronoi vertices must be on the left side of the source segment, otherwise the Voronoi diagram is invalid.
+            // 所有Voronoi顶点必须在源线段的左侧，否则Voronoi图无效。
             for (const VD::edge_type *edge = cell_range.edge_begin; edge != cell_range.edge_end; edge = edge->next()) {
                 if (edge->is_infinite()) {
-                    // When there is a missing Voronoi vertex, we may encounter an infinite Voronoi edge.
-                    // This happens, for example, in GH issue #8846.
+                    // 当缺少Voronoi顶点时，可能会遇到无限Voronoi边。
+                    // 例如，在GH问题 #8846 中发生这种情况。
                     return IssueType::MISSING_VORONOI_VERTEX;
                 } else if (const Vec2d edge_v1(edge->vertex1()->x(), edge->vertex1()->y()); Slic3r::cross2(source_segment_vec, edge_v1 - source_segment_from) < 0) {
                     return IssueType::VORONOI_EDGE_INTERSECTING_INPUT_SEGMENT;
                 }
             }
         } else {
-            // When there is a missing Voronoi vertex (especially at one of the endpoints of the input segment),
-            // the returned cell_range is marked as invalid.
-            // It detects this type of issue at least in GH issue #8846.
+            // 当缺少Voronoi顶点时（尤其是在输入线段的某个端点处），
+            // 返回的cell_range被标记为无效。
+            // 它至少检测到GH问题 #8846 中的此类问题。
             return IssueType::MISSING_VORONOI_VERTEX;
         }
     }
@@ -294,7 +294,7 @@ VoronoiDiagram::try_to_repair_degenerated_voronoi_diagram_by_rotation(const Segm
     using SegmentType = typename std::iterator_traits<SegmentIterator>::value_type;
     using PointType   = typename boost::polygon::segment_traits<SegmentType>::point_type;
 
-    // Copy all segments and rotate their vertices.
+    // 复制所有线段并旋转其顶点。
     std::vector<VoronoiDiagram::Segment> segments_rotated;
     segments_rotated.reserve(std::distance(segment_begin, segment_end));
     for (auto segment_it = segment_begin; segment_it != segment_end; ++segment_it) {
@@ -309,9 +309,9 @@ VoronoiDiagram::try_to_repair_degenerated_voronoi_diagram_by_rotation(const Segm
     this->copy_to_local(voronoi_diagram_rotated);
     const IssueType issue_type = detect_known_issues(*this, segments_rotated.begin(), segments_rotated.end());
 
-    // We want to remap all Voronoi vertices at the endpoints of input segments
-    // to ensure that Voronoi vertices at endpoints will be preserved after rotation.
-    // So we assign every Voronoi vertices color to map this Vertex into input segments.
+    // 我们希望重新映射输入线段端点处的所有Voronoi顶点，
+    // 以确保旋转后端点处的Voronoi顶点得以保留。
+    // 因此我们为每个Voronoi顶点分配颜色，以将此顶点映射到输入线段。
     for (cell_type cell : m_cells) {
         if (cell.is_degenerate())
             continue;
@@ -319,33 +319,33 @@ VoronoiDiagram::try_to_repair_degenerated_voronoi_diagram_by_rotation(const Segm
         if (cell.contains_segment()) {
             if (const SegmentCellRange cell_range = VoronoiUtils::compute_segment_cell_range(cell, segments_rotated.begin(), segments_rotated.end()); cell_range.is_valid()) {
                 if (cell_range.edge_end->vertex1()->color() == 0) {
-                    // Vertex 1 of edge_end points to the starting endpoint of the input segment (from() or line.a).
+                    // edge_end的顶点1指向输入线段的起始端点（from()或line.a）。
                     VD::vertex_type::color_type color = encode_input_segment_endpoint(cell.source_index(), boost::polygon::LOW);
                     cell_range.edge_end->vertex1()->color(color);
                 }
 
                 if (cell_range.edge_begin->vertex0()->color() == 0) {
-                    // Vertex 0 of edge_end points to the ending endpoint of the input segment (to() or line.b).
+                    // edge_begin的顶点0指向输入线段的终止端点（to()或line.b）。
                     VD::vertex_type::color_type color = encode_input_segment_endpoint(cell.source_index(), boost::polygon::HIGH);
                     cell_range.edge_begin->vertex0()->color(color);
                 }
             } else {
-                // This could happen when there is a missing Voronoi vertex even after rotation.
+                // 当旋转后仍然缺少Voronoi顶点时可能发生。
                 assert(cell_range.is_valid());
             }
         }
 
-        // FIXME @hejllukas: Implement mapping also for source points and not just for source segments.
+        // FIXME @hejllukas: 实现也针对源点的映射，而不仅仅是源线段。
     }
 
-    // Rotate all Voronoi vertices back.
-    // When a Voronoi vertex can be mapped to the input segment endpoint, then we don't need to do rotation back.
+    // 将所有Voronoi顶点旋转回来。
+    // 当Voronoi顶点可以映射到输入线段端点时，则不需要旋转回来。
     for (vertex_type &vertex : m_vertices) {
         if (vertex.color() == 0) {
-            // This vertex isn't mapped to any vertex, so we rotate it back.
+            // 此顶点未映射到任何顶点，因此将其旋转回来。
             vertex = VoronoiUtils::make_rotated_vertex(vertex, -fix_angle);
         } else {
-            // This vertex can be mapped to the input segment endpoint.
+            // 此顶点可以映射到输入线段端点。
             PointType   endpoint = decode_input_segment_endpoint(vertex.color(), segment_begin, segment_end);
             vertex_type endpoint_vertex{double(endpoint.x()), double(endpoint.y())};
             endpoint_vertex.incident_edge(vertex.incident_edge());
@@ -354,7 +354,7 @@ VoronoiDiagram::try_to_repair_degenerated_voronoi_diagram_by_rotation(const Segm
         }
     }
 
-    // We have to clear all marked vertices because some algorithms expect that all vertices have a color equal to 0.
+    // 我们必须清除所有标记的顶点，因为某些算法期望所有顶点颜色为0。
     for (vertex_type &vertex : m_vertices)
         vertex.color(0);
 

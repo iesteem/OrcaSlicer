@@ -7,8 +7,8 @@
 namespace Slic3r {
 
 namespace SpiralVaseHelpers {
-/** == Smooth Spiral Helpers == */
-/** Distance between a and b */
+/** == 平滑螺旋辅助函数 == */
+/** a和b之间的距离 */
 float distance(SpiralVase::SpiralPoint a, SpiralVase::SpiralPoint b) { return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2)); }
 
 SpiralVase::SpiralPoint subtract(SpiralVase::SpiralPoint a, SpiralVase::SpiralPoint b)
@@ -20,10 +20,10 @@ SpiralVase::SpiralPoint add(SpiralVase::SpiralPoint a, SpiralVase::SpiralPoint b
 
 SpiralVase::SpiralPoint scale(SpiralVase::SpiralPoint a, float factor) { return SpiralVase::SpiralPoint(a.x * factor, a.y * factor); }
 
-/** dot product */
+/** 点积 */
 float dot(SpiralVase::SpiralPoint a, SpiralVase::SpiralPoint b) { return a.x * b.x + a.y * b.y; }
 
-/** Find the point on line ab closes to point c */
+/** 找到线ab上最接近点c的点 */
 SpiralVase::SpiralPoint nearest_point_on_line(SpiralVase::SpiralPoint c, SpiralVase::SpiralPoint a, SpiralVase::SpiralPoint b, float& dist)
 {
     SpiralVase::SpiralPoint ab      = subtract(b, a);
@@ -36,8 +36,8 @@ SpiralVase::SpiralPoint nearest_point_on_line(SpiralVase::SpiralPoint c, SpiralV
     return closest;
 }
 
-/** Given a set of lines defined by points such as line[n] is the line from points[n] to points[n+1],
- *  find the closest point to p that falls on any of the lines */
+/** 给定由点定义的一组线，如line[n]是从points[n]到points[n+1]的线，
+ *  找到最接近p且落在任何线上的点 */
 SpiralVase::SpiralPoint nearest_point_on_lines(SpiralVase::SpiralPoint               p,
                                                std::vector<SpiralVase::SpiralPoint>* points,
                                                bool&                                 found,
@@ -65,29 +65,28 @@ SpiralVase::SpiralPoint nearest_point_on_lines(SpiralVase::SpiralPoint          
 
 std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
 {
-    /*  This post-processor relies on several assumptions:
-        - all layers are processed through it, including those that are not supposed
-          to be transformed, in order to update the reader with the XY positions
-        - each call to this method includes a full layer, with a single Z move
-          at the beginning
-        - each layer is composed by suitable geometry (i.e. a single complete loop)
-        - loops were not clipped before calling this method  */
-    
-    // If we're not going to modify G-code, just feed it to the reader
-    // in order to update positions.
+    /*  此后处理器依赖于几个假设：
+        - 所有层都通过它处理，包括那些不应转换的层，
+          以便用XY位置更新读取器。
+        - 对此方法的每次调用都包括一个完整的层，开头有一个Z移动。
+        - 每层由合适的几何形状组成（即单个完整环）。
+        - 在调用此方法之前，环没有被裁剪。 */
+
+    // 如果我们要修改G-code，只需将其馈送到读取器
+    // 以更新位置。
     if (! m_enabled) {
         m_reader.parse_buffer(gcode);
         return gcode;
     }
-    
-    // Get total XY length for this layer by summing all extrusion moves.
+
+    // 通过求和所有挤出移动获取此层的总XY长度。
     float total_layer_length = 0;
     float layer_height = 0;
     float z = 0.f;
-    
+
     {
-        //FIXME Performance warning: This copies the GCodeConfig of the reader.
-        GCodeReader r = m_reader;  // clone
+        //FIXME 性能警告：这会复制读取器的GCodeConfig。
+        GCodeReader r = m_reader;  // 克隆
         bool set_z = false;
         r.parse_buffer(gcode, [&total_layer_length, &layer_height, &z, &set_z]
             (GCodeReader &reader, const GCodeReader::GCodeLine &line) {
@@ -105,7 +104,7 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
         });
     }
 
-    // Remove layer height from initial Z.
+    // 从初始Z中移除层高。
     z -= layer_height;
 
     std::vector<SpiralVase::SpiralPoint>* current_layer = new std::vector<SpiralVase::SpiralPoint>();
@@ -115,10 +114,9 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
     std::string new_gcode;
     std::string transition_gcode;
     float max_xy_dist_for_smoothing = m_max_xy_smoothing;
-    //FIXME Tapering of the transition layer only works reliably with relative extruder distances.
-    // For absolute extruder distances it will be switched off.
-    // Tapering the absolute extruder distances requires to process every extrusion value after the first transition
-    // layer.
+    //FIXME 过渡层的渐变更可靠地处理相对挤出机距离。
+    // 对于绝对挤出机距离，它将被关闭。
+    // 渐变更改绝对挤出机距离需要在第一个过渡层之后处理每个挤出值。
     bool  transition_in = m_transition_layer && m_config.use_relative_e_distances.value;
     bool  transition_out = last_layer && m_config.use_relative_e_distances.value;
 
@@ -130,57 +128,57 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
     m_reader.parse_buffer(gcode, [&new_gcode, &z, total_layer_length, layer_height, transition_in, &len, &current_layer, &previous_layer, &transition_gcode, transition_out, smooth_spiral, &max_xy_dist_for_smoothing, &last_point, starting_flowrate, finishing_flowrate]
         (GCodeReader &reader, GCodeReader::GCodeLine line) {
         if (line.cmd_is("G1")) {
-            // Orca: Filter out retractions at layer change
+            // Orca: 过滤掉层更改时的回抽
             if (line.retracting(reader) || (line.extruding(reader) && line.dist_XY(reader) < EPSILON)) return;
             if (line.has_z() && !(line.has_x() || line.has_y())) {
-                // If this is the initial Z move of the layer, replace it with a
-                // (redundant) move to the last Z of previous layer.
+                // 如果这是层的初始Z移动，将其替换为
+                // 到上一层的最后Z的（冗余）移动。
                 line.set(Z, z);
                 new_gcode += line.raw() + '\n';
                 return;
             } else {
                 float dist_XY = line.dist_XY(reader);
-                if (line.has_x() || line.has_y()) { // Sometimes lines have X/Y but the move is to the last position
-                    if (dist_XY > 0 && line.extruding(reader)) { // Exclude wipe and retract
+                if (line.has_x() || line.has_y()) { // 有时行有X/Y但移动到最后一个位置
+                    if (dist_XY > 0 && line.extruding(reader)) { // 排除擦拭和回抽
                         len += dist_XY;
                         float factor = len / total_layer_length;
                         if (transition_in){
-                            // Transition layer, interpolate the amount of extrusion starting from spiral_vase_starting_flow_rate to 100%.
+                            // 过渡层，从spiral_vase_starting_flow_rate到100%内插挤出量。
                             float starting_e_factor = starting_flowrate + (factor * (1.f - starting_flowrate));
                             line.set(E, line.e() * starting_e_factor, 5 /*decimal_digits*/);
                         } else if (transition_out) {
-                            // We want the last layer to ramp down extrusion, but without changing z height!
-                            // So clone the line before we mess with its Z and duplicate it into a new layer that ramps down E
-                            // We add this new layer at the very end
-                            // As with transition_in, the amount is ramped down from 100% to spiral_vase_finishing_flow_rate
+                            // 我们想要最后一层逐渐减少挤出，但不改变z高度！
+                            // 所以先克隆该行，然后修改其Z并复制到逐渐减少E的新层
+                            // 我们在最后添加这个新层
+                            // 与transition_in一样，量从100%逐渐减少到spiral_vase_finishing_flow_rate
                             GCodeReader::GCodeLine transitionLine(line);
                             float finishing_e_factor = finishing_flowrate + ((1.f -factor) * (1.f - finishing_flowrate));
                             transitionLine.set(E, line.e() * finishing_e_factor, 5 /*decimal_digits*/);
                             transition_gcode += transitionLine.raw() + '\n';
                         }
-                        // This line is the core of Spiral Vase mode, ramp up the Z smoothly
+                        // 这行是Spiral Vase模式的核心，平滑地增加Z
                         line.set(Z, z + factor * layer_height);
                         if (smooth_spiral) {
-                            // Now we also need to try to interpolate X and Y
-                            SpiralVase::SpiralPoint p(line.x(), line.y()); // Get current x/y coordinates
-                            current_layer->push_back(p);       // Store that point for later use on the next layer
+                            // 现在还需要尝试插值X和Y
+                            SpiralVase::SpiralPoint p(line.x(), line.y()); // 获取当前x/y坐标
+                            current_layer->push_back(p);       // 存储该点供以后的层使用
                             if (previous_layer != NULL) {
                                 bool        found    = false;
                                 float       dist     = 0;
                                 SpiralVase::SpiralPoint nearestp = SpiralVaseHelpers::nearest_point_on_lines(p, previous_layer, found, dist);
                                 if (found && dist < max_xy_dist_for_smoothing) {
-                                    // Interpolate between the point on this layer and the point on the previous layer
+                                    // 在此层的点和上一层的点之间进行插值
                                     SpiralVase::SpiralPoint target = SpiralVaseHelpers::add(SpiralVaseHelpers::scale(nearestp, 1 - factor), SpiralVaseHelpers::scale(p, factor));
 
-                                    // Remove tiny movement
-                                    // We need to figure out the distance of this new line!
+                                    // 移除微小移动
+                                    // 我们需要计算这条新线的距离！
                                     float modified_dist_XY = SpiralVaseHelpers::distance(last_point, target);
                                     if (modified_dist_XY < 0.001)
                                         line.clear();
                                     else {
                                         line.set(X, target.x);
                                         line.set(Y, target.y);
-                                        // Scale the extrusion amount according to change in length
+                                        // 根据长度变化缩放挤出量
                                         line.set(E, line.e() * modified_dist_XY / dist_XY, 5 /*decimal_digits*/);
                                         last_point = target;
                                     }
@@ -192,13 +190,13 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
                         new_gcode += line.raw() + '\n';
                     }
                     return;
-                    /*  Skip travel moves: the move to first perimeter point will
-                        cause a visible seam when loops are not aligned in XY; by skipping
-                        it we blend the first loop move in the XY plane (although the smoothness
-                        of such blend depend on how long the first segment is; maybe we should
-                        enforce some minimum length?).
-                        When smooth_spiral is enabled, we're gonna end up exactly where the next layer should
-                        start anyway, so we don't need the travel move */
+                    /*  跳过移动移动：移动到第一个周长点的移动
+                        会在环在XY中不对齐时导致可见接缝；通过跳过它，
+                        我们在XY平面中混合第一个环移动（虽然这种混合的平滑
+                        程度取决于第一个段的长度；也许我们应该
+                        强制一些最小长度？）。
+                        当启用smooth_spiral时，无论如何我们都会最终到达下一层
+                        应该开始的位置，所以我们不需要移动移动 */
                 }
             }
         }
@@ -210,7 +208,7 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
 
     delete m_previous_layer;
     m_previous_layer = current_layer;
-    
+
     return new_gcode + transition_gcode;
 }
 

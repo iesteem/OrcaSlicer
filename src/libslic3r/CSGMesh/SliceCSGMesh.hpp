@@ -1,4 +1,4 @@
-#ifndef SLICECSGMESH_HPP
+﻿﻿#ifndef SLICECSGMESH_HPP
 #define SLICECSGMESH_HPP
 
 #include "CSGMesh.hpp"
@@ -111,13 +111,13 @@ std::vector<ExPolygons> slice_csgmesh_ex(
 
     std::vector<ExPolygons> ret = std::move(opstack.top().slices);
 
-    // TODO: verify if this part can be omitted or not.
+    //// TODO: 验证 如果 此 part 可以 为 omitted or 不.
     execution::for_each(ex_tbb, ret.begin(), ret.end(), [](ExPolygons &slice) {
         auto it = std::remove_if(slice.begin(), slice.end(), [](const ExPolygon &p){
             return p.area() < double(SCALED_EPSILON) * double(SCALED_EPSILON);
         });
 
-        // Hopefully, ExPolygons are moved, not copied to new positions
+        //// Hopefully, ExPolygons 是 moved, 不 copied to new positions
         // and that is cheap for expolygons
         slice.erase(it, slice.end());
         slice = union_ex(slice);

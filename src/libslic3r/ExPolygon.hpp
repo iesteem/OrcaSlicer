@@ -1,4 +1,4 @@
-#ifndef slic3r_ExPolygon_hpp_
+﻿#ifndef slic3r_ExPolygon_hpp_
 #define slic3r_ExPolygon_hpp_
 
 #include "Point.hpp"
@@ -32,8 +32,8 @@ public:
     ExPolygon& operator=(const ExPolygon &other) = default;
     ExPolygon& operator=(ExPolygon &&other) = default;
 
-    Polygon  contour; //CCW
-    Polygons holes; //CW
+    Polygon  contour; //CCW（逆时针）（逆时针）（逆时针）（逆时针）
+    Polygons holes; //CW（顺时针）（顺时针）（顺时针）（顺时针）
 
     void clear() { contour.points.clear(); holes.clear(); }
     void scale(double factor);
@@ -47,14 +47,14 @@ public:
     bool is_valid() const;
     void douglas_peucker(double tolerance);
 
-    // Contains the line / polyline / polylines etc COMPLETELY.
+    // 完全包含线/多段线等。
     bool contains(const Line &line) const;
     bool contains(const Polyline &polyline) const;
     bool contains(const Polylines &polylines) const;
     bool contains(const Point &point, bool border_result = true) const;
-    // Approximate on boundary test.
+    // 边界上的近似测试。
     bool on_boundary(const Point &point, double eps) const;
-    // Projection of a point onto the polygon.
+    // 点在多边形上的投影。
     Point point_projection(const Point &point) const;
     void symmetric_y(const coord_t &y_axis);
     // Does this expolygon overlap another expolygon?
@@ -76,7 +76,7 @@ public:
         { Polylines out; this->medial_axis(min_width, max_width, &out); return out; }
     Lines lines() const;
 
-    // Number of contours (outer contour with holes).
+    // 轮廓数量（外轮廓带孔洞）。
     size_t   		num_contours() const { return this->holes.size() + 1; }
     Polygon& 		contour_or_hole(size_t idx) 		{ return (idx == 0) ? this->contour : this->holes[idx - 1]; }
     const Polygon& 	contour_or_hole(size_t idx) const 	{ return (idx == 0) ? this->contour : this->holes[idx - 1]; }

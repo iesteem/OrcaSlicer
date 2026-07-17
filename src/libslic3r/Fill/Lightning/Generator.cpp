@@ -10,18 +10,18 @@
 
 #include "ExPolygon.hpp"
 
-/* Possible future tasks/optimizations,etc.:
- * - Improve connecting heuristic to favor connecting to shorter trees
- * - Change which node of a tree is the root when that would be better in reconnectRoots.
- * - (For implementation in Infill classes & elsewhere): Outline offset, infill-overlap & perimeter gaps.
- * - Allow for polylines, i.e. merge Tims PR about polyline fixes
- * - Unit Tests?
- * - Optimization: let the square grid store the closest point on boundary
- * - Optimization: only compute the closest dist to / point on boundary for the outer cells and flood-fill the rest
- * - Make a pass with Arachne over the output. Somehow.
- * - Generate all to-be-supported points at once instead of sequentially: See branch interlocking_gen PolygonUtils::spreadDots (Or work with sparse grids.)
- * - Lots of magic values ... to many to parameterize. But are they the best?
- * - Move more complex computations from Generator constructor to elsewhere.
+/* 可能的未来任务/优化等：
+ * - 改进连接启发式，倾向于连接到较短的树
+ * - 在 reconnectRoots 中，当改变树的根节点更好时进行更改。
+ * - （在填充类及其他地方的实现）：轮廓偏移、填充重叠和周长间隙。
+ * - 允许多段线，即合并关于多段线修复的 Tims PR
+ * - 单元测试？
+ * - 优化：让方形网格存储边界上的最近点
+ * - 优化：仅计算外部单元的边界最近距离/点，其余部分使用洪泛填充
+ * - 使用 Arachne 对输出进行处理。以某种方式。
+ * - 一次生成所有待支持的点，而不是顺序生成：参见分支 interlocking_gen PolygonUtils::spreadDots（或使用稀疏网格。）
+ * - 大量的魔法值……太多而无法参数化。但它们是最佳的吗？
+ * - 将更复杂的计算从 Generator 构造函数移到其他地方。
  */
 
 namespace Slic3r
@@ -76,9 +76,8 @@ Generator::Generator(const PrintObject &print_object, const std::function<void()
     const double               layer_thickness      = scaled<double>(object_config.layer_height.value);
 
     m_infill_extrusion_width = scaled<float>(region_config.sparse_infill_line_width.get_abs_value(max_nozzle_diameter));
-    // Orca: fix lightning infill divide by zero when infill line width is set to 0.
-    // firstly attempt to set it to the default line width. If that is not provided either, set it to a sane default
-    // based on the nozzle diameter.
+    // Orca: 修复当填充线宽设置为 0 时闪电填充除以零的问题。
+    // 首先尝试将其设置为默认线宽。如果也未提供，则根据喷嘴直径设置为合理的默认值。
     if (m_infill_extrusion_width < EPSILON)
         m_infill_extrusion_width = scaled<float>(
             object_config.line_width.get_abs_value(max_nozzle_diameter) < EPSILON ?
@@ -112,19 +111,18 @@ Generator::Generator(PrintObject* m_object, std::vector<Polygons>& contours, std
     const double               layer_thickness      = scaled<double>(object_config.layer_height.value);
 
     m_infill_extrusion_width = scaled<float>(region_config.sparse_infill_line_width.get_abs_value(max_nozzle_diameter));
-    // Orca: fix lightning infill divide by zero when infill line width is set to 0.
-    // firstly attempt to set it to the default line width. If that is not provided either, set it to a sane default
-    // based on the nozzle diameter.
+    // Orca: 修复当填充线宽设置为 0 时闪电填充除以零的问题。
+    // 首先尝试将其设置为默认线宽。如果也未提供，则根据喷嘴直径设置为合理的默认值。
     if (m_infill_extrusion_width < EPSILON)
         m_infill_extrusion_width = scaled<float>(
             object_config.line_width.get_abs_value(max_nozzle_diameter) < EPSILON ?
             default_infill_extrusion_width :
             object_config.line_width.get_abs_value(max_nozzle_diameter)
         );
-    //m_supporting_radius: against to the density of lightning, failures may happen if set to high density
-    //higher density lightning makes support harder, more time-consuming on computing and printing, but more reliable on supporting overhangs
-    //lower density lightning performs opposite
-    //TODO: decide whether enable density controller in advanced options or not
+    //m_supporting_radius: 与闪电密度相反，如果设置为高密度可能会失败
+    //较高密度的闪电使支撑更难、计算和打印更耗时，但在支撑悬垂方面更可靠
+    //较低密度的闪电则相反
+    //TODO: 决定是否在高级选项中启用密度控制器
     density = std::max(0.15f, density);
     m_supporting_radius = coord_t(m_infill_extrusion_width) / density;
 
@@ -152,7 +150,7 @@ void Generator::generateInitialInternalOverhangs(const PrintObject &print_object
     m_overhang_per_layer.resize(print_object.layers().size());
 
     Polygons infill_area_above;
-    //Iterate from top to bottom, to subtract the overhang areas above from the overhang areas on the layer below, to get only overhang in the top layer where it is overhanging.
+    //从上到下迭代，从下层悬垂区域中减去上方的悬垂区域，以仅获得顶层实际悬垂的悬垂部分。
     for (int layer_nr = int(print_object.layers().size()) - 1; layer_nr >= 0; --layer_nr) {
         throw_on_cancel_callback();
         Polygons infill_area_here;
@@ -161,7 +159,7 @@ void Generator::generateInitialInternalOverhangs(const PrintObject &print_object
                 if (surface.surface_type == stInternal || surface.surface_type == stInternalVoid)
                     append(infill_area_here, to_polygons(surface.expolygon));
 
-        //Remove the part of the infill area that is already supported by the walls.
+        //移除已由壁支撑的填充区域部分。
         Polygons overhang = diff(offset(infill_area_here, -float(m_wall_supporting_radius)), infill_area_above);
 
         m_overhang_per_layer[layer_nr] = overhang;
@@ -182,7 +180,7 @@ void Generator::generateTrees(const PrintObject &print_object, const std::functi
     bboxs.resize(print_object.layers().size());
     std::vector<Polygons> infill_outlines(print_object.layers().size(), Polygons());
 
-    // For-each layer from top to bottom:
+    // 从上到下遍历每一层：
     for (int layer_id = int(print_object.layers().size()) - 1; layer_id >= 0; layer_id--) {
         throw_on_cancel_callback();
         for (const LayerRegion *layerm : print_object.get_layer(layer_id)->regions())
@@ -191,12 +189,12 @@ void Generator::generateTrees(const PrintObject &print_object, const std::functi
                     append(infill_outlines[layer_id], to_polygons(surface.expolygon));
     }
 
-    // For various operations its beneficial to quickly locate nearby features on the polygon:
+    // 对于各种操作，快速定位多边形上的附近特征是有益的：
     const size_t top_layer_id = print_object.layers().size() - 1;
     EdgeGrid::Grid outlines_locator(get_extents(infill_outlines[top_layer_id]).inflated(SCALED_EPSILON));
     outlines_locator.create(infill_outlines[top_layer_id], _locator_cell_size);
 
-    // For-each layer from top to bottom:
+    // 从上到下遍历每一层：
     for (int layer_id = int(top_layer_id); layer_id >= 0; layer_id--) {
         throw_on_cancel_callback();
         Layer             &current_lightning_layer = m_lightning_layers[layer_id];
@@ -205,13 +203,13 @@ void Generator::generateTrees(const PrintObject &print_object, const std::functi
 
         bboxs[layer_id] = get_extents(current_outlines);
 
-        // register all trees propagated from the previous layer as to-be-reconnected
+        // 将所有从前一层传播过来的树注册为待重新连接
         std::vector<NodeSPtr> to_be_reconnected_tree_roots = current_lightning_layer.tree_roots;
 
         current_lightning_layer.generateNewTrees(m_overhang_per_layer[layer_id], current_outlines, current_outlines_bbox, outlines_locator, m_supporting_radius, m_wall_supporting_radius, throw_on_cancel_callback);
         current_lightning_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, current_outlines_bbox, outlines_locator, m_supporting_radius, m_wall_supporting_radius);
 
-        // Initialize trees for next lower layer from the current one.
+        // 从当前层初始化下一层的树。
         if (layer_id == 0)
             return;
 
@@ -240,12 +238,12 @@ void Generator::generateTreesforSupport(std::vector<Polygons>& contours, const s
     bboxs.resize(contours.size());
 
     const auto _locator_cell_size = locator_cell_size();
-    // For various operations its beneficial to quickly locate nearby features on the polygon:
+    // 对于各种操作，快速定位多边形上的附近特征是有益的：
     const size_t top_layer_id = contours.size() - 1;
     EdgeGrid::Grid outlines_locator(get_extents(contours[top_layer_id]).inflated(SCALED_EPSILON));
     outlines_locator.create(contours[top_layer_id], _locator_cell_size);
 
-    // For-each layer from top to bottom:
+    // 从上到下遍历每一层：
     for (int layer_id = int(top_layer_id); layer_id >= 0; layer_id--) {
 		throw_on_cancel_callback();
         Layer& current_lightning_layer = m_lightning_layers[layer_id];
@@ -254,13 +252,13 @@ void Generator::generateTreesforSupport(std::vector<Polygons>& contours, const s
 
         bboxs[layer_id] = get_extents(current_outlines);
 
-        // register all trees propagated from the previous layer as to-be-reconnected
+        // 将所有从前一层传播过来的树注册为待重新连接
         std::vector<NodeSPtr> to_be_reconnected_tree_roots = current_lightning_layer.tree_roots;
 
         current_lightning_layer.generateNewTrees(m_overhang_per_layer[layer_id], current_outlines, current_outlines_bbox, outlines_locator, m_supporting_radius, m_wall_supporting_radius, throw_on_cancel_callback);
         current_lightning_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, current_outlines_bbox, outlines_locator, m_supporting_radius, m_wall_supporting_radius);
 
-        // Initialize trees for next lower layer from the current one.
+        // 从当前层初始化下一层的树。
         if (layer_id == 0)
             return;
 

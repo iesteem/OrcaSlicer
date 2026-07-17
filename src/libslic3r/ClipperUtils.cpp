@@ -1,4 +1,4 @@
-#include "ClipperUtils.hpp"
+﻿#include "ClipperUtils.hpp"
 #include "Geometry.hpp"
 #include "ShortestPath.hpp"
 
@@ -8,7 +8,7 @@
 #include "SVG.hpp"
 #endif /* CLIPPER_UTILS_DEBUG */
 
-// Profiling support using the Shiny intrusive profiler
+// 使用Shiny侵入式分析器的性能分析支持
 //#define CLIPPER_UTILS_PROFILE
 #if defined(SLIC3R_PROFILE) && defined(CLIPPER_UTILS_PROFILE)
 	#include <Shiny/Shiny.h>
@@ -22,7 +22,7 @@
 namespace Slic3r {
 
 #ifdef CLIPPER_UTILS_DEBUG
-// For debugging the Clipper library, for providing bug reports to the Clipper author.
+// 用于调试 Clipper 库，向 Clipper 作者提供错误报告。
 bool export_clipper_input_polygons_bin(const char *path, const ClipperLib::Paths &input_subject, const ClipperLib::Paths &input_clip)
 {
     FILE *pfile = fopen(path, "wb");
@@ -58,9 +58,8 @@ namespace ClipperUtils {
 Points EmptyPathsProvider::s_empty_points;
 Points SinglePathProvider::s_end;
 
-// Clip source polygon to be used as a clipping polygon with a bouding box around the source (to be clipped) polygon.
-// Useful as an optimization for expensive ClipperLib operations, for example when clipping source polygons one by one
-// with a set of polygons covering the whole layer below.
+// 裁剪源多边形作为裁剪多边形，使用源（待裁剪）多边形周围的边界框。
+// 用作昂贵的 ClipperLib 操作的优化，例如使用覆盖下方整个图层的一组多边形逐个裁剪源多边形。
 template<typename PointsType> inline void clip_clipper_polygon_with_subject_bbox_templ(const PointsType &src, const BoundingBox &bbox, PointsType &out, const bool get_entire_polygons=false)
 {
     using PointType = typename PointsType::value_type;
@@ -81,30 +80,30 @@ template<typename PointsType> inline void clip_clipper_polygon_with_subject_bbox
     const size_t last       = cnt - 1;
     for (size_t i = 0; i < last; ++i) {
         int sides_next = sides(src[i + 1]);
-        if ( // This point is inside. Take it.
+        if ( // 此点在内部。接受它。
             sides_this == 0 ||
-            // Either this point is outside and previous or next is inside, or
-            // the edge possibly cuts corner of the bounding box.
+            // 此点在外侧且前一个或后一个在内侧，或
+            // 线段可能切割边界框的角。
             (sides_prev & sides_this & sides_next) == 0) {
             out.emplace_back(src[i]);
             sides_prev = sides_this;
         } else {
-            // All the three points (this, prev, next) are outside at the same side.
-            // Ignore this point.
+            // 三个点（当前、前一个、后一个）都在同一侧的外部。
+            // 忽略此点。
         }
         sides_this = sides_next;
     }
 
-    // Never produce just a single point output polygon.
+    // 绝不产生只有单个点的输出多边形。
     if (!out.empty()) {
         if (get_entire_polygons) {
             out=src;
         } else {
             if (int sides_next = sides(out.front());
-            // The last point is inside. Take it.
+            // 最后一个点在内侧。接受它。
             sides_this == 0 ||
-            // Either this point is outside and previous or next is inside, or
-            // the edge possibly cuts corner of the bounding box.
+            // 此点在外侧且前一个或后一个在内侧，或
+            // 线段可能切割边界框的角。
             (sides_prev & sides_this & sides_next) == 0)
             out.emplace_back(src.back());
         }
@@ -177,7 +176,7 @@ static ExPolygons PolyTreeToExPolygons(ClipperLib::PolyTree &&polytree)
             (*expolygons)[cnt].holes.resize(polynode.ChildCount());
             for (int i = 0; i < polynode.ChildCount(); ++ i) {
                 (*expolygons)[cnt].holes[i].points = std::move(polynode.Childs[i]->Contour);
-                // Add outer polygons contained by (nested within) holes.
+                // 添加包含在（嵌套在）孔洞内的外多边形。
                 for (int j = 0; j < polynode.Childs[i]->ChildCount(); ++ j)
                     PolyTreeToExPolygonsRecursive(std::move(*polynode.Childs[i]->Childs[j]), expolygons);
             }
@@ -261,8 +260,8 @@ bool has_duplicate_points(const ClipperLib::PolyTree &polytree)
 }
 #endif
 
-// Offset CCW contours outside, CW contours (holes) inside.
-// Don't calculate union of the output paths.
+// CCW轮廓向外偏移，CW轮廓（孔洞）向内偏移。
+// 不计算输出路径的并集。
 template<typename PathsProvider>
 static ClipperLib::Paths raw_offset(PathsProvider &&paths, float offset, ClipperLib::JoinType joinType, double miterLimit, ClipperLib::EndType endType = ClipperLib::etClosedPolygon)
 {
@@ -277,14 +276,14 @@ static ClipperLib::Paths raw_offset(PathsProvider &&paths, float offset, Clipper
     co.ShortestEdgeLength = std::abs(offset * ClipperOffsetShortestEdgeFactor);
     for (const ClipperLib::Path &path : paths) {
         co.Clear();
-        // Execute reorients the contours so that the outer most contour has a positive area. Thus the output
-        // contours will be CCW oriented even though the input paths are CW oriented.
-        // Offset is applied after contour reorientation, thus the signum of the offset value is reversed.
+        // 执行重新定向轮廓，使最外轮廓具有正面积。因此即使输入路径是CW方向，
+        // 输出轮廓也将是CCW方向。
+        // 偏移在轮廓重新定向后应用，因此偏移值的符号被反转。
         co.AddPath(path, joinType, endType);
         bool ccw = endType == ClipperLib::etClosedPolygon ? ClipperLib::Orientation(path) : true;
         co.Execute(out_this, ccw ? offset : - offset);
         if (! ccw) {
-            // Reverse the resulting contours.
+            // 反转生成的轮廓。
             for (ClipperLib::Path &path : out_this)
                 std::reverse(path.begin(), path.end());
         }
@@ -323,7 +322,7 @@ TResult clipper_do(
     const ClipperLib::PolyFillType fillType,
     const ApplySafetyOffset        do_safety_offset)
 {
-    // Safety offset only allowed on intersection and difference.
+    // 安全偏移仅在交集和差集上允许。
     assert(do_safety_offset == ApplySafetyOffset::No || clipType != ClipperLib::ctUnion);
     return do_safety_offset == ApplySafetyOffset::Yes ? 
         clipper_do<TResult>(clipType, std::forward<TSubj>(subject), safety_offset(std::forward<TClip>(clip)), fillType) :
@@ -333,7 +332,7 @@ TResult clipper_do(
 template<class TResult, class TSubj>
 TResult clipper_union(
     TSubj &&                       subject,
-    // fillType pftNonZero and pftPositive "should" produce the same result for "normalized with implicit union" set of polygons
+    // fillType pftNonZero 和 pftPositive 对于"归一化隐式并集"多边形集"应该"产生相同的结果
     const ClipperLib::PolyFillType fillType = ClipperLib::pftNonZero)
 {
     ClipperLib::Clipper clipper;
@@ -343,8 +342,8 @@ TResult clipper_union(
     return retval;
 }
 
-// Perform union of input polygons using the positive rule, convert to ExPolygons.
-//FIXME is there any benefit of not doing the boolean / using pftEvenOdd?
+// 使用正规则执行输入多边形的并集，转换为 ExPolygons。
+//FIXME 不进行布尔运算/使用 pftEvenOdd 是否有任何好处？
 inline ExPolygons ClipperPaths_to_Slic3rExPolygons(const ClipperLib::Paths &input, bool do_union)
 {
     return PolyTreeToExPolygons(clipper_union<ClipperLib::PolyTree>(input, do_union ? ClipperLib::pftNonZero : ClipperLib::pftEvenOdd));
@@ -424,7 +423,7 @@ Polygons contour_to_polygons(const Polygons &polygons, const float line_width, C
 // returns number of expolygons collected (0 or 1).
 static int offset_expolygon_inner(const Slic3r::ExPolygon &expoly, const float delta, ClipperLib::JoinType joinType, double miterLimit, ClipperLib::Paths &out)
 {
-    // 1) Offset the outer contour.
+    // 1) 偏移外轮廓。
     ClipperLib::Paths contours;
     {
         ClipperLib::ClipperOffset co;
@@ -437,14 +436,14 @@ static int offset_expolygon_inner(const Slic3r::ExPolygon &expoly, const float d
         co.Execute(contours, delta);
     }
     if (contours.empty())
-        // No need to try to offset the holes.
+        // 无需尝试偏移孔洞。
         return 0;
 
     if (expoly.holes.empty()) {
-        // No need to subtract holes from the offsetted expolygon, we are done.
+        // 无需从偏移后的 expolygon 中减去孔洞，我们已完成。
         append(out, std::move(contours));
     } else {
-        // 2) Offset the holes one by one, collect the offsetted holes.
+        // 2) 逐个偏移孔洞，收集偏移后的孔洞。
         ClipperLib::Paths holes;
         {
             for (const Polygon &hole : expoly.holes) {
@@ -464,26 +463,25 @@ static int offset_expolygon_inner(const Slic3r::ExPolygon &expoly, const float d
             }
         }
 
-        // 3) Subtract holes from the contours.
+        // 3) 从轮廓中减去孔洞。
         if (holes.empty()) {
-            // No hole remaining after an offset. Just copy the outer contour.
+            // 偏移后没有剩余孔洞。只需复制外轮廓。
             append(out, std::move(contours));
         } else if (delta < 0) {
-            // Negative offset. There is a chance, that the offsetted hole intersects the outer contour. 
-            // Subtract the offsetted holes from the offsetted contours.            
+            // 负偏移。偏移后的孔洞可能与外轮廓相交。
+            // 从偏移后的轮廓中减去偏移后的孔洞。
             if (auto output = clipper_do<ClipperLib::Paths>(ClipperLib::ctDifference, contours, holes, ClipperLib::pftNonZero); ! output.empty()) {
                 append(out, std::move(output));
             } else {
-                // The offsetted holes have eaten up the offsetted outer contour.
+                // 偏移后的孔洞已吞噬偏移后的外轮廓。
                 return 0;
             }
         } else {
-            // Positive offset. As long as the Clipper offset does what one expects it to do, the offsetted hole will have a smaller
-            // area than the original hole or even disappear, therefore there will be no new intersections.
-            // Just collect the reversed holes.
+            // 正偏移。只要 Clipper 偏移按预期工作，偏移后的孔洞将比原始孔洞面积更小或甚至消失，
+            // 因此不会产生新的交集。只需收集反转的孔洞。
             out.reserve(contours.size() + holes.size());
             append(out, std::move(contours));
-            // Reverse the holes in place.
+            // 原地反转孔洞。
             for (size_t i = 0; i < holes.size(); ++ i)
                 std::reverse(holes[i].begin(), holes[i].end());
             append(out, std::move(holes));
@@ -505,42 +503,42 @@ ClipperLib::Paths expolygon_offset(const Slic3r::ExPolygon &expolygon, const flo
     return out;
 }
 
-// This is a safe variant of the polygons offset, tailored for multiple ExPolygons.
-// It is required, that the input expolygons do not overlap and that the holes of each ExPolygon don't intersect with their respective outer contours.
-// Each ExPolygon is offsetted separately. For outer offset, the the offsetted ExPolygons shall be united outside of this function.
+// 这是多边形偏移的安全变体，专为多个 ExPolygons 定制。
+// 要求输入的 expolygons 不重叠，且每个 ExPolygon 的孔洞不与各自的外轮廓相交。
+// 每个 ExPolygon 分别偏移。对于外偏移，偏移后的 ExPolygons 应在此函数外进行并集。
 template<typename ExPolygonVector>
 static std::pair<ClipperLib::Paths, size_t> expolygons_offset_raw(const ExPolygonVector &expolygons, const float delta, ClipperLib::JoinType joinType, double miterLimit)
 {
-    // Offsetted ExPolygons before they are united.
+    // 偏移后的 ExPolygons，在它们被合并之前。
     ClipperLib::Paths output;
     output.reserve(expolygons.size());
-    // How many non-empty offsetted expolygons were actually collected into output?
-    // If only one, then there is no need to do a final union.
+    // 实际收集到输出中的非空偏移 expolygons 有多少个？
+    // 如果只有一个，则无需进行最终并集。
     size_t expolygons_collected = 0;
     for (const auto &expoly : expolygons)
         expolygons_collected += offset_expolygon_inner(expoly, delta, joinType, miterLimit, output);
     return std::make_pair(std::move(output), expolygons_collected);
 }
 
-// See comment on expolygon_offsets_raw. In addition, for positive offset the contours are united.
+// 见 expolygon_offsets_raw 的注释。另外，对于正偏移，轮廓会进行并集。
 template<typename ExPolygonVector>
 static ClipperLib::Paths expolygons_offset(const ExPolygonVector &expolygons, const float delta, ClipperLib::JoinType joinType, double miterLimit)
 {
     auto [output, expolygons_collected] = expolygons_offset_raw(expolygons, delta, joinType, miterLimit);
-    // Unite the offsetted expolygons.
+    // 合并偏移后的 expolygons。
     return expolygons_collected > 1 && delta > 0 ?
-        // There is a chance that the outwards offsetted expolygons may intersect. Perform a union.
+        // 向外偏移的 expolygons 可能相交。执行并集。
         clipper_union<ClipperLib::Paths>(output) :
-        // Negative offset. The shrunk expolygons shall not mutually intersect. Just copy the output.
+        // 负偏移。收缩的 expolygons 不应相互相交。只需复制输出。
         output;
 }
 
-// See comment on expolygons_offset_raw. In addition, the polygons are always united to conver to polytree.
+// 见 expolygons_offset_raw 的注释。此外，多边形总是合并以转换为 polytree。
 template<typename ExPolygonVector>
 static ClipperLib::PolyTree expolygons_offset_pt(const ExPolygonVector &expolygons, const float delta, ClipperLib::JoinType joinType, double miterLimit)
 {
     auto [output, expolygons_collected] = expolygons_offset_raw(expolygons, delta, joinType, miterLimit);
-    // Unite the offsetted expolygons for both the 
+    // 合并偏移后的 expolygons
     return clipper_union<ClipperLib::PolyTree>(output);
 }
 
@@ -576,7 +574,7 @@ ExPolygons offset2_ex(const Surfaces &surfaces, const float delta1, const float 
     return PolyTreeToExPolygons(offset_paths<ClipperLib::PolyTree>(expolygons_offset(surfaces, delta1, joinType, miterLimit), delta2, joinType, miterLimit));
 }
 
-// Offset outside, then inside produces morphological closing. All deltas should be positive.
+// 先向外偏移，再向内偏移产生形态学闭合。所有增量应为正数。
 Slic3r::Polygons closing(const Slic3r::Polygons &polygons, const float delta1, const float delta2, ClipperLib::JoinType joinType, double miterLimit)
 {
     assert(delta1 > 0);
@@ -597,7 +595,7 @@ Slic3r::ExPolygons closing_ex(const Slic3r::Surfaces &surfaces, const float delt
     return PolyTreeToExPolygons(shrink_paths<ClipperLib::PolyTree>(expand_paths<ClipperLib::Paths>(ClipperUtils::SurfacesProvider(surfaces), delta1, joinType, miterLimit), delta2, joinType, miterLimit));
 }
 
-// Offset inside, then outside produces morphological opening. All deltas should be positive.
+// 先向内偏移再向外偏移产生形态学开运算。所有增量应为正值。
 Slic3r::Polygons opening(const Slic3r::Polygons &polygons, const float delta1, const float delta2, ClipperLib::JoinType joinType, double miterLimit)
 {
     assert(delta1 > 0);
@@ -618,13 +616,12 @@ Slic3r::Polygons opening(const Slic3r::Surfaces &surfaces, const float delta1, c
     return to_polygons(expand_paths<ClipperLib::Paths>(shrink_paths<ClipperLib::Paths>(ClipperUtils::SurfacesProvider(surfaces), delta1, joinType, miterLimit), delta2, joinType, miterLimit));
 }
 
-// Fix of #117: A large fractal pyramid takes ages to slice
-// The Clipper library has difficulties processing overlapping polygons.
-// Namely, the function ClipperLib::JoinCommonEdges() has potentially a terrible time complexity if the output
-// of the operation is of the PolyTree type.
-// This function implemenets a following workaround:
-// 1) Peform the Clipper operation with the output to Paths. This method handles overlaps in a reasonable time.
-// 2) Run Clipper Union once again to extract the PolyTree from the result of 1).
+// 修复 #117：大型分形金字塔切片需要很长时间
+// Clipper 库在处理重叠多边形时存在困难。
+// 即，如果操作的输出是 PolyTree 类型，函数 ClipperLib::JoinCommonEdges() 的时间复杂度可能会非常糟糕。
+// 此函数实现了以下解决方法：
+// 1) 执行 Clipper 操作并将输出保存到 Paths。此方法在合理时间内处理重叠。
+// 2) 再次运行 Clipper Union 以从 1) 的结果中提取 PolyTree。
 template<typename PathProvider1, typename PathProvider2>
 inline ClipperLib::PolyTree clipper_do_polytree(
     const ClipperLib::ClipType       clipType,
@@ -632,11 +629,10 @@ inline ClipperLib::PolyTree clipper_do_polytree(
     PathProvider2                  &&clip,
     const ClipperLib::PolyFillType   fillType)
 {
-    // Perform the operation with the output to input_subject.
-    // This pass does not generate a PolyTree, which is a very expensive operation with the current Clipper library
-    // if there are overapping edges.
+    // 执行操作并将输出保存到 input_subject。
+    // 此遍不生成 PolyTree，在当前 Clipper 库中，如果有重叠边，PolyTree 是非常昂贵的操作。
     if (auto output = clipper_do<ClipperLib::Paths>(clipType, subject, clip, fillType); ! output.empty())
-        // Perform an additional Union operation to generate the PolyTree ordering.
+        // 执行额外的 Union 操作以生成 PolyTree 排序。
         return clipper_union<ClipperLib::PolyTree>(output, fillType);
     return ClipperLib::PolyTree();
 }
@@ -796,7 +792,7 @@ Slic3r::ExPolygons intersection_ex(const Slic3r::Surfaces &subject, const Slic3r
     { return _clipper_ex(ClipperLib::ctIntersection, ClipperUtils::SurfacesProvider(subject), ClipperUtils::SurfacesProvider(clip), do_safety_offset); }
 Slic3r::ExPolygons intersection_ex(const Slic3r::SurfacesPtr &subject, const Slic3r::ExPolygons &clip, ApplySafetyOffset do_safety_offset)
     { return _clipper_ex(ClipperLib::ctIntersection, ClipperUtils::SurfacesPtrProvider(subject), ClipperUtils::ExPolygonsProvider(clip), do_safety_offset); }
-// May be used to "heal" unusual models (3DLabPrints etc.) by providing fill_type (pftEvenOdd, pftNonZero, pftPositive, pftNegative).
+// 可通过提供 fill_type (pftEvenOdd, pftNonZero, pftPositive, pftNegative) 来"修复"异常模型（3DLabPrints 等）。
 Slic3r::ExPolygons union_ex(const Slic3r::Polygons &subject, ClipperLib::PolyFillType fill_type)
     { return _clipper_ex(ClipperLib::ctUnion, ClipperUtils::PolygonsProvider(subject), ClipperUtils::EmptyPathsProvider(), ApplySafetyOffset::No, fill_type); }
 Slic3r::ExPolygons union_ex(const Slic3r::ExPolygons &subject)

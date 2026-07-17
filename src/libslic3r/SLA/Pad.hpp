@@ -21,25 +21,25 @@ namespace sla {
 
 using ThrowOnCancel = std::function<void(void)>;
 
-/// Calculate the polygon representing the silhouette.
+/// 计算表示轮廓的多边形。
 void pad_blueprint(
-    const indexed_triangle_set &mesh,       // input mesh
-    ExPolygons &        output,     // Output will be merged with
-    const std::vector<float> &,     // Exact Z levels to sample
-    ThrowOnCancel thrfn = [] {}); // Function that throws if cancel was requested
+    const indexed_triangle_set &mesh,       // 输入网格
+    ExPolygons &        output,     // 输出将与此合并
+    const std::vector<float> &,     // 要采样的精确 Z 层级
+    ThrowOnCancel thrfn = [] {}); // 如果请求取消则抛出的函数
 
 void pad_blueprint(
     const indexed_triangle_set &mesh,
     ExPolygons &                output,
-    float         samplingheight = 0.1f,  // The height range to sample
-    float         layerheight    = 0.05f, // The sampling height
+    float         samplingheight = 0.1f,  // 要采样的高度范围
+    float         layerheight    = 0.05f, // 采样的层高
     ThrowOnCancel thrfn          = [] {});
 
 struct PadConfig {
     double wall_thickness_mm = 1.;
     double wall_height_mm = 1.;
     double max_merge_dist_mm = 50;
-    double wall_slope = std::atan(1.0);          // Universal constant for Pi/4
+    double wall_slope = std::atan(1.0);          // Pi/4 的通用常数
     double brim_size_mm = 1.6;
 
     struct EmbedObject {
@@ -78,7 +78,7 @@ struct PadConfig {
         return wall_height_mm + wall_thickness_mm;
     }
 
-    /// Returns the elevation needed for compensating the pad.
+    /// 返回补偿垫所需的高度。
     inline double required_elevation() const { return wall_thickness_mm; }
 
     std::string validate() const;

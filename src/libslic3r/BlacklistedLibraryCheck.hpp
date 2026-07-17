@@ -1,4 +1,4 @@
-#ifndef slic3r_BlacklistedLibraryCheck_hpp_
+﻿#ifndef slic3r_BlacklistedLibraryCheck_hpp_
 #define slic3r_BlacklistedLibraryCheck_hpp_
 
 #ifdef  WIN32
@@ -26,10 +26,10 @@ private:
 public:
     BlacklistedLibraryCheck(BlacklistedLibraryCheck const&) = delete;
     void operator=(BlacklistedLibraryCheck const&) = delete;
-    // returns all found blacklisted dlls
+    // 返回所有找到的黑名单 dll
     bool get_blacklisted(std::vector<std::wstring>& names);
     std::wstring get_blacklisted_string();
-    // returns true if enumerating found blacklisted dll
+    // 如果枚举找到黑名单 dll 则返回 true
     bool perform_check();
 
     // UTF-8 encoded path

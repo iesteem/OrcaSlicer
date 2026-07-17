@@ -1,4 +1,4 @@
-#ifndef PERFORMCSGMESHBOOLEANS_HPP
+﻿﻿#ifndef PERFORMCSGMESHBOOLEANS_HPP
 #define PERFORMCSGMESHBOOLEANS_HPP
 
 #include <stack>
@@ -13,7 +13,7 @@
 namespace Slic3r { namespace csg {
     enum class BooleanFailReason { OK, MeshEmpty, NotBoundAVolume, SelfIntersect, NoIntersection};
 
-// This method can be overriden when a specific CSGPart type supports caching
+//// 此 方法 可以 为 overriden 当 a 特定 CSGPart 类型 supports caching
 // of the voxel grid
 template<class CSGPartT>
 MeshBoolean::cgal::CGALMeshPtr get_cgalmesh(const CSGPartT &csgpart)
@@ -39,7 +39,7 @@ MeshBoolean::cgal::CGALMeshPtr get_cgalmesh(const CSGPartT &csgpart)
     return ret;
 }
 
-// This method can be overriden when a specific CSGPart type supports caching
+//// 此 方法 可以 为 overriden 当 a 特定 CSGPart 类型 supports caching
 // of the voxel grid
 template<class CSGPartT>
 MeshBoolean::mcut::McutMeshPtr get_mcutmesh(const CSGPartT& csgpart)
@@ -154,7 +154,7 @@ namespace detail_mcut {
 
 } // namespace mcut_detail
 
-// Process the sequence of CSG parts with CGAL.
+//// 处理 the sequence of CSG parts with CGAL.
 template<class It>
 void perform_csgmesh_booleans_cgal(MeshBoolean::cgal::CGALMeshPtr &cgalm,
                               const Range<It>                &csgrange)
@@ -204,7 +204,7 @@ void perform_csgmesh_booleans_cgal(MeshBoolean::cgal::CGALMeshPtr &cgalm,
     cgalm = std::move(opstack.top().cgalptr);
 }
 
-// Process the sequence of CSG parts with mcut.
+//// 处理 the sequence of CSG parts with mcut.
 template<class It>
 void perform_csgmesh_booleans_mcut(MeshBoolean::mcut::McutMeshPtr& mcutm,
     const Range<It>& csgrange)

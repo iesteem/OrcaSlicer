@@ -35,7 +35,7 @@ Vec3d get_one_point_in_plane(const Vec3d &plane_origin, const Vec3d &plane_norma
     return retult;
 }
 
-constexpr double feature_hover_limit = 0.5; // how close to a feature the mouse must be to highlight it
+constexpr double feature_hover_limit = 0.5; // 鼠标必须靠近特征多近才能高亮显示
 
 static std::tuple<Vec3d, double, double> get_center_and_radius(const std::vector<Vec3d>& points, const Transform3d& trafo, const Transform3d& trafo_inv)
 {
@@ -82,7 +82,7 @@ public:
     explicit MeasuringImpl(const indexed_triangle_set& its);
     struct PlaneData {
         std::vector<int> facets;
-        std::vector<std::vector<Vec3d>> borders; // FIXME: should be in fact local in update_planes()
+        std::vector<std::vector<Vec3d>> borders; // FIXME: 实际上应该在 update_planes() 中局部定义
         std::vector<SurfaceFeature> surface_features;
         Vec3d normal;
         float area;
@@ -116,8 +116,8 @@ MeasuringImpl::MeasuringImpl(const indexed_triangle_set& its)
 {
     update_planes();
 
-    // Extracting features will be done as needed.
-    // To extract all planes at once, run the following:
+    // 根据需要提取特征。
+    // 要一次性提取所有平面，请运行以下命令：
 #if DEBUG_EXTRACT_ALL_FEATURES_AT_ONCE
     for (int i=0; i<int(m_planes.size()); ++i)
         extract_features(i);
@@ -127,8 +127,8 @@ MeasuringImpl::MeasuringImpl(const indexed_triangle_set& its)
 
 void MeasuringImpl::update_planes()
 {
-    // Now we'll go through all the facets and append Points of facets sharing the same normal.
-    // This part is still performed in mesh coordinate system.
+    // 现在我们将遍历所有面片，并追加共享相同法线的面片的点。
+    // 这部分仍然在网格坐标系中执行。
     const size_t             num_of_facets = m_its.indices.size();
     m_face_to_plane.resize(num_of_facets, size_t(-1));
     const std::vector<Vec3f> face_normals = its_face_normals(m_its);
@@ -143,15 +143,14 @@ void MeasuringImpl::update_planes()
     };
 
     m_planes.clear();
-    m_planes.reserve(num_of_facets / 5); // empty plane data object is quite lightweight, let's save the initial reallocations
+    m_planes.reserve(num_of_facets / 5); // 空平面数据对象相当轻量，让我们节省初始重新分配
 
 
-    // First go through all the triangles and fill in m_planes vector. For each "plane"
-    // detected on the model, it will contain list of facets that are part of it.
-    // We will also fill in m_face_to_plane, which contains index into m_planes
-    // for each of the source facets.
+    // 首先遍历所有三角形并填充 m_planes 向量。对于模型上检测到的每个"平面"，
+    // 它将包含属于该平面的面片列表。
+    // 我们还将填充 m_face_to_plane，其中包含每个源面片在 m_planes 中的索引。
     while (1) {
-        // Find next unvisited triangle:
+        // 查找下一个未访问的三角形：
         for (; seed_facet_idx < num_of_facets; ++ seed_facet_idx)
             if (m_face_to_plane[seed_facet_idx] == size_t(-1)) {
                 facet_queue[facet_queue_cnt ++] = seed_facet_idx;
@@ -161,7 +160,7 @@ void MeasuringImpl::update_planes()
                 break;
             }
         if (seed_facet_idx == num_of_facets)
-            break; // Everything was visited already
+            break; // 所有内容都已访问
 
         while (facet_queue_cnt > 0) {
             int facet_idx = facet_queue[-- facet_queue_cnt];
@@ -181,10 +180,10 @@ void MeasuringImpl::update_planes()
         std::sort(m_planes.back().facets.begin(), m_planes.back().facets.end());
     }
 
-    // Check that each facet is part of one of the planes.
+    // 检查每个面片是否属于其中一个平面。
     assert(std::none_of(m_face_to_plane.begin(), m_face_to_plane.end(), [](size_t val) { return val == size_t(-1); }));
 
-    // Now we will walk around each of the planes and save vertices which form the border.
+    // 现在我们将绕每个平面行走并保存形成边界的顶点。
     const SurfaceMesh sm(m_its);
 
     const auto& face_to_plane = m_face_to_plane;
@@ -202,8 +201,8 @@ void MeasuringImpl::update_planes()
             assert(face_to_plane[facets[face_id]] == plane_id);
 
             for (int edge_id=0; edge_id<3; ++edge_id) {
-                // Every facet's edge which has a neighbor from a different plane is
-                // part of an edge that we want to walk around. Skip the others.
+                // 每个面片的边如果有一个来自不同平面的邻居，
+                // 就是我们想要绕行的边的一部分。跳过其他边。
                 int neighbor_idx = face_neighbors[facets[face_id]][edge_id];
                 if (neighbor_idx == -1)
                     goto PLANE_FAILURE;
@@ -216,7 +215,7 @@ void MeasuringImpl::update_planes()
                 while (he.side() != edge_id)
                     he = sm.next(he);
 
-                // he is the first halfedge on the border. Now walk around and append the points.
+                // he 是边界上的第一条半边。现在绕行并追加点。
                 //const Halfedge_index he_orig = he;
                 planes[plane_id].borders.emplace_back();
                 std::vector<Vec3d>& last_border = planes[plane_id].borders.back();
@@ -237,8 +236,8 @@ void MeasuringImpl::update_planes()
                     if (he.is_invalid())
                         goto PLANE_FAILURE;
 
-                    // For broken meshes, the iteration might never get back to he_orig.
-                    // Remember all halfedges we saw to break out of such infinite loops.
+                    // 对于损坏的网格，迭代可能永远不会回到 he_orig。
+                    // 记住我们看到的所有半边以跳出这种无限循环。
                     boost::container::small_vector<Halfedge_index, 10> he_seen;
 
                     while ( face_to_plane[sm.face(he)] == plane_id && he != he_orig) {
@@ -264,8 +263,7 @@ void MeasuringImpl::update_planes()
 
                     last_border.emplace_back(sm.point(sm.source(he)).cast<double>());
 
-                    // In case of broken meshes, this loop might be infinite. Break
-                    // out in case it is clearly going bad.
+                    // 对于损坏的网格，此循环可能无限。如果情况明显变坏则跳出。
                     if (last_border.size() > 3*facets.size()+1)
                         goto PLANE_FAILURE;
 
@@ -301,7 +299,7 @@ void MeasuringImpl::extract_features(int plane_idx)
     trafo.rotate(q);
     const Transform3d trafo_inv = trafo.inverse();
 
-    std::vector<double> angles; // placed in outer scope to prevent reallocations
+    std::vector<double> angles; // 放在外部作用域以防止重新分配
     std::vector<double> lengths;
 
     for (const std::vector<Vec3d>& border : plane.borders) {
@@ -314,8 +312,7 @@ void MeasuringImpl::extract_features(int plane_idx)
             const auto& [center, radius, err] = get_center_and_radius(border, trafo, trafo_inv);
 
             if (err < 0.05) {
-                // The whole border is one circle. Just add it into the list of features
-                // and we are done.
+                // 整个边界是一个圆。将其添加到特征列表中即可完成。
 
                 bool is_polygon = border.size()>4 && border.size()<=8;
                 bool lengths_match = std::all_of(border.begin()+2, border.end(), [is_polygon](const Vec3d& pt) {
@@ -324,13 +321,13 @@ void MeasuringImpl::extract_features(int plane_idx)
 
                 if (lengths_match && (is_polygon || border.size() > 8)) {
                     if (is_polygon) {
-                        // This is a polygon, add the separate edges with the center.
+                        // 这是一个多边形，添加带有中心的单独边。
                         for (int j=0; j<int(border.size()); ++j)
                             plane.surface_features.emplace_back(SurfaceFeature(SurfaceFeatureType::Edge,
                                 border[j==0 ? border.size()-1 : j-1], border[j],
                                 std::make_optional(center)));
                     } else {
-                        // The fit went well and it has more than 8 points - let's consider this a circle.
+                        // 拟合良好且超过8个点 - 将其视为圆。
                         plane.surface_features.emplace_back(SurfaceFeature(SurfaceFeatureType::Circle, center, plane.normal, std::nullopt, radius));
                     }
                     done = true;
@@ -339,16 +336,15 @@ void MeasuringImpl::extract_features(int plane_idx)
         }
 
         if (! done) {
-            // In this case, the border is not a circle and may contain circular
-            // segments. Try to find them and then add all remaining edges as edges.
+            // 在这种情况下，边界不是圆，可能包含圆弧段。
+            // 尝试找到它们，然后将所有剩余边作为边添加。
 
             auto are_angles_same  = [](double a, double b) { return Slic3r::is_approx(a,b,0.01); };
             auto are_lengths_same = [](double a, double b) { return Slic3r::is_approx(a,b,0.01); };
 
 
-            // Given an idx into border, return the index that is idx+offset position,
-            // while taking into account the need for wrap-around and the fact that
-            // the first and last point are the same.
+            // 给定边界中的索引，返回 idx+offset 位置的索引，
+            // 同时考虑环绕的需要以及第一个和最后一个点相同的事实。
             auto offset_to_index = [border_size = int(border.size())](int idx, int offset) -> int {
                 assert(std::abs(offset) < border_size);
                 int out = idx+offset;
@@ -360,7 +356,7 @@ void MeasuringImpl::extract_features(int plane_idx)
                 return out;
             };
 
-            // First calculate angles at all the vertices.
+            // 首先计算所有顶点处的角度。
             angles.clear();
             lengths.clear();
             int first_different_angle_idx = 0;
@@ -381,9 +377,9 @@ void MeasuringImpl::extract_features(int plane_idx)
             assert(border.size() == angles.size());
             assert(border.size() == lengths.size());
 
-            // First go around the border and pick what might be circular segments.
-            // Save pair of indices to where such potential segments start and end.
-            // Also remember the length of these segments.
+            // 首先绕边界一圈，挑选可能是圆弧的段。
+            // 保存这些潜在段的起始和结束索引对。
+            // 同时记住这些段的长度。
             int start_idx = -1;
             bool circle = false;
             bool first_iter = true;
@@ -397,9 +393,9 @@ void MeasuringImpl::extract_features(int plane_idx)
             int i = first_pt_idx;
             while (i != first_pt_idx || first_iter) {
                 if (are_angles_same(angles[i], angles[offset_to_index(i,-1)])
-                && i != offset_to_index(first_pt_idx, -1) // not the last point
+                && i != offset_to_index(first_pt_idx, -1) // 不是最后一个点
                 && i != start_idx  ) {
-                    // circle
+                    // 圆
                     if (! circle) {
                         circle = true;
                         single_circle.clear();
@@ -411,13 +407,13 @@ void MeasuringImpl::extract_features(int plane_idx)
                     single_circle.emplace_back(border[i]);
                     single_circle_length += lengths[i];
                 } else {
-                    if (circle && single_circle.size() >= 5) { // Less than 5 vertices? Not a circle.
+                    if (circle && single_circle.size() >= 5) { // 少于5个顶点？不是圆。
                         single_circle.emplace_back(border[i]);
                         single_circle_length += lengths[i];
 
                         bool accept_circle = true;
                         {
-                            // Check that lengths of internal (!!!) edges match.
+                            // 检查内部（！！！）边的长度是否匹配。
                             int j = offset_to_index(start_idx, 3);
                             while (j != i) {
                                 if (! are_lengths_same(lengths[offset_to_index(j,-1)], lengths[j])) {
@@ -431,15 +427,14 @@ void MeasuringImpl::extract_features(int plane_idx)
                         if (accept_circle) {
                             const auto& [center, radius, err] = get_center_and_radius(single_circle, trafo, trafo_inv);
 
-                            // Check that the fit went well. The tolerance is high, only to
-                            // reject complete failures.
+                            // 检查拟合是否良好。公差较高，仅用于拒绝完全失败的情况。
                             accept_circle &= err < 0.05;
 
-                            // If the segment subtends less than 90 degrees, throw it away.
+                            // 如果圆弧段小于90度，丢弃它。
                             accept_circle &= single_circle_length / radius > 0.9*M_PI/2.;
 
                             if (accept_circle) {
-                                // Add the circle and remember indices into borders.
+                                // 添加圆并记住到边界的索引。
                                 circles_idxs.emplace_back(start_idx, i);
                                 circles.emplace_back(SurfaceFeature(SurfaceFeatureType::Circle, center, plane.normal, std::nullopt, radius));
                             }
@@ -452,14 +447,14 @@ void MeasuringImpl::extract_features(int plane_idx)
                 i = offset_to_index(i, 1);
             }
 
-            // We have the circles. Now go around again and pick edges, while jumping over circles.
+            // 找到圆了。现在再次绕行并选择边，同时跳过圆。
             if (circles_idxs.empty()) {
-                // Just add all edges.
+                // 只添加所有边。
                 for (int i=1; i<int(border.size()); ++i)
                     edges.emplace_back(SurfaceFeature(SurfaceFeatureType::Edge, border[i-1], border[i]));
                 edges.emplace_back(SurfaceFeature(SurfaceFeatureType::Edge, border[0], border[border.size()-1]));
             } else if (circles_idxs.size() > 1 || circles_idxs.front().first != circles_idxs.front().second) {
-                // There is at least one circular segment. Start at its end and add edges until the start of the next one.
+                // 至少有一个圆弧段。从其末端开始添加边，直到下一个圆弧段的起点。
                 int i = circles_idxs.front().second;
                 int circle_idx = 1;
                 while (true) {
@@ -474,7 +469,7 @@ void MeasuringImpl::extract_features(int plane_idx)
                 }
             }
 
-            // Merge adjacent edges where needed.
+            // 在需要时合并相邻边。
             assert(std::all_of(edges.begin(), edges.end(),
                             [](const SurfaceFeature& f) { return f.get_type() == SurfaceFeatureType::Edge; }));
             for (int i=edges.size()-1; i>=0; --i) {
@@ -483,13 +478,13 @@ void MeasuringImpl::extract_features(int plane_idx)
 
                 if (Slic3r::is_approx(first_end, second_start)
                     && Slic3r::is_approx((first_end-first_start).normalized().dot((second_end-second_start).normalized()), 1.)) {
-                    // The edges have the same direction and share a point. Merge them.
+                    // 边具有相同方向并共享一个点。合并它们。
                     edges[i==0 ? edges.size()-1 : i-1] = SurfaceFeature(SurfaceFeatureType::Edge, first_start, second_end);
                     edges.erase(edges.begin() + i);
                 }
             }
 
-            // Now move the circles and edges into the feature list for the plane.
+            // 现在将圆和边移动到该平面的特征列表中。
             assert(std::all_of(circles.begin(), circles.end(), [](const SurfaceFeature& f) {
                 return f.get_type() == SurfaceFeatureType::Circle;
             }));
@@ -503,7 +498,7 @@ void MeasuringImpl::extract_features(int plane_idx)
         }
     }
 
-    // The last surface feature is the plane itself.
+    // 最后一个表面特征是平面本身。
     Vec3d cog = Vec3d::Zero();
     size_t counter = 0;
     for (const std::vector<Vec3d>& b : plane.borders) {
@@ -542,8 +537,8 @@ std::optional<SurfaceFeature> MeasuringImpl::get_feature(size_t face_idx, const 
 
     if (!only_select_plane) {
         for (size_t i = 0; i < plane.surface_features.size() - 1; ++i) {
-            // The -1 is there to prevent measuring distance to the plane itself,
-            // which is needless and relatively expensive.
+            // 减1是为了防止测量到平面本身的距离，
+            // 这既不需要也相对昂贵。
             res = get_measurement(plane.surface_features[i], point_sf);
             if (res.distance_strict) { // TODO: this should become an assert after all combinations are implemented.
                 double dist = res.distance_strict->dist;
@@ -557,9 +552,9 @@ std::optional<SurfaceFeature> MeasuringImpl::get_feature(size_t face_idx, const 
         if (closest_feature_idx != size_t(-1)) {
             const SurfaceFeature &f = plane.surface_features[closest_feature_idx];
             if (f.get_type() == SurfaceFeatureType::Edge) {
-                // If this is an edge, check if we are not close to the endpoint. If so,
-                // we will include the endpoint as well. Close = 10% of the lenghth of
-                // the edge, clamped between 0.025 and 0.5 mm.
+                // 如果是边，检查是否靠近端点。如果是，
+                // 我们也将包括端点。近 = 边的长度的10%，
+                // 夹在0.025和0.5毫米之间。
                 const auto &[sp, ep] = f.get_edge();
                 double len_sq        = (ep - sp).squaredNorm();
                 double limit_sq      = std::max(0.025 * 0.025, std::min(0.5 * 0.5, 0.1 * 0.1 * len_sq));
@@ -584,7 +579,7 @@ std::optional<SurfaceFeature> MeasuringImpl::get_feature(size_t face_idx, const 
         }
     }
 
-    // Nothing detected, return the plane as a whole.
+    // 未检测到任何特征，返回整个平面。
     assert(plane.surface_features.back().get_type() == SurfaceFeatureType::Plane);
     auto cur_plane = const_cast<PlaneData*>(&plane);
     SurfaceFeature f_tran(cur_plane->surface_features.back());
@@ -684,7 +679,7 @@ static AngleAndEdges angle_edge_edge(const std::pair<Vec3d, Vec3d>& e1, const st
     Vec3d e1_unit = edge_direction(e1.first, e1.second);
     Vec3d e2_unit = edge_direction(e2.first, e2.second);
 
-    // project edges on the plane defined by them
+    // 将边投影到它们定义的平面上
     Vec3d normal = e1_unit.cross(e2_unit).normalized();
     const Eigen::Hyperplane<double, 3> plane(normal, e1.first);
     Vec3d e11_proj = plane.projection(e1.first);
@@ -694,7 +689,7 @@ static AngleAndEdges angle_edge_edge(const std::pair<Vec3d, Vec3d>& e1, const st
 
     const bool coplanar = (e2.first - e21_proj).norm() < EPSILON && (e2.second - e22_proj).norm() < EPSILON;
 
-    // rotate the plane to become the XY plane
+    // 旋转平面使其成为 XY 平面
     auto qp = Eigen::Quaternion<double>::FromTwoVectors(normal, Vec3d::UnitZ());
     auto qp_inverse = qp.inverse();
     const Vec3d e11_rot = qp * e11_proj;
@@ -702,21 +697,21 @@ static AngleAndEdges angle_edge_edge(const std::pair<Vec3d, Vec3d>& e1, const st
     const Vec3d e21_rot = qp * e21_proj;
     const Vec3d e22_rot = qp * e22_proj;
 
-    // discard Z
+    // 丢弃 Z
     const Vec2d e11_rot_2d = Vec2d(e11_rot.x(), e11_rot.y());
     const Vec2d e12_rot_2d = Vec2d(e12_rot.x(), e12_rot.y());
     const Vec2d e21_rot_2d = Vec2d(e21_rot.x(), e21_rot.y());
     const Vec2d e22_rot_2d = Vec2d(e22_rot.x(), e22_rot.y());
 
-    // find intersection (arc center) of edges in XY plane
+    // 在 XY 平面中查找边的交点（弧心）
     const Eigen::Hyperplane<double, 2> e1_rot_2d_line = Eigen::Hyperplane<double, 2>::Through(e11_rot_2d, e12_rot_2d);
     const Eigen::Hyperplane<double, 2> e2_rot_2d_line = Eigen::Hyperplane<double, 2>::Through(e21_rot_2d, e22_rot_2d);
     const Vec2d center_rot_2d = e1_rot_2d_line.intersection(e2_rot_2d_line);
 
-    // arc center in original coordinate
+    // 原始坐标中的弧心
     const Vec3d center = qp_inverse * Vec3d(center_rot_2d.x(), center_rot_2d.y(), e11_rot.z());
 
-    // ensure the edges are pointing away from the center
+    // 确保边指向远离中心的方向
     std::pair<Vec3d, Vec3d> out_e1 = e1;
     std::pair<Vec3d, Vec3d> out_e2 = e2;
     if ((center_rot_2d - e11_rot_2d).squaredNorm() > (center_rot_2d - e12_rot_2d).squaredNorm()) {
@@ -730,9 +725,9 @@ static AngleAndEdges angle_edge_edge(const std::pair<Vec3d, Vec3d>& e1, const st
         e2_unit = -e2_unit;
     }
 
-    // arc angle
+    // 弧角
     const double angle = std::acos(std::clamp(e1_unit.dot(e2_unit), -1.0, 1.0));
-    // arc radius
+    // 弧半径
     const Vec3d e1_proj_mid = 0.5 * (e11_proj + e12_proj);
     const Vec3d e2_proj_mid = 0.5 * (e21_proj + e22_proj);
     const double radius = std::min((center - e1_proj_mid).norm(), (center - e2_proj_mid).norm());
@@ -747,13 +742,13 @@ static AngleAndEdges angle_edge_plane(const std::pair<Vec3d, Vec3d>& e, const st
     if (are_perpendicular(e1e2_unit, normal))
         return AngleAndEdges::Dummy;
 
-    // ensure the edge is pointing away from the intersection
-    // 1st calculate instersection between edge and plane
+    // 确保边指向远离交点的方向
+    // 1. 计算边与平面之间的交点
     const Eigen::Hyperplane<double, 3> plane(normal, origin);
     const Eigen::ParametrizedLine<double, 3> line = Eigen::ParametrizedLine<double, 3>::Through(e.first, e.second);
     const Vec3d inters = line.intersectionPoint(plane);
 
-    // then verify edge direction and revert it, if needed
+    // 然后验证边的方向，如果需要则反转
     Vec3d e1 = e.first;
     Vec3d e2 = e.second;
     if ((e1 - inters).squaredNorm() > (e2 - inters).squaredNorm()) {
@@ -776,12 +771,12 @@ static AngleAndEdges angle_edge_plane(const std::pair<Vec3d, Vec3d>& e, const st
     const Vec3d e1e2 = e2 - e1;
     const double e1e2_len = e1e2.norm();
 
-    // calculate 2nd edge (on the plane)
+    // 计算第二条边（在平面上）
     const Vec3d temp = normal.cross(e1e2);
     const Vec3d edge_on_plane_unit = normal.cross(temp).normalized();
     std::pair<Vec3d, Vec3d> edge_on_plane = { origin, origin + e1e2_len * edge_on_plane_unit };
 
-    // ensure the 2nd edge is pointing in the correct direction
+    // 确保第二条边指向正确的方向
     const Vec3d test_edge = (edge_on_plane.second - edge_on_plane.first).cross(e1e2);
     if (test_edge.dot(temp) < 0.0)
         edge_on_plane = { origin, origin - e1e2_len * edge_on_plane_unit };
@@ -796,7 +791,7 @@ static AngleAndEdges angle_plane_plane(const std::tuple<int, Vec3d, Vec3d>& p1, 
     const auto& [idx1, normal1, origin1] = p1;
     const auto& [idx2, normal2, origin2] = p2;
 
-    // are planes parallel ?
+    // 平面是否平行？
     if (are_parallel(normal1, normal2))
         return AngleAndEdges::Dummy;
 
@@ -809,15 +804,15 @@ static AngleAndEdges angle_plane_plane(const std::tuple<int, Vec3d, Vec3d>& p1, 
         return std::make_pair(n1.cross(n2).normalized(), Vec3d(x(0), x(1), x(2)));
     };
 
-    // Calculate intersection line between planes
+    // 计算平面之间的交线
     const auto [intersection_line_direction, intersection_line_origin] = intersection_plane_plane(normal1, origin1, normal2, origin2);
 
-    // Project planes' origin on intersection line
+    // 将平面原点投影到交线上
     const Eigen::ParametrizedLine<double, 3> intersection_line = Eigen::ParametrizedLine<double, 3>(intersection_line_origin, intersection_line_direction);
     const Vec3d origin1_proj = intersection_line.projection(origin1);
     const Vec3d origin2_proj = intersection_line.projection(origin2);
 
-    // Calculate edges on planes
+    // 计算平面上的边
     const Vec3d edge_on_plane1_unit = (origin1 - origin1_proj).normalized();
     const Vec3d edge_on_plane2_unit = (origin2 - origin2_proj).normalized();
     const double radius = std::max(10.0, std::max((origin1 - origin1_proj).norm(), (origin2 - origin2_proj).norm()));
@@ -858,16 +853,16 @@ MeasurementResult get_measurement(const SurfaceFeature &a, const SurfaceFeature 
             const double dist_start_sq = (proj-s).squaredNorm();
             const double dist_end_sq = (proj-e).squaredNorm();
             if (dist_start_sq < len_sq && dist_end_sq < len_sq) {
-                // projection falls on the line - the strict distance is the same as infinite
+                // 投影落在线上 - 严格距离与无限距离相同
                 result.distance_strict = std::make_optional(DistAndPoints{dist_inf, f1.get_point(), proj});
-            } else { // the result is the closer of the endpoints
+            } else { // 结果是较近的端点
                 const bool s_is_closer = dist_start_sq < dist_end_sq;
                 result.distance_strict = std::make_optional(DistAndPoints{std::sqrt(std::min(dist_start_sq, dist_end_sq) + sqr(dist_inf)), f1.get_point(), s_is_closer ? s : e});
             }
             result.distance_infinite = std::make_optional(DistAndPoints{dist_inf, f1.get_point(), proj});
     ///////////////////////////////////////////////////////////////////////////
         } else if (f2.get_type() == SurfaceFeatureType::Circle) {
-            // Find a plane containing normal, center and the point.
+            // 查找包含法线、中心和点的平面。
             const auto [c, radius, n] = f2.get_circle();
             const Eigen::Hyperplane<double, 3> circle_plane(n, c);
             const Vec3d proj = circle_plane.projection(f1.get_point());

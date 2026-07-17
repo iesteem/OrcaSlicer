@@ -1,4 +1,4 @@
-#ifndef EXECUTIONTBB_HPP
+﻿﻿#ifndef EXECUTIONTBB_HPP
 #define EXECUTIONTBB_HPP
 
 #include <mutex>
@@ -15,7 +15,7 @@ namespace Slic3r {
 struct ExecutionTBB {};
 template<> struct IsExecutionPolicy_<ExecutionTBB> : public std::true_type {};
 
-// Execution policy using Intel TBB library under the hood.
+//// Execution policy 使用 Intel TBB library under the hood.
 static constexpr ExecutionTBB ex_tbb = {};
 
 template<> struct execution::Traits<ExecutionTBB> {

@@ -60,11 +60,11 @@ class IntersectionReference
 public:
     IntersectionReference() = default;
     IntersectionReference(int point_id, int edge_id) : point_id(point_id), edge_id(edge_id) {}
-    // Where is this intersection point located? On mesh vertex or mesh edge?
-    // Only one of the following will be set, the other will remain set to -1.
-    // Index of the mesh vertex.
+    // 这个交点位于何处？在网格顶点上还是网格边上？
+    // 以下两个值中只有一个会被设置，另一个保持为-1。
+    // 网格顶点的索引。
     int point_id { -1 };
-    // Index of the mesh edge.
+    // 网格边的索引。
     int edge_id { -1 };
 };
 
@@ -74,7 +74,7 @@ public:
     IntersectionPoint() = default;
     IntersectionPoint(int point_id, int edge_id, const Point &pt) : IntersectionReference(point_id, edge_id), Point(pt) {}
     IntersectionPoint(const IntersectionReference &ir, const Point &pt) : IntersectionReference(ir), Point(pt) {}
-    // Inherits coord_t x, y
+    // 继承 coord_t x, y
 };
 
 class IntersectionLine : public Line
@@ -90,45 +90,44 @@ public:
 
     void reverse() { std::swap(a, b); std::swap(a_id, b_id); std::swap(edge_a_id, edge_b_id); }
     
-    // Inherits Point a, b
-    // For each line end point, either {a,b}_id or {a,b}edge_a_id is set, the other is left to -1.
-    // Vertex indices of the line end points.
+    // 继承 Point a, b
+    // 对于每条线的端点，{a,b}_id或{a,b}edge_a_id中的一个被设置，另一个保持为-1。
+    // 线段端点的顶点索引。
     int             a_id { -1 };
     int             b_id { -1 };
-    // Source mesh edges of the line end points.
+    // 线段端点的源网格边。
     int             edge_a_id { -1 };
     int             edge_b_id { -1 };
 
-    enum class FacetEdgeType { 
-        // A general case, the cutting plane intersect a face at two different edges.
+    enum class FacetEdgeType {
+        // 一般情况，切割平面与一个面相交于两条不同的边。
         General,
-        // Two vertices are aligned with the cutting plane, the third vertex is below the cutting plane.
+        // 两个顶点与切割平面对齐，第三个顶点在切割平面下方。
         Top,
-        // Two vertices are aligned with the cutting plane, the third vertex is above the cutting plane.
+        // 两个顶点与切割平面对齐，第三个顶点在切割平面上方。
         Bottom,
-        // Two vertices are aligned with the cutting plane, the edge is shared by two triangles, where one
-        // triangle is below or at the cutting plane and the other is above or at the cutting plane (only one
-        // vertex may lie on the plane).
+        // 两个顶点与切割平面对齐，该边由两个三角形共享，其中一个
+        // 三角形在切割平面下方或位于切割平面上，另一个在切割平面上方或位于切割平面上（只有一个顶点可能在平面上）。
         TopBottom,
-        // All three vertices of a face are aligned with the cutting plane.
+        // 一个面的所有三个顶点都与切割平面对齐。
         Horizontal,
-        // Edge 
+        // 板（层间）
         Slab,
     };
 
-    // feGeneral, feTop, feBottom, feHorizontal
+    // 面边类型：通用、顶部、底部、水平
     FacetEdgeType   edge_type { FacetEdgeType::General };
-    // Used to skip duplicate edges.
+    // 用于跳过重复的边。
     enum {
-        // Triangle edge added, because it has no neighbor.
+        // 添加了三角形边，因为它没有相邻三角形。
         EDGE0_NO_NEIGHBOR   = 0x001,
         EDGE1_NO_NEIGHBOR   = 0x002,
         EDGE2_NO_NEIGHBOR   = 0x004,
-        // Triangle edge added, because it makes a fold with another horizontal edge.
+        // 添加了三角形边，因为它与另一条水平边形成折叠。
         EDGE0_FOLD          = 0x010,
         EDGE1_FOLD          = 0x020,
         EDGE2_FOLD          = 0x040,
-        // The edge cannot be a seed of a greedy loop extraction (folds are not safe to become seeds).
+        // 该边不能作为贪心循环提取的种子（折叠边不适合作为种子）。
         NO_SEED             = 0x100,
         SKIP                = 0x200,
     };
@@ -152,11 +151,11 @@ enum class FacetSliceType {
     Cutting = 2
 };
 
-// Return true, if the facet has been sliced and line_out has been filled.
+// 如果面已被切割并且line_out已被填充，则返回true。
 static FacetSliceType slice_facet(
-    // Z height of the slice in XY plane. Scaled or unscaled (same as vertices[].z()).
+    // 切片在XY平面中的Z高度。已缩放或未缩放（与vertices[].z()相同）。
     float                                slice_z,
-    // 3 vertices of the triangle, XY scaled. Z scaled or unscaled (same as slice_z).
+    // 三角形的3个顶点，XY已缩放。Z已缩放或未缩放（与slice_z相同）。
     const stl_vertex                    *vertices,
     const stl_triangle_vertex_indices   &indices,
     const Vec3i32                         &edge_ids,
@@ -168,10 +167,10 @@ static FacetSliceType slice_facet(
     size_t            num_points = 0;
     auto              point_on_layer = size_t(-1);
 
-    // Reorder vertices so that the first one is the one with lowest Z.
-    // This is needed to get all intersection lines in a consistent order
-    // (external on the right of the line)
-    for (int j = 0; j < 3; ++ j) {  // loop through facet edges
+    // 重新排序顶点，使得第一个顶点具有最低的Z值。
+    // 这是为了以一致的顺序获取所有交线
+    // （外部在线的右侧）
+    for (int j = 0; j < 3; ++ j) {  // 遍历面边
         int               edge_id;
         const stl_vertex *a, *b, *c;
         int               a_id, b_id;
@@ -186,33 +185,31 @@ static FacetSliceType slice_facet(
             c       = vertices + (k + 2) % 3;
         }
 
-        // Is edge or face aligned with the cutting plane?
+        // 边或面是否与切割平面对齐？
         if (a->z() == slice_z && b->z() == slice_z) {
-            // Edge is horizontal and belongs to the current layer.
-            // The following rotation of the three vertices may not be efficient, but this branch happens rarely.
+            // 边是水平的，属于当前层。
+            // 以下三个顶点的旋转可能效率不高，但这种情况很少发生。
             const stl_vertex &v0 = vertices[0];
             const stl_vertex &v1 = vertices[1];
             const stl_vertex &v2 = vertices[2];
-            // We may ignore this edge for slicing purposes, but we may still use it for object cutting.
+            // 为了切片目的，我们可以忽略这条边，但仍然可以用于切割对象。
             FacetSliceType    result = FacetSliceType::Slicing;
             if (horizontal) {
-                // All three vertices are aligned with slice_z.
+                // 所有三个顶点都与slice_z对齐。
                 line_out.edge_type = IntersectionLine::FacetEdgeType::Horizontal;
                 result = FacetSliceType::Cutting;
                 double normal = (v1.x() - v0.x()) * (v2.y() - v1.y()) - (v1.y() - v0.y()) * (v2.x() - v1.x());
                 if (normal < 0) {
-                    // If normal points downwards this is a bottom horizontal facet so we reverse its point order.
+                    // 如果法线指向下方，这是一个底部的水平面，因此我们反转其点顺序。
                     std::swap(a, b);
                     std::swap(a_id, b_id);
                 }
             } else {
-                // Two vertices are aligned with the cutting plane, the third vertex is below or above the cutting plane.
-                // Is the third vertex below the cutting plane?
+                // 两个顶点与切割平面对齐，第三个顶点在切割平面下方或上方。
+                // 第三个顶点是否在切割平面下方？
                 bool third_below = v0.z() < slice_z || v1.z() < slice_z || v2.z() < slice_z;
-                // Two vertices on the cutting plane, the third vertex is below the plane. Consider the edge to be part of the slice
-                // only if it is the upper edge.
-                // (the bottom most edge resp. vertex of a triangle is not owned by the triangle, but the top most edge resp. vertex is part of the triangle
-                // in respect to the cutting plane).
+                // 两个顶点在切割平面上，第三个顶点在平面下方。仅当该边是上边缘时才将其视为切片的一部分。
+                // （三角形的最底边/顶点不属于该三角形，但相对于切割平面，最顶边/顶点属于该三角形）。
                 result = third_below ? FacetSliceType::Slicing : FacetSliceType::Cutting;
                 if (third_below) {
                     line_out.edge_type = IntersectionLine::FacetEdgeType::Top;
@@ -232,7 +229,7 @@ static FacetSliceType slice_facet(
         }
 
         if (a->z() == slice_z) {
-            // Only point a alings with the cutting plane.
+            // 只有点a与切割平面对齐。
             if (point_on_layer == size_t(-1) || points[point_on_layer].point_id != a_id) {
                 point_on_layer = num_points;
                 IntersectionPoint &point = points[num_points ++];
@@ -241,7 +238,7 @@ static FacetSliceType slice_facet(
                 point.point_id = a_id;
             }
         } else if (b->z() == slice_z) {
-            // Only point b alings with the cutting plane.
+            // 只有点b与切割平面对齐。
             if (point_on_layer == size_t(-1) || points[point_on_layer].point_id != b_id) {
                 point_on_layer = num_points;
                 IntersectionPoint &point = points[num_points ++];
@@ -250,9 +247,9 @@ static FacetSliceType slice_facet(
                 point.point_id = b_id;
             }
         } else if ((a->z() < slice_z && b->z() > slice_z) || (b->z() < slice_z && a->z() > slice_z)) {
-            // A general case. The face edge intersects the cutting plane. Calculate the intersection point.
+            // 一般情况。面边与切割平面相交。计算交点。
             assert(a_id != b_id);
-            // Sort the edge to give a consistent answer.
+            // 对边进行排序以获得一致的答案。
             if (a_id > b_id) {
                 std::swap(a_id, b_id);
                 std::swap(a, b);
@@ -282,7 +279,7 @@ static FacetSliceType slice_facet(
         }
     }
 
-    // Facets must intersect each plane 0 or 2 times, or it may touch the plane at a single vertex only.
+    // 面必须与每个平面相交0次或2次，或者可能仅在一个顶点处接触平面。
     assert(num_points < 3);
     if (num_points == 2) {
         line_out.edge_type  = IntersectionLine::FacetEdgeType::General;
@@ -292,13 +289,13 @@ static FacetSliceType slice_facet(
         line_out.b_id       = points[0].point_id;
         line_out.edge_a_id  = points[1].edge_id;
         line_out.edge_b_id  = points[0].edge_id;
-        // Not a zero lenght edge.
-        //FIXME slice_facet() may create zero length edges due to rounding of doubles into coord_t.
+        // 不是零长度边。
+        //FIXME slice_facet() 由于将double舍入为coord_t，可能会创建零长度边。
         //assert(line_out.a != line_out.b);
-        // The plane cuts at least one edge in a general position.
+        // 平面至少切割一条处于一般位置的边。
         assert(line_out.a_id == -1 || line_out.b_id == -1);
         assert(line_out.edge_a_id != -1 || line_out.edge_b_id != -1);
-        // General slicing position, use the segment for both slicing and object cutting.
+        // 一般切片位置，将线段用于切片和切割对象。
 #if 0
         if (line_out.a_id != -1 && line_out.b_id != -1) {
             // Solving a degenerate case, where both the intersections snapped to an edge.
@@ -319,11 +316,11 @@ static FacetSliceType slice_facet(
     return FacetSliceType::NoSlice;
 }
 
-// Return true, if the facet has been sliced and line_out has been filled.
+// 如果面已被切割并且line_out已被填充，则返回true。
 static FacetSliceType slice_facet_for_cut_mesh(
-    // Z height of the slice in XY plane. Scaled or unscaled (same as vertices[].z()).
+    // 切片在XY平面中的Z高度。已缩放或未缩放（与vertices[].z()相同）。
     float slice_z,
-    // 3 vertices of the triangle, XY scaled. Z scaled or unscaled (same as slice_z).
+    // 三角形的3个顶点，XY已缩放。Z已缩放或未缩放（与slice_z相同）。
     const stl_vertex *                 vertices,
     const stl_triangle_vertex_indices &indices,
     const Vec3i32 &                      edge_ids,
@@ -335,10 +332,10 @@ static FacetSliceType slice_facet_for_cut_mesh(
     size_t            num_points     = 0;
     auto              point_on_layer = size_t(-1);
 
-    // Reorder vertices so that the first one is the one with lowest Z.
-    // This is needed to get all intersection lines in a consistent order
-    // (external on the right of the line)
-    for (int j = 0; j < 3; ++j) { // loop through facet edges
+    // 重新排序顶点，使得第一个顶点具有最低的Z值。
+    // 这是为了以一致的顺序获取所有交线
+    // （外部在线的右侧）
+    for (int j = 0; j < 3; ++j) { // 遍历面边
         int               edge_id;
         const stl_vertex *a, *b, *c;
         int               a_id, b_id;
@@ -353,33 +350,31 @@ static FacetSliceType slice_facet_for_cut_mesh(
             c       = vertices + (k + 2) % 3;
         }
 
-        // Is edge or face aligned with the cutting plane?
+        // 边或面是否与切割平面对齐？
         if (is_equal(a->z(), slice_z) && is_equal(b->z(), slice_z)) {
-            // Edge is horizontal and belongs to the current layer.
-            // The following rotation of the three vertices may not be efficient, but this branch happens rarely.
+            // 边是水平的，属于当前层。
+            // 以下三个顶点的旋转可能效率不高，但这种情况很少发生。
             const stl_vertex &v0 = vertices[0];
             const stl_vertex &v1 = vertices[1];
             const stl_vertex &v2 = vertices[2];
-            // We may ignore this edge for slicing purposes, but we may still use it for object cutting.
+            // 为了切片目的，我们可以忽略这条边，但仍然可以用于切割对象。
             FacetSliceType result = FacetSliceType::Slicing;
             if (horizontal) {
-                // All three vertices are aligned with slice_z.
+                // 所有三个顶点都与slice_z对齐。
                 line_out.edge_type = IntersectionLine::FacetEdgeType::Horizontal;
                 result             = FacetSliceType::Cutting;
                 double normal      = (v1.x() - v0.x()) * (v2.y() - v1.y()) - (v1.y() - v0.y()) * (v2.x() - v1.x());
                 if (normal < 0) {
-                    // If normal points downwards this is a bottom horizontal facet so we reverse its point order.
+                    // 如果法线指向下方，这是一个底部的水平面，因此我们反转其点顺序。
                     std::swap(a, b);
                     std::swap(a_id, b_id);
                 }
             } else {
-                // Two vertices are aligned with the cutting plane, the third vertex is below or above the cutting plane.
-                // Is the third vertex below the cutting plane?
+                // 两个顶点与切割平面对齐，第三个顶点在切割平面下方或上方。
+                // 第三个顶点是否在切割平面下方？
                 bool third_below = c->z() < slice_z;
-                // Two vertices on the cutting plane, the third vertex is below the plane. Consider the edge to be part of the slice
-                // only if it is the upper edge.
-                // (the bottom most edge resp. vertex of a triangle is not owned by the triangle, but the top most edge resp. vertex is part of the triangle
-                // in respect to the cutting plane).
+                // 两个顶点在切割平面上，第三个顶点在平面下方。仅当该边是上边缘时才将其视为切片的一部分。
+                // （三角形的最底边/顶点不属于该三角形，但相对于切割平面，最顶边/顶点属于该三角形）。
                 result = third_below ? FacetSliceType::Slicing : FacetSliceType::Cutting;
                 if (third_below) {
                     line_out.edge_type = IntersectionLine::FacetEdgeType::Top;
@@ -399,7 +394,7 @@ static FacetSliceType slice_facet_for_cut_mesh(
         }
 
         if (is_equal(a->z(), slice_z)) {
-            // Only point a alings with the cutting plane.
+            // 只有点a与切割平面对齐。
             if (point_on_layer == size_t(-1) || points[point_on_layer].point_id != a_id) {
                 point_on_layer           = num_points;
                 IntersectionPoint &point = points[num_points++];
@@ -408,7 +403,7 @@ static FacetSliceType slice_facet_for_cut_mesh(
                 point.point_id           = a_id;
             }
         } else if (is_equal(b->z(), slice_z)) {
-            // Only point b alings with the cutting plane.
+            // 只有点b与切割平面对齐。
             if (point_on_layer == size_t(-1) || points[point_on_layer].point_id != b_id) {
                 point_on_layer           = num_points;
                 IntersectionPoint &point = points[num_points++];
@@ -417,9 +412,9 @@ static FacetSliceType slice_facet_for_cut_mesh(
                 point.point_id           = b_id;
             }
         } else if ((a->z() < slice_z && b->z() > slice_z) || (b->z() < slice_z && a->z() > slice_z)) {
-            // A general case. The face edge intersects the cutting plane. Calculate the intersection point.
+            // 一般情况。面边与切割平面相交。计算交点。
             assert(a_id != b_id);
-            // Sort the edge to give a consistent answer.
+            // 对边进行排序以获得一致的答案。
             if (a_id > b_id) {
                 std::swap(a_id, b_id);
                 std::swap(a, b);
@@ -449,7 +444,7 @@ static FacetSliceType slice_facet_for_cut_mesh(
         }
     }
 
-    // Facets must intersect each plane 0 or 2 times, or it may touch the plane at a single vertex only.
+    // 面必须与每个平面相交0次或2次，或者可能仅在一个顶点处接触平面。
     assert(num_points < 3);
     if (num_points == 2) {
         line_out.edge_type = IntersectionLine::FacetEdgeType::General;
@@ -459,13 +454,13 @@ static FacetSliceType slice_facet_for_cut_mesh(
         line_out.b_id      = points[0].point_id;
         line_out.edge_a_id = points[1].edge_id;
         line_out.edge_b_id = points[0].edge_id;
-        // Not a zero lenght edge.
-        // FIXME slice_facet() may create zero length edges due to rounding of doubles into coord_t.
+        // 不是零长度边。
+        // FIXME slice_facet() 由于将double舍入为coord_t，可能会创建零长度边。
         // assert(line_out.a != line_out.b);
-        // The plane cuts at least one edge in a general position.
+        // 平面至少切割一条处于一般位置的边。
         assert(line_out.a_id == -1 || line_out.b_id == -1);
         assert(line_out.edge_a_id != -1 || line_out.edge_b_id != -1);
-        // General slicing position, use the segment for both slicing and object cutting.
+        // 一般切片位置，将线段用于切片和切割对象。
 
         return FacetSliceType::Slicing;
     }
@@ -474,30 +469,30 @@ static FacetSliceType slice_facet_for_cut_mesh(
 
 template<typename TransformVertex>
 void slice_facet_at_zs(
-    // Scaled or unscaled vertices. transform_vertex_fn may scale zs.
+    // 已缩放或未缩放的顶点。transform_vertex_fn可能会缩放zs值。
     const std::vector<Vec3f>                         &mesh_vertices,
     const TransformVertex                            &transform_vertex_fn,
     const stl_triangle_vertex_indices                &indices,
     const Vec3i32                                      &edge_ids,
-    // Scaled or unscaled zs. If vertices have their zs scaled or transform_vertex_fn scales them, then zs have to be scaled as well.
+    // 已缩放或未缩放的zs值。如果顶点的zs已被缩放或transform_vertex_fn对它们进行了缩放，则zs也必须相应地缩放。
     const std::vector<float>                         &zs,
     std::vector<IntersectionLines>                   &lines,
     std::array<std::mutex, 64>                       &lines_mutex)
 {
     stl_vertex vertices[3] { transform_vertex_fn(mesh_vertices[indices(0)]), transform_vertex_fn(mesh_vertices[indices(1)]), transform_vertex_fn(mesh_vertices[indices(2)]) };
 
-    // find facet extents
+    // 查找面的范围
     const float min_z = fminf(vertices[0].z(), fminf(vertices[1].z(), vertices[2].z()));
     const float max_z = fmaxf(vertices[0].z(), fmaxf(vertices[1].z(), vertices[2].z()));
 
-    // find layer extents
-    auto min_layer = std::lower_bound(zs.begin(), zs.end(), min_z); // first layer whose slice_z is >= min_z
-    auto max_layer = std::upper_bound(min_layer, zs.end(), max_z); // first layer whose slice_z is > max_z
+    // 查找层范围
+    auto min_layer = std::lower_bound(zs.begin(), zs.end(), min_z); // 第一个slice_z >= min_z的层
+    auto max_layer = std::upper_bound(min_layer, zs.end(), max_z); // 第一个slice_z > max_z的层
     int  idx_vertex_lowest = (vertices[1].z() == min_z) ? 1 : ((vertices[2].z() == min_z) ? 2 : 0);
 
     for (auto it = min_layer; it != max_layer; ++ it) {
         IntersectionLine il;
-        // Ignore horizontal triangles. Any valid horizontal triangle must have a vertical triangle connected, otherwise the part has zero volume.
+        // 忽略水平三角形。任何有效的水平三角形必须有一个垂直三角形与之相连，否则该部分体积为零。
         if (min_z != max_z && slice_facet(*it, vertices, indices, edge_ids, idx_vertex_lowest, false, il) == FacetSliceType::Slicing) {
             assert(il.edge_type != IntersectionLine::FacetEdgeType::Horizontal);
             size_t slice_id = it - zs.begin();
@@ -545,13 +540,13 @@ static inline IntersectionLines slice_make_lines(
         if (face_filter(face_idx)) {
             const Vec3i32 &indices = mesh_faces[face_idx];
             stl_vertex vertices[3] { transform_vertex_fn(mesh_vertices[indices(0)]), transform_vertex_fn(mesh_vertices[indices(1)]), transform_vertex_fn(mesh_vertices[indices(2)]) };
-            // find facet extents
+            // 查找面的范围
             const float min_z = fminf(vertices[0].z(), fminf(vertices[1].z(), vertices[2].z()));
             const float max_z = fmaxf(vertices[0].z(), fmaxf(vertices[1].z(), vertices[2].z()));
             assert(min_z <= plane_z && max_z >= plane_z);
             int              idx_vertex_lowest = (vertices[1].z() == min_z) ? 1 : ((vertices[2].z() == min_z) ? 2 : 0);
             IntersectionLine il;
-            // Ignore horizontal triangles. Any valid horizontal triangle must have a vertical triangle connected, otherwise the part has zero volume.
+            // 忽略水平三角形。任何有效的水平三角形必须有一个垂直三角形与之相连，否则该部分体积为零。
             if (min_z != max_z && slice_facet(plane_z, vertices, indices, face_edge_ids[face_idx], idx_vertex_lowest, false, il) == FacetSliceType::Slicing) {
                 assert(il.edge_type != IntersectionLine::FacetEdgeType::Horizontal);
                 lines.emplace_back(il);
@@ -560,39 +555,37 @@ static inline IntersectionLines slice_make_lines(
     return lines;
 }
 
-// For projecting triangle sets onto slice slabs.
+// 用于将三角形集合投影到切片层板（slab）上。
 struct SlabLines {
-    // Intersection lines of a slice with a triangle set, CCW oriented.
+    // 切片与三角形集合的交线，CCW方向。
     std::vector<IntersectionLines>  at_slice;
-    // Projections of triangle set boundary lines into layer below (for projection from the top)
-    // or into layer above (for projection from the bottom).
-    // In both cases the intersection lines are CCW oriented.
+    // 三角形集合边界线投影到下方层（从顶部投影）
+    // 或投影到上方层（从底部投影）。
+    // 两种情况下交线均为CCW方向。
     std::vector<IntersectionLines>  between_slices;
 };
 
-// Orientation of the face normal in regard to a XY plane pointing upwards.
+// 面法线相对于朝上的XY平面的方向。
 enum class FaceOrientation : char {
-    // Z component of the normal is positive.
+    // 法线的Z分量为正。
     Up,
-    // Z component of the normal is negative.
+    // 法线的Z分量为负。
     Down,
-    // Z component of the normal is zero.
+    // 法线的Z分量为零。
     Vertical,
-    // Triangle is degenerate, thus its normal is undefined. We may want to slice the degenerate triangles
-    // because of the connectivity information they carry.
+    // 三角形退化，因此其法线未定义。由于它们携带的连通性信息，我们可能仍想对退化三角形进行切片。
     Degenerate
 };
 
 template<bool ProjectionFromTop>
 void slice_facet_with_slabs(
-    // Scaled or unscaled vertices. transform_vertex_fn may scale zs.
+    // 已缩放或未缩放的顶点。transform_vertex_fn可能会缩放zs值。
     const std::vector<Vec3f>                         &mesh_vertices,
     const std::vector<stl_triangle_vertex_indices>   &mesh_triangles,
     const size_t                                      facet_idx,
     const Vec3i32                                      &facet_neighbors,
     const Vec3i32                                      &facet_edge_ids,
-    // Increase edge_ids at the top plane of the slab edges by num_edges to allow chaining
-    // from bottom plane of the slab to the top plane of the slab and vice versa.
+    // 将层板边的顶部平面处的edge_id增加num_edges，以允许从层板的底平面到顶平面以及反向的链接。
     const int                                         num_edges,
     const std::vector<float>                         &zs,
     SlabLines                                        &lines,
@@ -601,14 +594,14 @@ void slice_facet_with_slabs(
     const stl_triangle_vertex_indices &indices = mesh_triangles[facet_idx];
     stl_vertex vertices[3] { mesh_vertices[indices(0)], mesh_vertices[indices(1)], mesh_vertices[indices(2)] };
 
-    // find facet extents
+    // 查找面的范围
     const float min_z = fminf(vertices[0].z(), fminf(vertices[1].z(), vertices[2].z()));
     const float max_z = fmaxf(vertices[0].z(), fmaxf(vertices[1].z(), vertices[2].z()));
     const bool  horizontal = min_z == max_z;
 
-    // find layer extents
-    auto min_layer = std::lower_bound(zs.begin(), zs.end(), min_z); // first layer whose slice_z is >= min_z
-    auto max_layer = std::upper_bound(min_layer, zs.end(), max_z); // first layer whose slice_z is > max_z
+    // 查找层范围
+    auto min_layer = std::lower_bound(zs.begin(), zs.end(), min_z); // 第一个slice_z >= min_z的层
+    auto max_layer = std::upper_bound(min_layer, zs.end(), max_z); // 第一个slice_z > max_z的层
     assert(min_layer == zs.end() ? max_layer == zs.end() : *min_layer >= min_z);
     assert(max_layer == zs.end() || *max_layer > max_z);
 
@@ -620,22 +613,21 @@ void slice_facet_with_slabs(
     };
 
     if (min_layer == max_layer || horizontal) {
-        // Horizontal face or a nearly horizontal face that fits between two layers or below the bottom most or above the top most layer.
+        // 水平面或近乎水平的面，位于两层之间、最底层下方或最顶层上方。
         assert(horizontal || zs.empty() || max_z < zs.front() || min_z > zs.back() ||
             (min_layer == max_layer && min_layer != zs.end() && min_layer != zs.begin() && *(min_layer - 1) < min_z && *min_layer > max_z));
         if (horizontal && min_layer != zs.end() && *min_layer == min_z) {
-            // Slicing a horizontal triangle with a slicing plane. The triangle has to be upwards facing for ProjectionFromTop
-            // and downwards facing for ! ProjectionFromTop.
+            // 用切割平面对水平三角形进行切片。对于ProjectionFromTop，三角形必须朝上；对于!ProjectionFromTop，三角形必须朝下。
             assert(min_layer != max_layer);
-            // Slicing plane with which the triangle is coplanar.
+            // 与该三角形共面的切割平面。
             size_t slice_id = min_layer - zs.begin();
 #if 0
-            // Project the coplanar bottom facing triangles to their slicing plane for both top and bottom facing surfaces.
-            // This behavior is different from slice_mesh() / slice_mesh_ex(), which do not slice bottom facing faces exactly on slicing plane.
+            // 将共面的朝下三角形投影到它们的切割平面，用于朝上和朝下的表面。
+            // 此行为与slice_mesh() / slice_mesh_ex()不同，后者不会在切割平面上精确切割朝下的面。
             size_t line_id = slice_id;
 #else
-            // Project the coplanar bottom facing triangles to the plane above the slicing plane to match the behavior of slice_mesh() / slice_mesh_ex(),
-            // where the slicing plane slices the top facing surfaces, but misses the bottom facing surfaces.
+            // 将共面的朝下三角形投影到切割平面上方的平面，以匹配slice_mesh() / slice_mesh_ex()的行为，
+            // 其中切割平面切割朝上的表面，但不切割朝下的表面。
             if (size_t line_id = ProjectionFromTop ? slice_id : slice_id + 1; ProjectionFromTop || line_id < lines.at_slice.size())
 #endif
                 for (int iedge = 0; iedge < 3; ++ iedge)
@@ -649,30 +641,29 @@ void slice_facet_with_slabs(
                             indices(i), indices(j), -1, -1, 
                             ProjectionFromTop ? IntersectionLine::FacetEdgeType::Bottom : IntersectionLine::FacetEdgeType::Top
                         };
-                        // Don't flip the FacetEdgeType::Top edge, it will be flipped when chaining.
+                        // 不要翻转FacetEdgeType::Top边，它将在链接时被翻转。
                         // if (! ProjectionFromTop) il.reverse();
                         boost::lock_guard<std::mutex> l(lines_mutex[line_id % lines_mutex.size()]);
                         lines.at_slice[line_id].emplace_back(il);
                     }
         } else {
-            // Triangle is completely between two slicing planes, the triangle may or may not be horizontal, which 
-            // does not matter for the processing of such a triangle.
+            // 三角形完全位于两个切割平面之间，三角形可能是水平也可能不是水平，这对处理此类三角形没有影响。
             size_t slab_id;
             if (ProjectionFromTop) {
                 if (max_layer == zs.begin()) {
-                    // Not slicing the triangle and it is below the lowest layer.
+                    // 不对三角形进行切片，且它在最低层下方。
                     return;
                 } else {
-                    // Not slicing the triangle and it could be projected into a slab.
+                    // 不对三角形进行切片，它可以投影到一个层板中。
                     slab_id = max_layer - zs.begin();
                 }
             } else {
-                // projection from bottom
+                // 从底部投影
                 if (min_layer == zs.end()) {
-                    // Not slicing the triangle and it is above the highest layer.
+                    // 不对三角形进行切片，且它在最高层上方。
                     return;
                 } else {
-                    // Not slicing the triangle and it could be projected into a slab.
+                    // 不对三角形进行切片，它可以投影到一个层板中。
                     slab_id = min_layer - zs.begin();
                 }
             }
@@ -693,31 +684,31 @@ void slice_facet_with_slabs(
                 }
         }
     } else {
-        // The triangle is not horizontal and at least a single slicing plane intersects the triangle.
+        // 三角形不是水平的，且至少有一个切割平面与该三角形相交。
         int idx_vertex_lowest = (vertices[1].z() == min_z) ? 1 : ((vertices[2].z() == min_z) ? 2 : 0);
         IntersectionLine il_prev;
         for (auto it = min_layer; it != max_layer; ++ it) {
             IntersectionLine il;
             auto type = slice_facet(*it, vertices, indices, facet_edge_ids, idx_vertex_lowest, false, il);
             if (type == FacetSliceType::NoSlice) {
-                // One and exactly one vertex is touching the slicing plane.
+                // 恰好有一个顶点接触切割平面。
             } else {
                 if (il.edge_type == IntersectionLine::FacetEdgeType::Top || il.edge_type == IntersectionLine::FacetEdgeType::Bottom) {
-                    // The non-horizontal triangle is being sliced at one of its edges.
-                    // If the edge is open (it does not have a neighbor), add it.
-                    // If the edge has a neighbor, then add it as TopBottom, and do it just once.
+                    // 非水平三角形正在其一条边处被切片。
+                    // 如果该边是开放的（没有相邻三角形），则添加它。
+                    // 如果该边有相邻三角形，则将其添加为TopBottom，且只添加一次。
                     assert(il.a_id != -1 && il.b_id != -1);
                     assert(il.edge_a_id == -1 && il.edge_b_id == -1);
-                    // Identify edge ID from the edge vertices.
+                    // 根据边顶点识别边ID。
                     int edge_id;
                     if (type == FacetSliceType::Cutting) {
-                        // The edge is oriented CCW along the face perimeter.
+                        // 边沿面周界为CCW方向。
                         assert(il.edge_type == IntersectionLine::FacetEdgeType::Bottom);
                         edge_id = il.a_id == indices(0) ? 0 : il.a_id == indices(1) ? 1 : 2;
                         assert(il.a_id == indices(edge_id));
                         assert(il.b_id == indices(next_idx_modulo(edge_id, 3)));
                     } else {
-                        // The edge is oriented CW along the face perimeter.
+                        // 边沿面周界为CW方向。
                         assert(type == FacetSliceType::Slicing);
                         assert(il.edge_type == IntersectionLine::FacetEdgeType::Top);
                         edge_id = il.b_id == indices(0) ? 0 : il.b_id == indices(1) ? 1 : 2;
@@ -726,7 +717,7 @@ void slice_facet_with_slabs(
                     }
                     int neighbor_idx = facet_neighbors(edge_id);
                     if (neighbor_idx == -1) {
-                        // Save the open edge for sure.
+                        // 确定保留开放边。
                         type = FacetSliceType::Slicing;
                     } else {
 #ifndef NDEBUG
@@ -737,30 +728,29 @@ void slice_facet_with_slabs(
 #endif // NDEBUG
 #if 0
                         if (mesh_vertices[neighbor(0)].z() == z && mesh_vertices[neighbor(1)].z() == z && mesh_vertices[neighbor(2)].z() == z) {
-                            // The neighbor triangle is horizontal.
-                            // Assign the horizontal projections to slicing planes differently from the usual triangle mesh slicing:
-                            // Slicing plane slices top surfaces when projecting from top, it slices bottom surfaces when projecting from bottom.
-                            // Is the corner convex or concave?
+                            // 相邻三角形是水平的。
+                            // 将水平投影分配给切割平面的方式与通常的三角形网格切片不同：
+                            // 从顶部投影时切割平面切割上表面，从底部投影时切割下表面。
+                            // 角是凸的还是凹的？
                             if (il.edge_type == (ProjectionFromTop ? IntersectionLine::FacetEdgeType::Top : IntersectionLine::FacetEdgeType::Bottom)) {
-                                // Convex corner. Add this edge to both slabs, the edge is a boundary edge of both the projection patch below and
-                                // above this slicing plane.
+                                // 凸角。将此边添加到两个层板中，该边是此切割平面下方和上方投影补丁的边界边。
                                 type = FacetSliceType::Slicing;
                                 il.edge_type = IntersectionLine::FacetEdgeType::TopBottom;
                             } else {
-                                // Concave corner. Ignore this edge, it is internal to the projection patch.
+                                // 凹角。忽略此边，它对投影补丁来说是内部的。
                                 type = FacetSliceType::Cutting;
                             }
-                        } else 
+                        } else
 #else
-                            // Project the coplanar bottom facing triangles to the plane above the slicing plane to match the behavior of slice_mesh() / slice_mesh_ex(),
-                            // where the slicing plane slices the top facing surfaces, but misses the bottom facing surfaces.
+                            // 将共面的朝下三角形投影到切割平面上方的平面，以匹配slice_mesh() / slice_mesh_ex()的行为，
+                            // 其中切割平面切割朝上的表面，但不切割朝下的表面。
 #endif
                         if (il.edge_type == IntersectionLine::FacetEdgeType::Top) {
-                            // Indicate that the edge belongs to both the slab below and above the plane.
+                            // 表示该边同时属于平面上方和下方的层板。
                             assert(type == FacetSliceType::Slicing);
                             il.edge_type = IntersectionLine::FacetEdgeType::TopBottom;
                         } else {
-                            // Don't add this edge, as the neighbor triangle will add the same edge as FacetEdgeType::TopBottom.
+                            // 不添加此边，因为相邻三角形将添加相同的边作为FacetEdgeType::TopBottom。
                             assert(type == FacetSliceType::Cutting);
                             assert(il.edge_type == IntersectionLine::FacetEdgeType::Bottom);
                         }
@@ -778,10 +768,10 @@ void slice_facet_with_slabs(
                 size_t slab_id = it - zs.begin();
                 if (ProjectionFromTop)
                     -- slab_id;
-                // Try to project unbound edges.
+                // 尝试投影未绑定的边。
                 for (int iedge = 0; iedge < 3; ++ iedge)
                     if (facet_neighbors(iedge) == -1) {
-                        // Unbound edge.
+                        // 未绑定的边。
                         int  edge_id         = facet_edge_ids(iedge);
                         bool intersects_this = il.edge_a_id == edge_id || il.edge_b_id == edge_id;
                         bool intersects_prev = il_prev.edge_a_id == edge_id || il_prev.edge_b_id == edge_id;
@@ -790,14 +780,14 @@ void slice_facet_with_slabs(
                         assert((! intersects_this && ! intersects_prev) || vertices[j].z() != vertices[i].z());
                         bool edge_up = vertices[j].z() > vertices[i].z();
                         if (intersects_this && intersects_prev) {
-                            // Intersects both, emit the segment between these intersections.
+                            // 与两者相交，发射这两个交点之间的线段。
                             Line l(il_prev.edge_a_id == edge_id ? il_prev.a : il_prev.b, 
                                    il.edge_a_id == edge_id ? il.a : il.b);
                             emit_slab_edge(
                                 IntersectionLine { l, -1, -1, edge_id, edge_id + num_edges, IntersectionLine::FacetEdgeType::Slab },
                                 slab_id, ProjectionFromTop != edge_up);
                         } else if (intersects_this) {
-                            // Intersects just the top plane, may touch the bottom plane.
+                            // 仅与顶平面相交，可能接触底平面。
                             assert((vertices[i].z() > *it && vertices[j].z() < *it) || (vertices[i].z() < *it && vertices[j].z() > *it));
                             assert(il.edge_a_id == edge_id || il.edge_b_id == edge_id);
                             emit_slab_edge(
@@ -809,7 +799,7 @@ void slice_facet_with_slabs(
                                 },
                                 slab_id, ProjectionFromTop != edge_up);
                         } else if (intersects_prev) {
-                            // Intersects just the bottom plane, may touch the top vertex.
+                            // 仅与底平面相交，可能接触顶顶点。
                             assert(*it <= max_z);
 #ifndef NDEBUG
                             {
@@ -827,8 +817,8 @@ void slice_facet_with_slabs(
                                 },
                                 slab_id, ProjectionFromTop != edge_up);
                         } else if (float zi = vertices[i].z(), zj = vertices[j].z(); zi < *it || zj < *it) {
-                            // The edge does not intersect the current plane and it does not intersect the previous plane either.
-                            // Both points have to be inside the slab.
+                            // 该边不与当前平面相交，也不与前一个平面相交。
+                            // 两个点都必须位于层板内。
                             assert(zi <= *it && zj <= *it);
 #ifndef NDEBUG
                             if (type == FacetSliceType::Slicing || type == FacetSliceType::Cutting) {
@@ -837,15 +827,15 @@ void slice_facet_with_slabs(
                                 assert(indices(i) != il.a_id || indices(j) != il.b_id);
                             }
 #endif // NDEBUG
-                            // Is it inside the slab?
+                            // 它是否在层板内？
                             bool inside_slab = true;
                             if (it != min_layer) {
                                 auto it_prev = it;
                                 -- it_prev;
                                 assert(*it_prev >= *min_layer && *it_prev < *it);
-                                // One point may touch the plane below, the other must not.
+                                // 一个点可能接触下方的平面，另一个点不能。
                                 inside_slab = zi > *it_prev || zj > *it_prev;
-                                // Both points have to be inside the slab.
+                                // 两个点都必须位于层板内。
                                 assert(! inside_slab || (zi >= *it_prev && zj >= *it_prev));
                             }
                             if (inside_slab) {
@@ -864,20 +854,20 @@ void slice_facet_with_slabs(
             il_prev = il;
         }
         if (ProjectionFromTop || max_layer != zs.end()) {
-            // Try to project unbound edges above the last slicing plane to the last slab.
-            // Last layer slicing this triangle.
+            // 尝试将最后一个切割平面上方的未绑定边投影到最后一个层板。
+            // 切割此三角形的最后一层。
             auto   it      = max_layer - 1;
             size_t slab_id = max_layer - zs.begin();
             if (ProjectionFromTop)
                 -- slab_id;
             for (int iedge = 0; iedge < 3; ++ iedge)
                 if (facet_neighbors(iedge) == -1) {
-                    // Unbound edge.
+                    // 未绑定的边。
                     int edge_id = facet_edge_ids(iedge);
                     int i = iedge;
                     int j = next_idx_modulo(i, 3);
                     if (il_prev.edge_a_id == edge_id || il_prev.edge_b_id == edge_id) {
-                        // Intersects just the bottom plane, may touch the top vertex.
+                        // 仅与底平面相交，可能接触顶顶点。
                         assert((vertices[i].z() > *it && vertices[j].z() < *it) || (vertices[i].z() < *it && vertices[j].z() > *it));
                         bool edge_up = vertices[j].z() > vertices[i].z();
                         emit_slab_edge(
@@ -889,8 +879,8 @@ void slice_facet_with_slabs(
                             },
                             slab_id, ProjectionFromTop != edge_up);
                     } else if (float zi = vertices[i].z(), zj = vertices[j].z(); zi > *it || zj > *it) {
-                        // The edge does not intersect the current plane and it does not intersect the previous plane either.
-                        // Both points have to be inside the slab.
+                        // 该边不与当前平面相交，也不与前一个平面相交。
+                        // 两个点都必须位于层板内。
                         assert(zi >= *it && zj >= *it);
                         assert(max_layer == zs.end() || (zi < *max_layer && zj < *max_layer));
                         emit_slab_edge(
@@ -905,16 +895,16 @@ void slice_facet_with_slabs(
     }
 }
 
-// used by slice_mesh_slabs() to produce on-slice lines and between-slices lines.
-// Returning top / bottom SlabLines.
+// 由slice_mesh_slabs()使用，用于生成切片上的线和层间的线。
+// 返回顶部/底部的SlabLines。
 template<typename ThrowOnCancel>
 inline std::pair<SlabLines, SlabLines> slice_slabs_make_lines(
     const std::vector<stl_vertex>                   &vertices,
     const std::vector<stl_triangle_vertex_indices>  &indices,
     const std::vector<Vec3i32>                        &face_neighbors,
     const std::vector<Vec3i32>                        &face_edge_ids,
-    // Total number of edges. All face_edge_ids are lower than num_edges.
-    // num_edges will be used to distinguish between intersections with the top and bottom plane.
+    // 边的总数。所有face_edge_ids都小于num_edges。
+    // num_edges将用于区分与顶平面和底平面的交点。
     const int                                        num_edges,
     const std::vector<FaceOrientation>              &face_orientation,
     const std::vector<float>                        &zs,
@@ -948,7 +938,7 @@ inline std::pair<SlabLines, SlabLines> slice_slabs_make_lines(
                 Vec3i32           edge_ids = face_edge_ids[face_idx];
                 if (top && (fo == FaceOrientation::Up || fo == FaceOrientation::Degenerate)) {
                     Vec3i32 neighbors = face_neighbors[face_idx];
-                    // Reset neighborship of this triangle in case the other triangle is oriented backwards from this one.
+                    // 如果另一个三角形相对于该三角形方向相反，则重置该三角形的邻接关系。
                     for (int i = 0; i < 3; ++ i)
                         if (neighbors(i) != -1) {
                             FaceOrientation fo2 = face_orientation[neighbors(i)];
@@ -959,7 +949,7 @@ inline std::pair<SlabLines, SlabLines> slice_slabs_make_lines(
                 }
                 if (bottom && (fo == FaceOrientation::Down || fo == FaceOrientation::Degenerate)) {
                     Vec3i32 neighbors = face_neighbors[face_idx];
-                    // Reset neighborship of this triangle in case the other triangle is oriented backwards from this one.
+                    // 如果另一个三角形相对于该三角形方向相反，则重置该三角形的邻接关系。
                     for (int i = 0; i < 3; ++ i)
                         if (neighbors(i) != -1) {
                             FaceOrientation fo2 = face_orientation[neighbors(i)];
@@ -975,20 +965,19 @@ inline std::pair<SlabLines, SlabLines> slice_slabs_make_lines(
 }
 
 #if 0
-//FIXME Should this go away? For valid meshes the function slice_facet() returns Slicing
-// and sets edges of vertical triangles to produce only a single edge per pair of neighbor faces.
-// So the following code makes only sense now to handle degenerate meshes with more than two faces
-// sharing a single edge.
+//FIXME 这段代码应该删除吗？对于有效的网格，函数slice_facet()返回Slicing
+// 并设置垂直三角形的边，使其每对相邻面只产生一条边。
+// 因此，以下代码现在仅用于处理有两个以上面共享同一条边的退化网格。
 static inline void remove_tangent_edges(std::vector<IntersectionLine> &lines)
 {
     std::vector<IntersectionLine*> by_vertex_pair;
     by_vertex_pair.reserve(lines.size());
     for (IntersectionLine& line : lines)
         if (line.edge_type != IntersectionLine::FacetEdgeType::General && line.a_id != -1)
-            // This is a face edge. Check whether there is its neighbor stored in lines.
+            // 这是面边。检查lines中是否存储了其相邻边。
             by_vertex_pair.emplace_back(&line);
     auto edges_lower_sorted = [](const IntersectionLine *l1, const IntersectionLine *l2) {
-        // Sort vertices of l1, l2 lexicographically
+        // 按字典序对l1、l2的顶点进行排序
         int l1a = l1->a_id;
         int l1b = l1->b_id;
         int l2a = l2->a_id;
@@ -997,16 +986,16 @@ static inline void remove_tangent_edges(std::vector<IntersectionLine> &lines)
             std::swap(l1a, l1b);
         if (l2a > l2b)
             std::swap(l2a, l2b);
-        // Lexicographical "lower" operator on lexicographically sorted vertices should bring equal edges together when sored.
+        // 在按字典序排序的顶点上使用字典序"小于"运算符，应将相等的边聚合在一起。
         return l1a < l2a || (l1a == l2a && l1b < l2b);
     };
     std::sort(by_vertex_pair.begin(), by_vertex_pair.end(), edges_lower_sorted);
     for (auto line = by_vertex_pair.begin(); line != by_vertex_pair.end(); ++ line) {
         IntersectionLine &l1 = **line;
         if (! l1.skip()) {
-            // Iterate as long as line and line2 edges share the same end points.
+            // 只要line和line2的边共享相同的端点，就继续迭代。
             for (auto line2 = line + 1; line2 != by_vertex_pair.end() && ! edges_lower_sorted(*line, *line2); ++ line2) {
-                // Lines must share the end points.
+                // 线必须共享端点。
                 assert(! edges_lower_sorted(*line, *line2));
                 assert(! edges_lower_sorted(*line2, *line));
                 IntersectionLine &l2 = **line2;
@@ -1015,19 +1004,18 @@ static inline void remove_tangent_edges(std::vector<IntersectionLine> &lines)
                 if (l1.a_id == l2.a_id) {
                     assert(l1.b_id == l2.b_id);
                     l2.set_skip();
-                    // If they are both oriented upwards or downwards (like a 'V'),
-                    // then we can remove both edges from this layer since it won't 
-                    // affect the sliced shape.
-                    // If one of them is oriented upwards and the other is oriented
-                    // downwards, let's only keep one of them (it doesn't matter which
-                    // one since all 'top' lines were reversed at slicing).
+                    // 如果它们都朝上或都朝下（如'V'形），
+                    // 那么我们可以从该层中移除这两条边，因为它们不会
+                    // 影响切片形状。
+                    // 如果一条朝上而另一条朝下，
+                    // 则只保留其中一条（保留哪一条无关紧要，因为所有'top'线在切片时已被反转）。
                     if (l1.edge_type == l2.edge_type) {
                         l1.set_skip();
                         break;
                     }
                 } else {
                     assert(l1.a_id == l2.b_id && l1.b_id == l2.a_id);
-                    // If this edge joins two horizontal facets, remove both of them.
+                    // 如果该边连接两个水平面，则移除两者。
                     if (l1.edge_type == IntersectionLine::FacetEdgeType::Horizontal && l2.edge_type == IntersectionLine::FacetEdgeType::Horizontal) {
                         l1.set_skip();
                         l2.set_skip();
@@ -1055,11 +1043,11 @@ struct OpenPolyline {
     bool                    consumed;
 };
 
-// called by make_loops() to connect sliced triangles into closed loops and open polylines by the triangle connectivity.
-// Only connects segments crossing triangles of the same orientation.
+// 由make_loops()调用，通过三角形连通性将切片的三角形连接成闭合回路和开放多段线。
+// 仅连接穿过相同方向三角形的线段。
 static void chain_lines_by_triangle_connectivity(IntersectionLines &lines, Polygons &loops, std::vector<OpenPolyline> &open_polylines)
 {
-    // Build a map of lines by edge_a_id and a_id.
+    // 按edge_a_id和a_id构建线的映射。
     std::vector<IntersectionLine*> by_edge_a_id;
     std::vector<IntersectionLine*> by_a_id;
     by_edge_a_id.reserve(lines.size());
@@ -1076,10 +1064,10 @@ static void chain_lines_by_triangle_connectivity(IntersectionLines &lines, Polyg
     auto by_vertex_lower = [](const IntersectionLine* il1, const IntersectionLine *il2) { return il1->a_id < il2->a_id; };
     std::sort(by_edge_a_id.begin(), by_edge_a_id.end(), by_edge_lower);
     std::sort(by_a_id.begin(), by_a_id.end(), by_vertex_lower);
-    // Chain the segments with a greedy algorithm, collect the loops and unclosed polylines.
+    // 使用贪心算法链接线段，收集回路和未闭合的多段线。
     IntersectionLines::iterator it_line_seed = lines.begin();
     for (;;) {
-        // take first spare line and start a new loop
+        // 取第一条空闲线并开始新的循环
         IntersectionLine *first_line = nullptr;
         for (; it_line_seed != lines.end(); ++ it_line_seed)
             if (it_line_seed->is_seed_candidate()) {
@@ -1102,7 +1090,7 @@ static void chain_lines_by_triangle_connectivity(IntersectionLines &lines, Polyg
         
         IntersectionLine key;
         for (;;) {
-            // find a line starting where last one finishes
+            // 查找一条从前一条线结束位置开始的线
             IntersectionLine* next_line = nullptr;
             if (last_line->edge_b_id != -1) {
                 key.edge_a_id = last_line->edge_b_id;
@@ -1129,17 +1117,17 @@ static void chain_lines_by_triangle_connectivity(IntersectionLines &lines, Polyg
                 }
             }
             if (next_line == nullptr) {
-                // Check whether we closed this loop.
-                if ((first_line->edge_a_id != -1 && first_line->edge_a_id == last_line->edge_b_id) || 
+                // 检查是否闭合了此回路。
+                if ((first_line->edge_a_id != -1 && first_line->edge_a_id == last_line->edge_b_id) ||
                     (first_line->a_id      != -1 && first_line->a_id      == last_line->b_id)) {
-                    // The current loop is complete. Add it to the output.
+                    // 当前回路已完成。将其添加到输出中。
                     assert(first_line->a == last_line->b);
                     loops.emplace_back(std::move(loop_pts));
                     #ifdef SLIC3R_TRIANGLEMESH_DEBUG
                     printf("  Discovered %s polygon of %d points\n", (p.is_counter_clockwise() ? "ccw" : "cw"), (int)p.points.size());
                     #endif
                 } else {
-                    // This is an open polyline. Add it to the list of open polylines. These open polylines will processed later.
+                    // 这是开放多段线。将其添加到开放多段线列表中。这些开放多段线将在稍后处理。
                     loop_pts.emplace_back(last_line->b);
                     open_polylines.emplace_back(OpenPolyline(
                         IntersectionReference(first_line->a_id, first_line->edge_a_id), 
@@ -1174,19 +1162,19 @@ std::vector<OpenPolyline*> open_polylines_sorted(std::vector<OpenPolyline> &open
     return out;
 }
 
-// called by make_loops() to connect remaining open polylines across shared triangle edges and vertices.
-// Depending on "try_connect_reversed", it may or may not connect segments crossing triangles of opposite orientation.
+// 由make_loops()调用，用于连接跨越共享三角形边和顶点的剩余开放多段线。
+// 根据"try_connect_reversed"决定是否连接穿过相反方向三角形的线段。
 static void chain_open_polylines_exact(std::vector<OpenPolyline> &open_polylines, Polygons &loops, bool try_connect_reversed)
 {
-    // Store the end points of open_polylines into vectors sorted
+    // 将开放多段线的端点存储到排序后的向量中
     struct OpenPolylineEnd {
         OpenPolylineEnd(OpenPolyline *polyline, bool start) : polyline(polyline), start(start) {}
         OpenPolyline    *polyline;
-        // Is it the start or end point?
+        // 是起点还是终点？
         bool             start;
         const IntersectionReference& ipref() const { return start ? polyline->start : polyline->end; }
-        // Return a unique ID for the intersection point.
-        // Return a positive id for a point, or a negative id for an edge.
+        // 返回交点的唯一ID。
+        // 点为正值，边为负值。
         int id() const { const IntersectionReference &r = ipref(); return (r.point_id >= 0) ? r.point_id : - r.edge_id; }
         bool operator==(const OpenPolylineEnd &rhs) const { return this->polyline == rhs.polyline && this->start == rhs.start; }
     };
@@ -1200,7 +1188,7 @@ static void chain_open_polylines_exact(std::vector<OpenPolyline> &open_polylines
             by_id.emplace_back(OpenPolylineEnd(&opl, false));
     }
     std::sort(by_id.begin(), by_id.end(), by_id_lower);
-    // Find an iterator to by_id_lower for the particular end of OpenPolyline (by comparing the OpenPolyline pointer and the start attribute).
+    // 为OpenPolyline的特定端点查找by_id_lower的迭代器（通过比较OpenPolyline指针和start属性）。
     auto find_polyline_end = [&by_id, by_id_lower](const OpenPolylineEnd &end) -> std::vector<OpenPolylineEnd>::iterator {
         for (auto it = std::lower_bound(by_id.begin(), by_id.end(), end, by_id_lower);
                   it != by_id.end() && it->id() == end.id(); ++ it)
@@ -1208,7 +1196,7 @@ static void chain_open_polylines_exact(std::vector<OpenPolyline> &open_polylines
                 return it;
         return by_id.end();
     };
-    // Try to connect the loops.
+    // 尝试连接回路。
     std::vector<OpenPolyline*> sorted_by_length = open_polylines_sorted(open_polylines, false);
     for (OpenPolyline *opl : sorted_by_length) {
         if (opl->consumed)
@@ -1216,16 +1204,16 @@ static void chain_open_polylines_exact(std::vector<OpenPolyline> &open_polylines
         opl->consumed = true;
         OpenPolylineEnd end(opl, false);
         for (;;) {
-            // find a line starting where last one finishes
+            // 查找一条从前一条线结束位置开始的线
             auto it_next_start = std::lower_bound(by_id.begin(), by_id.end(), end, by_id_lower);
             for (; it_next_start != by_id.end() && it_next_start->id() == end.id(); ++ it_next_start)
                 if (! it_next_start->polyline->consumed)
                     goto found;
-            // The current loop could not be closed. Unmark the segment.
+            // 当前回路无法闭合。取消标记该线段。
             opl->consumed = false;
             break;
         found:
-            // Attach this polyline to the end of the initial polyline.
+            // 将此多段线附加到初始多段线的末端。
             if (it_next_start->start) {
                 auto it = it_next_start->polyline->points.begin();
                 std::copy(++ it, it_next_start->polyline->points.end(), back_inserter(opl->points));
@@ -1234,33 +1222,33 @@ static void chain_open_polylines_exact(std::vector<OpenPolyline> &open_polylines
                 std::copy(++ it, it_next_start->polyline->points.rend(), back_inserter(opl->points));
             }
             opl->length += it_next_start->polyline->length;
-            // Mark the next polyline as consumed.
+            // 将下一多段线标记为已消耗。
             it_next_start->polyline->points.clear();
             it_next_start->polyline->length = 0.;
             it_next_start->polyline->consumed = true;
             if (try_connect_reversed) {
-                // Running in a mode, where the polylines may be connected by mixing their orientations.
-                // Update the end point lookup structure after the end point of the current polyline was extended.
+                // 在混合方向模式下运行，多段线可以通过混合其方向进行连接。
+                // 在当前多段线的端点被扩展后更新端点查找结构。
                 auto it_end      = find_polyline_end(end);
                 auto it_next_end = find_polyline_end(OpenPolylineEnd(it_next_start->polyline, !it_next_start->start));
-                // Swap the end points of the current and next polyline, but keep the polyline ptr and the start flag.
+                // 交换当前多段线和下一多段线的端点，但保留多段线指针和start标志。
                 std::swap(opl->end, it_next_end->start ? it_next_end->polyline->start : it_next_end->polyline->end);
-                // Swap the positions of OpenPolylineEnd structures in the sorted array to match their respective end point positions.
+                // 交换OpenPolylineEnd结构在排序数组中的位置，以匹配它们各自的端点位置。
                 std::swap(*it_end, *it_next_end);
             }
-            // Check whether we closed this loop.
+            // 检查是否闭合了此回路。
             if ((opl->start.edge_id  != -1 && opl->start.edge_id  == opl->end.edge_id) ||
                 (opl->start.point_id != -1 && opl->start.point_id == opl->end.point_id)) {
-                // The current loop is complete. Add it to the output.
+                // 当前回路已完成。将其添加到输出中。
                 //assert(opl->points.front().point_id == opl->points.back().point_id);
                 //assert(opl->points.front().edge_id  == opl->points.back().edge_id);
                 // Remove the duplicate last point.
                 opl->points.pop_back();
                 if (opl->points.size() >= 3) {
                     if (try_connect_reversed && area(opl->points) < 0)
-                        // The closed polygon is patched from pieces with messed up orientation, therefore
-                        // the orientation of the patched up polygon is not known.
-                        // Orient the patched up polygons CCW. This heuristic may close some holes and cavities.
+                        // 闭合多边形由方向混乱的片段拼接而成，因此
+                        // 拼接后的多边形方向未知。
+                        // 将拼接的多边形定向为CCW。此启发式方法可能会闭合一些孔洞和空腔。
                         std::reverse(opl->points.begin(), opl->points.end());
                     loops.emplace_back(std::move(opl->points));
                 }
@@ -1272,22 +1260,22 @@ static void chain_open_polylines_exact(std::vector<OpenPolyline> &open_polylines
     }
 }
 
-// called by make_loops() to connect remaining open polylines across shared triangle edges and vertices, 
-// possibly closing small gaps.
-// Depending on "try_connect_reversed", it may or may not connect segments crossing triangles of opposite orientation.
+// 由make_loops()调用，用于连接跨越共享三角形边和顶点的剩余开放多段线，
+// 可能闭合小间隙。
+// 根据"try_connect_reversed"决定是否连接穿过相反方向三角形的线段。
 static void chain_open_polylines_close_gaps(std::vector<OpenPolyline> &open_polylines, Polygons &loops, double max_gap, bool try_connect_reversed)
 {
     const coord_t max_gap_scaled = (coord_t)scale_(max_gap);
 
-    // Sort the open polylines by their length, so the new loops will be seeded from longer chains.
-    // Update the polyline lengths, return only not yet consumed polylines.
+    // 按长度对开放多段线排序，以便新回路从较长的链开始。
+    // 更新多段线长度，仅返回尚未消耗的多段线。
     std::vector<OpenPolyline*> sorted_by_length = open_polylines_sorted(open_polylines, true);
 
-    // Store the end points of open_polylines into ClosestPointInRadiusLookup<OpenPolylineEnd>.
+    // 将开放多段线的端点存储到ClosestPointInRadiusLookup<OpenPolylineEnd>中。
     struct OpenPolylineEnd {
         OpenPolylineEnd(OpenPolyline *polyline, bool start) : polyline(polyline), start(start) {}
         OpenPolyline    *polyline;
-        // Is it the start or end point?
+        // 是起点还是终点？
         bool             start;
         const Point&     point() const { return start ? polyline->points.front() : polyline->points.back(); }
         bool operator==(const OpenPolylineEnd &rhs) const { return this->polyline == rhs.polyline && this->start == rhs.start; }
@@ -1302,44 +1290,44 @@ static void chain_open_polylines_close_gaps(std::vector<OpenPolyline> &open_poly
         if (try_connect_reversed)
             closest_end_point_lookup.insert(OpenPolylineEnd(opl, false));
     }
-    // Try to connect the loops.
+    // 尝试连接回路。
     for (OpenPolyline *opl : sorted_by_length) {
         if (opl->consumed)
             continue;
         OpenPolylineEnd end(opl, false);
         if (try_connect_reversed)
-            // The end point of this polyline will be modified, thus the following entry will become invalid. Remove it.
+            // 该多段线的端点将被修改，因此以下条目将变为无效。将其移除。
             closest_end_point_lookup.erase(end);
         opl->consumed = true;
         size_t n_segments_joined = 1;
         for (;;) {
-            // Find a line starting where last one finishes, only return non-consumed open polylines (OpenPolylineEndAccessor returns null for consumed).
+            // 查找从前一条线结束位置开始的线，仅返回未消耗的开放多段线（OpenPolylineEndAccessor对已消耗的返回null）。
             std::pair<const OpenPolylineEnd*, double> next_start_and_dist = closest_end_point_lookup.find(end.point());
             const OpenPolylineEnd *next_start = next_start_and_dist.first;
-            // Check whether we closed this loop.
+            // 检查是否闭合了此回路。
             double current_loop_closing_distance2 = (opl->points.back() - opl->points.front()).cast<double>().squaredNorm();
             bool   loop_closed = current_loop_closing_distance2 < coordf_t(max_gap_scaled) * coordf_t(max_gap_scaled);
             if (next_start != nullptr && loop_closed && current_loop_closing_distance2 < next_start_and_dist.second) {
-                // Heuristics to decide, whether to close the loop, or connect another polyline.
-                // One should avoid closing loops shorter than max_gap_scaled.
+                // 启发式方法，决定是闭合回路还是连接另一条多段线。
+                // 应避免闭合比max_gap_scaled更短的回路。
                 loop_closed = sqrt(current_loop_closing_distance2) < 0.3 * length(opl->points);
             }
             if (loop_closed) {
-                // Remove the start point of the current polyline from the lookup.
-                // Mark the current segment as not consumed, otherwise the closest_end_point_lookup.erase() would fail.
+                // 从查找结构中移除当前多段线的起点。
+                // 将当前线段标记为未消耗，否则closest_end_point_lookup.erase()会失败。
                 opl->consumed = false;
                 closest_end_point_lookup.erase(OpenPolylineEnd(opl, true));
                 if (current_loop_closing_distance2 == 0.) {
-                    // Remove the duplicate last point.
+                    // 移除重复的最后一个点。
                     opl->points.pop_back();
                 } else {
-                    // The end points are different, keep both of them.
+                    // 端点不同，保留两者。
                 }
                 if (opl->points.size() >= 3) {
                     if (try_connect_reversed && n_segments_joined > 1 && area(opl->points) < 0)
-                        // The closed polygon is patched from pieces with messed up orientation, therefore
-                        // the orientation of the patched up polygon is not known.
-                        // Orient the patched up polygons CCW. This heuristic may close some holes and cavities.
+                        // 闭合多边形由方向混乱的片段拼接而成，因此
+                        // 拼接后的多边形方向未知。
+                        // 将拼接的多边形定向为CCW。此启发式方法可能会闭合一些孔洞和空腔。
                         std::reverse(opl->points.begin(), opl->points.end());
                     loops.emplace_back(std::move(opl->points));
                 }
@@ -1348,14 +1336,14 @@ static void chain_open_polylines_close_gaps(std::vector<OpenPolyline> &open_poly
                 break;
             }
             if (next_start == nullptr) {
-                // The current loop could not be closed. Unmark the segment.
+                // 当前回路无法闭合。取消标记该线段。
                 opl->consumed = false;
                 if (try_connect_reversed)
-                    // Re-insert the end point.
+                    // 重新插入端点。
                     closest_end_point_lookup.insert(OpenPolylineEnd(opl, false));
                 break;
             }
-            // Attach this polyline to the end of the initial polyline.
+            // 将此多段线附加到初始多段线的末端。
             if (next_start->start) {
                 auto it = next_start->polyline->points.begin();
                 if (*it == opl->points.back())
@@ -1368,7 +1356,7 @@ static void chain_open_polylines_close_gaps(std::vector<OpenPolyline> &open_poly
                 std::copy(it, next_start->polyline->points.rend(), back_inserter(opl->points));
             }
             ++ n_segments_joined;
-            // Remove the end points of the consumed polyline segment from the lookup.
+            // 从查找结构中移除已消耗多段线段的端点。
             OpenPolyline *opl2 = next_start->polyline;
             closest_end_point_lookup.erase(OpenPolylineEnd(opl2, true));
             if (try_connect_reversed)
@@ -1381,19 +1369,19 @@ static void chain_open_polylines_close_gaps(std::vector<OpenPolyline> &open_poly
 }
 
 static Polygons make_loops(
-    // Lines will have their flags modified.
+    // 线的标志将被修改。
     IntersectionLines   &lines)
 {
     Polygons loops;
 #if 0
-//FIXME slice_facet() may create zero length edges due to rounding of doubles into coord_t.
+//FIXME slice_facet() 由于将double舍入为coord_t，可能会创建零长度边。
 //#ifdef _DEBUG
     for (const Line &l : lines)
         assert(l.a != l.b);
 #endif /* _DEBUG */
 
-    // There should be no tangent edges, as the horizontal triangles are ignored and if two triangles touch at a cutting plane,
-    // only the bottom triangle is considered to be cutting the plane.
+    // 不应该存在切线边，因为水平三角形被忽略，且如果两个三角形在切割平面处接触，
+    // 只有底部三角形被认为是切割该平面的。
 //    remove_tangent_edges(lines);
 
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
@@ -1425,9 +1413,9 @@ static Polygons make_loops(
         }
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
-    // Now process the open polylines.
-    // Do it in two rounds, first try to connect in the same direction only,
-    // then try to connect the open polylines in reversed order as well.
+    // 现在处理开放多段线。
+    // 分两轮进行，首先尝试仅沿相同方向连接，
+    // 然后尝试以相反顺序连接开放多段线。
     chain_open_polylines_exact(open_polylines, loops, false);
     chain_open_polylines_exact(open_polylines, loops, true);
 
@@ -1447,9 +1435,9 @@ static Polygons make_loops(
     }
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
-    // Try to close gaps.
-    // Do it in two rounds, first try to connect in the same direction only,
-    // then try to connect the open polylines in reversed order as well.
+    // 尝试闭合间隙。
+    // 分两轮进行，首先尝试仅沿相同方向连接，
+    // 然后尝试以相反顺序连接开放多段线。
 #if 0
     for (double max_gap : { EPSILON, 0.001, 0.1, 1., 2. }) {
         chain_open_polylines_close_gaps(open_polylines, *loops, max_gap, false);
@@ -1482,8 +1470,8 @@ static Polygons make_loops(
 
 template<typename ThrowOnCancel>
 static std::vector<Polygons> make_loops(
-    // Lines will have their flags modified.
-    std::vector<IntersectionLines> &lines, 
+    // 线的标志将被修改。
+    std::vector<IntersectionLines> &lines,
     const MeshSlicingParams        &params, 
     ThrowOnCancel                   throw_on_cancel)
 {
@@ -1532,12 +1520,12 @@ static std::vector<Polygons> make_loops(
     return layers;
 }
 
-// used by slice_mesh_slabs() to produce loops from on-slice lines and between-slices lines.
+// 由slice_mesh_slabs()使用，从切片上的线和层间的线生成回路。
 template<bool ProjectionFromTop, typename ThrowOnCancel>
 static std::vector<Polygons> make_slab_loops(
-    // Lines will have their flags modified.
-    SlabLines                      &lines, 
-    // To differentiate edge IDs of the top plane from the edge IDs of the bottom plane for chaining.
+    // 线的标志将被修改。
+    SlabLines                      &lines,
+    // 为了链接而区分顶平面的边ID与底平面的边ID。
     int                             num_edges,
     ThrowOnCancel                   throw_on_cancel)
 {
@@ -1577,11 +1565,11 @@ static std::vector<Polygons> make_slab_loops(
                             }
                     }
                     {
-                        // Edges in between slice_below and slice_above.
+                        // slice_below和slice_above之间的边。
 #ifndef NDEBUG
                         size_t old_size = in.size();
 #endif // NDEBUG
-                        // Edge IDs of end points on in-between lines that touch the layer above are already increased with num_edges.
+                        // 中间线上触及上层的端点的边ID已经增加了num_edges。
                         append(in, lines.between_slices[line_idx]);
 #ifndef NDEBUG
                         for (auto it = in.begin() + old_size; it != in.end(); ++ it) {
@@ -1596,7 +1584,7 @@ static std::vector<Polygons> make_slab_loops(
                                 in.emplace_back(lsrc);
                                 auto &l = in.back();
                                 l.reverse();
-                                // Differentiate edge IDs of the top plane from the edge IDs of the bottom plane for chaining.
+                                // 为了链接而区分顶平面的边ID与底平面的边ID。
                                 if (l.edge_a_id >= 0)
                                     l.edge_a_id += num_edges;
                                 if (l.edge_b_id >= 0)
@@ -1660,7 +1648,7 @@ static std::vector<Polygons> make_slab_loops(
     return layers;
 }
 
-// Used to cut the mesh into two halves.
+// 用于将网格切割成两半。
 static ExPolygons make_expolygons_simple(std::vector<IntersectionLine> &lines)
 {
     ExPolygons slices;
@@ -1672,13 +1660,13 @@ static ExPolygons make_expolygons_simple(std::vector<IntersectionLine> &lines)
         else
             holes.emplace_back(std::move(loop));
 
-    // If there are holes, then there should also be outer contours.
+    // 如果有孔洞，则也应该有外轮廓。
     assert(holes.empty() || ! slices.empty());
     if (! slices.empty())
     {
-        // Assign holes to outer contours.
+        // 将孔洞分配给外轮廓。
         for (Polygon &hole : holes) {
-            // Find an outer contour to a hole.
+            // 找到孔洞对应的外轮廓。
             int     slice_idx            = -1;
             double  current_contour_area = std::numeric_limits<double>::max();
             for (ExPolygon &slice : slices)
@@ -1691,7 +1679,7 @@ static ExPolygons make_expolygons_simple(std::vector<IntersectionLine> &lines)
                 }
             // assert(slice_idx != -1);
             if (slice_idx == -1)
-                // Ignore this hole.
+                // 忽略此孔洞。
                 continue;
             assert(current_contour_area < std::numeric_limits<double>::max() && current_contour_area >= -hole.area());
             slices[slice_idx].holes.emplace_back(std::move(hole));
@@ -1786,12 +1774,12 @@ static void make_expolygons(const Polygons &loops, const float closing_radius, c
     //        p_slices = diff(p_slices, *loop);
     //}
 
-    // Perform a safety offset to merge very close facets (TODO: find test case for this)
-    // 0.0499 comes from https://github.com/slic3r/Slic3r/issues/959
+    // 执行安全偏移以合并非常接近的面（TODO: 寻找此测试用例）
+    // 0.0499 来自 https://github.com/slic3r/Slic3r/issues/959
 //    double safety_offset = scale_(0.0499);
-    // 0.0001 is set to satisfy GH #520, #1029, #1364
+    // 0.0001 设置为满足 GH #520, #1029, #1364
     assert(closing_radius >= 0);
-    // Allowing negative extra_offset for shrinking a contour. This likely only makes sense if slicing a single region only.
+    // 允许负的extra_offset来收缩轮廓。这仅在切片单个区域时才有意义。
     //assert(extra_offset >= 0);
     double offset_out;
     double offset_in;
@@ -1823,7 +1811,7 @@ static void make_expolygons(const Polygons &loops, const float closing_radius, c
         union_ex(loops, fill_type));
 }
 
-// Make a trafo for transforming the vertices. Scale up in XY, not in Z.
+// 创建用于变换顶点的变换矩阵。在XY方向上放大，Z方向不变。
 static inline Transform3f make_trafo_for_slicing(const Transform3d &trafo)
 {
     auto t = trafo;
@@ -1839,19 +1827,19 @@ static inline bool is_identity(const Transform3d &trafo)
 
 static std::vector<stl_vertex> transform_mesh_vertices_for_slicing(const indexed_triangle_set &mesh, const Transform3d &trafo)
 {
-    // Copy and scale vertices in XY, don't scale in Z.
-    // Possibly apply the transformation.
+    // 复制并在XY方向上缩放顶点，Z方向不缩放。
+    // 可能应用变换。
     const double   s = 1. / SCALING_FACTOR;
     std::vector<stl_vertex>         out(mesh.vertices);
     if (is_identity(trafo)) {
-        // Identity.
+        // 单位矩阵。
         for (stl_vertex &v : out) {
-            // Scale just XY, leave Z unscaled.
+            // 仅缩放XY，Z保持不变。
             v.x() *= float(s);
             v.y() *= float(s);
         }
     } else {
-        // Transform the vertices, scale up in XY, not in Y.
+        // 变换顶点，在XY方向上放大，不在Z方向上放大。
         auto t = trafo;
         t.prescale(Vec3d(s, s, 1.));
         auto tf = t.cast<float>();
@@ -1873,13 +1861,13 @@ std::vector<Polygons> slice_mesh(
     std::vector<IntersectionLines> lines;
 
     {
-        //FIXME facets_edges is likely not needed and quite costly to calculate.
-        // Instead of edge identifiers, one shall use a sorted pair of edge vertex indices.
-        // However facets_edges assigns a single edge ID to two triangles only, thus when factoring facets_edges out, one will have
-        // to make sure that no code relies on it.
+        //FIXME facets_edges可能不需要且计算成本很高。
+        // 应该使用排序后的边顶点索引对，而不是边标识符。
+        // 然而facets_edges仅为两个三角形分配一个边ID，因此在将facets_edges提取出来时，
+        // 必须确保没有代码依赖它。
         std::vector<Vec3i32> face_edge_ids = its_face_edge_ids(mesh);
         if (zs.size() <= 1) {
-            // It likely is not worthwile to copy the vertices. Apply the transformation in place.
+            // 复制顶点可能不值得。原地应用变换。
             if (is_identity(params.trafo)) {
                 lines = slice_make_lines(
                     mesh.vertices, [](const Vec3f &p) { return Vec3f(scaled<float>(p.x()), scaled<float>(p.y()), p.z()); }, 
@@ -1890,7 +1878,7 @@ std::vector<Polygons> slice_mesh(
                 lines = slice_make_lines(mesh.vertices, [tf](const Vec3f &p) { return tf * p; }, mesh.indices, face_edge_ids, zs, throw_on_cancel);
             }
         } else {
-            // Copy and scale vertices in XY, don't scale in Z. Possibly apply the transformation.
+            // 复制并在XY方向上缩放顶点，Z方向不缩放。可能应用变换。
             lines = slice_make_lines(
                 transform_mesh_vertices_for_slicing(mesh, params.trafo), 
                 [](const Vec3f &p) { return p; },  mesh.indices, face_edge_ids, zs, throw_on_cancel);
@@ -1937,10 +1925,10 @@ std::vector<Polygons> slice_mesh(
     return layers;
 }
 
-// Specialized version for a single slicing plane only, running on a single thread.
+// 仅用于单个切割平面的特化版本，在单个线程上运行。
 Polygons slice_mesh(
     const indexed_triangle_set       &mesh,
-    // Unscaled Zs
+    // 未缩放的Z值
     const float                       plane_z,
     const MeshSlicingParams          &params)
 {
@@ -1952,7 +1940,7 @@ Polygons slice_mesh(
         std::vector<bool>   face_mask(mesh.indices.size(), false);
 
         {
-            // 1) Mark vertices as below or above the slicing plane.
+            // 1) 将顶点标记为切割平面下方或上方。
             std::vector<char> vertex_side(mesh.vertices.size(), 0);
             if (trafo_identity) {
                 for (size_t i = 0; i < mesh.vertices.size(); ++ i) {
@@ -1970,7 +1958,7 @@ Polygons slice_mesh(
                 }
             }
 
-            // 2) Mark faces crossing the plane.
+            // 2) 标记穿过平面的面。
             for (size_t i = 0; i < mesh.indices.size(); ++ i) {
                 const Vec3i32 &face = mesh.indices[i];
                 int sides[3] = { vertex_side[face(0)], vertex_side[face(1)], vertex_side[face(2)] };
@@ -1988,7 +1976,7 @@ Polygons slice_mesh(
                 mesh.vertices, [](const Vec3f &p) { return Vec3f(scaled<float>(p.x()), scaled<float>(p.y()), p.z()); }, 
                 mesh.indices, face_edge_ids, plane_z, [&face_mask](int face_idx) { return face_mask[face_idx]; }));
         } else {
-            // Transform the vertices, scale up in XY, not in Z.
+            // 变换顶点，在XY方向上放大，不在Z方向上放大。
             lines.emplace_back(slice_make_lines(mesh.vertices, [tf](const Vec3f& p) { return tf * p; }, mesh.indices, face_edge_ids, plane_z,
                 [&face_mask](int face_idx) { return face_mask[face_idx]; }));
         }
@@ -2049,12 +2037,11 @@ std::vector<ExPolygons> slice_mesh_ex(
     return layers;
 }
 
-// Slice a triangle set with a set of Z slabs (thick layers).
-// The effect is similar to producing the usual top / bottom layers from a sliced mesh by 
-// subtracting layer[i] from layer[i - 1] for the top surfaces resp.
-// subtracting layer[i] from layer[i + 1] for the bottom surfaces,
-// with the exception that the triangle set this function processes may not cover the whole top resp. bottom surface.
-// top resp. bottom surfaces are calculated only if out_top resp. out_bottom is not null.
+// 使用一组Z层板（厚层）对三角形集合进行切片。
+// 效果类似于通过从layer[i]中减去layer[i - 1]来从切片网格生成通常的顶/底层，
+// 对于底表面则减去layer[i + 1]，
+// 但此函数处理的三角形集合可能不覆盖整个顶/底表面。
+// 仅当out_top/out_bottom不为null时才计算顶/底表面。
 void slice_mesh_slabs(
     const indexed_triangle_set       &mesh,
     // Unscaled Zs
@@ -2069,7 +2056,7 @@ void slice_mesh_slabs(
 
 #ifdef EXPENSIVE_DEBUG_CHECKS
     {
-        // Verify that the vertices are unique.
+        // 验证顶点是唯一的。
         auto v = mesh.vertices;
         std::sort(v.begin(), v.end(), [](auto &l, auto &r) {
                 return l.x() < r.x() || (l.x() == r.x() && (l.y() < r.y() || (l.y() == r.y() && l.z() < r.z())));
@@ -2079,8 +2066,8 @@ void slice_mesh_slabs(
     }
     if (0)
     {
-        // Verify that there are no T-joints.
-        // The T-joints could likely be already part of the source mesh.
+        // 验证没有T形接头。
+        // T形接头可能已经是源网格的一部分。
         for (const auto &tri : mesh.indices)
             for (int i = 0; i < 3; ++ i) {
                 int j = next_idx_modulo(i, 3);
@@ -2157,14 +2144,14 @@ void slice_mesh_slabs(
         *out_bottom = make_slab_loops<false>(lines.second, num_edges, throw_on_cancel);
 }
 
-// Remove duplicates of slice_vertices, optionally triangulate the cut.
+// 移除slice_vertices中的重复项，可选择对切割面进行三角剖分。
 static void triangulate_slice(
     indexed_triangle_set    &its,
     IntersectionLines       &lines,
     std::vector<int>        &slice_vertices,
-    // Vertices of the original (unsliced) mesh. Newly added vertices are those on the slice.
+    // 原始（未切片）网格的顶点。新添加的顶点是切片上的顶点。
     int                      num_original_vertices,
-    // Z height of the slice.
+    // 切片的Z高度。
     float                    z,
     bool                     triangulate,
     bool                     normals_down,
@@ -2172,8 +2159,8 @@ static void triangulate_slice(
 {
     sort_remove_duplicates(slice_vertices);
 
-    // 1) Create map of the slice vertices from positions to mesh indices.
-    // As the caller will likely add duplicate points when intersecting triangle edges, there will be duplicates.
+    // 1) 创建切片顶点从位置到网格索引的映射。
+    // 由于调用者在相交三角形边时可能会添加重复点，因此会有重复项。
     std::vector<std::pair<Vec2f, int>> map_vertex_to_index;
     map_vertex_to_index.reserve(slice_vertices.size());
     for (int i : slice_vertices)
@@ -2185,8 +2172,8 @@ static void triangulate_slice(
                                                           (is_equal_for_sort(l.first.y(), r.first.y()) && l.second < r.second)));
     });
 
-    // 2) Discover duplicate points on the slice. Remap duplicate vertices to a vertex with a lowest index.
-    //    Remove denegerate triangles, if they happen to be created by merging duplicate vertices.
+    // 2) 发现切片上的重复点。将重复顶点重新映射到具有最低索引的顶点。
+    //    移除退化三角形（如果它们由于合并重复顶点而产生）。
     {
         std::vector<int> map_duplicate_vertex(int(its.vertices.size()) - num_original_vertices, -1);
         int i = 0;
@@ -2216,11 +2203,11 @@ static void triangulate_slice(
                 if (f(k) >= num_original_vertices)
                     f(k) = map_duplicate_vertex[f(k) - num_original_vertices];
             if (f(0) == f(1) || f(0) == f(2) || f(1) == f(2)) {
-                // Remove degenerate face.
+                // 移除退化面。
                 f = its.indices.back();
                 its.indices.pop_back();
             } else
-                // Keep the face.
+                // 保留该面。
                 ++ i;
         }
     }
@@ -2268,7 +2255,7 @@ static void triangulate_slice(
                     }
                 }
                 if (!exist){
-                    // Try to find the vertex in the list of newly added vertices. Those vertices are not matched on the cut and they shall be rare.
+                    // 尝试在新添加的顶点列表中查找该顶点。这些顶点在切割面上不匹配，应该很少见。
                     for (size_t k = idx_vertex_new_first; k < its.vertices.size(); ++ k)
                         if (its.vertices[k] == v) {
                             idx = int(k);
@@ -2286,10 +2273,10 @@ static void triangulate_slice(
         }
     }
 
-    // Remove vertices, which are not referenced by any face.
+    // 移除未被任何面引用的顶点。
     its_compactify_vertices(its);
 
-    // Degenerate faces should not be created.
+    // 不应创建退化面。
     // its_remove_degenerate_faces(its);
 }
 
@@ -2344,7 +2331,7 @@ void cut_mesh(const indexed_triangle_set& mesh, float z, indexed_triangle_set* u
     size_t num_open_edges_old = triangulate_caps ? its_num_open_edges(mesh) : 0;
 #endif // NDEBUG
 
-    // To triangulate the caps after slicing.
+    // 在切片后对封盖进行三角剖分。
     IntersectionLines  upper_lines, lower_lines;
     std::vector<int>   upper_slice_vertices, lower_slice_vertices;
     std::vector<Vec3i32> facets_edge_ids = its_face_edge_ids(mesh);
@@ -2361,7 +2348,7 @@ void cut_mesh(const indexed_triangle_set& mesh, float z, indexed_triangle_set* u
                 section_vertices_map[facet(i)] = new Vec3f(vertices[i].x(), vertices[i].y(), vertices[i].z());
             }
         }
-        // intersect facet with cutting plane
+        // 用切割平面对面进行相交
         IntersectionLine line;
         int              idx_vertex_lowest = is_equal(vertices[1].z(), min_z) ? 1 : (is_equal(vertices[2].z() , min_z) ? 2 : 0);
         FacetSliceType   slice_type = FacetSliceType::NoSlice;
@@ -2378,7 +2365,7 @@ void cut_mesh(const indexed_triangle_set& mesh, float z, indexed_triangle_set* u
         }
 
         if (slice_type != FacetSliceType::NoSlice) {
-            // Save intersection lines for generating correct triangulations.
+            // 保存交线以生成正确的三角剖分。
             if (line.edge_type == IntersectionLine::FacetEdgeType::Top) {
                 lower_lines.emplace_back(line);
                 lower_slice_vertices.emplace_back(line.a_id);
@@ -2394,21 +2381,21 @@ void cut_mesh(const indexed_triangle_set& mesh, float z, indexed_triangle_set* u
         }
 
         if (min_z > z || (is_equal(min_z , z) && max_z > z)) {
-            // facet is above the cut plane and does not belong to it
+            // 面在切割平面上方且不属于切割平面
             if (upper != nullptr)
                 upper->indices.emplace_back(facet);
         } else if (max_z < z || (is_equal(max_z, z) && min_z < z)) {
-            // facet is below the cut plane and does not belong to it
+            // 面在切割平面下方且不属于切割平面
             if (lower != nullptr)
                 lower->indices.emplace_back(facet);
         } else if (min_z < z && max_z > z) {
-            // Facet is cut by the slicing plane.
+            // 面被切割平面切割。
             assert(slice_type == FacetSliceType::Slicing);
             assert(line.edge_type == IntersectionLine::FacetEdgeType::General);
             assert(line.edge_a_id != -1);
             assert(line.edge_b_id != -1);
 
-            // look for the vertex on whose side of the slicing plane there are no other vertices
+            // 查找切割平面一侧没有其他顶点的顶点
             int              isolated_vertex, isolated_vertex_option = -1;
             std::vector<int> list{0, 1, 2};
             auto             get_third = [&list](int isolated_vertex, int temp) {// not use vertex data
@@ -2431,13 +2418,13 @@ void cut_mesh(const indexed_triangle_set& mesh, float z, indexed_triangle_set* u
             } else {
                 isolated_vertex = (vertices[0].z() > z) == (vertices[1].z() > z) ? 2 : (vertices[1].z() > z) == (vertices[2].z() > z) ? 0 : 1;
             }
-            // get vertices starting from the isolated one
+            // 从孤立顶点开始获取顶点
             stl_vertex v0v1, v2v0;
             auto       calc_isolated_vertex = [&v0v1, &v2v0, &line, &facet_idx, &facets_edge_ids, &z](int iv, bool &is_find) {
                 assert(facets_edge_ids[facet_idx](iv) == line.edge_a_id || facets_edge_ids[facet_idx](iv) == line.edge_b_id);
                 is_find = true;
                 if (facets_edge_ids[facet_idx](iv) == line.edge_a_id) {
-                    // Unscale to doubles first, then to floats to reach the same accuracy as triangulate_expolygons_2d().
+                    // 先反缩放到double，然后转换为float，以达到与triangulate_expolygons_2d()相同的精度。
                     v0v1 = to_3d(unscaled<double>(line.a).cast<float>().eval(), z);
                     v2v0 = to_3d(unscaled<double>(line.b).cast<float>().eval(), z);
                 } else if (facets_edge_ids[facet_idx](iv) == line.edge_b_id) {
@@ -2471,7 +2458,7 @@ void cut_mesh(const indexed_triangle_set& mesh, float z, indexed_triangle_set* u
             const stl_vertex &v2  = vertices[iv];
             const int         iv2 = facet[iv];
 
-            // intersect v0-v1 and v2-v0 with cutting plane and make new vertices
+            // 用切割平面对v0-v1和v2-v0进行相交并创建新顶点
             auto new_vertex = [upper, lower, &upper_slice_vertices, &lower_slice_vertices](const Vec3f &a, const int ia, const Vec3f &b, const int ib, const Vec3f &c,
                                                                                            const int ic, const Vec3f &new_pt, bool &is_new_vertex) {
                 int iupper = 0, ilower = 0;
@@ -2483,7 +2470,7 @@ void cut_mesh(const indexed_triangle_set& mesh, float z, indexed_triangle_set* u
                 else if (is_equal(new_pt, c))
                     iupper = ilower = ic;
                 else {
-                    // Insert a new vertex into upper / lower.
+                    // 在上半部分/下半部分中插入新顶点。
                     is_new_vertex = true;
                     if (upper) {
                         iupper = int(upper->vertices.size());

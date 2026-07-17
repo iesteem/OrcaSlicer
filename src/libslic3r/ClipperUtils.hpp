@@ -1,4 +1,4 @@
-#ifndef slic3r_ClipperUtils_hpp_
+﻿#ifndef slic3r_ClipperUtils_hpp_
 #define slic3r_ClipperUtils_hpp_
 
 #include "libslic3r.h"
@@ -7,7 +7,7 @@
 #include "Polygon.hpp"
 #include "Surface.hpp"
 
-// import these wherever we're included
+// 在包含此文件的地方导入这些内容
 using Slic3r::ClipperLib::jtMiter;
 using Slic3r::ClipperLib::jtRound;
 using Slic3r::ClipperLib::jtSquare;
@@ -27,10 +27,10 @@ static constexpr const Slic3r::ClipperLib::EndType DefaultEndType           = Sl
 static constexpr const double                       DefaultMiterLimit       = 3.;
 
 static constexpr const Slic3r::ClipperLib::JoinType DefaultLineJoinType     = Slic3r::ClipperLib::jtSquare;
-// Miter limit is ignored for jtSquare.
+// 对于 jtSquare，斜接限制被忽略。
 static constexpr const double                       DefaultLineMiterLimit   = 0.;
 
-// Decimation factor applied on input contour when doing offset, multiplied by the offset distance.
+// 在进行偏移时应用于输入轮廓的抽取因子，乘以偏移距离。
 static constexpr const double                       ClipperOffsetShortestEdgeFactor = 0.005;
 
 enum class ApplySafetyOffset {
@@ -53,7 +53,7 @@ namespace ClipperUtils {
         struct iterator : public PathsProviderIteratorBase {
         public:
             const Points& operator*() { assert(false); return s_empty_points; }
-            // all iterators point to end.
+            // 所有迭代器都指向末尾。
             constexpr bool operator==(const iterator &rhs) const { return true; }
             constexpr bool operator!=(const iterator &rhs) const { return false; }
             const Points& operator++(int) { assert(false); return s_empty_points; }
@@ -304,7 +304,7 @@ namespace ClipperUtils {
     };
 
     
-    // For ClipperLib with Z coordinates.
+    // 用于带 Z 坐标的 ClipperLib。
     using ZPoint  = Vec3i32;
     using ZPoints = std::vector<Vec3i32>;
 
@@ -323,7 +323,7 @@ namespace ClipperUtils {
 
     }
 
-// Perform union of input polygons using the non-zero rule, convert to ExPolygons.
+// 使用非零规则执行输入多边形的合并，转换为 ExPolygons。
 ExPolygons ClipperPaths_to_Slic3rExPolygons(const ClipperLib::Paths &input, bool do_union = false);
 
 // offset Polygons
@@ -368,7 +368,7 @@ Slic3r::Polygons   union_safety_offset(const Slic3r::ExPolygons &expolygons);
 Slic3r::ExPolygons union_safety_offset_ex(const Slic3r::Polygons &polygons);
 Slic3r::ExPolygons union_safety_offset_ex(const Slic3r::ExPolygons &expolygons);
 
-// Aliases for the various offset(...) functions, conveying the purpose of the offset.
+// 各种 offset(...) 函数的别名，传达偏移的目的。
 inline Slic3r::Polygons   expand(const Slic3r::Polygon &polygon, const float delta, ClipperLib::JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit) 
     { assert(delta > 0); return offset(polygon, delta, joinType, miterLimit); }
 inline Slic3r::Polygons   expand(const Slic3r::Polygons &polygons, const float delta, ClipperLib::JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit) 
@@ -377,7 +377,7 @@ inline Slic3r::Polygons   expand(const Slic3r::ExPolygons &polygons, const float
     { assert(delta > 0); return offset(polygons, delta, joinType, miterLimit); }
 inline Slic3r::ExPolygons expand_ex(const Slic3r::Polygons &polygons, const float delta, ClipperLib::JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit) 
     { assert(delta > 0); return offset_ex(polygons, delta, joinType, miterLimit); }
-// Input polygons for shrinking shall be "normalized": There must be no overlap / intersections between the input polygons.
+// 用于缩小的输入多边形应为"规范化"的：输入多边形之间不得有重叠/交叉。
 inline Slic3r::Polygons   shrink(const Slic3r::Polygons &polygons, const float delta, ClipperLib::JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit) 
     { assert(delta > 0); return offset(polygons, -delta, joinType, miterLimit); }
 inline Slic3r::ExPolygons shrink_ex(const Slic3r::Polygons &polygons, const float delta, ClipperLib::JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit) 
@@ -396,7 +396,7 @@ Slic3r::ExPolygons _clipper_ex(ClipperLib::ClipType clipType,
     const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, bool safety_offset_ = false);
 
 
-// Offset outside, then inside produces morphological closing. All deltas should be positive.
+// 先向外偏移，再向内偏移产生形态学闭合。所有增量应为正数。
 Slic3r::Polygons          closing(const Slic3r::Polygons &polygons, const float delta1, const float delta2, ClipperLib::JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit);
 inline Slic3r::Polygons   closing(const Slic3r::Polygons &polygons, const float delta, ClipperLib::JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit) 
     { return closing(polygons, delta, delta, joinType, miterLimit); }
@@ -426,7 +426,7 @@ inline Slic3r::ExPolygons opening_ex(const Slic3r::Surfaces &surfaces, const flo
 
 Slic3r::Lines _clipper_ln(ClipperLib::ClipType clipType, const Slic3r::Lines &subject, const Slic3r::Polygons &clip);
 
-// Safety offset is applied to the clipping polygons only.
+// 安全偏移仅应用于裁剪多边形。
 Slic3r::Polygons   diff(const Slic3r::Polygon &subject, const Slic3r::Polygon &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::Polygons   diff(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::Polygons   diff(const Slic3r::Polygons &subject, const Slic3r::ExPolygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
@@ -491,7 +491,7 @@ inline Slic3r::Lines diff_ln(const Slic3r::Lines &subject, const Slic3r::Polygon
     return _clipper_ln(ClipperLib::ctDifference, subject, clip);
 }
 
-// Safety offset is applied to the clipping polygons only.
+// 安全偏移仅应用于裁剪多边形。
 Slic3r::Polygons   intersection(const Slic3r::Polygon &subject, const Slic3r::Polygon &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::Polygons   intersection(const Slic3r::Polygons &subject, const Slic3r::ExPolygon &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
 Slic3r::Polygons   intersection(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip, ApplySafetyOffset do_safety_offset = ApplySafetyOffset::No);
@@ -541,7 +541,7 @@ Slic3r::Polygons union_(const Slic3r::Polygons &subject);
 Slic3r::Polygons union_(const Slic3r::ExPolygons &subject);
 Slic3r::Polygons union_(const Slic3r::Polygons &subject, const ClipperLib::PolyFillType fillType);
 Slic3r::Polygons union_(const Slic3r::Polygons &subject, const Slic3r::Polygons &subject2);
-// May be used to "heal" unusual models (3DLabPrints etc.) by providing fill_type (pftEvenOdd, pftNonZero, pftPositive, pftNegative).
+// 可通过提供 fill_type (pftEvenOdd, pftNonZero, pftPositive, pftNegative) 来"修复"异常模型（3DLabPrints 等）。
 Slic3r::ExPolygons union_ex(const Slic3r::Polygons &subject, ClipperLib::PolyFillType fill_type = ClipperLib::pftNonZero);
 Slic3r::ExPolygons union_ex(const Slic3r::ExPolygons &subject);
 Slic3r::ExPolygons union_ex(const Slic3r::ExPolygons &subject, const Slic3r::Polygons &subject2);
@@ -568,12 +568,12 @@ enum class e_ordering {
     OFF
 };
 
-// Create a template struct, template functions can not be partially specialized
+// 创建模板结构体，模板函数不能被部分特化
 template<e_ordering o, class Fn> struct _foreach_node {
     void operator()(const ClipperLib::PolyNodes &nodes, Fn &&fn);
 };
 
-// Specialization with NO ordering
+// 无顺序的特化
 template<class Fn> struct _foreach_node<e_ordering::OFF, Fn> {
     void operator()(const ClipperLib::PolyNodes &nodes, Fn &&fn)
     {
@@ -581,7 +581,7 @@ template<class Fn> struct _foreach_node<e_ordering::OFF, Fn> {
     }
 };
 
-// Specialization with ordering
+// 有序的特化
 template<class Fn> struct _foreach_node<e_ordering::ON, Fn> {
     void operator()(const ClipperLib::PolyNodes &nodes, Fn &&fn)
     {
@@ -590,7 +590,7 @@ template<class Fn> struct _foreach_node<e_ordering::ON, Fn> {
     }
 };
 
-// Wrapper function for the foreach_node which can deduce arguments automatically
+// foreach_node 的包装函数，可以自动推导参数
 template<e_ordering o, class Fn>
 void foreach_node(const ClipperLib::PolyNodes &nodes, Fn &&fn)
 {
@@ -604,10 +604,10 @@ void traverse_pt(const ClipperLib::PolyNode *tree, Polygons *out)
 {
     if (!tree) return; // terminates recursion
     
-    // Push the contour of the current level
+    // 推送当前级别的轮廓
     out->emplace_back(tree->Contour);
     
-    // Do the recursion for all the children.
+    // 对所有子节点执行递归。
     traverse_pt<ordering>(tree->Childs, out);
 }
 
@@ -629,7 +629,7 @@ void traverse_pt(const ClipperLib::PolyNode *tree, ExPolygons *out)
     foreach_node<ordering>(tree->Childs, 
                            [out, &level] (const ClipperLib::PolyNode *node) {
         
-        // Holes are collected here. 
+        // 孔洞在此处收集。 
         level.holes.emplace_back(node->Contour);
         
         // By doing a recursion, a new level expoly is created with the contour
@@ -649,7 +649,7 @@ void traverse_pt(const ClipperLib::PolyNodes &nodes, ExOrJustPolygons *retval)
 }
 
 
-/* OTHER */
+/* 其他 */
 Slic3r::Polygons simplify_polygons(const Slic3r::Polygons &subject);
 Slic3r::ExPolygons simplify_polygons_ex(const Slic3r::Polygons &subject);
 

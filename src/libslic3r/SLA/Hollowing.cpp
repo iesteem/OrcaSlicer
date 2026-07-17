@@ -15,8 +15,8 @@
 #include <libslic3r/MTUtils.hpp>
 #include <libslic3r/I18N.hpp>
 
-//! macro used to mark string used at localization,
-//! return same string
+//! 用于标记被本地化使用的字符串的宏，
+//! 返回相同的字符串
 #define L(s) Slic3r::I18N::translate(s)
 
 namespace Slic3r {
@@ -30,12 +30,12 @@ struct Interior {
     double closing_distance = 0.;
     double thickness = 0.;
     double voxel_scale = 1.;
-    double nb_in = 3.;  // narrow band width inwards
-    double nb_out = 3.; // narrow band width outwards
-    // Full narrow band is the sum of the two above values.
+    double nb_in = 3.;  // 向内窄带宽度
+    double nb_out = 3.; // 向外窄带宽度
+    // 全窄带是上述两个值的和。
 
-    void reset_accessor() const  // This resets the accessor and its cache
-    // Not a thread safe call!
+    void reset_accessor() const  // 重置访问器及其缓存
+    // 不是线程安全的调用！
     {
         if (gridptr)
             accessor = gridptr->getConstAccessor();
@@ -115,13 +115,12 @@ InteriorPtr generate_interior(const TriangleMesh &   mesh,
     static const double MIN_OVERSAMPL = 3.5;
     static const double MAX_OVERSAMPL = 8.;
 
-    // I can't figure out how to increase the grid resolution through openvdb
-    // API so the model will be scaled up before conversion and the result
-    // scaled down. Voxels have a unit size. If I set voxelSize smaller, it
-    // scales the whole geometry down, and doesn't increase the number of
-    // voxels.
+    // 我无法通过 openvdb API 增加网格分辨率，
+    // 因此模型在转换前会被放大，结果再缩小。
+    // 体素具有单位大小。如果我将 voxelSize 设置得更小，
+    // 它会将整个几何体缩小，而不会增加体素数量。
     //
-    // max 8x upscale, min is native voxel size
+    // 最大 8 倍放大，最小为原始体素大小
     auto voxel_scale = MIN_OVERSAMPL + (MAX_OVERSAMPL - MIN_OVERSAMPL) * hc.quality;
 
     InteriorPtr interior =
@@ -130,17 +129,17 @@ InteriorPtr generate_interior(const TriangleMesh &   mesh,
 
     if (interior && !interior->mesh.empty()) {
 
-        // flip normals back...
+        // 将法线翻转回来...
         swap_normals(interior->mesh);
 
-        // simplify mesh lossless
+        // 无损简化网格
         float loss_less_max_error = 2*std::numeric_limits<float>::epsilon();
         its_quadric_edge_collapse(interior->mesh, 0U, &loss_less_max_error);
 
         its_compactify_vertices(interior->mesh);
         its_merge_vertices(interior->mesh);
 
-        // flip normals back...
+        // 将法线翻转回来...
         swap_normals(interior->mesh);
     }
 
@@ -181,9 +180,8 @@ bool DrainHole::is_inside(const Vec3f& pt) const
 }
 
 
-// Given a line s+dir*t, find parameter t of intersections with the hole
-// and the normal (points inside the hole). Outputs through out reference,
-// returns true if two intersections were found.
+// 给定直线 s+dir*t，找出与孔洞相交的参数 t 和法线（孔洞内的点）。
+// 通过 out 引用输出，如果找到两个交点则返回 true。
 bool DrainHole::get_intersections(const Vec3f& s, const Vec3f& dir,
                                   std::array<std::pair<float, Vec3d>, 2>& out)
                                   const
@@ -196,28 +194,27 @@ bool DrainHole::get_intersections(const Vec3f& s, const Vec3f& dir,
 
     const float sqr_radius = pow(radius, 2.f);
 
-    // first check a bounding sphere of the hole:
+    // 首先检查孔洞的包围球：
     Vec3f center = pos+normal*height/2.f;
     float sqr_dist_limit = pow(height/2.f, 2.f) + sqr_radius ;
     if (ray.squaredDistance(center) > sqr_dist_limit)
         return false;
 
-    // The line intersects the bounding sphere, look for intersections with
-    // bases of the cylinder.
+    // 直线与包围球相交，寻找与圆柱体底面的交点。
 
-    size_t found = 0; // counts how many intersections were found
+    size_t found = 0; // 记录找到了多少个交点
     Eigen::Hyperplane<float, 3> base;
     if (! is_approx(ray.direction().dot(normal), 0.f)) {
         for (size_t i=1; i<=1; --i) {
             Vec3f cylinder_center = pos+i*height*normal;
             if (i == 0) {
-                // The hole base can be identical to mesh surface if it is flat
-                // let's better move the base outward a bit
+                // 孔洞底面可能与网格表面重合（如果是平面），
+                // 我们最好将底面向外移动一点
                 cylinder_center -= EPSILON*normal;
             }
             base = Eigen::Hyperplane<float, 3>(normal, cylinder_center);
             Vec3f intersection = ray.intersectionPoint(base);
-            // Only accept the point if it is inside the cylinder base.
+            // 只有当点在圆柱体底面内时才接受该点。
             if ((cylinder_center-intersection).squaredNorm() < sqr_radius) {
                 out[found].first = ray.intersectionParameter(base);
                 out[found].second = (i==0 ? 1. : -1.) * normal.cast<double>();
@@ -227,26 +224,26 @@ bool DrainHole::get_intersections(const Vec3f& s, const Vec3f& dir,
     }
     else
     {
-        // In case the line was perpendicular to the cylinder axis, previous
-        // block was skipped, but base will later be assumed to be valid.
+        // 如果直线垂直于圆柱轴线，则跳过前面的代码块，
+        // 但之后假定 base 是有效的。
         base = Eigen::Hyperplane<float, 3>(normal, pos-EPSILON*normal);
     }
 
-    // In case there is still an intersection to be found, check the wall
+    // 如果还有待寻找的交点，检查壁面
     if (found != 2 && ! is_approx(std::abs(ray.direction().dot(normal)), 1.f)) {
-        // Project the ray onto the base plane
+        // 将射线投影到基平面上
         Vec3f proj_origin = base.projection(ray.origin());
         Vec3f proj_dir = base.projection(ray.origin()+ray.direction())-proj_origin;
-        // save how the parameter scales and normalize the projected direction
+        // 保存参数的缩放方式并归一化投影方向
         float par_scale = proj_dir.norm();
         proj_dir = proj_dir/par_scale;
         Eigen::ParametrizedLine<float, 3> projected_ray(proj_origin, proj_dir);
-        // Calculate point on the secant that's closest to the center
-        // and its distance to the circle along the projected line
+        // 计算割线上离圆心最近的点
+        // 以及其沿投影线到圆的距离
         Vec3f closest = projected_ray.projection(pos);
         float dist = sqrt((sqr_radius - (closest-pos).squaredNorm()));
-        // Unproject both intersections on the original line and check
-        // they are on the cylinder and not past it:
+        // 将两个交点反投影到原始直线上并检查
+        // 它们是否在圆柱体上且没有超出：
         for (int i=-1; i<=1 && found !=2; i+=2) {
             Vec3f isect = closest + i*dist * projected_ray.direction();
             Vec3f to_isect = isect-proj_origin;
@@ -255,7 +252,7 @@ bool DrainHole::get_intersections(const Vec3f& s, const Vec3f& dir,
                 par *= -1.f;
             Vec3d hit_normal = (pos-isect).normalized().cast<double>();
             isect = ray.pointAt(par);
-            // check that the intersection is between the base planes:
+            // 检查交点是否在两个基平面之间：
             float vert_dist = base.signedDistance(isect);
             if (vert_dist > 0.f && vert_dist < height) {
                 out[found].first = par;
@@ -265,12 +262,12 @@ bool DrainHole::get_intersections(const Vec3f& s, const Vec3f& dir,
         }
     }
 
-    // If only one intersection was found, it is some corner case,
-    // no intersection will be returned:
+    // 如果只找到一个交点，则属于某种边界情况，
+    // 将不返回任何交点：
     if (found != 2)
         return false;
 
-    // Sort the intersections:
+    // 对交点进行排序：
     if (out[0].first > out[1].first)
         std::swap(out[0], out[1]);
 
@@ -319,9 +316,8 @@ void hollow_mesh(TriangleMesh &mesh, const Interior &interior, int flags)
     mesh.merge(TriangleMesh{interior.mesh});
 }
 
-// Get the distance of p to the interior's zero iso_surface. Interior should
-// have its zero isosurface positioned at offset + closing_distance inwards form
-// the model surface.
+// 获取点 p 到内部零等值面的距离。内部的零等值面
+// 应位于从模型表面向内偏移 offset + closing_distance 的位置。
 static double get_distance_raw(const Vec3f &p, const Interior &interior)
 {
     assert(interior.gridptr);
@@ -337,8 +333,7 @@ static double get_distance_raw(const Vec3f &p, const Interior &interior)
 
 struct TriangleBubble { Vec3f center; double R; };
 
-// Return the distance of bubble center to the interior boundary or NaN if the
-// triangle is too big to be measured.
+// 返回气泡中心到内部边界的距离，如果三角形太大无法测量则返回 NaN。
 static double get_distance(const TriangleBubble &b, const Interior &interior)
 {
     double R = b.R * interior.voxel_scale;
@@ -348,10 +343,9 @@ static double get_distance(const TriangleBubble &b, const Interior &interior)
            (D < 0. && R >= interior.nb_in)  ||
            ((D - R) < 0. && 2 * R > interior.thickness) ?
                 std::nan("") :
-                // FIXME: Adding interior.voxel_scale is a compromise supposed
-                // to prevent the deletion of the triangles forming the interior
-                // itself. This has a side effect that a small portion of the
-                // bad triangles will still be visible.
+                // FIXME: 添加 interior.voxel_scale 是一种折中方案，
+                // 旨在防止构成内部本身的三角形被删除。
+                // 这有一个副作用，即小部分劣质三角形仍然可见。
                 D - interior.closing_distance /*+ 2 * interior.voxel_scale*/;
 }
 
@@ -361,8 +355,7 @@ double get_distance(const Vec3f &p, const Interior &interior)
     return d / interior.voxel_scale;
 }
 
-// A face that can be divided. Stores the indices into the original mesh if its
-// part of that mesh and the vertices it consists of.
+// 一个可被分割的面。如果属于原始网格，则存储其在原始网格中的索引以及其组成的顶点。
 enum { NEW_FACE = -1};
 struct DivFace {
     Vec3i32 indx;
@@ -424,13 +417,13 @@ void remove_inside_triangles(TriangleMesh &mesh, const Interior &interior,
         return use_exclude_mask && exclude_mask[face_id];
     };
 
-    // TODO: Parallel mode not working yet
+    // TODO: 并行模式尚不可用
     using exec_policy = ccr_seq;
 
-    // Info about the needed modifications on the input mesh.
+    // 关于输入网格所需修改的信息。
     struct MeshMods {
 
-        // Just a thread safe wrapper for a vector of triangles.
+        // 一个线程安全的三角形向量包装器。
         struct {
             std::vector<std::array<Vec3f, 3>> data;
             exec_policy::SpinningMutex        mutex;
@@ -449,14 +442,13 @@ void remove_inside_triangles(TriangleMesh &mesh, const Interior &interior,
 
         } new_triangles;
 
-        // A vector of bool for all faces signaling if it needs to be removed
-        // or not.
+        // 一个布尔向量，指示所有面是否需要被移除。
         std::vector<bool> to_remove;
 
         MeshMods(const TriangleMesh &mesh):
             to_remove(mesh.its.indices.size(), false) {}
 
-        // Number of triangles that need to be removed.
+        // 需要移除的三角形数量。
         size_t to_remove_cnt() const
         {
             return std::accumulate(to_remove.begin(), to_remove.end(), size_t(0));
@@ -464,11 +456,11 @@ void remove_inside_triangles(TriangleMesh &mesh, const Interior &interior,
 
     } mesh_mods{mesh};
 
-    // Must return true if further division of the face is needed.
+    // 如果需要进一步分割面，则必须返回 true。
     auto divfn = [&interior, bb, &mesh_mods](const DivFace &f) {
         BoundingBoxf3 facebb { f.verts.begin(), f.verts.end() };
 
-        // Face is certainly outside the cavity
+        // 该面肯定在空腔外部
         if (! facebb.intersects(bb) && f.faceid != NEW_FACE) {
             return false;
         }
@@ -478,30 +470,29 @@ void remove_inside_triangles(TriangleMesh &mesh, const Interior &interior,
         double D = get_distance(bubble, interior);
         double R = bubble.R * interior.voxel_scale;
 
-        if (std::isnan(D)) // The distance cannot be measured, triangle too big
+        if (std::isnan(D)) // 无法测量距离，三角形太大
             return true;
 
-        // Distance of the bubble wall to the interior wall. Negative if the
-        // bubble is overlapping with the interior
+        // 气泡壁到内部壁的距离。如果为负值，则表示
+        // 气泡与内部重叠
         double bubble_distance = D - R;
 
-        // The face is crossing the interior or inside, it must be removed and
-        // parts of it re-added, that are outside the interior
+        // 该面穿过内部或在内部，必须移除，
+        // 并重新添加位于内部之外的部分
         if (bubble_distance < 0.) {
             if (f.faceid != NEW_FACE)
                 mesh_mods.to_remove[f.faceid] = true;
 
-            if (f.parent != NEW_FACE) // Top parent needs to be removed as well
+            if (f.parent != NEW_FACE) // 顶层父面也需要被移除
                 mesh_mods.to_remove[f.parent] = true;
 
-            // If the outside part is between the interior end the exterior
-            // (inside the wall being invisible), no further division is needed.
+            // 如果外部部分位于内部与外部之间（墙内不可见），则无需进一步分割。
             if ((R + D) < interior.thickness)
                 return false;
 
             return true;
         } else if (f.faceid == NEW_FACE) {
-            // New face completely outside needs to be re-added.
+            // 完全在外的新面需要重新添加。
             mesh_mods.new_triangles.emplace_back(f.verts);
         }
 
@@ -513,7 +504,7 @@ void remove_inside_triangles(TriangleMesh &mesh, const Interior &interior,
     exec_policy::for_each(size_t(0), faces.size(), [&] (size_t face_idx) {
         const Vec3i32 &face = faces[face_idx];
 
-        // If the triangle is excluded, we need to keep it.
+        // 如果三角形被排除，我们需要保留它。
         if (is_excluded(face_idx))
             return;
 
@@ -522,7 +513,7 @@ void remove_inside_triangles(TriangleMesh &mesh, const Interior &interior,
 
         BoundingBoxf3 facebb { pts.begin(), pts.end() };
 
-        // Face is certainly outside the cavity
+        // 该面肯定在空腔外部
         if (! facebb.intersects(bb)) return;
 
         DivFace df{face, pts, long(face_idx)};
@@ -557,7 +548,7 @@ void remove_inside_triangles(TriangleMesh &mesh, const Interior &interior,
     new_faces = {};
 
     mesh = TriangleMesh{mesh.its};
-    //FIXME do we want to repair the mesh? Are there duplicate vertices or flipped triangles?
+    //FIXME 我们是否要修复网格？是否存在重复顶点或翻转三角形？
 }
 
 }} // namespace Slic3r::sla

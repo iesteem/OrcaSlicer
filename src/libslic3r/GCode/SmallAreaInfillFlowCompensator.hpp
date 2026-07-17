@@ -22,11 +22,11 @@ public:
     double modify_flow(const double line_length, const double dE, const ExtrusionRole role);
 
 private:
-    // Model points
+    // 模型点
     std::vector<double> eLengths;
     std::vector<double> flowComps;
 
-    // TODO: Cubic Spline
+    // TODO: 三次样条
     std::unique_ptr<tk::spline> flowModel;
 
     double flow_comp_model(const double line_length);

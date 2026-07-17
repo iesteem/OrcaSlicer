@@ -21,8 +21,8 @@
 
 #include "I18N.hpp"
 
-//! macro used to mark string used at localization,
-//! return same string
+//! 用于标记本地化字符串的宏，
+//! 返回相同字符串
 #define L(s) Slic3r::I18N::translate(s)
 
 namespace Slic3r {
@@ -33,7 +33,7 @@ bool is_zero_elevation(const SLAPrintObjectConfig &c)
     return c.pad_enable.getBool() && c.pad_around_object.getBool();
 }
 
-// Compile the argument for support creation from the static print config.
+// 从静态打印配置编译支撑创建的参数。
 sla::SupportTreeConfig make_support_cfg(const SLAPrintObjectConfig& c)
 {
     sla::SupportTreeConfig scfg;
@@ -109,15 +109,14 @@ sla::PadConfig make_pad_cfg(const SLAPrintObjectConfig& c)
 
 bool validate_pad(const indexed_triangle_set &pad, const sla::PadConfig &pcfg)
 {
-    // An empty pad can only be created if embed_object mode is enabled
-    // and the pad is not forced everywhere
+    // 只有在启用了 embed_object 模式且未强制底座到处存在时才能创建空底座
     return !pad.empty() || (pcfg.embed_object.enabled && !pcfg.embed_object.everywhere);
 }
 
 void SLAPrint::clear()
 {
     std::scoped_lock<std::mutex> lock(this->state_mutex());
-    // The following call should stop background processing if it is running.
+    // 以下调用应停止后台处理（如果正在运行）。
     this->invalidate_all_steps();
     for (SLAPrintObject *object : m_objects)
         delete object;
@@ -125,7 +124,7 @@ void SLAPrint::clear()
     m_model.clear_objects();
 }
 
-// Transformation without rotation around Z and without a shift by X and Y.
+// 不绕Z轴旋转且不进行X和Y平移的变换。
 Transform3d SLAPrint::sla_trafo(const ModelObject &model_object) const
 {
 
@@ -155,7 +154,7 @@ Transform3d SLAPrint::sla_trafo(const ModelObject &model_object) const
     return trafo;
 }
 
-// List of instances, where the ModelInstance transformation is a composite of sla_trafo and the transformation defined by SLAPrintObject::Instance.
+// 实例列表，其中 ModelInstance 变换是 sla_trafo 和 SLAPrintObject::Instance 定义的变换的复合。
 static std::vector<SLAPrintObject::Instance> sla_instances(const ModelObject &model_object)
 {
     std::vector<SLAPrintObject::Instance> instances;
@@ -177,7 +176,7 @@ static std::vector<SLAPrintObject::Instance> sla_instances(const ModelObject &mo
 std::vector<ObjectID> SLAPrint::print_object_ids() const
 {
     std::vector<ObjectID> out;
-    // Reserve one more for the caller to append the ID of the Print itself.
+    // 为调用者额外预留一个位置以追加打印本身ID。
     out.reserve(m_objects.size() + 1);
     for (const SLAPrintObject *print_object : m_objects)
         out.emplace_back(print_object->id());
@@ -190,28 +189,28 @@ SLAPrint::ApplyStatus SLAPrint::apply(const Model &model, DynamicPrintConfig con
     check_model_ids_validity(model);
 #endif /* _DEBUG */
 
-    // Normalize the config.
+    // 规范化配置。
     config.option("sla_print_settings_id",        true);
     config.option("sla_material_settings_id",     true);
     config.option("printer_settings_id",          true);
-    // Collect changes to print config.
+    // 收集打印配置的更改。
     t_config_option_keys print_diff    = m_print_config.diff(config);
     t_config_option_keys printer_diff  = m_printer_config.diff(config);
     t_config_option_keys material_diff = m_material_config.diff(config);
     t_config_option_keys object_diff   = m_default_object_config.diff(config);
     t_config_option_keys placeholder_parser_diff = m_placeholder_parser.config_diff(config);
 
-    // Do not use the ApplyStatus as we will use the max function when updating apply_status.
+    // 不使用 ApplyStatus，因为在更新 apply_status 时我们将使用 max 函数。
     unsigned int apply_status = APPLY_STATUS_UNCHANGED;
     auto update_apply_status = [&apply_status](bool invalidated)
         { apply_status = std::max<unsigned int>(apply_status, invalidated ? APPLY_STATUS_INVALIDATED : APPLY_STATUS_CHANGED); };
     if (! (print_diff.empty() && printer_diff.empty() && material_diff.empty() && object_diff.empty()))
         update_apply_status(false);
 
-    // Grab the lock for the Print / PrintObject milestones.
+    // 获取 Print/PrintObject 里程碑的锁。
     std::scoped_lock<std::mutex> lock(this->state_mutex());
 
-    // The following call may stop the background processing.
+    // 以下调用可能会停止后台处理。
     bool invalidate_all_model_objects = false;
     if (! print_diff.empty())
         update_apply_status(this->invalidate_state_by_config_options(print_diff, invalidate_all_model_objects));
@@ -506,10 +505,10 @@ SLAPrint::ApplyStatus SLAPrint::apply(const Model &model, DynamicPrintConfig con
     return static_cast<ApplyStatus>(apply_status);
 }
 
-// After calling the apply() function, set_task() may be called to limit the task to be processed by process().
+// 调用 apply() 函数后，可以调用 set_task() 来限制由 process() 处理的任务。
 void SLAPrint::set_task(const TaskParams &params)
 {
-    // Grab the lock for the Print / PrintObject milestones.
+    // 获取 Print/PrintObject 里程碑的锁。
     std::scoped_lock<std::mutex> lock(this->state_mutex());
 
     int n_object_steps = int(params.to_object_step) + 1;
@@ -517,7 +516,7 @@ void SLAPrint::set_task(const TaskParams &params)
         n_object_steps = int(slaposCount);
 
     if (params.single_model_object.valid()) {
-        // Find the print object to be processed with priority.
+        // 查找要优先处理的打印对象。
         SLAPrintObject *print_object = nullptr;
         size_t          idx_print_object = 0;
         for (; idx_print_object < m_objects.size(); ++ idx_print_object)
@@ -526,14 +525,14 @@ void SLAPrint::set_task(const TaskParams &params)
                 break;
             }
         assert(print_object != nullptr);
-        // Find out whether the priority print object is being currently processed.
+        // 找出优先级打印对象当前是否正在处理中。
         bool running = false;
         for (int istep = 0; istep < n_object_steps; ++ istep) {
             if (! print_object->m_stepmask[size_t(istep)])
-                // Step was skipped, cancel.
+                // 步骤被跳过，取消。
                 break;
             if (print_object->is_step_started_unguarded(SLAPrintObjectStep(istep))) {
-                // No step was skipped, and a wanted step is being processed. Don't cancel.
+                // 没有跳过步骤，且所需步骤正在处理。不要取消。
                 running = true;
                 break;
             }
@@ -693,17 +692,16 @@ void SLAPrint::process(long long *time_cost_with_cache, bool use_cache)
 
     name_tbb_thread_pool_threads_set_locale();
 
-    // Assumption: at this point the print objects should be populated only with
-    // the model objects we have to process and the instances are also filtered
+    // 假设：此时打印对象应只填充了我们需要处理的模型对象，并且实例也已过滤
 
     Steps printsteps(this);
 
-    // We want to first process all objects...
+    // 我们首先要处理所有对象...
     std::vector<SLAPrintObjectStep> level1_obj_steps = {
         slaposHollowing, slaposDrillHoles, slaposObjectSlice, slaposSupportPoints, slaposSupportTree, slaposPad
     };
 
-    // and then slice all supports to allow preview to be displayed ASAP
+    // 然后切片所有支撑以允许尽快显示预览
     std::vector<SLAPrintObjectStep> level2_obj_steps = {
         slaposSliceSupports
     };
@@ -906,8 +904,8 @@ SLAPrintObject::SLAPrintObject(SLAPrint *print, ModelObject *model_object)
 
 SLAPrintObject::~SLAPrintObject() {}
 
-// Called by SLAPrint::apply().
-// This method only accepts SLAPrintObjectConfig option keys.
+// 由 SLAPrint::apply() 调用。
+// 此方法只接受 SLAPrintObjectConfig 选项键。
 bool SLAPrintObject::invalidate_state_by_config_options(const std::vector<t_config_option_key> &opt_keys)
 {
     if (opt_keys.empty())

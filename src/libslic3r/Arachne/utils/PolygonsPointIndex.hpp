@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #ifndef UTILS_POLYGONS_POINT_INDEX_H
 #define UTILS_POLYGONS_POINT_INDEX_H
@@ -13,7 +13,7 @@
 namespace Slic3r::Arachne
 {
 
-// Identity function, used to be able to make templated algorithms where the input is sometimes points, sometimes things that contain or can be converted to points.
+//// Identity 函数, used to 为 able to make templated algorithms 其中 the 输入 是 sometimes 点, sometimes things 该 contain or 可以 为 converted to 点.
 inline const Point &make_point(const Point &p) { return p; }
 
 /*!
@@ -97,13 +97,13 @@ public:
         point_idx = other.point_idx;
         return *this;
     }
-    //! move the iterator forward (and wrap around at the end)
+    //// ! move the 迭代器 向前 (and wrap around at the 结束)
     PathsPointIndex &operator++()
     {
         point_idx = (point_idx + 1) % (*polygons)[poly_idx].size();
         return *this;
     }
-    //! move the iterator backward (and wrap around at the beginning)
+    //// ! move the 迭代器 向后 (and wrap around at the beginning)
     PathsPointIndex &operator--()
     {
         if (point_idx == 0)
@@ -111,14 +111,14 @@ public:
         point_idx--;
         return *this;
     }
-    //! move the iterator forward (and wrap around at the end)
+    //// ! move the 迭代器 向前 (and wrap around at the 结束)
     PathsPointIndex next() const
     {
         PathsPointIndex ret(*this);
         ++ret;
         return ret;
     }
-    //! move the iterator backward (and wrap around at the beginning)
+    //// ! move the 迭代器 向后 (and wrap around at the beginning)
     PathsPointIndex prev() const
     {
         PathsPointIndex ret(*this);

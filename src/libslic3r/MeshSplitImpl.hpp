@@ -1,7 +1,7 @@
 #ifndef MESHSPLITIMPL_HPP
 #define MESHSPLITIMPL_HPP
 
-// Disable meaningless boost warning on MSVC
+// 禁用 MSVC 上无意义的 boost 警告
 #ifdef _MSC_VER
 #pragma warning( push )
 #pragma warning( disable : 4805 )

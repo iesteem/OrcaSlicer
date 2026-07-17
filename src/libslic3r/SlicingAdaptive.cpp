@@ -6,15 +6,15 @@
 #include <boost/log/trivial.hpp>
 #include <cfloat>
 
-// Based on the work of Florens Waserfall (@platch on github)
-// and his paper
+// 基于Florens Waserfall (@platch on github)的工作
+// 及其论文
 // Florens Wasserfall, Norman Hendrich, Jianwei Zhang:
 // Adaptive Slicing for the FDM Process Revisited
-// 13th IEEE Conference on Automation Science and Engineering (CASE-2017), August 20-23, Xi'an, China. DOI: 10.1109/COASE.2017.8256074
+// 第13届IEEE自动化科学与工程会议(CASE-2017), 2017年8月20-23日, 中国西安. DOI: 10.1109/COASE.2017.8256074
 // https://tams.informatik.uni-hamburg.de/publications/2017/Adaptive%20Slicing%20for%20the%20FDM%20Process%20Revisited.pdf
 
-// Vojtech believes that there is a bug in @platch's derivation of the triangle area error metric.
-// Following Octave code paints graphs of recommended layer height versus surface slope angle.
+// Vojtech认为@platch的三角面积误差度量推导中存在bug。
+// 以下Octave代码绘制了推荐层高与表面倾斜角度的关系图。
 #if 0
 adeg=0:1:85;
 a=adeg*pi/180;
@@ -35,35 +35,35 @@ legend("tan(a) as cura - topographic lines distance limit", "sqrt(tan(a)) as Pru
 namespace Slic3r
 {
 
-// By Florens Waserfall aka @platch:
-// This constant essentially describes the volumetric error at the surface which is induced 
-// by stacking "elliptic" extrusion threads. It is empirically determined by
-// 1. measuring the surface profile of printed parts to find
-// the ratio between layer height and profile height and then
-// 2. computing the geometric difference between the model-surface and the elliptic profile.
+// 由Florens Waserfall（即@platch）编写：
+// 这个常数本质上描述了因堆叠"椭圆形"挤出线材而在表面引起的体积误差。
+// 它是通过以下方式经验确定的：
+// 1. 测量打印部件的表面轮廓以找到
+// 层高和轮廓高度之间的比率，然后
+// 2. 计算模型表面与椭圆轮廓之间的几何差异。
 //
-// The definition of the roughness formula is in 
+// 粗糙度公式的定义在
 // https://tams.informatik.uni-hamburg.de/publications/2017/Adaptive%20Slicing%20for%20the%20FDM%20Process%20Revisited.pdf
-// (page 51, formula (8))
-// Currenty @platch's error metric formula is not used.
+// （第51页，公式(8)）
+// 目前未使用@platch的误差度量公式。
 //static constexpr const double SURFACE_CONST = 0.18403;
 
-// for a given facet, compute maximum height within the allowed surface roughness / stairstepping deviation
+// 对于给定的三角面片，计算在允许的表面粗糙度/阶梯偏差内的最大高度
 static inline float layer_height_from_slope(const SlicingAdaptive::FaceZ &face, float max_surface_deviation)
 {
-// @platch's formula, see his paper "Adaptive Slicing for the FDM Process Revisited".
+// @platch的公式，参见其论文"Adaptive Slicing for the FDM Process Revisited"。
 //    return float(max_surface_deviation / (SURFACE_CONST + 0.5 * std::abs(normal_z)));
 	
-// Constant stepping in horizontal direction, as used by Cura.
+// 水平方向恒定步进，如Cura使用的方法。
 //    return (face.n_cos > 1e-5) ? float(max_surface_deviation * face.n_sin / face.n_cos) : FLT_MAX;
 
-// Constant error measured as an area of the surface error triangle, Vojtech's formula.
+// 恒定误差，以表面误差三角形的面积衡量，Vojtech的公式。
 //    return (face.n_cos > 1e-5) ? float(1.44 * max_surface_deviation * sqrt(face.n_sin / face.n_cos)) : FLT_MAX;
 
-// Constant error measured as an area of the surface error triangle, Vojtech's formula with clamping to roughness at 90 degrees.
+// 恒定误差，以表面误差三角形的面积衡量，Vojtech的公式，在90度处限制粗糙度。
     return std::min(max_surface_deviation / 0.184f, (face.n_cos > 1e-5) ? float(1.44 * max_surface_deviation * sqrt(face.n_sin / face.n_cos)) : FLT_MAX);
 
-// Constant stepping along the surface, equivalent to the "surface roughness" metric by Perez and later Pandey et all, see @platch's paper for references.
+// 沿表面恒定步进，相当于Perez及后来的Pandey等人的"表面粗糙度"度量，参考文献见@platch的论文。
 //    return float(max_surface_deviation * face.n_sin);
 }
 
@@ -80,7 +80,7 @@ void SlicingAdaptive::prepare(const ModelObject &object)
     const ModelInstance &first_instance = *object.instances.front();
     mesh.transform(first_instance.get_matrix(), first_instance.is_left_handed());
 
-    // 1) Collect faces from mesh.
+    // 1) 从网格收集面。
     m_faces.reserve(mesh.facets_count());
 	for (stl_triangle_vertex_indices face : mesh.its.indices) {
 		stl_vertex vertex[3] = { mesh.its.vertices[face[0]], mesh.its.vertices[face[1]], mesh.its.vertices[face[2]] };

@@ -21,7 +21,7 @@ inline double vsize2_with_unscale(const Point pt)
 
 MinimumSpanningTree::MinimumSpanningTree(std::vector<Point> vertices) : adjacency_graph(prim(vertices))
 {
-    //Just copy over the fields.
+    // 直接复制字段内容。
 }
 
 auto MinimumSpanningTree::prim(std::vector<Point> vertices) const -> AdjacencyGraph_t
@@ -29,21 +29,19 @@ auto MinimumSpanningTree::prim(std::vector<Point> vertices) const -> AdjacencyGr
     AdjacencyGraph_t result;
     if (vertices.empty())
     {
-        return result; //No vertices, so we can't create edges either.
+        return result; //没有顶点，所以我们也不能创建边。
     }
-    // If there's only one vertex, we can't go creating any edges so just add the point to the adjacency list with no
-    // edges
+    // 如果只有一个顶点，我们不能创建任何边，所以只需将点添加到邻接表中，不带边。
     if (vertices.size() == 1)
     {
-        // unordered_map::operator[]() will construct an empty vector in place for us when we try and access an element
-        // that doesnt exist
+        // 当我们尝试访问一个不存在的元素时，unordered_map::operator[]() 会为我们构造一个空向量。
         result[*vertices.begin()];
         return result;
     }
     result.reserve(vertices.size());
     std::vector<Point> vertices_list(vertices.begin(), vertices.end());
 
-    std::unordered_map<const Point*, coordf_t> smallest_distance;    //The shortest distance to the current tree.
+    std::unordered_map<const Point*, coordf_t> smallest_distance;    //到当前树的最短距离。
     std::unordered_map<const Point*, const Point*> smallest_distance_to; //Which point the shortest distance goes towards.
     smallest_distance.reserve(vertices_list.size());
     smallest_distance_to.reserve(vertices_list.size());
@@ -56,10 +54,10 @@ auto MinimumSpanningTree::prim(std::vector<Point> vertices) const -> AdjacencyGr
 
     while (result.size() < vertices_list.size()) //All of the vertices need to be in the tree at the end.
     {
-        //Choose the closest vertex to connect to that is not yet in the tree.
-        //This search is O(V) right now, which can be made down to O(log(V)). This reduces the overall time complexity from O(V*V) to O(V*log(E)).
-        //However that requires an implementation of a heap that supports the decreaseKey operation, which is not in the std library.
-        //TODO: Implement this?
+        //选择尚未在树中且最近的顶点进行连接。
+        //目前此搜索是 O(V)，可以降低到 O(log(V))。这将把整体时间复杂度从 O(V*V) 降低到 O(V*log(E))。
+        //然而，这需要一个支持 decreaseKey 操作的堆实现，而 std 库中没有。
+        //TODO：实现这个？
         using MapValue = std::pair<const Point*, coordf_t>;
         const auto closest = std::min_element(smallest_distance.begin(), smallest_distance.end(),
                                               [](const MapValue& a, const MapValue& b) {

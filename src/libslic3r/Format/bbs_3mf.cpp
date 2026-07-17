@@ -58,21 +58,21 @@ namespace pt = boost::property_tree;
 
 #include <fast_float/fast_float.h>
 
-// Slightly faster than sprintf("%.9g"), but there is an issue with the karma floating point formatter,
+// 比sprintf("%.9g")略快，但karma浮点数格式化器存在问题，
 // https://github.com/boostorg/spirit/pull/586
-// where the exported string is one digit shorter than it should be to guarantee lossless round trip.
-// The code is left here for the ocasion boost guys improve.
+// 导出的字符串比保证无损往返所需的长度少一位。
+// 此处代码保留以备boost改进时使用。
 #define EXPORT_3MF_USE_SPIRIT_KARMA_FP 0
 
 #define WRITE_ZIP_LANGUAGE_ENCODING 1
 
-// @see https://commons.apache.org/proper/commons-compress/apidocs/src-html/org/apache/commons/compress/archivers/zip/AbstractUnicodeExtraField.html
+// 参见 https://commons.apache.org/proper/commons-compress/apidocs/src-html/org/apache/commons/compress/archivers/zip/AbstractUnicodeExtraField.html
 struct ZipUnicodePathExtraField
 {
     static std::string encode(std::string const& u8path, std::string const& path) {
         std::string extra;
         if (u8path != path) {
-            // 0x7075 - for Unicode filenames
+            // 0x7075 - 用于Unicode文件名
             extra.push_back('\x75');
             extra.push_back('\x70');
             boost::uint16_t len = 5 + u8path.length();
@@ -101,19 +101,19 @@ struct ZipUnicodePathExtraField
     }
 };
 
-// VERSION NUMBERS
-// 0 : .3mf, files saved by older slic3r or other applications. No version definition in them.
-// 1 : Introduction of 3mf versioning. No other change in data saved into 3mf files.
-// 2 : Volumes' matrices and source data added to Metadata/Slic3r_PE_model.config file, meshes transformed back to their coordinate system on loading.
-// WARNING !! -> the version number has been rolled back to 1
-//               the next change should use 3
+// 版本号
+// 0 : 旧版slic3r或其他应用程序保存的.3mf文件。其中没有版本定义。
+// 1 : 引入3mf版本控制。保存到3mf文件中的数据没有其他变化。
+// 2 : 在Metadata/Slic3r_PE_model.config文件中添加了体积矩阵和源数据，加载时将网格转换回其坐标系。
+// 警告 !! -> 版本号已回滚到1
+//              下一次更改应使用3
 const unsigned int VERSION_BBS_3MF = 1;
-// Allow loading version 2 file as well.
+// 允许同时加载版本2文件。
 const unsigned int VERSION_BBS_3MF_COMPATIBLE = 2;
-const char* BBS_3MF_VERSION1 = "bamboo_slicer:Version3mf"; // definition of the metadata name saved into .model file
-const char* BBS_3MF_VERSION = "BambuStudio:3mfVersion"; //compatible with prusa currently
-// Painting gizmos data version numbers
-// 0 : initial version of fdm, seam, mm
+const char* BBS_3MF_VERSION1 = "bamboo_slicer:Version3mf"; // 保存到.model文件中的元数据名称定义
+const char* BBS_3MF_VERSION = "BambuStudio:3mfVersion"; //当前与prusa兼容
+// 绘制工具数据版本号
+// 0 : fdm、seam、mm的初始版本
 const unsigned int FDM_SUPPORTS_PAINTING_VERSION = 0;
 const unsigned int SEAM_PAINTING_VERSION         = 0;
 const unsigned int MM_PAINTING_VERSION           = 0;
@@ -147,9 +147,9 @@ const std::string BBL_PROFILE_USER_NAME_TAG         = "ProfileUserName";
 
 const std::string MODEL_FOLDER = "3D/";
 const std::string MODEL_EXTENSION = ".model";
-const std::string MODEL_FILE = "3D/3dmodel.model"; // << this is the only format of the string which works with CURA
+const std::string MODEL_FILE = "3D/3dmodel.model"; // << 这是唯一能与CURA配合使用的字符串格式
 const std::string MODEL_RELS_FILE = "3D/_rels/3dmodel.model.rels";
-//BBS: add metadata_folder
+//BBS: 添加元数据文件夹
 const std::string METADATA_DIR = "Metadata/";
 const std::string ACCESOR_DIR = "accesories/";
 const std::string GCODE_EXTENSION = ".gcode";
@@ -224,7 +224,7 @@ static constexpr const char* ASSEMBLE_ITEM_TAG = "assemble_item";
 static constexpr const char* SLICE_HEADER_TAG = "header";
 static constexpr const char* SLICE_HEADER_ITEM_TAG = "header_item";
 
-// Deprecated: text_info
+// 已弃用：text_info
 static constexpr const char* TEXT_INFO_TAG        = "text_info";
 static constexpr const char* TEXT_ATTR            = "text";
 static constexpr const char* FONT_NAME_ATTR       = "font_name";
@@ -345,7 +345,7 @@ static constexpr const char* MESH_STAT_FACETS_REMOVED       = "facets_removed";
 static constexpr const char* MESH_STAT_FACETS_RESERVED      = "facets_reversed";
 static constexpr const char* MESH_STAT_BACKWARDS_EDGES      = "backwards_edges";
 
-// Store / load of TextConfiguration
+// TextConfiguration的存储/加载
 static constexpr const char *TEXT_TAG = "slic3rpe:text";
 static constexpr const char *TEXT_DATA_ATTR = "text";
 // TextConfiguration::EmbossStyle
@@ -369,7 +369,7 @@ static constexpr const char *FONT_FACE_NAME_ATTR = "face_name";
 static constexpr const char *FONT_STYLE_ATTR     = "style";
 static constexpr const char *FONT_WEIGHT_ATTR    = "weight";
 
-// Store / load of EmbossShape
+// EmbossShape的存储/加载
 static constexpr const char *SHAPE_TAG = "slic3rpe:shape";
 static constexpr const char *SHAPE_SCALE_ATTR   = "scale";
 static constexpr const char *UNHEALED_ATTR = "unhealed";
@@ -440,8 +440,8 @@ std::string bbs_get_attribute_value_string(const char** attributes, unsigned int
     return (text != nullptr) ? text : "";
 }
 
-// Try each key in order, returning the first non-empty value.
-// Supports any number of fallback keys for backward compatibility.
+// 按顺序尝试每个键，返回第一个非空值。
+// 支持任意数量的回退键以实现向后兼容性。
 static std::string bbs_get_attribute_value_string(const char** attributes, unsigned int attributes_size,
                                                    std::initializer_list<const char*> keys)
 {
@@ -675,7 +675,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 #define L(s) (s)
 #define _(s) Slic3r::I18N::translate(s)
 
-    // Base class with error messages management
+    // 带有错误消息管理的基类
     class _BBS_3MF_Base
     {
         mutable boost::mutex mutex;
@@ -752,7 +752,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         {
             // ID of the object inside the 3MF file, 1 based.
             int id;
-            // Index of the ModelObject in its respective Model, zero based.
+            // ModelObject在其对应Model中的索引，从0开始。
             int model_object_idx;
             Geometry geometry;
             ModelObject* object;
@@ -867,7 +867,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::vector<Connector> connectors;
         };
 
-        // Map from a 1 based 3MF object ID to a 0 based ModelObject index inside m_model->objects.
+        // 从基于1的3MF对象ID映射到m_model->objects中基于0的ModelObject索引。
         //typedef std::pair<std::string, int> Id; // BBS: encrypt
         typedef std::map<Id, CurrentObject> IdToCurrentObjectMap;
         typedef std::map<int, std::string> IndexToPathMap;
@@ -936,9 +936,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             bool        object_parse_error()         const { return obj_parse_error; }
             const char* object_parse_error_message() const {
                 return obj_parse_error ?
-                    // The error was signalled by the user code, not the expat parser.
+                    // 错误由用户代码发出，而不是expat解析器。
                     (obj_parse_error_message.empty() ? "Invalid 3MF format" : obj_parse_error_message.c_str()) :
-                    // The error was signalled by the expat parser.
+                    // 错误由expat解析器发出。
                     XML_ErrorString(XML_GetErrorCode(object_xml_parser));
             }
 
@@ -1024,7 +1024,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             static void XMLCALL _handle_object_xml_characters(void* userData, const XML_Char* s, int len);
         };
 
-        // Version of the 3mf file
+        // 3mf文件的版本
         unsigned int m_version;
         bool m_check_version = false;
         bool m_load_model = false;
@@ -1034,7 +1034,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool m_load_restore = false;
         std::string m_backup_path;
         std::string m_origin_file;
-        // Semantic version of Orca Slicer, that generated this 3MF.
+        // 生成此3MF的Orca Slicer的语义版本。
         boost::optional<Semver> m_bambuslicer_generator_version;
         unsigned int m_fdm_supports_painting_version = 0;
         unsigned int m_seam_painting_version         = 0;
@@ -1053,8 +1053,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         std::string  m_profile_user_name;
 
         XML_Parser m_xml_parser;
-        // Error code returned by the application side of the parser. In that case the expat may not reliably deliver the error state
-        // after returning from XML_Parse() function, thus we keep the error state here.
+        // 由解析器应用程序端返回的错误代码。在这种情况下，expat在从XML_Parse()函数返回后可能无法可靠地传递错误状态，
+        // 因此我们将错误状态保留在这里。
         bool m_parse_error { false };
         std::string m_parse_error_message;
         Model* m_model;
@@ -1788,7 +1788,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             project->project_country_code = m_contry_code;
         }
 
-        // Orca: skip version check
+        // Orca: 跳过版本检查
         bool dont_load_config = !m_load_config;
         // if (m_bambuslicer_generator_version) {
         //     Semver app_version = *(Semver::parse(Snapmaker_VERSION));
@@ -2091,7 +2091,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             if (!_generate_volumes_new(*model_object, object_id_list, *volumes_ptr, config_substitutions))
                 return false;
 
-            // Apply cut information for object if any was loaded
+            // 如果已加载切割信息，则应用于对象
             // m_cut_object_ids are indexed by a 1 based model object index.
             IdToCutObjectInfoMap::iterator cut_object_info = m_cut_object_infos.find(object.second + 1);
             if (cut_object_info != m_cut_object_infos.end()) {
@@ -2108,9 +2108,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
         }
 
-        // If instances contain a single volume, the volume offset should be 0,0,0
-        // This equals to say that instance world position and volume world position should match
-        // Correct all instances/volumes for which this does not hold
+        // 如果实例包含单个体积，体积偏移应为0,0,0
+        // 这等于说实例世界位置和体积世界位置应该匹配
+        // 修正所有不满足此条件的实例/体积
         for (int obj_id = 0; obj_id < int(model.objects.size()); ++obj_id) {
             ModelObject *o = model.objects[obj_id];
             if (o->volumes.size() == 1) {
@@ -2858,7 +2858,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::vector<std::string> objects;
             boost::split(objects, buffer, boost::is_any_of("\n"), boost::token_compress_off);
 
-            // Info on format versioning - see bbs_3mf.hpp
+            // 格式版本信息 - 参见bbs_3mf.hpp
             int version = 0;
             std::string key("brim_points_format_version=");
             if (!objects.empty() && objects[0].find(key) != std::string::npos) {
@@ -2929,7 +2929,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::vector<std::string> objects;
             boost::split(objects, buffer, boost::is_any_of("\n"), boost::token_compress_off);
 
-            // Info on format versioning - see 3mf.hpp
+            // 格式版本信息 - 参见3mf.hpp
             int version = 0;
             std::string key("support_points_format_version=");
             if (!objects.empty() && objects[0].find(key) != std::string::npos) {
@@ -3011,7 +3011,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             std::vector<std::string> objects;
             boost::split(objects, buffer, boost::is_any_of("\n"), boost::token_compress_off);
 
-            // Info on format versioning - see 3mf.hpp
+            // 格式版本信息 - 参见3mf.hpp
             int version = 0;
             std::string key("drain_holes_format_version=");
             if (!objects.empty() && objects[0].find(key) != std::string::npos) {
@@ -3065,10 +3065,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                                                       float(std::atof(object_data_points[i+7].c_str())));
                 }
 
-                // The holes are saved elevated above the mesh and deeper (bad idea indeed).
-                // This is retained for compatibility.
-                // Place the hole to the mesh and make it shallower to compensate.
-                // The offset is 1 mm above the mesh.
+                // 孔被保存在网格上方且更深（确实是个坏主意）。
+                // 为了兼容性而保留。
+                // 将孔放置在网格上并使其更浅以进行补偿。
+                // 偏移量为网格上方1毫米。
                 for (sla::DrainHole& hole : sla_drain_holes) {
                     hole.pos += hole.normal.normalized();
                     hole.height -= 1.f;
@@ -3143,7 +3143,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         std::string         extra;
                         pt::ptree attr_tree = tree.find("<xmlattr>")->second;
                         if (attr_tree.find("type") == attr_tree.not_found()) {
-                            // It means that data was saved in old version (2.2.0 and older) of PrusaSlicer
+                            // 这表示数据是在旧版（2.2.0及更早版本）PrusaSlicer中保存的
                             // read old data ...
                             std::string gcode = tree.get<std::string>("<xmlattr>.gcode");
                             // ... and interpret them to the new data
@@ -3465,7 +3465,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         }
         else {
             if (m_is_bbl_3mf && boost::ends_with(m_curr_object->uuid, OBJECT_UUID_SUFFIX) && m_load_restore) {
-                // Adjust backup object/volume id
+                // 调整备份对象/体积ID
                 std::istringstream iss(m_curr_object->uuid);
                 int backup_id;
                 bool need_replace = false;
@@ -3788,7 +3788,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 throw version_error(msg);
             }*/
         } else if (m_curr_metadata_name == BBL_APPLICATION_TAG) {
-            // Generator application of the 3MF.
+            // 3MF的生成器应用程序。
             // SLIC3R_APP_KEY - Snapmaker_VERSION
             if (boost::starts_with(m_curr_characters, "BambuStudio-")) {
                 m_is_bbl_3mf = true;
@@ -3924,16 +3924,16 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         if (!volume.text_configuration.has_value())
             return false;
 
-        // Is 3mf version with shapes?
+        // 是否是有形状的3mf版本？
         if (volume.shape_configuration.has_value())
             return true;
 
-        // Back compatibility for 3mf version without shapes
+        // 向后兼容没有形状的3mf版本
         volume.shape_configuration = TextConfigurationSerialization::read_old(attributes, num_attributes);
         return true;
     }
 
-    // Definition of read/write method for EmbossShape
+    // EmbossShape的读写方法定义
     static void to_xml(std::stringstream &stream, const EmbossShape &es, const ModelVolume &volume, mz_zip_archive &archive);
     static std::optional<EmbossShape> read_emboss_shape(const char **attributes, unsigned int num_attributes);
 
@@ -3954,7 +3954,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         if (!volume.shape_configuration.has_value())
             return false;
 
-        // Fill svg file content into shape_configuration
+        // 将svg文件内容填入shape_configuration
         std::optional<EmbossShape::SvgFile> &svg = volume.shape_configuration->svg_file;
         if (!svg.has_value())
             return true; // do not contain svg file
@@ -4107,7 +4107,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             return false;
         }
 
-        // Added because of github #3435, currently not used by PrusaSlicer
+        // 因github #3435添加，目前未被PrusaSlicer使用
         // int instances_count_id = bbs_get_attribute_value_int(attributes, num_attributes, INSTANCESCOUNT_ATTR);
 
         m_objects_metadata.insert({ object_id, ObjectMetadata() });
@@ -6583,7 +6583,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 metadata_item_map[BBL_MODEL_NAME_TAG]           = xml_escape(name);
                 metadata_item_map[BBL_ORIGIN_TAG]               = xml_escape(origin);
                 metadata_item_map[BBL_DESIGNER_TAG]             = xml_escape(user_name);
-                metadata_item_map[BBL_DESIGNER_USER_ID_TAG]     = ""; // Orca: PRIVACY: do not store BBL user id in 3mf
+                metadata_item_map[BBL_DESIGNER_USER_ID_TAG]     = ""; // Orca: 隐私：不在3mf中存储BBL用户ID
                 metadata_item_map[BBL_DESIGNER_COVER_FILE_TAG]  = xml_escape(design_cover);
                 metadata_item_map[BBL_DESCRIPTION_TAG]          = xml_escape(description);
                 metadata_item_map[BBL_COPYRIGHT_NORMATIVE_TAG]  = xml_escape(copyright);
@@ -6595,7 +6595,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     metadata_item_map[BBL_REGION_TAG]   = region_code;
                 }
 
-                // Orca: PRIVACY: do not store creation & modification date in 3mf
+                // Orca: 隐私：不在3mf中存储创建和修改日期
                 metadata_item_map[BBL_CREATION_DATE_TAG] = "";
                 metadata_item_map[BBL_MODIFICATION_TAG]  = "";
                 //SoftFever: write BambuStudio tag to keep it compatible 
@@ -6976,7 +6976,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 return false;
             }
 
-            // Orca#7574: always use "model" type to follow the 3MF Core Specification:
+            // Orca#7574: 始终使用"model"类型以遵循3MF核心规范：
             // https://github.com/3MFConsortium/spec_core/blob/20c079eef39e45ed223b8443dc9f34cbe32dc2c2/3MF%20Core%20Specification.md#3431-item-element
             // > Note: items MUST NOT reference objects of type "other", either directly or recursively.
             // This won't break anything because when loading the file Orca (and Bambu) simply does not care about the actual object type at all (as long as it's one of "model" & "other");
@@ -7131,7 +7131,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             output_buffer += ">\n";
         }
 
-        // Force flush.
+        // 强制刷新。
         return flush(output_buffer, true);
     }
 
@@ -7715,7 +7715,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << FILAMENT_MAP_ATTR << "\" " << VALUE_ATTR << "=\"";
                 const size_t filaments_count = dynamic_cast<const ConfigOptionStrings*>(config.option("filament_colour"))->values.size();
                 for (int i = 0; i < filaments_count; ++i) {
-                    stream << "1"; // Orca hack: for now, all filaments are mapped to extruder 1
+                    stream << "1"; // Orca临时方案：目前所有丝材都映射到挤出机1
                     if (i != (filaments_count - 1))
                         stream << " ";
                 }
@@ -7893,7 +7893,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << FILAMENT_MAP_ATTR << "\" " << VALUE_ATTR << "=\"";
                 const size_t filaments_count = dynamic_cast<const ConfigOptionStrings*>(config.option("filament_colour"))->values.size();
                 for (int i = 0; i < filaments_count; ++i) {
-                    stream << "1"; // Orca hack: for now, all filaments are mapped to extruder 1
+                    stream << "1"; // Orca临时方案：目前所有丝材都映射到挤出机1
                     if (i != (filaments_count - 1))
                         stream << " ";
                 }
@@ -8472,7 +8472,7 @@ public:
         auto wait = now + boost::posix_time::seconds(3);
         while (true) {
             m_cond.timed_wait(lock, wait);
-            // Only delay when it's the only-one task
+            // 仅当是唯一任务时延迟
             if (m_tasks.size() != 1 || m_tasks.front().delay == t.delay)
                 break;
             t.delay = m_tasks.front().delay;
@@ -8886,7 +8886,7 @@ Transform3d create_fix(const std::optional<Transform3d> &prev, const ModelVolume
     // when no change do not calculate transformation only store original fix matrix
 
     // Create transformation used after load actual stored volume
-    // Orca: do not bake volume transformation into meshes
+    // Orca: 不要将体积变换烘焙到网格中
     // const Transform3d &actual_trmat = volume.get_matrix();
     const Transform3d& actual_trmat = Transform3d::Identity();
 

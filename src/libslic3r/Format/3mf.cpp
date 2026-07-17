@@ -36,26 +36,26 @@ namespace pt = boost::property_tree;
 
 #include <fast_float/fast_float.h>
 
-// Slightly faster than sprintf("%.9g"), but there is an issue with the karma floating point formatter,
+// 比sprintf("%.9g")略快，但karma浮点数格式化器存在问题，
 // https://github.com/boostorg/spirit/pull/586
-// where the exported string is one digit shorter than it should be to guarantee lossless round trip.
-// The code is left here for the ocasion boost guys improve.
+// 导出的字符串比保证无损往返所需的长度少一位。
+// 此处代码保留以备boost改进时使用。
 #define EXPORT_3MF_USE_SPIRIT_KARMA_FP 0
 
-// VERSION NUMBERS
-// 0 : .3mf, files saved by older slic3r or other applications. No version definition in them.
-// 1 : Introduction of 3mf versioning. No other change in data saved into 3mf files.
-// 2 : Volumes' matrices and source data added to Metadata/Slic3r_PE_model.config file, meshes transformed back to their coordinate system on loading.
-// WARNING !! -> the version number has been rolled back to 1
-//               the next change should use 3
+// 版本号
+// 0 : 旧版slic3r或其他应用程序保存的.3mf文件。其中没有版本定义。
+// 1 : 引入3mf版本控制。保存到3mf文件中的数据没有其他变化。
+// 2 : 在Metadata/Slic3r_PE_model.config文件中添加了体积矩阵和源数据，加载时将网格转换回其坐标系。
+// 警告 !! -> 版本号已回滚到1
+//              下一次更改应使用3
 const unsigned int VERSION_3MF = 1;
-// Allow loading version 2 file as well.
+// 允许同时加载版本2文件。
 const unsigned int VERSION_3MF_COMPATIBLE = 2;
-const char* SLIC3RPE_3MF_VERSION = "slic3rpe:Version3mf"; // definition of the metadata name saved into .model file
+const char* SLIC3RPE_3MF_VERSION = "slic3rpe:Version3mf"; // 保存到.model文件中的元数据名称定义
 
-// Painting gizmos data version numbers
-// 0 : 3MF files saved by older PrusaSlicer or the painting gizmo wasn't used. No version definition in them.
-// 1 : Introduction of painting gizmos data versioning. No other changes in painting gizmos data.
+// 绘制工具数据版本号
+// 0 : 旧版PrusaSlicer保存的3MF文件或未使用绘制工具。其中没有版本定义。
+// 1 : 引入绘制工具数据版本控制。绘制工具数据没有其他变化。
 const unsigned int FDM_SUPPORTS_PAINTING_VERSION = 1;
 const unsigned int SEAM_PAINTING_VERSION         = 1;
 const unsigned int MM_PAINTING_VERSION           = 1;
@@ -66,7 +66,7 @@ const std::string SLIC3RPE_MM_PAINTING_VERSION           = "slic3rpe:MmPaintingV
 
 const std::string MODEL_FOLDER = "3D/";
 const std::string MODEL_EXTENSION = ".model";
-const std::string MODEL_FILE = "3D/3dmodel.model"; // << this is the only format of the string which works with CURA
+const std::string MODEL_FILE = "3D/3dmodel.model"; // << 这是唯一能与CURA配合使用的字符串格式
 const std::string CONTENT_TYPES_FILE = "[Content_Types].xml";
 const std::string RELATIONSHIPS_FILE = "_rels/.rels";
 const std::string THUMBNAIL_FILE = "Metadata/thumbnail.png";
@@ -206,12 +206,12 @@ bool get_attribute_value_bool(const char** attributes, unsigned int attributes_s
 
 Slic3r::Transform3d get_transform_from_3mf_specs_string(const std::string& mat_str)
 {
-    // check: https://3mf.io/3d-manufacturing-format/ or https://github.com/3MFConsortium/spec_core/blob/master/3MF%20Core%20Specification.md
-    // to see how matrices are stored inside 3mf according to specifications
+    // 查看：https://3mf.io/3d-manufacturing-format/ 或 https://github.com/3MFConsortium/spec_core/blob/master/3MF%20Core%20Specification.md
+    // 了解根据规范矩阵如何存储在3mf中
     Slic3r::Transform3d ret = Slic3r::Transform3d::Identity();
 
     if (mat_str.empty())
-        // empty string means default identity matrix
+        // 空字符串表示默认单位矩阵
         return ret;
 
     std::vector<std::string> mat_elements_str;
@@ -219,12 +219,12 @@ Slic3r::Transform3d get_transform_from_3mf_specs_string(const std::string& mat_s
 
     unsigned int size = (unsigned int)mat_elements_str.size();
     if (size != 12)
-        // invalid data, return identity matrix
+        // 无效数据，返回单位矩阵
         return ret;
 
     unsigned int i = 0;
-    // matrices are stored into 3mf files as 4x3
-    // we need to transpose them
+    // 矩阵在3mf文件中存储为4x3格式
+    // 需要对其进行转置
     for (unsigned int c = 0; c < 4; ++c) {
         for (unsigned int r = 0; r < 3; ++r) {
             ret(r, c) = ::atof(mat_elements_str[i++].c_str());
@@ -248,13 +248,13 @@ float get_unit_factor(const std::string& unit)
     else if (::strcmp(text, "meter") == 0)
         return 1000.0f;
     else
-        // default "millimeters" (see specification)
+        // 默认为"毫米"（参见规范）
         return 1.0f;
 }
 
 bool is_valid_object_type(const std::string& type)
 {
-    // if the type is empty defaults to "model" (see specification)
+    // 如果类型为空，默认为"model"（参见规范）
     if (type.empty())
         return true;
 
@@ -268,8 +268,8 @@ bool is_valid_object_type(const std::string& type)
 
 namespace Slic3r {
 
-//! macro used to mark string used at localization,
-//! return same string
+//! 用于标记本地化使用的字符串的宏，
+//! 返回相同的字符串
 #define L(s) (s)
 #define _(s) Slic3r::I18N::translate(s)
 void XMLCALL PrusaFileParser::start_element_handler(void *userData, const char *name, const char **attributes)
@@ -360,19 +360,19 @@ std::string PrusaFileParser::get_attribute_value_string(const char **attributes,
 
 ModelVolumeType type_from_string(const std::string &s)
 {
-    // Legacy support
+    // 遗留支持
     if (s == "1") return ModelVolumeType::PARAMETER_MODIFIER;
-    // New type (supporting the support enforcers & blockers)
+    // 新类型（支持支撑强化和阻挡）
     if (s == "ModelPart") return ModelVolumeType::MODEL_PART;
     if (s == "NegativeVolume") return ModelVolumeType::NEGATIVE_VOLUME;
     if (s == "ParameterModifier") return ModelVolumeType::PARAMETER_MODIFIER;
     if (s == "SupportEnforcer") return ModelVolumeType::SUPPORT_ENFORCER;
     if (s == "SupportBlocker") return ModelVolumeType::SUPPORT_BLOCKER;
-    // Default value if invalud type string received.
+    // 如果收到无效类型字符串，返回默认值。
     return ModelVolumeType::MODEL_PART;
 }
 
-    // Base class with error messages management
+    // 带有错误消息管理的基类
     class _3MF_Base
     {
         std::vector<std::string> m_errors;
@@ -434,9 +434,9 @@ ModelVolumeType type_from_string(const std::string &s)
 
         struct CurrentObject
         {
-            // ID of the object inside the 3MF file, 1 based.
+            // 3MF文件中对象的ID，从1开始。
             int id;
-            // Index of the ModelObject in its respective Model, zero based.
+            // ModelObject在其对应Model中的索引，从0开始。
             int model_object_idx;
             Geometry geometry;
             ModelObject* object;
@@ -507,7 +507,7 @@ ModelVolumeType type_from_string(const std::string &s)
             VolumeMetadataList volumes;
         };
 
-        // Map from a 1 based 3MF object ID to a 0 based ModelObject index inside m_model->objects.
+        // 从基于1的3MF对象ID映射到m_model->objects中基于0的ModelObject索引。
         typedef std::map<int, int> IdToModelObjectMap;
         typedef std::map<int, ComponentsList> IdToAliasesMap;
         typedef std::vector<Instance> InstancesList;
@@ -518,19 +518,19 @@ ModelVolumeType type_from_string(const std::string &s)
         typedef std::map<int, std::vector<sla::SupportPoint>> IdToSlaSupportPointsMap;
         typedef std::map<int, std::vector<sla::DrainHole>> IdToSlaDrainHolesMap;
 
-        // Version of the 3mf file
+        // 3mf文件的版本
         unsigned int m_version;
         bool m_check_version;
 
-        // Semantic version of PrusaSlicer, that generated this 3MF.
+        // 生成此3MF的PrusaSlicer的语义版本。
         boost::optional<Semver> m_prusaslicer_generator_version;
         unsigned int m_fdm_supports_painting_version = 0;
         unsigned int m_seam_painting_version         = 0;
         unsigned int m_mm_painting_version           = 0;
 
         XML_Parser m_xml_parser;
-        // Error code returned by the application side of the parser. In that case the expat may not reliably deliver the error state
-        // after returning from XML_Parse() function, thus we keep the error state here.
+        // 由解析器应用程序端返回的错误代码。在这种情况下，expat在从XML_Parse()函数返回后可能无法可靠地传递错误状态，
+        // 因此我们将错误状态保留在这里。
         bool m_parse_error { false };
         std::string m_parse_error_message;
         Model* m_model;
@@ -564,9 +564,9 @@ ModelVolumeType type_from_string(const std::string &s)
         bool        parse_error()         const { return m_parse_error; }
         const char* parse_error_message() const {
             return m_parse_error ?
-                // The error was signalled by the user code, not the expat parser.
+                // 错误由用户代码发出，而不是expat解析器。
                 (m_parse_error_message.empty() ? "Invalid 3MF format" : m_parse_error_message.c_str()) :
-                // The error was signalled by the expat parser.
+                // 错误由expat解析器发出。
                 XML_ErrorString(XML_GetErrorCode(m_xml_parser));
         }
 
@@ -582,12 +582,12 @@ ModelVolumeType type_from_string(const std::string &s)
         void _extract_print_config_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat, DynamicPrintConfig& config, ConfigSubstitutionContext& subs_context, const std::string& archive_filename);
         bool _extract_model_config_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat, Model& model);
 
-        // handlers to parse the .model file
+        // 解析.model文件的处理器
         void _handle_start_model_xml_element(const char* name, const char** attributes);
         void _handle_end_model_xml_element(const char* name);
         void _handle_model_xml_characters(const XML_Char* s, int len);
 
-        // handlers to parse the MODEL_CONFIG_FILE file
+        // 解析MODEL_CONFIG_FILE文件的处理器
         void _handle_start_config_xml_element(const char* name, const char** attributes);
         void _handle_end_config_xml_element(const char* name);
 
@@ -650,12 +650,12 @@ ModelVolumeType type_from_string(const std::string &s)
 
         bool _generate_volumes(ModelObject& object, const Geometry& geometry, const ObjectMetadata::VolumeMetadataList& volumes, ConfigSubstitutionContext& config_substitutions);
 
-        // callbacks to parse the .model file
+        // 解析.model文件的回调函数
         static void XMLCALL _handle_start_model_xml_element(void* userData, const char* name, const char** attributes);
         static void XMLCALL _handle_end_model_xml_element(void* userData, const char* name);
         static void XMLCALL _handle_model_xml_characters(void* userData, const XML_Char* s, int len);
 
-        // callbacks to parse the MODEL_CONFIG_FILE file
+        // 解析MODEL_CONFIG_FILE文件的回调函数
         static void XMLCALL _handle_start_config_xml_element(void* userData, const char* name, const char** attributes);
         static void XMLCALL _handle_end_config_xml_element(void* userData, const char* name);
     };
@@ -738,7 +738,7 @@ ModelVolumeType type_from_string(const std::string &s)
 
         m_name = boost::filesystem::path(filename).stem().string();
 
-        // we first loop the entries to read from the archive the .model file only, in order to extract the version from it
+        // 我们首先循环条目，仅从存档中读取.model文件，以便从中提取版本
         for (mz_uint i = 0; i < num_entries; ++i) {
             if (mz_zip_reader_file_stat(&archive, i, &stat)) {
                 std::string name(stat.m_filename);
@@ -747,7 +747,7 @@ ModelVolumeType type_from_string(const std::string &s)
                 if (boost::algorithm::istarts_with(name, MODEL_FOLDER) && boost::algorithm::iends_with(name, MODEL_EXTENSION)) {
                     try
                     {
-                        // valid model name -> extract model
+                        // 有效模型名称 -> 提取模型
                         if (!_extract_model_from_archive(archive, stat)) {
                             close_zip_reader(&archive);
                             add_error("Archive does not contain a valid model");
@@ -756,7 +756,7 @@ ModelVolumeType type_from_string(const std::string &s)
                     }
                     catch (const std::exception& e)
                     {
-                        // ensure the zip archive is closed and rethrow the exception
+                        // 确保zip存档已关闭并重新抛出异常
                         close_zip_reader(&archive);
                         throw Slic3r::FileIOError(e.what());
                     }
@@ -764,7 +764,7 @@ ModelVolumeType type_from_string(const std::string &s)
             }
         }
 
-        // we then loop again the entries to read other files stored in the archive
+        // 然后再次循环条目以读取存储在存档中的其他文件
         for (mz_uint i = 0; i < num_entries; ++i) {
             if (mz_zip_reader_file_stat(&archive, i, &stat)) {
                 std::string name(stat.m_filename);
@@ -796,7 +796,7 @@ ModelVolumeType type_from_string(const std::string &s)
                     _extract_custom_gcode_per_print_z_from_archive(archive, stat);
                 }
                 */
-                // only read the model config for Prusa 3mf
+                // 仅读取Prusa 3mf的模型配置
                 if (boost::algorithm::iequals(name, MODEL_CONFIG_FILE)) {
                     // extract slic3r model config file
                     if (!_extract_model_config_from_archive(archive, stat, model)) {
@@ -811,8 +811,8 @@ ModelVolumeType type_from_string(const std::string &s)
         close_zip_reader(&archive);
 
         if (m_version == 0) {
-            // if the 3mf was not produced by PrusaSlicer and there is more than one instance,
-            // split the object in as many objects as instances
+            // 如果3mf不是由PrusaSlicer生成且有多个实例，
+            // 则将对象拆分为与实例数量相同的对象
             size_t curr_models_count = m_model->objects.size();
             size_t i = 0;
             while (i < curr_models_count) {
@@ -894,9 +894,9 @@ ModelVolumeType type_from_string(const std::string &s)
 
             IdToMetadataMap::iterator obj_metadata = m_objects_metadata.find(object.first);
             if (obj_metadata != m_objects_metadata.end()) {
-                // config data has been found, this model was saved using slic3r pe
+                // 找到了配置数据，此模型是使用slic3r pe保存的
 
-                // apply object's name and config data
+                // 应用对象的名称和配置数据
                 for (const Metadata& metadata : obj_metadata->second.metadata) {
                     if (metadata.key == "name")
                         model_object->name = metadata.value;
@@ -1032,11 +1032,11 @@ ModelVolumeType type_from_string(const std::string &s)
                 return;
             }
             //FIXME Loading a "will be one day a legacy format" of configuration in a form of a G-code comment.
-            // Each config line is prefixed with a semicolon (G-code comment), that is ugly.
+            // 每行配置都以分号（G-code注释）为前缀，这很难看。
 
-            // Replacing the legacy function with load_from_ini_string_commented leads to issues when
-            // parsing 3MFs from before PrusaSlicer 2.0.0 (which can have duplicated entries in the INI.
-            // See https://github.com/prusa3d/PrusaSlicer/issues/7155. We'll revert it for now.
+            // 用load_from_ini_string_commented替换旧函数会导致
+            // 解析PrusaSlicer 2.0.0之前的3MF时出现问题（INI中可能有重复条目）。
+            // 参见 https://github.com/prusa3d/PrusaSlicer/issues/7155。我们暂时恢复原样。
             //config_substitutions.substitutions = config.load_from_ini_string_commented(std::move(buffer), config_substitutions.rule);
             ConfigBase::load_from_gcode_string_legacy(config, buffer.data(), config_substitutions);
         }
@@ -1141,7 +1141,7 @@ ModelVolumeType type_from_string(const std::string &s)
                     double min_z = range_tree.get<double>("<xmlattr>.min_z");
                     double max_z = range_tree.get<double>("<xmlattr>.max_z");
 
-                    // get Z range information
+                    // 获取Z范围信息
                     DynamicPrintConfig config;
 
                     for (const auto& option : range_tree) {
@@ -1177,7 +1177,7 @@ ModelVolumeType type_from_string(const std::string &s)
             std::vector<std::string> objects;
             boost::split(objects, buffer, boost::is_any_of("\n"), boost::token_compress_off);
 
-            // Info on format versioning - see 3mf.hpp
+            // 格式版本信息 - 参见3mf.hpp
             int version = 0;
             std::string key("support_points_format_version=");
             if (!objects.empty() && objects[0].find(key) != std::string::npos) {
@@ -1259,7 +1259,7 @@ ModelVolumeType type_from_string(const std::string &s)
             std::vector<std::string> objects;
             boost::split(objects, buffer, boost::is_any_of("\n"), boost::token_compress_off);
 
-            // Info on format versioning - see 3mf.hpp
+            // 格式版本信息 - 参见3mf.hpp
             int version = 0;
             std::string key("drain_holes_format_version=");
             if (!objects.empty() && objects[0].find(key) != std::string::npos) {
@@ -1313,10 +1313,10 @@ ModelVolumeType type_from_string(const std::string &s)
                                                       float(std::atof(object_data_points[i+7].c_str())));
                 }
 
-                // The holes are saved elevated above the mesh and deeper (bad idea indeed).
-                // This is retained for compatibility.
-                // Place the hole to the mesh and make it shallower to compensate.
-                // The offset is 1 mm above the mesh.
+                // 孔被保存在网格上方且更深（确实是个坏主意）。
+                // 为了兼容性而保留。
+                // 将孔放置在网格上并使其更浅以进行补偿。
+                // 偏移量为网格上方1毫米。
                 for (sla::DrainHole& hole : sla_drain_holes) {
                     hole.pos += hole.normal.normalized();
                     hole.height -= 1.f;
@@ -1853,7 +1853,7 @@ ModelVolumeType type_from_string(const std::string &s)
                 throw version_error(msg);
             }
         } else if (m_curr_metadata_name == "Application") {
-            // Generator application of the 3MF.
+            // 3MF的生成器应用程序。
             // SLIC3R_APP_KEY - SLIC3R_VERSION
             if (boost::starts_with(m_curr_characters, "PrusaSlicer-"))
                 m_prusaslicer_generator_version = Semver::parse(m_curr_characters.substr(12));
@@ -1951,7 +1951,7 @@ ModelVolumeType type_from_string(const std::string &s)
             return false;
         }
 
-        // Added because of github #3435, currently not used by PrusaSlicer
+        // 因github #3435添加，目前未被PrusaSlicer使用
         // int instances_count_id = get_attribute_value_int(attributes, num_attributes, INSTANCESCOUNT_ATTR);
 
         m_objects_metadata.insert({ object_id, ObjectMetadata() });
@@ -2132,8 +2132,8 @@ ModelVolumeType type_from_string(const std::string &s)
             if (m_prusaslicer_generator_version &&
                 *m_prusaslicer_generator_version >= *Semver::parse("2.4.0-alpha1") &&
                 *m_prusaslicer_generator_version < *Semver::parse("2.4.0-alpha3"))
-                // PrusaSlicer 2.4.0-alpha2 contained a bug, where all vertices of a single object were saved for each volume the object contained.
-                // Remove the vertices, that are not referenced by any face.
+                // PrusaSlicer 2.4.0-alpha2 包含一个错误，其中对象的所有顶点都针对该对象包含的每个体积进行了保存。
+                // 删除未被任何面引用的顶点。
                 its_compactify_vertices(its, true);
 
             TriangleMesh triangle_mesh(std::move(its), volume_data.mesh_stats);
@@ -2343,8 +2343,8 @@ ModelVolumeType type_from_string(const std::string &s)
             return false;
         }
 
-        // Adds content types file ("[Content_Types].xml";).
-        // The content of this file is the same for each PrusaSlicer 3mf.
+        // 添加内容类型文件（"[Content_Types].xml"）。
+        // 此文件的内容对于每个PrusaSlicer 3mf都是相同的。
         if (!_add_content_types_file_to_archive(archive)) {
             close_zip_writer(&archive);
             boost::filesystem::remove(filename);
@@ -2352,7 +2352,7 @@ ModelVolumeType type_from_string(const std::string &s)
         }
 
         if (thumbnail_data != nullptr && thumbnail_data->is_valid()) {
-            // Adds the file Metadata/thumbnail.png.
+            // 添加Metadata/thumbnail.png文件。
             if (!_add_thumbnail_file_to_archive(archive, *thumbnail_data)) {
                 close_zip_writer(&archive);
                 boost::filesystem::remove(filename);
@@ -2360,17 +2360,17 @@ ModelVolumeType type_from_string(const std::string &s)
             }
         }
 
-        // Adds relationships file ("_rels/.rels").
-        // The content of this file is the same for each PrusaSlicer 3mf.
-        // The relationshis file contains a reference to the geometry file "3D/3dmodel.model", the name was chosen to be compatible with CURA.
+        // 添加关系文件（"_rels/.rels"）。
+        // 此文件的内容对于每个PrusaSlicer 3mf都是相同的。
+        // 关系文件包含对几何文件"3D/3dmodel.model"的引用，该名称选择为与CURA兼容。
         if (!_add_relationships_file_to_archive(archive)) {
             close_zip_writer(&archive);
             boost::filesystem::remove(filename);
             return false;
         }
 
-        // Adds model file ("3D/3dmodel.model").
-        // This is the one and only file that contains all the geometry (vertices and triangles) of all ModelVolumes.
+        // 添加模型文件（"3D/3dmodel.model"）。
+        // 这是唯一包含所有ModelVolume的所有几何数据（顶点和三角形）的文件。
         IdToObjectDataMap objects_data;
         if (!_add_model_file_to_archive(filename, archive, model, objects_data)) {
             close_zip_writer(&archive);
@@ -2378,27 +2378,27 @@ ModelVolumeType type_from_string(const std::string &s)
             return false;
         }
 
-        // Adds layer height profile file ("Metadata/Slic3r_PE_layer_heights_profile.txt").
-        // All layer height profiles of all ModelObjects are stored here, indexed by 1 based index of the ModelObject in Model.
-        // The index differes from the index of an object ID of an object instance of a 3MF file!
+        // 添加层高配置文件（"Metadata/Slic3r_PE_layer_heights_profile.txt"）。
+        // 所有ModelObject的所有层高配置文件都存储在这里，由Model中基于1的ModelObject索引进行索引。
+        // 该索引不同于3MF文件对象实例的对象ID索引！
         if (!_add_layer_height_profile_file_to_archive(archive, model)) {
             close_zip_writer(&archive);
             boost::filesystem::remove(filename);
             return false;
         }
 
-        // Adds layer config ranges file ("Metadata/Slic3r_PE_layer_config_ranges.txt").
-        // All layer height profiles of all ModelObjects are stored here, indexed by 1 based index of the ModelObject in Model.
-        // The index differes from the index of an object ID of an object instance of a 3MF file!
+        // 添加层配置范围文件（"Metadata/Slic3r_PE_layer_config_ranges.txt"）。
+        // 所有ModelObject的所有层高配置文件都存储在这里，由Model中基于1的ModelObject索引进行索引。
+        // 该索引不同于3MF文件对象实例的对象ID索引！
         if (!_add_layer_config_ranges_file_to_archive(archive, model)) {
             close_zip_writer(&archive);
             boost::filesystem::remove(filename);
             return false;
         }
 
-        // Adds sla support points file ("Metadata/Slic3r_PE_sla_support_points.txt").
-        // All  sla support points of all ModelObjects are stored here, indexed by 1 based index of the ModelObject in Model.
-        // The index differes from the index of an object ID of an object instance of a 3MF file!
+        // 添加sla支撑点文件（"Metadata/Slic3r_PE_sla_support_points.txt"）。
+        // 所有ModelObject的所有sla支撑点都存储在这里，由Model中基于1的ModelObject索引进行索引。
+        // 该索引不同于3MF文件对象实例的对象ID索引！
         if (!_add_sla_support_points_file_to_archive(archive, model)) {
             close_zip_writer(&archive);
             boost::filesystem::remove(filename);
@@ -2412,16 +2412,16 @@ ModelVolumeType type_from_string(const std::string &s)
         }
 
 
-        // Adds custom gcode per height file ("Metadata/Prusa_Slicer_custom_gcode_per_print_z.xml").
-        // All custom gcode per height of whole Model are stored here
+        // 添加自定义GCode按高度文件（"Metadata/Prusa_Slicer_custom_gcode_per_print_z.xml"）。
+        // 整个模型的所有自定义GCode按高度都存储在这里
         if (!_add_custom_gcode_per_print_z_file_to_archive(archive, model, config)) {
             close_zip_writer(&archive);
             boost::filesystem::remove(filename);
             return false;
         }
 
-        // Adds slic3r print config file ("Metadata/Slic3r_PE.config").
-        // This file contains the content of FullPrintConfig / SLAFullPrintConfig.
+        // 添加slic3r打印配置文件（"Metadata/Slic3r_PE.config"）。
+        // 此文件包含FullPrintConfig / SLAFullPrintConfig的内容。
         if (config != nullptr) {
             if (!_add_print_config_file_to_archive(archive, *config)) {
                 close_zip_writer(&archive);
@@ -2430,10 +2430,10 @@ ModelVolumeType type_from_string(const std::string &s)
             }
         }
 
-        // Adds slic3r model config file ("Metadata/Slic3r_PE_model.config").
-        // This file contains all the attributes of all ModelObjects and their ModelVolumes (names, parameter overrides).
-        // As there is just a single Indexed Triangle Set data stored per ModelObject, offsets of volumes into their respective Indexed Triangle Set data
-        // is stored here as well.
+        // 添加slic3r模型配置文件（"Metadata/Slic3r_PE_model.config"）。
+        // 此文件包含所有ModelObject及其ModelVolume的所有属性（名称、参数覆盖）。
+        // 由于每个ModelObject仅存储一个索引三角形集数据，体积在其各自索引三角形集数据中的偏移量
+        // 也存储在这里。
         if (!_add_model_config_file_to_archive(archive, model, objects_data)) {
             close_zip_writer(&archive);
             boost::filesystem::remove(filename);
@@ -2513,9 +2513,9 @@ ModelVolumeType type_from_string(const std::string &s)
         stream.str("");
         stream.clear();
         // https://en.cppreference.com/w/cpp/types/numeric_limits/max_digits10
-        // Conversion of a floating-point value to text and back is exact as long as at least max_digits10 were used (9 for float, 17 for double).
-        // It is guaranteed to produce the same floating-point value, even though the intermediate text representation is not exact.
-        // The default value of std::stream precision is 6 digits only!
+        // 只要至少使用了max_digits10位数字（float为9，double为17），浮点数值与文本之间的转换就是精确的。
+        // 即使中间文本表示不精确，也能保证产生相同的浮点数值。
+        // std::stream precision的默认值只有6位！
         stream << std::setprecision(std::numeric_limits<float>::max_digits10);
     }
 
@@ -2524,11 +2524,11 @@ ModelVolumeType type_from_string(const std::string &s)
         mz_zip_writer_staged_context context;
         if (!mz_zip_writer_add_staged_open(&archive, &context, MODEL_FILE.c_str(),
             m_zip64 ?
-                // Maximum expected and allowed 3MF file size is 16GiB.
-                // This switches the ZIP file to a 64bit mode, which adds a tiny bit of overhead to file records.
+                // 最大预期和允许的3MF文件大小为16GiB。
+                // 这将ZIP文件切换到64位模式，这会为文件记录增加少量开销。
                 (uint64_t(1) << 30) * 16 :
-                // Maximum expected 3MF file size is 4GB-1. This is a workaround for interoperability with Windows 10 3D model fixing API, see
-                // GH issue #6193.
+                // 最大预期3MF文件大小为4GB-1。这是与Windows 10 3D模型修复API互操作的解决方法，参见
+                // GH issue #6193。
                 (uint64_t(1) << 32) - 1,
             nullptr, nullptr, 0, MZ_DEFAULT_COMPRESSION, nullptr, 0, nullptr, 0)) {
             add_error("Unable to add model file to archive");
@@ -2558,7 +2558,7 @@ ModelVolumeType type_from_string(const std::string &s)
             stream << " <" << METADATA_TAG << " name=\"Copyright\">" << "</" << METADATA_TAG << ">\n";
             stream << " <" << METADATA_TAG << " name=\"LicenseTerms\">" << "</" << METADATA_TAG << ">\n";
             stream << " <" << METADATA_TAG << " name=\"Rating\">" << "</" << METADATA_TAG << ">\n";
-            // Orca: PRIVACY: do not store creation & modification date in 3mf
+            // Orca: 隐私：不在3mf中存储创建和修改日期
             stream << " <" << METADATA_TAG << " name=\"CreationDate\">" << "</" << METADATA_TAG << ">\n";
             stream << " <" << METADATA_TAG << " name=\"ModificationDate\">" << "</" << METADATA_TAG << ">\n";
             stream << " <" << METADATA_TAG << " name=\"Application\">" << SLIC3R_APP_KEY << "-" << SLIC3R_VERSION << "</" << METADATA_TAG << ">\n";
@@ -2570,23 +2570,23 @@ ModelVolumeType type_from_string(const std::string &s)
             }
         }
 
-        // Instance transformations, indexed by the 3MF object ID (which is a linear serialization of all instances of all ModelObjects).
+        // 实例变换，由3MF对象ID索引（这是所有ModelObject的所有实例的线性序列化）。
         BuildItemsList build_items;
 
-        // The object_id here is a one based identifier of the first instance of a ModelObject in the 3MF file, where
-        // all the object instances of all ModelObjects are stored and indexed in a 1 based linear fashion.
-        // Therefore the list of object_ids here may not be continuous.
+        // 此处的object_id是3MF文件中ModelObject第一个实例的基于1的标识符，
+        // 所有ModelObject的所有对象实例都以基于1的线性方式存储和索引。
+        // 因此，此处的object_id列表可能不是连续的。
         unsigned int object_id = 1;
         for (ModelObject* obj : model.objects) {
             if (obj == nullptr)
                 continue;
 
-            // Index of an object in the 3MF file corresponding to the 1st instance of a ModelObject.
+            // 3MF文件中对应ModelObject第一个实例的对象索引。
             unsigned int curr_id = object_id;
             IdToObjectDataMap::iterator object_it = objects_data.insert({ curr_id, ObjectData(obj) }).first;
-            // Store geometry of all ModelVolumes contained in a single ModelObject into a single 3MF indexed triangle set object.
-            // object_it->second.volumes_offsets will contain the offsets of the ModelVolumes in that single indexed triangle set.
-            // object_id will be increased to point to the 1st instance of the next ModelObject.
+            // 将单个ModelObject中包含的所有ModelVolume的几何数据存储到单个3MF索引三角形集对象中。
+            // object_it->second.volumes_offsets将包含该单个索引三角形集中ModelVolume的偏移量。
+            // object_id将递增以指向下一个ModelObject的第一个实例。
             if (!_add_object_to_model_stream(context, object_id, *obj, build_items, object_it->second.volumes_offsets)) {
                 add_error("Unable to add object to archive");
                 mz_zip_writer_add_staged_finish(&context);
@@ -2599,7 +2599,7 @@ ModelVolumeType type_from_string(const std::string &s)
             reset_stream(stream);
             stream << " </" << RESOURCES_TAG << ">\n";
 
-            // Store the transformations of all the ModelInstances of all ModelObjects, indexed in a linear fashion.
+            // 以线性方式存储所有ModelObject的所有ModelInstance的变换。
             if (!_add_build_to_model_stream(stream, build_items)) {
                 add_error("Unable to add build to archive");
                 mz_zip_writer_add_staged_finish(&context);
@@ -2649,7 +2649,7 @@ ModelVolumeType type_from_string(const std::string &s)
             }
 
             Transform3d t = instance->get_matrix();
-            // instance_id is just a 1 indexed index in build_items.
+            // instance_id只是build_items中基于1的索引。
             assert(instance_id == build_items.size() + 1);
             build_items.emplace_back(instance_id, t, instance->printable);
 
@@ -2668,9 +2668,9 @@ ModelVolumeType type_from_string(const std::string &s)
     struct coordinate_policy_fixed : boost::spirit::karma::real_policies<Num>
     {
         static int floatfield(Num n) { return fmtflags::fixed; }
-        // Number of decimal digits to maintain float accuracy when storing into a text file and parsing back.
+        // 保留浮点精度的十进制位数，以便存储到文本文件并解析回来。
         static unsigned precision(Num /* n */) { return std::numeric_limits<Num>::max_digits10 + 1; }
-        // No trailing zeros, thus for fmtflags::fixed usually much less than max_digits10 decimal numbers will be produced.
+        // 无尾随零，因此对于fmtflags::fixed格式，通常产生的十进制数字远少于max_digits10。
         static bool trailing_zeros(Num /* n */) { return false; }
     };
     template <typename Num>
@@ -2678,7 +2678,7 @@ ModelVolumeType type_from_string(const std::string &s)
     {
         static int floatfield(Num n) { return fmtflags::scientific; }
     };
-    // Define a new generator type based on the new coordinate policy.
+    // 基于新的坐标策略定义一个新的生成器类型。
     using coordinate_type_fixed      = boost::spirit::karma::real_generator<float, coordinate_policy_fixed<float>>;
     using coordinate_type_scientific = boost::spirit::karma::real_generator<float, coordinate_policy_scientific<float>>;
 #endif // EXPORT_3MF_USE_SPIRIT_KARMA_FP
@@ -2706,29 +2706,29 @@ ModelVolumeType type_from_string(const std::string &s)
         auto format_coordinate = [](float f, char *buf) -> char* {
             assert(is_decimal_separator_point());
 #if EXPORT_3MF_USE_SPIRIT_KARMA_FP
-            // Slightly faster than sprintf("%.9g"), but there is an issue with the karma floating point formatter,
+            // 比sprintf("%.9g")略快，但karma浮点数格式化器存在问题，
             // https://github.com/boostorg/spirit/pull/586
-            // where the exported string is one digit shorter than it should be to guarantee lossless round trip.
-            // The code is left here for the ocasion boost guys improve.
+            // 导出的字符串比保证无损往返所需的长度少一位。
+            // 此处代码保留以备boost改进时使用。
             coordinate_type_fixed      const coordinate_fixed      = coordinate_type_fixed();
             coordinate_type_scientific const coordinate_scientific = coordinate_type_scientific();
-            // Format "f" in a fixed format.
+            // 以固定格式"f"格式化。
             char *ptr = buf;
             boost::spirit::karma::generate(ptr, coordinate_fixed, f);
-            // Format "f" in a scientific format.
+            // 以科学计数法格式"f"格式化。
             char *ptr2 = ptr;
             boost::spirit::karma::generate(ptr2, coordinate_scientific, f);
-            // Return end of the shorter string.
+            // 返回较短字符串的结尾。
             auto len2 = ptr2 - ptr;
             if (ptr - buf > len2) {
-                // Move the shorter scientific form to the front.
+                // 将较短的科学计数法形式移到前面。
                 memcpy(buf, ptr, len2);
                 ptr = buf + len2;
             }
-            // Return pointer to the end.
+            // 返回指向结尾的指针。
             return ptr;
 #else
-            // Round-trippable float, shortest possible.
+            // 可往返转换的浮点数，尽可能短。
             return buf + sprintf(buf, "%.9g", f);
 #endif
         };
@@ -2854,13 +2854,13 @@ ModelVolumeType type_from_string(const std::string &s)
         output_buffer += MESH_TAG;
         output_buffer += ">\n";
 
-        // Force flush.
+        // 强制刷新。
         return flush(true);
     }
 
     bool _3MF_Exporter::_add_build_to_model_stream(std::stringstream& stream, const BuildItemsList& build_items)
     {
-        // This happens for empty projects
+        // 这发生在空项目中
         if (build_items.size() == 0) {
             add_error("No build item found");
             return true;
@@ -2899,7 +2899,7 @@ ModelVolumeType type_from_string(const std::string &s)
                 sprintf(buffer, "object_id=%d|", count);
                 out += buffer;
 
-                // Store the layer height profile as a single semicolon separated list.
+                // 将层高配置文件存储为以分号分隔的单个列表。
                 for (size_t i = 0; i < layer_height_profile.size(); ++i) {
                     sprintf(buffer, (i == 0) ? "%f" : ";%f", layer_height_profile[i]);
                     out += buffer;
@@ -2934,7 +2934,7 @@ ModelVolumeType type_from_string(const std::string &s)
 
                 obj_tree.put("<xmlattr>.id", object_cnt);
 
-                // Store the layer config ranges.
+                // 存储层配置范围。
                 for (const auto& range : ranges) {
                     pt::ptree& range_tree = obj_tree.add("range", "");
 
@@ -2957,7 +2957,7 @@ ModelVolumeType type_from_string(const std::string &s)
             pt::write_xml(oss, tree);
             out = oss.str();
 
-            // Post processing("beautification") of the output string for a better preview
+            // 输出字符串的后处理（美化），以获得更好的预览效果
             boost::replace_all(out, "><object",      ">\n <object");
             boost::replace_all(out, "><range",       ">\n  <range");
             boost::replace_all(out, "><option",      ">\n   <option");
@@ -2991,7 +2991,7 @@ ModelVolumeType type_from_string(const std::string &s)
                 sprintf(buffer, "object_id=%d|", count);
                 out += buffer;
 
-                // Store the layer height profile as a single space separated list.
+                // 将层高配置文件存储为以空格分隔的单个列表。
                 for (size_t i = 0; i < sla_support_points.size(); ++i) {
                     sprintf(buffer, (i==0 ? "%f %f %f %f %f" : " %f %f %f %f %f"),  sla_support_points[i].pos(0), sla_support_points[i].pos(1), sla_support_points[i].pos(2), sla_support_points[i].head_front_radius, (float)sla_support_points[i].is_new_island);
                     out += buffer;
@@ -3001,7 +3001,7 @@ ModelVolumeType type_from_string(const std::string &s)
         }
 
         if (!out.empty()) {
-            // Adds version header at the beginning:
+            // 在开头添加版本头：
             out = std::string("support_points_format_version=") + std::to_string(support_points_format_version) + std::string("\n") + out;
 
             if (!mz_zip_writer_add_mem(&archive, SLA_SUPPORT_POINTS_FILE.c_str(), (const void*)out.data(), out.length(), MZ_DEFAULT_COMPRESSION)) {
@@ -3023,10 +3023,9 @@ ModelVolumeType type_from_string(const std::string &s)
             ++count;
             sla::DrainHoles drain_holes = object->sla_drain_holes;
 
-            // The holes were placed 1mm above the mesh in the first implementation.
-            // This was a bad idea and the reference point was changed in 2.3 so
-            // to be on the mesh exactly. The elevated position is still saved
-            // in 3MFs for compatibility reasons.
+            // 在最初的实现中，孔被放置在网格上方1mm处。
+            // 这是一个糟糕的想法，参考点在2.3中更改为
+            // 精确地位于网格上。出于兼容性原因，提升后的位置仍然保存在3MF中。
             for (sla::DrainHole& hole : drain_holes) {
                 hole.pos -= hole.normal.normalized();
                 hole.height += 1.f;
@@ -3035,7 +3034,7 @@ ModelVolumeType type_from_string(const std::string &s)
             if (!drain_holes.empty()) {
                 out += string_printf(fmt, count);
 
-                // Store the layer height profile as a single space separated list.
+                // 将层高配置文件存储为以空格分隔的单个列表。
                 for (size_t i = 0; i < drain_holes.size(); ++i)
                     out += string_printf((i == 0 ? "%f %f %f %f %f %f %f %f" : " %f %f %f %f %f %f %f %f"),
                                          drain_holes[i].pos(0),
@@ -3052,7 +3051,7 @@ ModelVolumeType type_from_string(const std::string &s)
         }
 
         if (!out.empty()) {
-            // Adds version header at the beginning:
+            // 在开头添加版本头：
             out = std::string("drain_holes_format_version=") + std::to_string(drain_holes_format_version) + std::string("\n") + out;
 
             if (!mz_zip_writer_add_mem(&archive, SLA_DRAIN_HOLES_FILE.c_str(), static_cast<const void*>(out.data()), out.length(), mz_uint(MZ_DEFAULT_COMPRESSION))) {
@@ -3087,8 +3086,7 @@ ModelVolumeType type_from_string(const std::string &s)
     bool _3MF_Exporter::_add_model_config_file_to_archive(mz_zip_archive& archive, const Model& model, const IdToObjectDataMap &objects_data)
     {
         std::stringstream stream;
-        // Store mesh transformation in full precision, as the volumes are stored transformed and they need to be transformed back
-        // when loaded as accurately as possible.
+        // 以全精度存储网格变换，因为体积是以变换后的形式存储的，需要在加载时尽可能精确地变换回来。
 		stream << std::setprecision(std::numeric_limits<double>::max_digits10);
         stream << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
         stream << "<" << CONFIG_TAG << ">\n";
@@ -3096,7 +3094,7 @@ ModelVolumeType type_from_string(const std::string &s)
         for (const IdToObjectDataMap::value_type& obj_metadata : objects_data) {
             const ModelObject* obj = obj_metadata.second.object;
             if (obj != nullptr) {
-                // Output of instances count added because of github #3435, currently not used by PrusaSlicer
+                // 因github #3435添加的实例数量输出，目前未被PrusaSlicer使用
                 stream << " <" << OBJECT_TAG << " " << ID_ATTR << "=\"" << obj_metadata.first << "\" " << INSTANCESCOUNT_ATTR << "=\"" << obj->instances.size() << "\">\n";
 
                 // stores object's name
@@ -3248,13 +3246,13 @@ bool _3MF_Exporter::_add_custom_gcode_per_print_z_file_to_archive( mz_zip_archiv
     //return true;
 }
 
-// Perform conversions based on the config values available.
-//FIXME provide a version of PrusaSlicer that stored the project file (3MF).
+// 根据可用的配置值执行转换。
+//FIXME 提供一个存储项目文件(3MF)的PrusaSlicer版本。
 static void handle_legacy_project_loaded(unsigned int version_project_file, DynamicPrintConfig& config)
 {
     if (! config.has("brim_object_gap")) {
         if (auto *opt_elephant_foot   = config.option<ConfigOptionFloat>("elefant_foot_compensation", false); opt_elephant_foot) {
-            // Conversion from older PrusaSlicer which applied brim separation equal to elephant foot compensation.
+            // 从旧版PrusaSlicer转换，该版本应用的brim分离等于象脚补偿。
             auto *opt_brim_separation = config.option<ConfigOptionFloat>("brim_object_gap", true);
             opt_brim_separation->value = opt_elephant_foot->value;
         }
@@ -3266,7 +3264,7 @@ bool load_3mf(const char* path, DynamicPrintConfig& config, ConfigSubstitutionCo
     if (path == nullptr || model == nullptr)
         return false;
 
-    // All import should use "C" locales for number formatting.
+    // 所有导入应使用"C"区域设置进行数字格式化。
     CNumericLocalesSetter locales_setter;
     _3MF_Importer         importer;
     bool res = importer.load_model_from_file(path, *model, config, config_substitutions, check_version);
@@ -3277,7 +3275,7 @@ bool load_3mf(const char* path, DynamicPrintConfig& config, ConfigSubstitutionCo
 
 bool store_3mf(const char* path, Model* model, const DynamicPrintConfig* config, bool fullpath_sources, const ThumbnailData* thumbnail_data, bool zip64)
 {
-    // All export should use "C" locales for number formatting.
+    // 所有导出应使用"C"区域设置进行数字格式化。
     CNumericLocalesSetter locales_setter;
 
     if (path == nullptr || model == nullptr)

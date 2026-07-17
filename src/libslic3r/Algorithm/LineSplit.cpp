@@ -1,4 +1,4 @@
-#include "LineSplit.hpp"
+﻿﻿#include "LineSplit.hpp"
 
 #include "AABBTreeLines.hpp"
 #include "SVG.hpp"
@@ -13,7 +13,7 @@ namespace Algorithm {
 static std::atomic<std::uint32_t> g_dbg_id = 0;
 #endif
 
-// Z for points from clip polygon
+// 来自裁剪多边形的点的 Z 值
 static constexpr auto CLIP_IDX = std::numeric_limits<ClipperLib_Z::cInt>::max();
 
 static void cb_split_line(const ClipperZUtils::ZPoint& e1bot,
@@ -44,17 +44,17 @@ static Point to_point(const ClipperZUtils::ZPoint& p) { return {p.x(), p.y()}; }
 
 using SplitNode = std::vector<ClipperZUtils::ZPath*>;
 
-// Note: p cannot be one of the line end
+// 注意：p 不能是线段的端点之一
 static bool point_on_line(const Point& p, const Line& l)
 {
-    // Check collinear
+    // 检查共线性
     const Vec2crd d1 = l.b - l.a;
     const Vec2crd d2 = p - l.a;
     if (d1.x() * d2.y() != d1.y() * d2.x()) { 
         return false;
     }
 
-    // Make sure p is in between line.a and line.b
+    // 确保 p 位于 line.a 和 line.b 之间
     if (l.a.x() != l.b.x())
         return (p.x() > l.a.x()) == (p.x() < l.b.x());
     else
@@ -81,9 +81,9 @@ SplittedLine do_split_line(const ClipperZUtils::ZPath& path, const ExPolygons& c
 #endif
 
     ClipperZUtils::ZPaths intersections;
-    // Perform an intersection
+    // 执行相交操作
     {
-        // Convert clip polygon to closed contours
+        // 将裁剪多边形转换为闭合轮廓
         ClipperZUtils::ZPaths clip_path;
         for (const auto& exp : clip) {
             clip_path.emplace_back(ClipperZUtils::to_zpath<false>(exp.contour.points, CLIP_IDX));
@@ -129,12 +129,12 @@ SplittedLine do_split_line(const ClipperZUtils::ZPath& path, const ExPolygons& c
     }
 #endif
 
-    // Connect the intersection back to the remaining loop
+    // 将相交部分连接回剩余的环路
     std::vector<SplitNode> split_chain;
     {
-        // AABBTree over source paths.
-        // Only built if necessary, that is if any of the clipped segment has first point came from clip polygon,
-        // and we need to find out which source edge that point came from.
+        // 在源路径上构建 AABBTree。
+        // 仅在必要时构建，即当任意裁剪段的第一个点来自裁剪多边形时，
+        // 我们需要找出该点来自哪条源边。
         AABBTreeLines::LinesDistancer<Line> aabb_tree;
         const auto                          resolve_clip_point = [&path, &aabb_tree](ClipperZUtils::ZPoint& zp) {
             if (!is_clip(zp)) {
@@ -154,7 +154,7 @@ SplittedLine do_split_line(const ClipperZUtils::ZPath& path, const ExPolygons& c
             const auto possible_edges = aabb_tree.all_lines_in_radius(p, SCALED_EPSILON);
             assert(!possible_edges.empty());
             for (const size_t l : possible_edges) {
-                // Check if the point is on the line
+                // 检查点是否在线段上
                 const Line line(to_point(path[l]), to_point(path[l + 1]));
                 if (p == line.a) {
                     zp.z() = path[l].z();
@@ -170,7 +170,7 @@ SplittedLine do_split_line(const ClipperZUtils::ZPath& path, const ExPolygons& c
                 }
             }
             if (is_clip(zp)) {
-                // Too bad! Couldn't find the src edge, so we just pick the first one and hope it works
+                // 糟糕！找不到源边，所以我们选择第一条边并希望它能工作
                 zp.z() = -(path[possible_edges[0]].z() + 1);
             }
         };
@@ -178,43 +178,43 @@ SplittedLine do_split_line(const ClipperZUtils::ZPath& path, const ExPolygons& c
         split_chain.assign(path.size(), {});
         for (ClipperZUtils::ZPath& segment : intersections) {
             assert(segment.size() >= 2);
-            // Resolve all clip points
+            // 解析所有裁剪点
             std::for_each(segment.begin(), segment.end(), resolve_clip_point);
 
-            // Ensure the point order in segment
+            // 确保线段中的点顺序
             std::sort(segment.begin(), segment.end(), [&path](const ClipperZUtils::ZPoint& a, const ClipperZUtils::ZPoint& b) -> bool {
                 if (is_new(a) && is_new(b) && a.z() == b.z()) {
-                    // Make sure a point is closer to the src point than b
+                    // 确保点 a 比点 b 更接近源点
                     const auto src = to_point(path[-a.z() - 1]);
                     return (to_point(a) - src).squaredNorm() < (to_point(b) - src).squaredNorm();
                 }
                 const auto a_idx = to_src_idx(a);
                 const auto b_idx = to_src_idx(b);
                 if (a_idx == b_idx) {
-                    // On same line, prefer the src point first
+                    // 在同一条线段上，优先选择源点
                     return is_src(a);
                 } else {
                     return a_idx < b_idx;
                 }
             });
 
-            // Chain segment back to the original path
+            // 将线段链回原始路径
             ClipperZUtils::ZPoint& front = segment.front();
             const ClipperZUtils::ZPoint* previous_src_point = nullptr;
             if (is_src(front)) {
-                // The segment starts with a point from src path, which means apart from the last point,
-                // all other points on this segment should come from the src path or the clip polygon
+                // 该线段以源路径中的点开始，这意味着除了最后一个点外，
+                // 该线段上的所有其他点都应来自源路径或裁剪多边形
 
-                // Connect the segment to the src path
+                // 将线段连接到源路径
                 auto& node = split_chain[front.z()];
                 node.insert(node.begin(), &segment);
 
                 previous_src_point = &front;
             } else if (is_new(front)) {
-                const auto id = -front.z() - 1; // Get the src path index
-                const ClipperZUtils::ZPoint& src_p = path[id]; // Get the corresponding src point
-                const auto dist2 = (front - src_p).block<2, 1>(0,0).squaredNorm(); // Distance between the src point and current point
-                // Find the place on the src line that current point should lie on
+                const auto id = -front.z() - 1; // 获取源路径索引
+                const ClipperZUtils::ZPoint& src_p = path[id]; // 获取对应的源点
+                const auto dist2 = (front - src_p).block<2, 1>(0,0).squaredNorm(); // 源点与当前点之间的距离
+                // 在源线上找到当前点应处的位置
                 auto& node = split_chain[id];
                 auto it = std::find_if(node.begin(), node.end(), [dist2, &src_p](const ClipperZUtils::ZPath* p) {
                     const ClipperZUtils::ZPoint& p_front = p->front();
@@ -225,7 +225,7 @@ SplittedLine do_split_line(const ClipperZUtils::ZPath& path, const ExPolygons& c
                     const auto dist2_2 = (p_front - src_p).block<2, 1>(0, 0).squaredNorm();
                     return dist2_2 > dist2;
                 });
-                // Insert this split
+                // 插入这个分割
                 node.insert(it, &segment);
 
                 previous_src_point = &src_p;
@@ -233,20 +233,20 @@ SplittedLine do_split_line(const ClipperZUtils::ZPath& path, const ExPolygons& c
                 assert(false);
             }
 
-            // Once we figured out the start point, we can then normalize the remaining points on the segment
+            // 确定起点后，我们可以规范化线段上的其余点
             for (ClipperZUtils::ZPoint& p : segment) {
-                assert(!is_new(p) || p == front || p == segment.back()); // Only the first and last point can be a new intersection
+                assert(!is_new(p) || p == front || p == segment.back()); // 只有第一个和最后一个点可以是新的交点
                 if (is_src(p)) {
                     previous_src_point = &p;
                 } else if (is_clip(p)) {
-                    // Treat point from clip polygon as new point
+                    // 将裁剪多边形中的点视为新点
                     p.z() = -(previous_src_point->z() + 1);
                 }
             }
         }
     }
 
-    // Now we reconstruct the final path by connecting splits
+    // 现在通过连接分割部分来重建最终路径
     SplittedLine result;
     size_t       idx  = 0;
     while (idx < split_chain.size()) {
@@ -267,10 +267,10 @@ SplittedLine do_split_line(const ClipperZUtils::ZPath& path, const ExPolygons& c
                     assert(!is_clip(sp));
                     result.emplace_back(to_point(sp), true, sp.z());
                 }
-                result.back().clipped = false; // Mark the end of the clipped line
+                result.back().clipped = false; // 标记裁剪线的结束
             }
 
-            // Determine the next start point
+            // 确定下一个起点
             const auto back = result.back().src_idx;
             if (back < 0) {
                 auto next_idx = -back - 1;
@@ -305,7 +305,7 @@ SplittedLine do_split_line(const ClipperZUtils::ZPath& path, const ExPolygons& c
 #endif
 
     if (closed) {
-        // Remove last point which was duplicated
+        // 移除被重复的最后一个点
         result.pop_back();
     }
 

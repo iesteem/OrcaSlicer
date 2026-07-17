@@ -7,8 +7,8 @@
 namespace Slic3r {
 
 /// <summary>
-/// Instance of this class is used for measure time consumtion
-/// of block code until instance is alive and write result to debug output
+/// 此类的实例用于测量代码块的时间消耗，
+/// 直到实例销毁并将结果写入调试输出
 /// </summary>
 class Timer
 {
@@ -16,25 +16,25 @@ class Timer
     std::chrono::steady_clock::time_point m_start;
 public:
     /// <summary>
-    /// name describe timer
+    /// 描述计时器的名称
     /// </summary>
-    /// <param name="name">Describe timer in consol log</param>
+    /// <param name="name">在控制台日志中描述计时器
     Timer(const std::string& name);
 
     /// <summary>
-    /// name describe timer
+    /// 描述计时器的名称
     /// </summary>
     ~Timer();
 };
 
 namespace Timing {
 
-    // Timing code from Catch2 unit testing library
+    // 来自Catch2单元测试库的计时代码
     static inline uint64_t nanoseconds_since_epoch() {
         return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     }
 
-    // Timing code from Catch2 unit testing library
+    // 来自Catch2单元测试库的计时代码
     class Timer {
     public:
         void start() {
@@ -56,7 +56,7 @@ namespace Timing {
         uint64_t m_nanoseconds = 0;
     };
 
-    // Emits a Boost::log error if the life time of this timing object exceeds a limit.
+    // 如果此计时对象的生命周期超过限制，则发出Boost::log错误。
     class TimeLimitAlarm {
     public:
         TimeLimitAlarm(uint64_t time_limit_nanoseconds, std::string_view limit_exceeded_message) :

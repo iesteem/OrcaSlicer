@@ -39,13 +39,13 @@ struct ObjNewMtl
     float       Ni;
     float       d;
     float       illum;
-    float       Tr{1.0f}; //    Transmission
+    float       Tr{1.0f}; //    透射率
     std::array<float, 3>  Tf;
     std::array<float, 3>  Ka;
     std::array<float, 3>  Kd;
     std::array<float, 3>  Ks;
     std::array<float, 3>  Ke;
-    std::string           map_Kd;//defalut png
+    std::string           map_Kd;//默认png
 };
 
 inline bool operator==(const ObjUseMtl &v1, const ObjUseMtl &v2)
@@ -92,9 +92,9 @@ inline bool operator==(const ObjSmoothingGroup &v1, const ObjSmoothingGroup &v2)
 }
 #define OBJ_VERTEX_COLOR_ALPHA 6
 #define OBJ_VERTEX_LENGTH   7  // x, y, z, color_x,color_y,color_z,color_w
-#define ONE_FACE_SIZE 4//ONE_FACE format: f 8/4/6 7/3/6 6/2/6 -1/-1/-1
+#define ONE_FACE_SIZE 4//ONE_FACE 格式: f 8/4/6 7/3/6 6/2/6 -1/-1/-1
 struct ObjData {
-	// Version of the data structure for load / store in the private binary format.
+	// 用于私有二进制格式加载/存储的数据结构版本。
 	int								version;
 
 	// x, y, z, color_x,color_y,color_z,color_w
@@ -113,13 +113,13 @@ struct ObjData {
 	std::vector<ObjGroup>			groups;
 	std::vector<ObjSmoothingGroup>	smoothingGroups;
 
-	// List of faces, delimited by an ObjVertex with all members set to -1.
+	// 面列表，由所有成员设置为-1的ObjVertex分隔。
 	std::vector<ObjVertex>			vertices;
 };
 
 struct MtlData
 {
-    // Version of the data structure for load / store in the private binary format.
+    // 用于私有二进制格式加载/存储的数据结构版本。
     int version;
     std::unordered_map<std::string, std::shared_ptr<ObjNewMtl>> new_mtl_unmap;
 };

@@ -6,9 +6,8 @@
 
 #include <libslic3r/Point.hpp>
 
-// There is an implementation of a hole-aware raycaster that was eventually
-// not used in production version. It is now hidden under following define
-// for possible future use.
+// 有一个孔洞感知光线投射器的实现，最终未在生产版本中使用。
+// 现在隐藏在以下 define 后面，以备将来可能使用。
 // #define SLIC3R_HOLE_RAYCASTER
 
 #ifdef SLIC3R_HOLE_RAYCASTER
@@ -25,9 +24,9 @@ namespace sla {
 
 using PointSet = Eigen::MatrixXd;
 
-/// An index-triangle structure for libIGL functions. Also serves as an
-/// alternative (raw) input format for the SLASupportTree.
-//  Implemented in libslic3r/SLA/Common.cpp
+/// 用于 libIGL 函数的索引三角形结构。也用作 SLASupportTree 的
+/// 替代（原始）输入格式。
+//  实现在 libslic3r/SLA/Common.cpp 中
 class IndexedMesh {
     class AABBImpl;
     
@@ -37,8 +36,7 @@ class IndexedMesh {
     std::unique_ptr<AABBImpl> m_aabb;
 
 #ifdef SLIC3R_HOLE_RAYCASTER
-    // This holds a copy of holes in the mesh. Initialized externally
-    // by load_mesh setter.
+    // 保存网格中孔洞的副本。由 load_mesh setter 在外部初始化。
     std::vector<DrainHole> m_holes;
 #endif
 
@@ -46,8 +44,8 @@ class IndexedMesh {
 
 public:
     
-    // calculate_epsilon ... calculate epsilon for triangle-ray intersection from an average triangle edge length.
-    // If set to false, a default epsilon is used, which works for "reasonable" meshes.
+    // calculate_epsilon ... 根据平均三角形边长计算三角形-射线相交的 epsilon。
+    // 如果设置为 false，则使用默认 epsilon，适用于"合理"的网格。
     explicit IndexedMesh(const indexed_triangle_set &tmesh, bool calculate_epsilon = false);
     explicit IndexedMesh(const TriangleMesh &mesh, bool calculate_epsilon = false);
     
@@ -68,9 +66,9 @@ public:
     const Vec3f& vertices(size_t idx) const;
     const Vec3i32& indices(size_t idx) const;
     
-    // Result of a raycast
+    // 射线投射的结果
     class hit_result {
-        // m_t holds a distance from m_source to the intersection.
+        // m_t 保存从 m_source 到交点的距离。
         double m_t = infty();
         int m_face_id = -1;
         const IndexedMesh *m_mesh = nullptr;
@@ -78,12 +76,11 @@ public:
         Vec3d m_source;
         Vec3d m_normal;
         friend class IndexedMesh;
-        
-        // A valid object of this class can only be obtained from
-        // IndexedMesh::query_ray_hit method.
+
+        // 此类的有效对象只能通过 IndexedMesh::query_ray_hit 方法获取。
         explicit inline hit_result(const IndexedMesh& em): m_mesh(&em) {}
     public:
-        // This denotes no hit on the mesh.
+        // 表示在网格上没有命中。
         static inline constexpr double infty() { return std::numeric_limits<double>::infinity(); }
         
         explicit inline hit_result(double val = infty()) : m_t(val) {}
@@ -107,24 +104,23 @@ public:
     };
 
 #ifdef SLIC3R_HOLE_RAYCASTER
-    // Inform the object about location of holes
-    // creates internal copy of the vector
+    // 告知对象孔洞的位置
+    // 创建向量的内部副本
     void load_holes(const std::vector<DrainHole>& holes) {
         m_holes = holes;
     }
 
-    // Iterates over hits and holes and returns the true hit, possibly
-    // on the inside of a hole.
-    // This function is currently not used anywhere, it was written when the
-    // holes were subtracted on slices, that is, before we started using CGAL
-    // to actually cut the holes into the mesh.
+    // 遍历命中和孔洞，返回真正的命中点，
+    // 可能在孔洞内部。
+    // 此函数目前未在任何地方使用，它是在孔洞在切片上相减时编写的，
+    // 即在我们开始使用 CGAL 实际将孔洞切割到网格中之前。
     hit_result filter_hits(const std::vector<IndexedMesh::hit_result>& obj_hits) const;
 #endif
 
-    // Casting a ray on the mesh, returns the distance where the hit occures.
+    // 在网格上投射射线，返回命中发生的距离。
     hit_result query_ray_hit(const Vec3d &s, const Vec3d &dir) const;
-    
-    // Casts a ray on the mesh and returns all hits
+
+    // 在网格上投射射线并返回所有命中
     std::vector<hit_result> query_ray_hits(const Vec3d &s, const Vec3d &dir) const;
 
     double squared_distance(const Vec3d& p, int& i, Vec3d& c) const;
@@ -140,8 +136,8 @@ public:
     const indexed_triangle_set * get_triangle_mesh() const { return m_tm; }
 };
 
-// Calculate the normals for the selected points (from 'points' set) on the
-// mesh. This will call squared distance for each point.
+// 计算网格上选定点集（来自 'points' 集合）的法线。
+// 这将为每个点调用平方距离函数。
 PointSet normals(const PointSet& points,
     const IndexedMesh& convert_mesh,
     double eps = 0.05,  // min distance from edges

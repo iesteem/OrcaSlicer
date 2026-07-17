@@ -8,11 +8,11 @@
 
 namespace Slic3r {
 
-// Add or remove support modifier ModelVolumes from model_object_dst to match the ModelVolumes of model_object_new
-// in the exact order and with the same IDs.
-// It is expected, that the model_object_dst already contains the non-support volumes of model_object_new in the correct order.
-// Friend to ModelVolume to allow copying.
-// static is not accepted by gcc if declared as a friend of ModelObject.
+// 从 model_object_dst 中添加或移除支撑修改器 ModelVolume，以匹配 model_object_new 的 ModelVolume，
+// 保持相同的顺序和相同的 ID。
+// 预期 model_object_dst 已按正确顺序包含 model_object_new 的非支撑体积。
+// 友元到 ModelVolume 以允许复制。
+// 如果声明为 ModelObject 的友元，gcc 不接受 static。
 /* static */ void model_volume_list_update_supports(ModelObject &model_object_dst, const ModelObject &model_object_new)
 {
     typedef std::pair<const ModelVolume*, bool> ModelVolumeWithStatus;
@@ -29,27 +29,27 @@ namespace Slic3r {
         ModelVolumeWithStatus key(model_volume_src, false);
         auto it = std::lower_bound(old_volumes.begin(), old_volumes.end(), key, model_volume_lower);
         if (it != old_volumes.end() && model_volume_equal(*it, key)) {
-            // The volume was found in the old list. Just copy it.
-            assert(! it->second); // not consumed yet
+            // 在旧列表中找到了该体积。直接复制。
+            assert(! it->second); // 尚未消费
             it->second = true;
             ModelVolume *model_volume_dst = const_cast<ModelVolume*>(it->first);
-            // For support modifiers, the type may have been switched from blocker to enforcer and vice versa.
+            // 对于支撑修改器，类型可能已从阻塞器切换为强制执行器，反之亦然。
             assert((model_volume_dst->is_support_modifier() && model_volume_src->is_support_modifier()) || model_volume_dst->type() == model_volume_src->type());
             model_object_dst.volumes.emplace_back(model_volume_dst);
             if (model_volume_dst->is_support_modifier()) {
-                // For support modifiers, the type may have been switched from blocker to enforcer and vice versa.
+                // 对于支撑修改器，类型可能已从阻塞器切换为强制执行器，反之亦然。
                 model_volume_dst->set_type(model_volume_src->type());
                 model_volume_dst->set_transformation(model_volume_src->get_transformation());
             }
             assert(model_volume_dst->get_matrix().isApprox(model_volume_src->get_matrix()));
         } else {
-            // The volume was not found in the old list. Create a new copy.
+            // 在旧列表中未找到该体积。创建新副本。
             assert(model_volume_src->is_support_modifier());
             model_object_dst.volumes.emplace_back(new ModelVolume(*model_volume_src));
             model_object_dst.volumes.back()->set_model_object(&model_object_dst);
         }
     }
-    // Release the non-consumed old volumes (those were deleted from the new list).
+    // 释放未消费的旧体积（那些已从新列表中删除的）。
     for (ModelVolumeWithStatus &mv_with_status : old_volumes)
         if (! mv_with_status.second)
             delete mv_with_status.first;
@@ -70,7 +70,7 @@ static inline void model_volume_list_copy_configs(ModelObject &model_object_dst,
             continue;
         }
         assert(mv_src.id() == mv_dst.id());
-        // Copy the ModelVolume data.
+        // 复制 ModelVolume 数据。
         mv_dst.name   = mv_src.name;
 		mv_dst.config.assign_config(mv_src.config);
         assert(mv_dst.supported_facets.id() == mv_src.supported_facets.id());
@@ -81,7 +81,7 @@ static inline void model_volume_list_copy_configs(ModelObject &model_object_dst,
         mv_dst.mmu_segmentation_facets.assign(mv_src.mmu_segmentation_facets);
         assert(mv_dst.fuzzy_skin_facets.id() == mv_src.fuzzy_skin_facets.id());
         mv_dst.fuzzy_skin_facets.assign(mv_src.fuzzy_skin_facets);
-        //FIXME what to do with the materials?
+        //FIXME 如何处理材料？
         // mv_dst.m_material_id = mv_src.m_material_id;
         ++ i_src;
         ++ i_dst;
@@ -96,7 +96,7 @@ static inline void layer_height_ranges_copy_configs(t_layer_config_ranges &lr_ds
         const auto &kvp_src = *it_src ++;
         assert(std::abs(kvp_dst.first.first  - kvp_src.first.first ) <= EPSILON);
         assert(std::abs(kvp_dst.first.second - kvp_src.first.second) <= EPSILON);
-        // Layer heights are allowed do differ in case the layer height table is being overriden by the smooth profile.
+        // 如果层高表被平滑配置文件覆盖，则允许层高不同。
         // assert(std::abs(kvp_dst.second.option("layer_height")->getFloat() - kvp_src.second.option("layer_height")->getFloat()) <= EPSILON);
         kvp_dst.second = kvp_src.second;
     }
@@ -134,8 +134,8 @@ struct PrintObjectTrafoAndInstances
     bool operator<(const PrintObjectTrafoAndInstances &rhs) const { return transform3d_lower(this->trafo, rhs.trafo); }
 };
 
-// Generate a list of trafos and XY offsets for instances of a ModelObject
-// Orca: Updated to include XYZ filament shrinkage compensation
+// 生成 ModelObject 实例的变换列表和 XY 偏移
+// Orca: 更新以包括 XYZ 耗材收缩补偿
 static std::vector<PrintObjectTrafoAndInstances> print_objects_from_model_object(const ModelObject &model_object, const Vec3d &shrinkage_compensation)
 {
     std::set<PrintObjectTrafoAndInstances> trafos;
@@ -149,10 +149,10 @@ static std::vector<PrintObjectTrafoAndInstances> print_objects_from_model_object
             trafo.trafo = model_instance_transformation.get_matrix_with_applied_shrinkage_compensation(shrinkage_compensation);
             
             auto shift = Point::new_scale(trafo.trafo.data()[12], trafo.trafo.data()[13]);
-            // Reset the XY axes of the transformation.
+            // 重置变换的 XY 轴。
             trafo.trafo.data()[12] = 0;
             trafo.trafo.data()[13] = 0;
-            // Search or insert a trafo.
+            // 搜索或插入变换。
             auto it = trafos.emplace(trafo).first;
             const_cast<PrintObjectTrafoAndInstances&>(*it).instances.emplace_back(PrintInstance{ nullptr, model_instance, shift });
             //BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", Line %1%: found object %2%'s instance %3% for print")%__LINE__ %model_object.name %index;
@@ -168,8 +168,8 @@ static std::vector<PrintObjectTrafoAndInstances> print_objects_from_model_object
     return std::vector<PrintObjectTrafoAndInstances>(trafos.begin(), trafos.end());
 }
 
-// Compare just the layer ranges and their layer heights, not the associated configs.
-// Ignore the layer heights if check_layer_heights is false.
+// 仅比较层范围及其层高，不比较关联的配置。
+// 如果 check_layer_heights 为 false，则忽略层高。
 static bool layer_height_ranges_equal(const t_layer_config_ranges &lr1, const t_layer_config_ranges &lr2, bool check_layer_height)
 {
     if (lr1.size() != lr2.size())
@@ -187,7 +187,7 @@ static bool layer_height_ranges_equal(const t_layer_config_ranges &lr1, const t_
     return true;
 }
 
-// Returns true if va == vb when all CustomGCode items that are not ToolChangeCode are ignored.
+// 当忽略所有不是 ToolChangeCode 的 CustomGCode 项时，如果 va == vb 则返回 true。
 static bool custom_per_printz_gcodes_tool_changes_differ(const std::vector<CustomGCode::Item> &va, const std::vector<CustomGCode::Item> &vb)
 {
 	auto it_a = va.begin();
@@ -218,7 +218,7 @@ static bool custom_per_printz_gcodes_tool_changes_differ(const std::vector<Custo
 	return false;
 }
 
-// Collect changes to print config, account for overrides of extruder retract values by filament presets.
+// 收集打印配置的更改，考虑耗材预设对挤出机回退值的覆盖。
 //BBS: add plate index
 static inline bool config_options_equal(const ConfigOption *lhs, const ConfigOption *rhs)
 {
@@ -297,7 +297,7 @@ static t_config_option_keys print_config_diffs(
     return print_diff;
 }
 
-// Prepare for storing of the full print config into new_full_config to be exported into the G-code and to be used by the PlaceholderParser.
+// 准备将完整打印配置存储到new_full_config中，以便导出到G-code并由PlaceholderParser使用。
 //BBS: add plate index
 static t_config_option_keys full_print_config_diffs(const DynamicPrintConfig &current_full_config, const DynamicPrintConfig &new_full_config, int plate_index)
 {
@@ -329,14 +329,14 @@ static t_config_option_keys full_print_config_diffs(const DynamicPrintConfig &cu
     return full_config_diff;
 }
 
-// Repository for solving partial overlaps of ModelObject::layer_config_ranges.
-// Here the const DynamicPrintConfig* point to the config in ModelObject::layer_config_ranges.
+// 用于解决ModelObject::layer_config_ranges部分重叠的仓库。
+// 这里const DynamicPrintConfig*指向ModelObject::layer_config_ranges中的配置。
 class LayerRanges
 {
 public:
     struct LayerRange {
         t_layer_height_range        layer_height_range;
-        // Config is owned by the associated ModelObject.
+        // Config由关联的ModelObject拥有。
         const DynamicPrintConfig*   config { nullptr };
 
         bool operator<(const LayerRange &rhs) const throw() { return this->layer_height_range < rhs.layer_height_range; }
@@ -345,7 +345,7 @@ public:
     LayerRanges() = default;
     LayerRanges(const t_layer_config_ranges &in) { this->assign(in); }
 
-    // Convert input config ranges into continuous non-overlapping sorted vector of intervals and their configs.
+    // 将输入配置范围转换为连续非重叠的排序区间向量及其配置。
     void assign(const t_layer_config_ranges &in) {
         m_ranges.clear();
         m_ranges.reserve(in.size());
@@ -394,8 +394,7 @@ private:
     std::vector<LayerRange>  m_ranges;
 };
 
-// To track Model / ModelObject updates between the front end and back end, including layer height ranges, their configs,
-// and snug bounding boxes of ModelVolumes.
+// 用于跟踪前端和后端之间的Model/ModelObject更新，包括层高范围、其配置以及ModelVolumes的紧密包围盒。
 struct ModelObjectStatus {
     enum Status {
         Unknown,
@@ -414,11 +413,11 @@ struct ModelObjectStatus {
     ModelObjectStatus(ObjectID id, Status status = Unknown) : id(id), status(status) {}
     ~ModelObjectStatus() { if (print_object_regions) print_object_regions->ref_cnt_dec(); }
 
-    // Key of the set.
+    // 集合的键。
     ObjectID                                    id;
-    // Status of this ModelObject with id on apply().
+    // 此ModelObject在apply()时的状态。
     Status                                      status;
-    // PrintObjects to be generated for this ModelObject including their base transformation.
+    // 为此ModelObject生成的PrintObjects，包括其基础变换。
     std::vector<PrintObjectTrafoAndInstances>   print_instances;
     // Regions shared by the associated PrintObjects.
     PrintObjectRegions                         *print_object_regions { nullptr };

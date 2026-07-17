@@ -44,7 +44,7 @@ enum TreeNodeType {
 
 
 /*!
- * \brief Represents the metadata of a node in the tree.
+ * \brief 表示树中节点的元数据。
  */
 struct SupportNode
 {
@@ -102,8 +102,8 @@ struct SupportNode
 #endif // DEBUG
 
     /*!
-     * \brief The number of layers to go to the top of this branch.
-     * Negative value means it's a virtual node between support and overhang, which doesn't need to be extruded.
+     * \brief 到此分支顶部的层数。
+     * 负值表示它是支撑和悬垂之间的虚拟节点，不需要挤出。
      */
     int distance_to_top;
     coordf_t dist_mm_to_top = 0;  // dist to bottom contact in mm
@@ -112,7 +112,7 @@ struct SupportNode
     static double diameter_angle_scale_factor;
 
     /*!
-     * \brief The position of this node on the layer.
+     * \brief 此节点在层上的位置。
      */
     Point          position;
     Point          movement; // movement towards neighbor center or outline
@@ -127,39 +127,34 @@ struct SupportNode
     ExPolygon      overhang; // when type==ePolygon, set this value to get original overhang area
 
     /*!
-     * \brief The direction of the skin lines above the tip of the branch.
+     * \brief 分支尖端上方蒙皮线的方向。
      *
-     * This determines in which direction we should reduce the width of the
-     * branch.
+     * 这决定了我们应该在哪个方向上缩小分支的宽度。
      */
     Point skin_direction;
 
     /*!
-     * \brief The number of support roof layers below this one.
+     * \brief 此节点下方的支撑顶盖层数。
      *
-     * When a contact point is created, it is determined whether the mesh
-     * needs to be supported with support roof or not, since that is a
-     * per-mesh setting. This is stored in this variable in order to track
-     * how far we need to extend that support roof downwards.
+     * 创建接触点时，确定网格是否需要支撑顶盖，因为这是每个网格的设置。
+     * 存储在此变量中是为了跟踪需要将支撑顶盖向下延伸多远。
      */
     int support_roof_layers_below;
     int obj_layer_nr;
 
     /*!
-     * \brief Whether to try to go towards the build plate.
+     * \brief 是否尝试朝打印板方向移动。
      *
-     * If the node is inside the collision areas, it has no choice but to go
-     * towards the model. If it is not inside the collision areas, it must
-     * go towards the build plate to prevent a scar on the surface.
+     * 如果节点在碰撞区域内，它别无选择只能朝模型方向移动。
+     * 如果不在碰撞区域内，它必须朝打印板方向移动以防止表面留下痕迹。
      */
     bool to_buildplate;
 
     /*!
-     * \brief The originating node for this one, one layer higher.
+     * \brief 此节点的源节点，高一层。
      *
-     * In order to prune branches that can't have any support (because they
-     * can't be on the model and the path to the buildplate isn't clear),
-     * the entire branch needs to be known.
+     * 为了修剪无法获得任何支撑的分支（因为它们不能位于模型上，且到打印板的路径不清晰），
+     * 需要了解整个分支。
      */
     SupportNode* parent;
     std::vector<SupportNode*> parents;

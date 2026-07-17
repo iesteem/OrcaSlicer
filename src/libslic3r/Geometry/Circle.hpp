@@ -7,8 +7,8 @@
 
 namespace Slic3r { namespace Geometry {
 
-// https://en.wikipedia.org/wiki/Circumscribed_circle
-// Circumcenter coordinates, Cartesian coordinates
+// https://en.wikipedia.org/wiki/Circumscribed_circle 外接圆
+// 外心坐标，笛卡尔坐标
 template<typename Vector>
 Vector circle_center(const Vector &a, const Vector &bsrc, const Vector &csrc, typename Vector::Scalar epsilon)
 {
@@ -18,8 +18,7 @@ Vector circle_center(const Vector &a, const Vector &bsrc, const Vector &csrc, ty
 	Scalar lb = b.squaredNorm();
 	Scalar lc = c.squaredNorm();
     if (Scalar d = b.x() * c.y() - b.y() * c.x(); std::abs(d) < epsilon) {
-    	// The three points are collinear. Take the center of the two points
-    	// furthest away from each other.
+    	// 三点共线。取相距最远的两个点的中心。
     	Scalar lbc = (csrc - bsrc).squaredNorm();
 		return Scalar(0.5) * (
 			lb > lc && lb > lbc ? a + bsrc :
@@ -30,7 +29,7 @@ Vector circle_center(const Vector &a, const Vector &bsrc, const Vector &csrc, ty
     }
 }
 
-// 2D circle defined by its center and squared radius
+// 由圆心和半径平方定义的二维圆
 template<typename Vector>
 struct CircleSq {
     using Scalar = typename Vector::Scalar;
@@ -57,7 +56,7 @@ struct CircleSq {
     static CircleSq make_invalid() { return CircleSq { { 0, 0 }, -1 }; }
 };
 
-// 2D circle defined by its center and radius
+// 由圆心和半径定义的二维圆
 template<typename Vector>
 struct Circle {
     using Scalar = typename Vector::Scalar;
@@ -70,7 +69,7 @@ struct Circle {
     Circle(const Vector &a, const Vector &b) : center(Scalar(0.5) * (a + b)) { radius = (a - center).norm(); }
     Circle(const Vector &a, const Vector &b, const Vector &c, const Scalar epsilon) { *this = CircleSq(a, b, c, epsilon); }
 
-    // Conversion from CircleSq
+    // 从CircleSq转换
     template<typename Vector2>
     explicit Circle(const CircleSq<Vector2> &c) : center(c.center), radius(c.radius2 <= 0 ? c.radius2 : sqrt(c.radius2)) {}
     template<typename Vector2>
@@ -92,19 +91,19 @@ using Circled = Circle<Vec2d>;
 using CircleSqf = CircleSq<Vec2f>;
 using CircleSqd = CircleSq<Vec2d>;
 
-/// Find the center of the circle corresponding to the vector of Points as an arc.
+/// 找到与Points向量对应的圆弧的圆心。
 Point circle_center_taubin_newton(const Points::const_iterator& input_start, const Points::const_iterator& input_end, size_t cycles = 20);
 inline Point circle_center_taubin_newton(const Points& input, size_t cycles = 20) { return circle_center_taubin_newton(input.cbegin(), input.cend(), cycles); }
 
-/// Find the center of the circle corresponding to the vector of Pointfs as an arc.
+/// 找到与Pointfs向量对应的圆弧的圆心。
 Vec2d circle_center_taubin_newton(const Vec2ds::const_iterator& input_start, const Vec2ds::const_iterator& input_end, size_t cycles = 20);
 inline Vec2d circle_center_taubin_newton(const Vec2ds& input, size_t cycles = 20) { return circle_center_taubin_newton(input.cbegin(), input.cend(), cycles); }
 Circled circle_taubin_newton(const Vec2ds& input, size_t cycles = 20);
 
-// Find circle using RANSAC randomized algorithm.
+// 使用RANSAC随机算法查找圆。
 Circled circle_ransac(const Vec2ds& input, size_t iterations = 20, double* min_error = nullptr);
 
-// Randomized algorithm by Emo Welzl, working with squared radii for efficiency. The returned circle radius is inflated by epsilon.
+// Emo Welzl的随机算法，使用半径平方以提高效率。返回的圆半径已膨胀epsilon。
 template<typename Vector, typename Points>
 CircleSq<Vector> smallest_enclosing_circle2_welzl(const Points &points, const typename Vector::Scalar epsilon)
 {
@@ -120,11 +119,11 @@ CircleSq<Vector> smallest_enclosing_circle2_welzl(const Points &points, const ty
 		    circle = CircleSq<Vector>(p0, points[1].template cast<Scalar>()).inflated(epsilon);
 		    for (size_t i = 2; i < points.size(); ++ i)
 		        if (const Vector &p = points[i].template cast<Scalar>(); ! circle.contains(p)) {
-		            // p is the first point on the smallest circle enclosing points[0..i]
+		            // p是包围points[0..i]的最小圆上的第一个点
 		            circle = CircleSq<Vector>(p0, p).inflated(epsilon);
 		            for (size_t j = 1; j < i; ++ j)
 		                if (const Vector &q = points[j].template cast<Scalar>(); ! circle.contains(q)) {
-		                    // q is the second point on the smallest circle enclosing points[0..i]
+		                    // q是包围points[0..i]的最小圆上的第二个点
 		                    circle = CircleSq<Vector>(p, q).inflated(epsilon);
 		                    for (size_t k = 0; k < j; ++ k)
 		                        if (const Vector &r = points[k].template cast<Scalar>(); ! circle.contains(r))
@@ -137,22 +136,22 @@ CircleSq<Vector> smallest_enclosing_circle2_welzl(const Points &points, const ty
     return circle;
 }
 
-// Randomized algorithm by Emo Welzl. The returned circle radius is inflated by epsilon.
+// Emo Welzl的随机算法。返回的圆半径已膨胀epsilon。
 template<typename Vector, typename Points>
 Circle<Vector> smallest_enclosing_circle_welzl(const Points &points, const typename Vector::Scalar epsilon)
 {
     return Circle<Vector>(smallest_enclosing_circle2_welzl<Vector, Points>(points, epsilon));
 }
 
-// Randomized algorithm by Emo Welzl. The returned circle radius is inflated by SCALED_EPSILON.
+// Emo Welzl的随机算法。返回的圆半径已膨胀SCALED_EPSILON。
 inline Circled smallest_enclosing_circle_welzl(const Points &points)
 {
     return smallest_enclosing_circle_welzl<Vec2d, Points>(points, SCALED_EPSILON);
 }
 
-// Ugly named variant, that accepts the squared line 
-// Don't call me with a nearly zero length vector!
-// sympy: 
+// 名称丑陋的变体，接受平方线
+// 不要传入接近零长度的向量！
+// sympy:
 // factor(solve([a * x + b * y + c, x**2 + y**2 - r**2], [x, y])[0])
 // factor(solve([a * x + b * y + c, x**2 + y**2 - r**2], [x, y])[1])
 template<typename T>
@@ -175,8 +174,8 @@ int ray_circle_intersections(T r, T a, T b, T c, std::pair<Eigen::Matrix<T, 2, 1
 {
     T lv2 = a * a + b * b;
     if (lv2 < T(SCALED_EPSILON * SCALED_EPSILON)) {
-        //FIXME what is the correct epsilon?
-        // What if the line touches the circle?
+        //FIXME 正确的epsilon是什么？
+        // 如果直线与圆相切会怎样？
         return false;
     }
     return ray_circle_intersections_r2_lv2_c2(r * r, a, b, a * a + b * b, c, out);

@@ -1,5 +1,5 @@
 /**
- * In this file we will implement the automatic SLA support tree generation.
+ * 在此文件中，我们将实现自动 SLA 支撑树生成。
  *
  */
 
@@ -19,8 +19,8 @@
 #include <boost/log/trivial.hpp>
 #include <libslic3r/I18N.hpp>
 
-//! macro used to mark string used at localization,
-//! return same string
+//! 用于标记被本地化使用的字符串的宏，
+//! 返回相同的字符串
 #define L(s) Slic3r::I18N::translate(s)
 
 namespace Slic3r {
@@ -61,7 +61,7 @@ std::vector<ExPolygons> SupportTree::slice(const std::vector<float> &grid,
     size_t len = grid.size();
     for (const Slices &slv : slices) { len = std::min(len, slv.size()); }
 
-    // Either the support or the pad or both has to be non empty
+    // 支撑或垫或两者都必须非空
     if (slices.empty()) return {};
 
     Slices &mrg = slices.front();
@@ -84,11 +84,11 @@ SupportTree::UPtr SupportTree::create(const SupportableMesh &sm,
     builder->m_ctl = ctl;
     
     if (sm.cfg.enabled) {
-        // Execute takes care about the ground_level
+        // Execute 负责处理 ground_level
         SupportTreeBuildsteps::execute(*builder, sm);
-        builder->merge_and_cleanup();   // clean metadata, leave only the meshes.
+        builder->merge_and_cleanup();   // 清理元数据，只保留网格。
     } else {
-        // If a pad gets added later, it will be in the right Z level
+        // 如果之后添加了垫，它将位于正确的 Z 层级
         builder->ground_level = sm.emesh.ground_level();
     }
     

@@ -10,7 +10,7 @@ namespace Slic3r
 
 enum class FilamentColorMode
 {
-    Segment = 0, //Single colors or side by side segments
+    Segment = 0, //单一颜色或并排分段
     Gradient = 1
 };
 
@@ -75,8 +75,8 @@ private:
     bool _loaded { false };
 
     std::vector<FilamentColorInfo> _filamentInfoVec;
-    std::unordered_map<std::string, size_t> _filamentIndexByIdMap;   // filament_id to index in _filamentInfoVec
-    std::unordered_map<std::string, size_t> _filamentIndexByNameMap; // normalized filament name to index in _filamentInfoVec
+    std::unordered_map<std::string, size_t> _filamentIndexByIdMap;   // filament_id 到 _filamentInfoVec 中索引的映射
+    std::unordered_map<std::string, size_t> _filamentIndexByNameMap; // 标准化的耗材名称到 _filamentInfoVec 中索引的映射
 };
 
 } // namespace Slic3r

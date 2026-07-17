@@ -45,7 +45,7 @@ bool store_stl(const char *path, TriangleMesh *mesh, bool binary)
         mesh->write_binary(path);
     else
         mesh->write_ascii(path);
-    //FIXME returning false even if write failed.
+    //FIXME 即使写入失败也返回false。
     return true;
 }
 

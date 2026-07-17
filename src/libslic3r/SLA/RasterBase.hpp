@@ -14,7 +14,7 @@ namespace Slic3r {
 
 namespace sla {
 
-// Raw byte buffer paired with its size. Suitable for compressed image data.
+// 原始字节缓冲区及其大小。适用于压缩图像数据。
 class EncodedRaster {
 protected:
     std::vector<uint8_t> m_buffer;
@@ -30,7 +30,7 @@ public:
     const char * extension() const { return m_ext.c_str(); }
 };
 
-/// Type that represents a resolution in pixels.
+/// 表示像素分辨率的类型。
 struct Resolution {
     size_t width_px = 0;
     size_t height_px = 0;
@@ -40,7 +40,7 @@ struct Resolution {
     size_t pixels() const { return width_px * height_px; }
 };
 
-/// Types that represents the dimension of a pixel in millimeters.
+/// 表示像素尺寸（毫米）的类型。
 struct PixelDim {
     double w_mm = 1.;
     double h_mm = 1.;
@@ -69,12 +69,11 @@ public:
         bool mirror_x = false, mirror_y = false, flipXY = false;
         coord_t center_x = 0, center_y = 0;
         
-        // Portrait orientation will make sure the drawed polygons are rotated
-        // by 90 degrees.
+        // 纵向方向将确保绘制的多边形旋转 90 度。
         Trafo(Orientation o = roLandscape, const TMirroring &mirror = NoMirror)
-            // XY flipping implicitly does an X mirror
+            // XY 翻转隐式执行 X 镜像
             : mirror_x(o == roPortrait ? !mirror[0] : mirror[0])
-            , mirror_y(!mirror[1]) // Makes raster origin to be top left corner
+            , mirror_y(!mirror[1]) // 使光栅原点位于左上角
             , flipXY(o == roPortrait)
         {}
         
@@ -85,14 +84,14 @@ public:
     
     virtual ~RasterBase() = default;
     
-    /// Draw a polygon with holes.
+    /// 绘制带孔洞的多边形。
     virtual void draw(const ExPolygon& poly) = 0;
-    
-    /// Get the resolution of the raster.
+
+    /// 获取光栅的分辨率。
 //    virtual Resolution resolution() const = 0;
 //    virtual PixelDim   pixel_dimensions() const = 0;
     virtual Trafo      trafo() const = 0;
-    
+
     virtual EncodedRaster encode(RasterEncoder encoder) const = 0;
 };
 
@@ -106,7 +105,7 @@ struct PPMRasterEncoder {
 
 std::ostream& operator<<(std::ostream &stream, const EncodedRaster &bytes);
 
-// If gamma is zero, thresholding will be performed which disables AA.
+// 如果 gamma 为零，将执行阈值处理，这会禁用抗锯齿。
 std::unique_ptr<RasterBase> create_raster_grayscale_aa(
     const Resolution        &res,
     const PixelDim          &pxdim,

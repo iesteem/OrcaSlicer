@@ -30,8 +30,8 @@
 #include <miniz/miniz.h>
 
 
-// Store the print/filament/printer presets into a "presets" subdirectory of the Slic3rPE config dir.
-// This breaks compatibility with the upstream Slic3r if the --datadir is used to switch between the two versions.
+// 将打印/耗材/打印机预设存储到Slic3rPE配置目录的"presets"子目录中。
+// 如果使用--datadir在两个版本之间切换，这会破坏与上游Slic3r的兼容性。
 //#define SLIC3R_PROFILE_USE_PRESETS_SUBDIR
 
 namespace Slic3r {
@@ -226,15 +226,15 @@ PresetBundle::PresetBundle()
     , printers(Preset::TYPE_PRINTER, Preset::printer_options(), static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()), "Default Printer")
     , physical_printers(PhysicalPrinter::printer_options())
 {
-    // The following keys are handled by the UI, they do not have a counterpart in any StaticPrintConfig derived classes,
-    // therefore they need to be handled differently. As they have no counterpart in StaticPrintConfig, they are not being
-    // initialized based on PrintConfigDef(), but to empty values (zeros, empty vectors, empty strings).
+    // 以下键由UI处理，它们在任何StaticPrintConfig派生类中没有对应项，
+    // 因此需要以不同方式处理。由于它们在StaticPrintConfig中没有对应项，它们不是
+    // 基于PrintConfigDef()初始化，而是初始化为空值（零、空向量、空字符串）。
     //
     // "compatible_printers", "compatible_printers_condition", "inherits",
     // "print_settings_id", "filament_settings_id", "printer_settings_id", "printer_settings_id"
     // "printer_model", "printer_variant", "default_print_profile", "default_filament_profile"
 
-    // Create the ID config keys, as they are not part of the Static print config classes.
+    // 创建ID配置键，因为它们不属于静态打印配置类。
     this->prints.default_preset().config.optptr("print_settings_id", true);
     this->prints.default_preset().compatible_printers_condition();
     this->prints.default_preset().inherits();
@@ -242,7 +242,7 @@ PresetBundle::PresetBundle()
     this->filaments.default_preset().config.option<ConfigOptionStrings>("filament_settings_id", true)->values = {""};
     this->filaments.default_preset().compatible_printers_condition();
     this->filaments.default_preset().inherits();
-    // Set all the nullable values to nils.
+    // 将所有可空值设置为nil。
     this->filaments.default_preset().config.null_nullables();
 
     this->sla_materials.default_preset().config.optptr("sla_material_settings_id", true);
@@ -271,7 +271,7 @@ PresetBundle::PresetBundle()
         preset.inherits();
     }
 
-    // Re-activate the default presets, so their "edited" preset copies will be updated with the additional configuration values above.
+    // 重新激活默认预设，以便它们的"edited"预设副本将使用上述附加配置值进行更新。
     this->prints.select_preset(0);
     this->sla_prints.select_preset(0);
     this->filaments.select_preset(0);
@@ -302,7 +302,7 @@ PresetBundle& PresetBundle::operator=(const PresetBundle &rhs)
     obsolete_presets    = rhs.obsolete_presets;
     m_errors    = rhs.m_errors;
 
-    // Adjust Preset::vendor pointers to point to the copied vendors map.
+    // 调整Preset::vendor指针，使其指向复制的供应商映射。
     prints       .update_vendor_ptrs_after_copy(this->vendors);
     sla_prints   .update_vendor_ptrs_after_copy(this->vendors);
     filaments    .update_vendor_ptrs_after_copy(this->vendors);
@@ -314,7 +314,7 @@ PresetBundle& PresetBundle::operator=(const PresetBundle &rhs)
 
 void PresetBundle::reset(bool delete_files)
 {
-    // Clear the existing presets, delete their respective files.
+    // 清除现有预设，删除其各自的文件。
     this->vendors.clear();
     this->prints       .reset(delete_files);
     this->sla_prints   .reset(delete_files);
@@ -361,7 +361,7 @@ void PresetBundle::setup_directories()
     }
 }
 
-// recursively copy all files and dirs in from_dir to to_dir
+// 递归地将from_dir中的所有文件和目录复制到to_dir
 static void copy_dir(const boost::filesystem::path& from_dir, const boost::filesystem::path& to_dir)
 {
     if(!boost::filesystem::is_directory(from_dir))
@@ -410,13 +410,13 @@ PresetsConfigSubstitutions PresetBundle::load_presets(AppConfig &config, Forward
     const auto total_start     = std::chrono::steady_clock::now();
     auto       phase_start     = total_start;
 
-    // First load the vendor specific system presets.
+    // 首先加载供应商特定的系统预设。
     PresetsConfigSubstitutions substitutions;
     std::string errors_cummulative;
 
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" enter, substitution_rule %1%, preferred printer_model_id %2%")%substitution_rule%preferred_selection.printer_model_id;
-    //BBS: change system config to json
+    //BBS: 将系统配置改为json格式
     std::tie(substitutions, errors_cummulative) = this->load_system_presets_from_json(substitution_rule);
     if (startup_profile) {
         const auto now = std::chrono::steady_clock::now();
@@ -426,7 +426,7 @@ PresetsConfigSubstitutions PresetBundle::load_presets(AppConfig &config, Forward
         phase_start = now;
     }
 
-    // BBS load preset from user's folder, load system default if
+    // BBS 从用户文件夹加载预设，如果为空则加载系统默认
     // BBS: change directories by design
     std::string dir_user_presets = config.get("preset_folder");
     if (dir_user_presets.empty()) {
@@ -455,7 +455,7 @@ PresetsConfigSubstitutions PresetBundle::load_presets(AppConfig &config, Forward
 
     set_calibrate_printer("");
 
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" finished, returned substitutions %1%")%substitutions.size();
     if (startup_profile) {
         const auto total_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - total_start).count();
@@ -591,7 +591,7 @@ bool PresetBundle::backup_user_folder() const
 //BBS: load project embedded presets
 PresetsConfigSubstitutions PresetBundle::load_project_embedded_presets(std::vector<Preset*> project_presets, ForwardCompatibilitySubstitutionRule substitution_rule)
 {
-    // First load the vendor specific system presets.
+    // 首先加载供应商特定的系统预设。
     PresetsConfigSubstitutions substitutions;
     std::string errors_cummulative;
 
@@ -834,7 +834,7 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(AppConfig &          
                                                            std::map<std::string, std::map<std::string, std::string>> &my_presets,
                                                            ForwardCompatibilitySubstitutionRule                       substitution_rule)
 {
-    // First load the vendor specific system presets.
+    // 首先加载供应商特定的系统预设。
     PresetsConfigSubstitutions substitutions;
     std::string errors_cummulative;
     bool process_added = false, filament_added = false, machine_added = false;
@@ -844,7 +844,7 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(AppConfig &          
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" filament's selected_idx %1%, selected_name %2%") %filaments.get_selected_idx() %filaments.get_selected_preset_name();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" printers's selected_idx %1%, selected_name %2%") %printers.get_selected_idx() %printers.get_selected_preset_name();
 
-    // Sync removing
+    // 同步移除
     remove_users_preset(config, &my_presets);
 
     std::map<std::string, std::map<std::string, std::string>>::iterator it;
@@ -852,7 +852,7 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(AppConfig &          
     for (it = my_presets.begin(); it != my_presets.end(); it++) {
         std::string name = it->first;
         std::map<std::string, std::string>& value_map = it->second;
-        // Load user root presets at first pass
+        // 第一次遍历时加载用户根预设
         std::map<std::string, std::string>::iterator inherits_iter = value_map.find(BBL_JSON_KEY_INHERITS);
         if ((pass == 1) == (inherits_iter == value_map.end() || inherits_iter->second.empty()))
             continue;
@@ -1392,7 +1392,7 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
     const bool startup_profile = startup_profile_enabled();
     const auto total_start     = std::chrono::steady_clock::now();
 
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" enter, compatibility_rule %1%")%compatibility_rule;
     if (compatibility_rule == ForwardCompatibilitySubstitutionRule::EnableSystemSilent)
         // Loading system presets, don't log substitutions.
@@ -1482,7 +1482,7 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
 	}
 
     this->update_system_maps();
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" finished, errors_cummulative %1%")%errors_cummulative;
     if (startup_profile) {
         const auto total_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - total_start).count();
@@ -2736,7 +2736,7 @@ ConfigSubstitutions PresetBundle::load_config_file(const std::string &path, Forw
 {
 	if (is_gcode_file(path)) {
 		DynamicPrintConfig config;
-        //BBS: add config related logs
+        //BBS: 添加配置相关日志
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" enter, gcodefile %1%, compatibility_rule %2%")%path %compatibility_rule;
 		config.apply(FullPrintConfig::defaults());
         ConfigSubstitutions config_substitutions = config.load_from_gcode_file(path, compatibility_rule);
@@ -2745,7 +2745,7 @@ ConfigSubstitutions PresetBundle::load_config_file(const std::string &path, Forw
 		return config_substitutions;
 	}
 
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" can not load config file %1% not from gcode")%path ;
     throw Slic3r::RuntimeError(std::string("Unknown configuration file: ") + path);
     
@@ -2779,7 +2779,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
     size_t num_filaments = config.option<ConfigOptionStrings>("filament_colour")->size();
 #endif
 
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": , name_or_path %1%, is_external %2%, num_filaments %3%") % name_or_path % is_external % num_filaments;
     // Make a copy of the "compatible_machine_expression_group" and "inherits_group" vectors, which
     // accumulate values over all presets (print, filaments, printers).
@@ -2831,7 +2831,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
 		compatible_printers_condition = compatible_printers_condition_values[idx];
         if (idx > 0 && idx - 1 < compatible_prints_condition_values.size())
             compatible_prints_condition = compatible_prints_condition_values[idx - 1];
-        //BBS: add config related logs
+        //BBS: 添加配置相关日志
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": , name %1%, is_external %2%, inherits %3%")%name %is_external %inherits;
 		if (is_external)
 			presets.load_external_preset(name_or_path, name, config.opt_string(key, true), config, different_keys, PresetCollection::LoadAndSelect::Always, file_version, filament_id);
@@ -2872,7 +2872,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
         //}
         //else
             printer_different_keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
-        //BBS: add config related logs
+        //BBS: 添加配置相关日志
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load printer preset from printer_settings_id");
         load_preset(this->printers, num_filaments + 1, "printer_settings_id", printer_different_keys_set, std::string());
 
@@ -2899,7 +2899,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 filament_different_keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
 
             std::string filament_id = filament_ids[0];
-            //BBS: add config related logs
+            //BBS: 添加配置相关日志
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load single filament preset from filament_settings_id");
             if (is_external)
                 loaded = this->filaments.load_external_preset(name_or_path, name, old_filament_profile_names->values.front(), config, filament_different_keys_set, PresetCollection::LoadAndSelect::Always, file_version, filament_id).first;
@@ -2934,7 +2934,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             // in a case when next added preset take a place of previosly selected preset,
             // we should add presets from last to first
             bool any_modified = false;
-            //BBS: add config related logs
+            //BBS: 添加配置相关日志
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load multiple filament preset from filament_settings_id");
             for (int i = (int)configs.size()-1; i >= 0; i--) {
                 DynamicPrintConfig &cfg = configs[i];
@@ -3007,7 +3007,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
         else
             this->physical_printers.unselect_printer();
     }
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": finished");
 }
 
@@ -3022,7 +3022,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
     ConfigSubstitutionContext  substitution_context { compatibility_rule };
     PresetsConfigSubstitutions substitutions;
 
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" enter, path %1%, compatibility_rule %2%")%path.c_str()%compatibility_rule;
     if (flags.has(LoadConfigBundleAttribute::ResetUserProfile) || flags.has(LoadConfigBundleAttribute::LoadSystem))
         // Reset this bundle, delete user profile files if SaveImported.
@@ -3532,7 +3532,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
                 std::string(), std::move(substitution_context.substitutions) });
         config_maps.emplace(preset_name, loaded.config);
         ++count;
-        //BBS: add config related logs
+        //BBS: 添加配置相关日志
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", got preset %1%, from %2%")%loaded.name %subfile;
         return reason;
     };
@@ -3614,7 +3614,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
                             " total_ms=" + std::to_string(total_ms));
     }
 
-    //BBS: add config related logs
+    //BBS: 添加配置相关日志
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", finished, presets_loaded %1%")%presets_loaded;
     return std::make_pair(std::move(substitutions), presets_loaded);
 }

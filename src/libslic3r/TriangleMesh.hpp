@@ -17,18 +17,18 @@ class TriangleMesh;
 class TriangleMeshSlicer;
 struct Groove;
 struct RepairedMeshErrors {
-    // How many edges were united by merging their end points with some other end points in epsilon neighborhood?
+    // 通过将端点与 epsilon 邻域内的其他端点合并，有多少条边被合并？
     int           edges_fixed               = 0;
-    // How many degenerate faces were removed?
+    // 移除了多少个退化面？
     int           degenerate_facets         = 0;
-    // How many faces were removed during fixing? Includes degenerate_faces and disconnected faces.
+    // 修复过程中移除了多少个面？包括 degenerate_faces 和 disconnected faces。
     int           facets_removed            = 0;
-    // New faces could only be created with stl_fill_holes() and we ditched stl_fill_holes(), because mostly it does more harm than good.
+    // 新面只能通过 stl_fill_holes() 创建，我们弃用了 stl_fill_holes()，因为它通常弊大于利。
     //int          facets_added             = 0;
-    // How many facets were revesed? Faces are reversed by admesh while it connects patches of triangles togeter and a flipped triangle is encountered.
-    // Also the facets are reversed when a negative volume is corrected by flipping all facets.
+    // 有多少个面被反转？当 admesh 连接三角形面片并遇到反转三角形时，这些面会被反转。
+    // 此外，当通过翻转所有面来纠正负体积时，面也会被反转。
     int           facets_reversed           = 0;
-    // Edges shared by two triangles, oriented incorrectly.
+    // 两个三角形共享的边，方向不正确。
     int           backwards_edges           = 0;
 
     void clear() { *this = RepairedMeshErrors(); }
@@ -45,7 +45,7 @@ struct RepairedMeshErrors {
 };
 
 struct TriangleMeshStats {
-    // Mesh metrics.
+    // 网格度量。
     uint32_t      number_of_facets          = 0;
     stl_vertex    max                       = stl_vertex::Zero();
     stl_vertex    min                       = stl_vertex::Zero();
@@ -53,10 +53,10 @@ struct TriangleMeshStats {
     float         volume                    = -1.f;
     int           number_of_parts           = 0;
 
-    // Mesh errors, remaining.
+    // 网格错误，剩余的。
     int           open_edges                = 0;
 
-    // Mesh errors, fixed.
+    // 网格错误，已修复的。
     RepairedMeshErrors repaired_errors;
 
     void clear() { *this = TriangleMeshStats(); }
@@ -114,40 +114,40 @@ public:
     void mirror_z() { this->mirror(Z); }
     void transform(const Transform3d& t, bool fix_left_handed = false);
     void transform(const Matrix3d& t, bool fix_left_handed = false);
-    // Flip triangles, negate volume.
+    // 翻转三角形，取反体积。
     void flip_triangles();
     void align_to_origin();
     void rotate(double angle, Point* center);
     std::vector<TriangleMesh> split() const;
     void merge(const TriangleMesh &mesh);
     ExPolygons horizontal_projection() const;
-    // 2D convex hull of a 3D mesh projected into the Z=0 plane.
+    // 2D凸包，将3D网格投影到Z=0平面。
     Polygon convex_hull() const;
     BoundingBoxf3 bounding_box() const;
-    // Returns the bbox of this TriangleMesh transformed by the given transformation
+    // 返回经给定变换后的 TriangleMesh 的包围盒
     BoundingBoxf3 transformed_bounding_box(const Transform3d &trafo) const;
-    // Variant returning the bbox of the part of this TriangleMesh above the given world_min_z
+    // 变体：返回此 TriangleMesh 在给定 world_min_z 以上部分的包围盒
     BoundingBoxf3 transformed_bounding_box(const Transform3d& trafo, double world_min_z) const;
-    // Return the size of the mesh in coordinates.
+    // 返回网格的尺寸（坐标值）
     Vec3d size() const { return m_stats.size.cast<double>(); }
-    /// Return the center of the related bounding box.
+    /// 返回相关包围盒的中心
     Vec3d center() const { return this->bounding_box().center(); }
-    // Returns the convex hull of this TriangleMesh
+    // 返回此 TriangleMesh 的凸包
     TriangleMesh convex_hull_3d() const;
-    // Slice this mesh at the provided Z levels and return the vector
+    // 在指定的 Z 高度切片此网格，并返回切片结果向量
     std::vector<ExPolygons> slice(const std::vector<double>& z) const;
     size_t facets_count() const { assert(m_stats.number_of_facets == this->its.indices.size()); return m_stats.number_of_facets; }
     bool   empty() const { return this->facets_count() == 0; }
     bool   repaired() const;
     bool   is_splittable() const;
-    // Estimate of the memory occupied by this structure, important for keeping an eye on the Undo / Redo stack allocation.
+    // 估算此结构占用的内存，对于监控撤销/重做栈分配很重要。
     size_t memsize() const;
 
-    // Used by the Undo / Redo stack, legacy interface. As of now there is nothing cached at TriangleMesh,
-    // but we may decide to cache some data in the future (for example normals), thus we keep the interface in place.
-    // Release optional data from the mesh if the object is on the Undo / Redo stack only. Returns the amount of memory released.
+    // 用于撤销/重做栈的遗留接口。目前 TriangleMesh 没有缓存任何数据，
+    // 但我们可能决定将来缓存一些数据（例如法线），因此保留此接口。
+    // 如果对象仅在撤销/重做栈上，则从网格释放可选数据。返回释放的内存量。
     size_t release_optional() { return 0; }
-    // Restore optional data possibly released by release_optional().
+    // 恢复可能由 release_optional() 释放的可选数据。
     void   restore_optional() {}
 
     const TriangleMeshStats& stats() const { return m_stats; }
@@ -162,7 +162,7 @@ private:
     Vec3d m_init_shift {0.0, 0.0, 0.0};
 };
 
-// Index of face indices incident with a vertex index.
+// 与顶点索引相关的面索引。
 struct VertexFaceIndex
 {
 public:
@@ -174,10 +174,10 @@ public:
     void create(const indexed_triangle_set &its);
     void clear() { m_vertex_to_face_start.clear(); m_vertex_faces_all.clear(); }
 
-    // Iterators of face indices incident with the input vertex_id.
+    // 与输入 vertex_id 相关的面索引的迭代器。
     iterator begin(size_t vertex_id) const throw() { return m_vertex_faces_all.begin() + m_vertex_to_face_start[vertex_id]; }
     iterator end  (size_t vertex_id) const throw() { return m_vertex_faces_all.begin() + m_vertex_to_face_start[vertex_id + 1]; }
-    // Vertex incidence.
+    // 顶点关联度。
     size_t   count(size_t vertex_id) const throw() { return m_vertex_to_face_start[vertex_id + 1] - m_vertex_to_face_start[vertex_id]; }
 
     const Range<iterator> operator[](size_t vertex_id) const { return {begin(vertex_id), end(vertex_id)}; }
@@ -187,63 +187,63 @@ private:
     std::vector<size_t>     m_vertex_faces_all;
 };
 
-// Map from a face edge to a unique edge identifier or -1 if no neighbor exists.
-// Two neighbor faces share a unique edge identifier even if they are flipped.
-// Used for chaining slice lines into polygons.
+// 从面边到唯一边标识符的映射，如果不存在邻居则为-1。
+// 即使相邻面被翻转，两个相邻面也共享一个唯一的边标识符。
+// 用于将切片线连接成多边形。
 std::vector<Vec3i32> its_face_edge_ids(const indexed_triangle_set &its);
 std::vector<Vec3i32> its_face_edge_ids(const indexed_triangle_set &its, std::function<void()> throw_on_cancel_callback);
 std::vector<Vec3i32> its_face_edge_ids(const indexed_triangle_set &its, const std::vector<bool> &face_mask);
-// Having the face neighbors available, assign unique edge IDs to face edges for chaining of polygons over slices.
+// 在面邻居可用的情况下，为面边分配唯一的边ID，用于在切片上连接多边形。
 std::vector<Vec3i32> its_face_edge_ids(const indexed_triangle_set &its, std::vector<Vec3i32> &face_neighbors, bool assign_unbound_edges = false, int *num_edges = nullptr);
 
-// Create index that gives neighbor faces for each face. Ignores face orientations.
+// 创建索引，为每个面提供邻居面。忽略面方向。
 std::vector<Vec3i32> its_face_neighbors(const indexed_triangle_set &its);
 std::vector<Vec3i32> its_face_neighbors_par(const indexed_triangle_set &its);
 
-// After applying a transformation with negative determinant, flip the faces to keep the transformed mesh volume positive.
+// 应用具有负行列式的变换后，翻转面以保持变换后网格体积为正。
 void its_flip_triangles(indexed_triangle_set &its);
 
-// Merge duplicate vertices, return number of vertices removed.
-// This function will happily create non-manifolds if more than two faces share the same vertex position
-// or more than two faces share the same edge position!
+// 合并重复顶点，返回移除的顶点数量。
+// 如果两个以上面共享同一顶点位置或两个以上面共享同一边缘位置，
+// 此函数将愉快地创建非流形！
 int its_merge_vertices(indexed_triangle_set &its, bool shrink_to_fit = true);
 
-// Remove degenerate faces, return number of faces removed.
+// 移除退化面，返回移除的面数量。
 int its_remove_degenerate_faces(indexed_triangle_set &its, bool shrink_to_fit = true);
 
-// Remove vertices, which none of the faces references. Return number of freed vertices.
+// 移除没有任何面引用的顶点。返回释放的顶点数量。
 int its_compactify_vertices(indexed_triangle_set &its, bool shrink_to_fit = true);
 
-// store part of index triangle set
+// 存储索引三角形集的一部分
 bool its_store_triangle(const indexed_triangle_set &its, const char *obj_filename, size_t triangle_index);
 bool its_store_triangles(const indexed_triangle_set &its, const char *obj_filename, const std::vector<size_t>& triangles);
 
 std::vector<indexed_triangle_set> its_split(const indexed_triangle_set &its);
 std::vector<indexed_triangle_set> its_split(const indexed_triangle_set &its, std::vector<Vec3i32> &face_neighbors);
 
-// Number of disconnected patches (faces are connected if they share an edge, shared edge defined with 2 shared vertex indices).
+// 不连接的面片数量（如果面共享边则连接，共享边由2个共享顶点索引定义）。
 size_t its_number_of_patches(const indexed_triangle_set &its);
 size_t its_number_of_patches(const indexed_triangle_set &its, const std::vector<Vec3i32> &face_neighbors);
-// Same as its_number_of_patches(its) > 1, but faster.
+// 与 its_number_of_patches(its) > 1 相同，但更快。
 bool its_is_splittable(const indexed_triangle_set &its);
 bool its_is_splittable(const indexed_triangle_set &its, const std::vector<Vec3i32> &face_neighbors);
 
-// Calculate number of unconnected face edges. There should be no unconnected edge in a manifold mesh.
+// 计算未连接的面边数量。流形网格中不应存在未连接的边。
 size_t its_num_open_edges(const indexed_triangle_set &its);
 size_t its_num_open_edges(const std::vector<Vec3i32> &face_neighbors);
 
-// Shrink the vectors of its.vertices and its.faces to a minimum size by reallocating the two vectors.
+// 通过重新分配两个向量，将 its.vertices 和 its.faces 的向量缩小到最小大小。
 void its_shrink_to_fit(indexed_triangle_set &its);
 
-// For convex hull calculation: Transform mesh, trim it by the Z plane and collect all vertices. Duplicate vertices will be produced.
+// 用于凸包计算：变换网格，用Z平面裁剪并收集所有顶点。将产生重复顶点。
 void its_collect_mesh_projection_points_above(const indexed_triangle_set &its, const Matrix3f &m, const float z, Points &all_pts);
 void its_collect_mesh_projection_points_above(const indexed_triangle_set &its, const Transform3f &t, const float z, Points &all_pts);
 
-// Calculate 2D convex hull of a transformed and clipped mesh. Uses the function above.
+// 计算变换并裁剪后的网格的2D凸包。使用上述函数。
 Polygon its_convex_hull_2d_above(const indexed_triangle_set &its, const Matrix3f &m, const float z);
 Polygon its_convex_hull_2d_above(const indexed_triangle_set &its, const Transform3f &t, const float z);
 
-// Index of a vertex inside triangle_indices.
+// 三角形 indices 中顶点的索引。
 inline int its_triangle_vertex_index(const stl_triangle_vertex_indices &triangle_indices, int vertex_idx)
 {
     return vertex_idx == triangle_indices[0] ? 0 :
@@ -257,7 +257,7 @@ inline Vec2i32 its_triangle_edge(const stl_triangle_vertex_indices &triangle_ind
     return { triangle_indices[edge_idx], triangle_indices[next_edge_idx] };
 }
 
-// Index of an edge inside triangle.
+// 三角形内部边的索引。
 inline int its_triangle_edge_index(const stl_triangle_vertex_indices &triangle_indices, const Vec2i32 &triangle_edge)
 {
     return triangle_edge(0) == triangle_indices[0] && triangle_edge(1) == triangle_indices[1] ? 0 :
@@ -265,7 +265,7 @@ inline int its_triangle_edge_index(const stl_triangle_vertex_indices &triangle_i
            triangle_edge(0) == triangle_indices[2] && triangle_edge(1) == triangle_indices[0] ? 2 : -1;
 }
 
-// juedge whether two triangles has the same vertices
+// 判断两个三角形是否具有相同的顶点
 inline bool its_triangle_vertex_the_same(const stl_triangle_vertex_indices &triangle_indices_1, const stl_triangle_vertex_indices &triangle_indices_2)
 {
     bool ret = false;
@@ -379,7 +379,7 @@ inline BoundingBoxf3 bounding_box(const indexed_triangle_set& its)
 
 }
 
-// Serialization through the Cereal library
+// 通过 Cereal 库进行序列化
 #include <cereal/access.hpp>
 namespace cereal {
     template <class Archive> struct specialize<Archive, Slic3r::TriangleMesh, cereal::specialization::non_member_load_save> {};

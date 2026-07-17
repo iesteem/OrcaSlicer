@@ -1,4 +1,4 @@
-#ifndef _libslic3r_Exception_h_
+﻿#ifndef _libslic3r_Exception_h_
 #define _libslic3r_Exception_h_
 
 #include <stdexcept>
@@ -24,7 +24,7 @@ SLIC3R_DERIVE_EXCEPTION(FileIOError,        IOError);
 SLIC3R_DERIVE_EXCEPTION(HostNetworkError,   IOError);
 SLIC3R_DERIVE_EXCEPTION(ExportError,        CriticalException);
 SLIC3R_DERIVE_EXCEPTION(PlaceholderParserError, RuntimeError);
-// Runtime exception produced by Slicer. Such exception cancels the slicing process and it shall be shown in notifications.
+// Slicer 产生的运行时异常。此类异常会取消切片过程，并应在通知中显示。
 //SLIC3R_DERIVE_EXCEPTION(SlicingError,       Exception);
 class SlicingError : public Exception 
 {

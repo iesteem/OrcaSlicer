@@ -36,7 +36,7 @@ static const float DEFAULT_TOOLPATH_HEIGHT = 0.2f;
 
 static const float INCHES_TO_MM = 25.4f;
 static const float MMMIN_TO_MMSEC = 1.0f / 60.0f;
-static const float DRAW_ARC_TOLERANCE = 0.0125f;            //0.0125mm tolerance for drawing arc
+static const float DRAW_ARC_TOLERANCE = 0.0125f;            //绘制圆弧的容差为0.0125mm
 
 static const float DEFAULT_ACCELERATION = 1500.0f; // Prusa Firmware 1_75mm_MK2
 static const float DEFAULT_RETRACT_ACCELERATION = 1500.0f; // Prusa Firmware 1_75mm_MK2
@@ -98,7 +98,7 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
 const std::string GCodeProcessor::Flush_Start_Tag = " FLUSH_START";
 const std::string GCodeProcessor::Flush_End_Tag = " FLUSH_END";
 
-//Orca: External device purge tag
+//Orca: 外部设备清洗标签
 const std::string GCodeProcessor::External_Purge_Tag = " EXTERNAL_PURGE";
 
 const float GCodeProcessor::Wipe_Width = 0.05f;
@@ -134,16 +134,15 @@ static float intersection_distance(float initial_rate, float final_rate, float a
 
 static float speed_from_distance(float initial_feedrate, float distance, float acceleration)
 {
-    // to avoid invalid negative numbers due to numerical errors 
+    // 避免因数值误差导致无效的负数
     float value = std::max(0.0f, sqr(initial_feedrate) + 2.0f * acceleration * distance);
     return ::sqrt(value);
 }
 
-// Calculates the maximum allowable speed at this point when you must be able to reach target_velocity using the 
-// acceleration within the allotted distance.
+// 计算在此点必须能够在指定距离内通过加速度达到目标速度时的最大允许速度
 static float max_allowable_speed(float acceleration, float target_velocity, float distance)
 {
-    // to avoid invalid negative numbers due to numerical errors 
+    // 避免因数值误差导致无效的负数
     float value = std::max(0.0f, sqr(target_velocity) - 2.0f * acceleration * distance);
     return std::sqrt(value);
 }
@@ -193,9 +192,9 @@ void GCodeProcessor::TimeBlock::calculate_trapezoid()
     float decelerate_distance = std::max(0.0f, estimated_acceleration_distance(feedrate_profile.cruise, feedrate_profile.exit, -acceleration));
     float cruise_distance = distance - accelerate_distance - decelerate_distance;
 
-    // Not enough space to reach the nominal feedrate.
-    // This means no cruising, and we'll have to use intersection_distance() to calculate when to abort acceleration 
-    // and start braking in order to reach the exit_feedrate exactly at the end of this block.
+    // 没有足够的空间达到标称进给率。
+    // 这意味着没有匀速段，我们必须使用intersection_distance()来计算何时中止加速
+    // 并开始减速，以便在该块的末端精确达到退出进给率。
     if (cruise_distance < 0.0f) {
         accelerate_distance = std::clamp(intersection_distance(feedrate_profile.entry, feedrate_profile.exit, acceleration, distance), 0.0f, distance);
         cruise_distance = 0.0f;
@@ -264,10 +263,9 @@ void GCodeProcessor::TimeMachine::simulate_st_synchronize(float additional_time)
 
 static void planner_forward_pass_kernel(GCodeProcessor::TimeBlock& prev, GCodeProcessor::TimeBlock& curr)
 {
-    // If the previous block is an acceleration block, but it is not long enough to complete the
-    // full speed change within the block, we need to adjust the entry speed accordingly. Entry
-    // speeds have already been reset, maximized, and reverse planned by reverse planner.
-    // If nominal length is true, max junction speed is guaranteed to be reached. No need to recheck.
+    // 如果前一个块是加速块，但长度不足以在该块内完成完整的速度变化，
+    // 我们需要相应地调整进入速度。进入速度已经被反向规划器重置、最大化和反向规划。
+    // 如果标称长度为真，则保证达到最大连接点速度。无需重新检查。
     if (!prev.flags.nominal_length) {
         if (prev.feedrate_profile.entry < curr.feedrate_profile.entry) {
             float entry_speed = std::min(curr.feedrate_profile.entry, max_allowable_speed(-prev.acceleration, prev.feedrate_profile.entry, prev.distance));
@@ -283,12 +281,12 @@ static void planner_forward_pass_kernel(GCodeProcessor::TimeBlock& prev, GCodePr
 
 void planner_reverse_pass_kernel(GCodeProcessor::TimeBlock& curr, GCodeProcessor::TimeBlock& next)
 {
-    // If entry speed is already at the maximum entry speed, no need to recheck. Block is cruising.
-    // If not, block in state of acceleration or deceleration. Reset entry speed to maximum and
-    // check for maximum allowable speed reductions to ensure maximum possible planned speed.
+    // 如果进入速度已经达到最大进入速度，无需重新检查。该块处于匀速状态。
+    // 如果不是，则该块处于加速或减速状态。将进入速度重置为最大值，
+    // 并检查最大允许速度降低，以确保最大可能的规划速度。
     if (curr.feedrate_profile.entry != curr.max_entry_speed) {
-        // If nominal length true, max junction speed is guaranteed to be reached. Only compute
-        // for max allowable speed if block is decelerating and nominal length is false.
+        // 如果标称长度为真，则保证达到最大连接点速度。仅当块正在减速且标称长度为假时
+        // 才计算最大允许速度。
         if (!curr.flags.nominal_length && curr.max_entry_speed > next.feedrate_profile.entry)
             curr.feedrate_profile.entry = std::min(curr.max_entry_speed, max_allowable_speed(-curr.acceleration, next.feedrate_profile.entry, curr.distance));
         else
@@ -310,9 +308,9 @@ static void recalculate_trapezoids(std::vector<GCodeProcessor::TimeBlock>& block
         next = &b;
 
         if (curr != nullptr) {
-            // Recalculate if current block entry or exit junction speed has changed.
+            // 如果当前块或下一个块的进入/退出连接点速度发生变化，则重新计算
             if (curr->flags.recalculate || next->flags.recalculate) {
-                // NOTE: Entry and exit factors always > 0 by all previous logic operations.
+                // 注意：通过之前的所有逻辑操作，进入和退出因子始终大于0。
                 GCodeProcessor::TimeBlock block = *curr;
                 block.feedrate_profile.exit = next->feedrate_profile.entry;
                 block.calculate_trapezoid();
@@ -322,7 +320,7 @@ static void recalculate_trapezoids(std::vector<GCodeProcessor::TimeBlock>& block
         }
     }
 
-    // Last/newest block in buffer. Always recalculated.
+    // 缓冲区中最后/最新的块。始终重新计算。
     if (next != nullptr) {
         GCodeProcessor::TimeBlock block = *next;
         block.feedrate_profile.exit = next->safe_feedrate;
@@ -339,12 +337,12 @@ void GCodeProcessor::TimeMachine::calculate_time(size_t keep_last_n_blocks, floa
 
     assert(keep_last_n_blocks <= blocks.size());
 
-    // forward_pass
+    // 前向传递
     for (size_t i = 0; i + 1 < blocks.size(); ++i) {
         planner_forward_pass_kernel(blocks[i], blocks[i + 1]);
     }
 
-    // reverse_pass
+    // 反向传递
     for (int i = static_cast<int>(blocks.size()) - 1; i > 0; --i)
         planner_reverse_pass_kernel(blocks[i - 1], blocks[i]);
 
@@ -359,7 +357,7 @@ void GCodeProcessor::TimeMachine::calculate_time(size_t keep_last_n_blocks, floa
 
         time += block_time;
         gcode_time.cache += block_time;
-        //BBS: don't calculate travel of start gcode into travel time
+        //BBS: 不将开始G代码的移动行程计入行程时间
         if (!block.flags.prepare_stage || block.move_type != EMoveType::Travel)
             moves_time[static_cast<size_t>(block.move_type)] += block_time;
         roles_time[static_cast<size_t>(block.role)] += block_time;
@@ -375,7 +373,7 @@ void GCodeProcessor::TimeMachine::calculate_time(size_t keep_last_n_blocks, floa
         if (block.flags.prepare_stage)
             prepare_time += block_time;
         g1_times_cache.push_back({ block.g1_line_id, block.remaining_internal_g1_lines, time });
-        // update times for remaining time to printer stop placeholders
+        // 更新打印机停止占位符的剩余时间
         auto it_stop_time = std::lower_bound(stop_times.begin(), stop_times.end(), block.g1_line_id,
             [](const StopTime& t, unsigned int value) { return t.g1_line_id < value; });
         if (it_stop_time != stop_times.end() && it_stop_time->g1_line_id == block.g1_line_id)
@@ -553,16 +551,16 @@ void GCodeProcessor::UsedFilaments::process_caches(GCodeProcessor* processor)
 
 #if ENABLE_GCODE_VIEWER_STATISTICS
 void GCodeProcessorResult::reset() {
-    //BBS: add mutex for protection of gcode result
+    //BBS: 为保护G代码结果添加互斥锁
     lock();
 
     moves = std::vector<GCodeProcessorResult::MoveVertex>();
     printable_area = Pointfs();
-    //BBS: add bed exclude area
+    //BBS: 添加热床排除区域
     bed_exclude_area = Pointfs();
-    //BBS: add toolpath_outside
+    //BBS: 添加刀路外部标记
     toolpath_outside = false;
-    //BBS: add label_object_enabled
+    //BBS: 启用对象标签
     label_object_enabled = false;
     timelapse_warning_code = 0;
     printable_height = 0.0f;
@@ -575,22 +573,22 @@ void GCodeProcessorResult::reset() {
     spiral_vase_layers = std::vector<std::pair<float, std::pair<size_t, size_t>>>();
     time = 0;
 
-    //BBS: add mutex for protection of gcode result
+    //BBS: 为保护G代码结果添加互斥锁
     unlock();
 }
 #else
 void GCodeProcessorResult::reset() {
-    //BBS: add mutex for protection of gcode result
+    //BBS: 为保护G代码结果添加互斥锁
     lock();
 
     moves.clear();
     lines_ends.clear();
     printable_area = Pointfs();
-    //BBS: add bed exclude area
+    //BBS: 添加热床排除区域
     bed_exclude_area = Pointfs();
-    //BBS: add toolpath_outside
+    //BBS: 添加刀路外部标记
     toolpath_outside = false;
-    //BBS: add label_object_enabled
+    //BBS: 启用对象标签
     label_object_enabled = false;
     long_retraction_when_cut = false;
     timelapse_warning_code = 0;
@@ -608,16 +606,16 @@ void GCodeProcessorResult::reset() {
     bed_match_result = BedMatchResult(true);
     warnings.clear();
 
-    //BBS: add mutex for protection of gcode result
+    //BBS: 为保护G代码结果添加互斥锁
     unlock();
-    //BBS: add logs
+    //BBS: 添加日志
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: this=%2% reset finished")%__LINE__%this;
 }
 #endif // ENABLE_GCODE_VIEWER_STATISTICS
 
 const std::vector<std::pair<GCodeProcessor::EProducer, std::string>> GCodeProcessor::Producers = {
-    //BBS: Snapmaker_Orca is also "bambu". Otherwise the time estimation didn't work.
-    //FIXME: Workaround and should be handled when do removing-bambu
+    //BBS: Snapmaker_Orca也被视为"bambu"。否则时间估算将无法工作。
+    //FIXME: 临时的解决方案，应在移除bambu相关代码时处理
     { EProducer::Snapmaker_Orca, SLIC3R_APP_NAME },
     { EProducer::Snapmaker_Orca, "generated by Snapmaker Orca" },
     { EProducer::Snapmaker_Orca, "generated by Snapmaker_Orca" },
@@ -710,12 +708,12 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     size_t extruders_count = config.filament_diameter.values.size();
     m_result.extruders_count = extruders_count;
 
-    // Orca: 
+    // Orca:
     m_is_XL_printer = is_XL_printer(config);
     m_preheat_time = config.preheat_time;
     m_delta_temperature = config.delta_temperature;
     m_preheat_steps = config.preheat_steps;
-    // sanity check
+    // 完整性检查
     if(m_preheat_steps < 1)
         m_preheat_steps = 1;
     m_result.backtrace_enabled = m_preheat_time > 0 && (m_is_XL_printer || (!m_single_extruder_multi_material && extruders_count > 1));
@@ -738,7 +736,7 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
         m_extruder_temps_first_layer_config[i] = static_cast<int>(config.nozzle_temperature_initial_layer.get_at(i));
         m_extruder_temps_config[i]      = static_cast<int>(config.nozzle_temperature.get_at(i));
         if (m_extruder_temps_config[i] == 0) {
-            // This means the value should be ignored and first layer temp should be used.
+            // 这意味着该值应被忽略，应使用第一层温度。
             m_extruder_temps_config[i] = m_extruder_temps_first_layer_config[i];
         }
         m_result.filament_diameters[i]  = static_cast<float>(config.filament_diameter.get_at(i));
@@ -751,19 +749,19 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     if (m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware || m_flavor == gcfKlipper || m_flavor == gcfRepRapFirmware) {
         m_time_processor.machine_limits = reinterpret_cast<const MachineEnvelopeConfig&>(config);
         if (m_flavor == gcfMarlinLegacy || m_flavor == gcfKlipper) {
-            // Legacy Marlin does not have separate travel acceleration, it uses the 'extruding' value instead.
+            // 传统Marlin没有单独的移动加速度，它使用'extruding'值代替。
             m_time_processor.machine_limits.machine_max_acceleration_travel = m_time_processor.machine_limits.machine_max_acceleration_extruding;
         }
         if (m_flavor == gcfRepRapFirmware) {
-            // RRF does not support setting min feedrates. Set them to zero.
+            // RRF不支持设置最小进给率。将它们设置为零。
             m_time_processor.machine_limits.machine_min_travel_rate.values.assign(m_time_processor.machine_limits.machine_min_travel_rate.size(), 0.);
             m_time_processor.machine_limits.machine_min_extruding_rate.values.assign(m_time_processor.machine_limits.machine_min_extruding_rate.size(), 0.);
         }
     }
 
-    // Filament load / unload times are not specific to a firmware flavor. Let anybody use it if they find it useful.
-    // As of now the fields are shown at the UI dialog in the same combo box as the ramming values, so they
-    // are considered to be active for the single extruder multi-material printers only.
+    // 丝材加载/卸载时间不特定于固件类型。任何人发现有用即可使用。
+    // 目前这些字段在UI对话框的同一组合框中显示为ramming值，因此它们
+    // 被认为仅对单挤出机多材料打印机有效。
     m_time_processor.filament_load_times = static_cast<float>(config.machine_load_filament_time.value);
     m_time_processor.filament_unload_times = static_cast<float>(config.machine_unload_filament_time.value);
     m_time_processor.machine_tool_change_time = static_cast<float>(config.machine_tool_change_time.value);
@@ -837,7 +835,7 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     if (printable_area != nullptr)
         m_result.printable_area = make_counter_clockwise(printable_area->values);
 
-    //BBS: add bed_exclude_area
+    //BBS: 添加热床排除区域
     const ConfigOptionPoints* bed_exclude_area = config.option<ConfigOptionPoints>("bed_exclude_area");
     if (bed_exclude_area != nullptr)
         m_result.bed_exclude_area = bed_exclude_area->values;
@@ -929,7 +927,7 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     const ConfigOptionPoints* extruder_offset = config.option<ConfigOptionPoints>("extruder_offset");
     const ConfigOptionBool* single_extruder_multi_material = config.option<ConfigOptionBool>("single_extruder_multi_material");
     if (extruder_offset != nullptr) {
-        //BBS: for single extruder multi material, only use the offset of first extruder
+        //BBS: 对于单挤出机多材料，只使用第一挤出机的偏移量
         if (single_extruder_multi_material != nullptr && single_extruder_multi_material->getBool()) {
             Vec2f offset = extruder_offset->values[0].cast<float>();
             m_extruder_offsets.resize(m_result.extruders_count);
@@ -967,7 +965,7 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
         }
     }
 
-    // replace missing values with default
+    // 用默认值替换缺失的值
     for (size_t i = 0; i < m_result.extruder_colors.size(); ++i) {
         if (m_result.extruder_colors[i].empty())
             m_result.extruder_colors[i] = "#FF8000";
@@ -1301,7 +1299,7 @@ void GCodeProcessor::initialize(const std::string& filename)
 
 void GCodeProcessor::process_buffer(const std::string &buffer)
 {
-    //FIXME maybe cache GCodeLine gline to be over multiple parse_buffer() invocations.
+    //FIXME 也许可以缓存GCodeLine gline以覆盖多次parse_buffer()调用。
     m_parser.parse_buffer(buffer, [this](GCodeReader&, const GCodeReader::GCodeLine& line) { 
         this->process_gcode_line(line, false);
     });
@@ -1334,9 +1332,9 @@ void GCodeProcessor::finalize(bool post_process)
     auto it = std::find_if(time_mode.roles_times.begin(), time_mode.roles_times.end(), [](const std::pair<ExtrusionRole, float>& item) { return erCustom == item.first; });
     auto prepare_time = (it != time_mode.roles_times.end()) ? it->second : 0.0f;
 
-    //update times for results
+    //更新结果的时间
     for (size_t i = 0; i < m_result.moves.size(); i++) {
-        //field layer_duration contains the layer id for the move in which the layer_duration has to be set.
+        //字段layer_duration包含需要设置layer_duration的移动所在的层ID。
         size_t layer_id = size_t(m_result.moves[i].layer_duration);
         std::vector<float>& layer_times = m_result.print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].layers_times;
         if (layer_times.size() > layer_id - 1 && layer_id > 0)
@@ -1354,7 +1352,7 @@ void GCodeProcessor::finalize(bool post_process)
 #if ENABLE_GCODE_VIEWER_STATISTICS
     m_result.time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_start_time).count();
 #endif // ENABLE_GCODE_VIEWER_STATISTICS
-    //BBS: update slice warning
+    //BBS: 更新切片警告
     update_slice_warnings();
 
     if (post_process)
@@ -1577,11 +1575,11 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
             case 2:
                 switch (cmd[1]) {
                 case '0': { process_G0(line); break; }  // Move
-                case '1': { process_G1(line); break; }  // Move
+                case '1': { process_G1(line); break; }  // 移动
                 case '2':
-                case '3': { process_G2_G3(line); break; }  // Move
+                case '3': { process_G2_G3(line); break; }  // 移动
                 //BBS
-                case 4:  { process_G4(line); break; }  // Delay
+                case 4:  { process_G4(line); break; }  // 延迟
                 default: break;
                 }
                 break;
@@ -1589,27 +1587,27 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
                 switch (cmd[1]) {
                 case '1':
                     switch (cmd[2]) {
-                    case '0': { process_G10(line); break; } // Retract
-                    case '1': { process_G11(line); break; } // Unretract
+                    case '0': { process_G10(line); break; } // 回抽
+                    case '1': { process_G11(line); break; } // 取消回抽
                     default: break;
                     }
                     break;
                 case '2':
                     switch (cmd[2]) {
-                    case '0': { process_G20(line); break; } // Set Units to Inches
-                    case '1': { process_G21(line); break; } // Set Units to Millimeters
-                    case '2': { process_G22(line); break; } // Firmware controlled retract
-                    case '3': { process_G23(line); break; } // Firmware controlled unretract
-                    case '8': { process_G28(line); break; } // Move to origin
+                    case '0': { process_G20(line); break; } // 设置单位为英寸
+                    case '1': { process_G21(line); break; } // 设置单位为毫米
+                    case '2': { process_G22(line); break; } // 固件控制回抽
+                    case '3': { process_G23(line); break; } // 固件控制取消回抽
+                    case '8': { process_G28(line); break; } // 移动到原点
                     case '9': { process_G29(line); break; }
                     default: break;
                     }
                     break;
                 case '9':
                     switch (cmd[2]) {
-                    case '0': { process_G90(line); break; } // Set to Absolute Positioning
-                    case '1': { process_G91(line); break; } // Set to Relative Positioning
-                    case '2': { process_G92(line); break; } // Set Position
+                    case '0': { process_G90(line); break; } // 设置为绝对定位
+                    case '1': { process_G91(line); break; } // 设置为相对定位
+                    case '2': { process_G92(line); break; } // 设置位置
                     default: break;
                     }
                     break;
@@ -1624,7 +1622,7 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
             switch (cmd.size()) {
             case 2:
                 switch (cmd[1]) {
-                case '1': { process_M1(line); break; }   // Sleep or Conditional stop
+                case '1': { process_M1(line); break; }   // 睡眠或有条件停止
                 default: break;
                 }
                 break;
@@ -1632,8 +1630,8 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
                 switch (cmd[1]) {
                 case '8':
                     switch (cmd[2]) {
-                    case '2': { process_M82(line); break; }  // Set extruder to absolute mode
-                    case '3': { process_M83(line); break; }  // Set extruder to relative mode
+                    case '2': { process_M82(line); break; }  // 设置挤出机为绝对模式
+                    case '3': { process_M83(line); break; }  // 设置挤出机为相对模式
                     default: break;
                     }
                     break;
@@ -1647,30 +1645,30 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
                     switch (cmd[2]) {
                     case '0':
                         switch (cmd[3]) {
-                        case '4': { process_M104(line); break; } // Set extruder temperature
-                        case '6': { process_M106(line); break; } // Set fan speed
-                        case '7': { process_M107(line); break; } // Disable fan
-                        case '8': { process_M108(line); break; } // Set tool (Sailfish)
-                        case '9': { process_M109(line); break; } // Set extruder temperature and wait
+                        case '4': { process_M104(line); break; } // 设置挤出机温度
+                        case '6': { process_M106(line); break; } // 设置风扇速度
+                        case '7': { process_M107(line); break; } // 禁用风扇
+                        case '8': { process_M108(line); break; } // 设置工具（Sailfish）
+                        case '9': { process_M109(line); break; } // 设置挤出机温度并等待
                         default: break;
                         }
                         break;
                     case '3':
                         switch (cmd[3]) {
-                        case '2': { process_M132(line); break; } // Recall stored home offsets
-                        case '5': { process_M135(line); break; } // Set tool (MakerWare)
+                        case '2': { process_M132(line); break; } // 恢复存储的主页偏移
+                        case '5': { process_M135(line); break; } // 设置工具（MakerWare）
                         default: break;
                         }
                         break;
                     case '4':
                         switch (cmd[3]) {
-                        case '0': { process_M140(line); break; } // Set bed temperature
+                        case '0': { process_M140(line); break; } // 设置热床温度
                         default: break;
                         }
                     case '9':
                         switch (cmd[3]) {
-                        case '0': { process_M190(line); break; } // Wait bed temperature
-                        case '1': { process_M191(line); break; } // Wait chamber temperature
+                        case '0': { process_M190(line); break; } // 等待热床温度
+                        case '1': { process_M191(line); break; } // 等待腔室温度
                         default: break;
                     }
                     default:
@@ -1681,16 +1679,16 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
                     switch (cmd[2]) {
                     case '0':
                         switch (cmd[3]) {
-                        case '1': { process_M201(line); break; } // Set max printing acceleration
-                        case '3': { process_M203(line); break; } // Set maximum feedrate
-                        case '4': { process_M204(line); break; } // Set default acceleration
-                        case '5': { process_M205(line); break; } // Advanced settings
+                        case '1': { process_M201(line); break; } // 设置最大打印加速度
+                        case '3': { process_M203(line); break; } // 设置最大进给率
+                        case '4': { process_M204(line); break; } // 设置默认加速度
+                        case '5': { process_M205(line); break; } // 高级设置
                         default: break;
                         }
                         break;
                     case '2':
                         switch (cmd[3]) {
-                        case '1': { process_M221(line); break; } // Set extrude factor override percentage
+                        case '1': { process_M221(line); break; } // 设置挤出因子覆盖百分比
                         default: break;
                         }
                         break;
@@ -1703,9 +1701,9 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
                     case '0':
                         switch (cmd[3]) {
                         //BBS
-                        case '0': { process_M400(line); break; } // BBS delay
-                        case '1': { process_M401(line); break; } // Repetier: Store x, y and z position
-                        case '2': { process_M402(line); break; } // Repetier: Go to stored position
+                        case '0': { process_M400(line); break; } // BBS延迟
+                        case '1': { process_M401(line); break; } // Repetier: 存储x, y和z位置
+                        case '2': { process_M402(line); break; } // Repetier: 转到存储的位置
                         default: break;
                         }
                         break;
@@ -1717,7 +1715,7 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
                     switch (cmd[2]) {
                     case '6':
                         switch (cmd[3]) {
-                        case '6': { process_M566(line); break; } // Set allowable instantaneous speed change
+                        case '6': { process_M566(line); break; } // 设置允许的瞬时速度变化
                         default: break;
                         }
                         break;
@@ -1729,7 +1727,7 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
                     switch (cmd[2]) {
                     case '0':
                         switch (cmd[3]) {
-                        case '2': { process_M702(line); break; } // Unload the current filament into the MK3 MMU2 unit at the end of print.
+                        case '2': { process_M702(line); break; } // 在打印结束时将当前丝材卸载到MK3 MMU2单元中。
                         default: break;
                         }
                         break;
@@ -1747,7 +1745,7 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
             break;
         case 't':
         case 'T':
-            process_T(line); // Select Tool
+            process_T(line); // 选择工具
             break;
         default:
             break;
@@ -1756,7 +1754,7 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
     else {
         const std::string &comment = line.raw();
         if (comment.length() > 2 && comment.front() == ';')
-            // Process tags embedded into comments. Tag comments always start at the start of a line
+            // 处理嵌入到注释中的标签。标签注释始终从行首开始
             // with a comment and continue with a tag without any whitespace separator.
             process_tags(comment.substr(1), producers_enabled);
     }
@@ -1773,7 +1771,7 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
 template<typename T>
 [[nodiscard]] static inline bool parse_number(const std::string_view sv, T &out)
 {
-    // https://www.bfilipek.com/2019/07/detect-overload-from-chars.html#example-stdfromchars
+    // 参考：https://www.bfilipek.com/2019/07/detect-overload-from-chars.html#example-stdfromchars
 #if __has_include(<charconv>)
     // Visual Studio 19 supports from_chars all right.
     // OSX compiler that we use only implements std::from_chars just for ints.
@@ -1841,7 +1839,7 @@ int GCodeProcessor::get_gcode_last_filament(const std::string& gcode_str)
     return out_filament;
 }
 
-//BBS: get last z position from gcode
+//BBS: 从G代码获取最后的Z位置
 bool GCodeProcessor::get_last_z_from_gcode(const std::string& gcode_str, double& z)
 {
     int str_size = gcode_str.size();
@@ -1849,19 +1847,19 @@ bool GCodeProcessor::get_last_z_from_gcode(const std::string& gcode_str, double&
     int end_index = 0;
     bool is_z_changed = false;
     while (end_index < str_size) {
-        //find a full line
+        //找到完整的行
         if (gcode_str[end_index] != '\n') {
             end_index++;
             continue;
         }
-        //parse the line
+        //解析该行
         if (end_index > start_index) {
             std::string line_str = gcode_str.substr(start_index, end_index - start_index);
             line_str.erase(0, line_str.find_first_not_of(" "));
             line_str.erase(line_str.find_last_not_of(";") + 1);
             line_str.erase(line_str.find_last_not_of(" ") + 1);
 
-            //command which may have z movement
+            //可能具有Z轴移动的命令
             if (line_str.size() > 5 && (line_str.find("G0 ") == 0
                                        || line_str.find("G1 ") == 0
                                        || line_str.find("G2 ") == 0
@@ -1889,7 +1887,7 @@ bool GCodeProcessor::get_last_z_from_gcode(const std::string& gcode_str, double&
                 }
             }
         }
-        //loop to handle next line
+        //循环处理下一行
         start_index = end_index + 1;
         end_index = start_index;
     }
@@ -1934,19 +1932,19 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         return;
     }
 
-    //BBS: flush start tag
+    //BBS: 冲洗开始标签
     if (boost::starts_with(comment, GCodeProcessor::Flush_Start_Tag)) {
         m_flushing = true;
         return;
     }
 
-    //BBS: flush end tag
+    //BBS: 冲洗结束标签
     if (boost::starts_with(comment, GCodeProcessor::Flush_End_Tag)) {
         m_flushing = false;
         return;
     }
     
-    // Orca: Integrate filament consumption for purging performed to an external device and controlled via macros
+    // Orca:集成通过宏控制的外部设备清洗的丝材消耗
     // (eg. Happy Hare) in the filament consumption stats.
     if (boost::starts_with(comment, GCodeProcessor::External_Purge_Tag)) {
         std::regex numberRegex(R"(\d+\.\d+)");
@@ -1977,7 +1975,7 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
                 BOOST_LOG_TRIVIAL(error) << "GCodeProcessor encountered an invalid value for Width (" << comment << ").";
             return;
         }
-        // Orca: manual tool change tag
+        // Orca:手动工具更换标签
         if (m_manual_filament_change && boost::starts_with(comment, reserved_tag(ETags::Manual_Tool_Change))) {
             std::string_view tool_change_cmd = comment.substr(reserved_tag(ETags::Manual_Tool_Change).length());
             if (boost::starts_with(tool_change_cmd, "T")) {
@@ -2703,7 +2701,7 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
             // cross section: circle
             m_width = static_cast<float>(m_result.filament_diameters[m_extruder_id]) * std::sqrt(delta_pos[E] / delta_xyz);
         else
-            // cross section: rectangle + 2 semicircles
+            // 横截面：矩形 + 2个半圆
             m_width = delta_pos[E] * static_cast<float>(M_PI * sqr(filament_radius)) / (delta_xyz * m_height) + static_cast<float>(1.0 - 0.25 * M_PI) * m_height;
 
         if (m_width == 0.0f)
@@ -2757,7 +2755,7 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
             minimum_travel_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), m_feedrate) :
             minimum_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), m_feedrate);
 
-        //BBS: calculeta enter and exit direction
+        //BBS: 计算进入和退出方向
         curr.enter_direction = { static_cast<float>(delta_pos[X]), static_cast<float>(delta_pos[Y]), static_cast<float>(delta_pos[Z]) };
         float norm = curr.enter_direction.norm();
         if (!is_extrusion_only_move(delta_pos))
@@ -2766,7 +2764,7 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
 
         TimeBlock block;
         block.move_type = type;
-        //BBS: don't calculate travel time into extrusion path, except travel inside start and end gcode.
+        //BBS: 不将行程时间计入挤出路径，除非是开始和结束G代码内的行程。
         block.role = (type != EMoveType::Travel || m_extrusion_role == erCustom) ? m_extrusion_role : erNone;
         block.distance = distance;
         block.g1_line_id = m_g1_line_id;
@@ -2774,8 +2772,8 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
         block.layer_id = std::max<unsigned int>(1, m_layer_id);
         block.flags.prepare_stage = m_processing_start_custom_gcode;
 
-        //BBS: limite the cruise according to centripetal acceleration
-        //Only need to handle when both prev and curr segment has movement in x-y plane
+        //BBS: 根据向心加速度限制巡航速度
+        //仅当前一段和当前段在XY平面都有移动时才需要处理
         if ((prev.exit_direction(0) != 0.0f || prev.exit_direction(1) != 0.0f) &&
             (curr.enter_direction(0) != 0.0f || curr.enter_direction(1) != 0.0f)) {
             Vec3f v1 = prev.exit_direction;
@@ -2785,11 +2783,11 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
             v2(2, 0) = 0.0f;
             v2.normalize();
             float norm_diff = (v2 - v1).norm();
-            //BBS: don't need to consider limitation of centripetal acceleration
-            //when angle changing is larger than 28.96 degree or two lines are almost collinear.
-            //Attention!!! these two value must be same with MC side.
+            //BBS: 不需要考虑向心加速度限制
+            //当角度变化大于28.96度或两条线几乎共线时。
+            //注意!!! 这两个值必须与MC端相同。
             if (norm_diff < 0.5f && norm_diff > 0.00001f) {
-                //BBS: calculate angle
+                //BBS: 计算角度
                 float dot = v1(0) * v2(0) + v1(1) * v2(1);
                 float cross = v1(0) * v2(1) - v1(1) * v2(0);
                 float angle = float(atan2(double(cross), double(dot)));
@@ -2813,7 +2811,7 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
                 if (axis_max_feedrate != 0.0f) min_feedrate_factor = std::min<float>(min_feedrate_factor, axis_max_feedrate / curr.abs_axis_feedrate[a]);
             }
         }
-        //BBS: update curr.feedrate
+        //BBS: 更新当前进给率
         curr.feedrate *= min_feedrate_factor;
         block.feedrate_profile.cruise = curr.feedrate;
 
@@ -2960,7 +2958,7 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
     if (m_seams_detector.is_active()) {
         // check for seam starting vertex
         if (type == EMoveType::Extrude && m_extrusion_role == erExternalPerimeter) {
-            //BBS: m_result.moves.back().position has plate offset, must minus plate offset before calculate the real seam position
+            //BBS: m_result.moves.back().position包含平台偏移，计算实际接缝位置前必须减去平台偏移
             const Vec3f new_pos = m_result.moves.back().position - m_extruder_offsets[m_extruder_id] - plate_offset;
             if (!m_seams_detector.has_first_vertex()) {
                 m_seams_detector.set_first_vertex(new_pos);
@@ -2979,7 +2977,7 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
             };
 
             const Vec3f curr_pos(m_end_position[X], m_end_position[Y], m_end_position[Z]);
-            //BBS: m_result.moves.back().position has plate offset, must minus plate offset before calculate the real seam position
+            //BBS: m_result.moves.back().position包含平台偏移，计算实际接缝位置前必须减去平台偏移
             const Vec3f new_pos = m_result.moves.back().position - m_extruder_offsets[m_extruder_id] - plate_offset;
             const std::optional<Vec3f> first_vertex = m_seams_detector.get_first_vertex();
             // the threshold value = 0.0625f == 0.25 * 0.25 is arbitrary, we may find some smarter condition later
@@ -3056,7 +3054,7 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
 
      auto arc_interpolation = [this](const Vec3f& start_pos, const Vec3f& end_pos, const Vec3f& center_pos, const bool is_ccw) {
          float radius = ArcSegment::calc_arc_radius(start_pos, center_pos);
-         //BBS: radius is too small to draw
+         //BBS: 半径太小，无法绘制
          if (radius <= DRAW_ARC_TOLERANCE) {
              m_interpolation_points.resize(0);
              return;
@@ -3080,17 +3078,17 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
 
     ++m_g1_line_id;
 
-    //BBS: enable processing of lines M201/M203/M204/M205
+    //BBS: 启用处理M201/M203/M204/M205指令
     m_time_processor.machine_envelope_processing_enabled = true;
 
-    //BBS: get axes positions from line
+    //BBS: 从指令中获取轴位置
     for (unsigned char a = X; a <= E; ++a) {
         m_end_position[a] = absolute_position((Axis)a, line);
     }
-    //BBS: G2 G3 line but has no I and J axis, invalid G code format
+    //BBS: G2 G3指令但没有I和J轴，无效的G代码格式
     if (!line.has(I) && !line.has(J))
         return;
-    //BBS: P mode, but xy position is not same, or P is not 1, invalid G code format
+    //BBS: P模式，但XY位置不相同，或P不为1，无效的G代码格式
     if (line.has(P) &&
         (m_start_position[X] != m_end_position[X] ||
          m_start_position[Y] != m_end_position[Y] ||
@@ -3098,10 +3096,10 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
         return;
 
     m_arc_center = Vec3f(absolute_position(I, line),absolute_position(J, line),m_start_position[Z]);
-    //BBS: G2 is CW direction, G3 is CCW direction
+    //BBS: G2是顺时针方向，G3是逆时针方向
     const std::string_view cmd = line.cmd();
     m_move_path_type = (::atoi(&cmd[1]) == 2) ? EMovePathType::Arc_move_cw : EMovePathType::Arc_move_ccw;
-    //BBS: get arc length,interpolation points and radian in X-Y plane
+    //BBS: 获取XY平面中的弧长、插值点和弧度
     Vec3f start_point = Vec3f(m_start_position[X], m_start_position[Y], m_start_position[Z]);
     Vec3f end_point = Vec3f(m_end_position[X], m_end_position[Y], m_end_position[Z]);
     float arc_length;
@@ -3109,23 +3107,23 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
         arc_length = ArcSegment::calc_arc_length(start_point, end_point, m_arc_center, (m_move_path_type == EMovePathType::Arc_move_ccw));
     else
         arc_length = ((int)line.p()) * 2 * PI * (start_point - m_arc_center).norm();
-    //BBS: Attention! arc_onterpolation does not support P mode while P is not 1.
+    //BBS: 注意! arc_interpolation不支持P不为1的P模式。
     arc_interpolation(start_point, end_point, m_arc_center, (m_move_path_type == EMovePathType::Arc_move_ccw));
     float radian = ArcSegment::calc_arc_radian(start_point, end_point, m_arc_center, (m_move_path_type == EMovePathType::Arc_move_ccw));
     Vec3f start_dir = Circle::calc_tangential_vector(start_point, m_arc_center, (m_move_path_type == EMovePathType::Arc_move_ccw));
     Vec3f end_dir = Circle::calc_tangential_vector(end_point, m_arc_center, (m_move_path_type == EMovePathType::Arc_move_ccw));
 
-    //BBS: updates feedrate from line, if present
+    //BBS: 从指令中更新进给率（如果存在）
     if (line.has_f())
         m_feedrate = line.f() * MMMIN_TO_MMSEC;
 
-    //BBS: calculates movement deltas
+    //BBS: 计算移动增量
     AxisCoords delta_pos;
     for (unsigned char a = X; a <= E; ++a) {
         delta_pos[a] = m_end_position[a] - m_start_position[a];
     }
 
-    //BBS: no displacement, return
+    //BBS: 无位移，返回
     if (arc_length == 0.0f && delta_pos[Z] == 0.0f)
         return;
 
@@ -3141,14 +3139,14 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
         if(m_extrusion_role == ExtrusionRole::erSupportMaterial || m_extrusion_role == ExtrusionRole::erSupportMaterialInterface || m_extrusion_role ==ExtrusionRole::erSupportTransition)
             m_used_filaments.increase_support_caches(volume_extruded_filament);
         else if (m_extrusion_role == ExtrusionRole::erWipeTower) {
-            //BBS: save wipe tower volume to the cache
+            //BBS: 保存擦拭塔体积到缓存
             m_used_filaments.increase_wipe_tower_caches(volume_extruded_filament);
         }
         else {
-            //BBS: save extruded volume to the cache
+            //BBS: 保存挤出体积到缓存
             m_used_filaments.increase_model_caches(volume_extruded_filament);
         }
-        //BBS: volume extruded filament / tool displacement = area toolpath cross section
+        //BBS: 挤出丝材体积 / 工具位移 = 刀路横截面积
         m_mm3_per_mm = area_toolpath_cross_section;
 #if ENABLE_GCODE_VIEWER_DATA_CHECKING
         m_mm3_per_mm_compare.update(area_toolpath_cross_section, m_extrusion_role);
@@ -3177,19 +3175,19 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
         if (m_forced_width > 0.0f)
             m_width = m_forced_width;
         else if (m_extrusion_role == erExternalPerimeter)
-            //BBS: cross section: rectangle
+            //BBS: 横截面：矩形
             m_width = delta_pos[E] * static_cast<float>(M_PI * sqr(1.05f * filament_radius)) / (delta_xyz * m_height);
         else if (m_extrusion_role == erBridgeInfill || m_extrusion_role == erInternalBridgeInfill || m_extrusion_role == erNone)
-            //BBS: cross section: circle
+            //BBS: 横截面：圆形
             m_width = static_cast<float>(m_result.filament_diameters[m_extruder_id]) * std::sqrt(delta_pos[E] / delta_xyz);
         else
-            //BBS: cross section: rectangle + 2 semicircles
+            //BBS: 横截面：矩形 + 2个半圆
             m_width = delta_pos[E] * static_cast<float>(M_PI * sqr(filament_radius)) / (delta_xyz * m_height) + static_cast<float>(1.0 - 0.25 * M_PI) * m_height;
 
         if (m_width == 0.0f)
             m_width = DEFAULT_TOOLPATH_WIDTH;
 
-        //BBS: clamp width to avoid artifacts which may arise from wrong values of m_height
+        //BBS: 限制宽度以避免因m_height值错误而产生的伪影
         m_width = std::min(m_width, std::max(2.0f, 4.0f * m_height));
 
 #if ENABLE_GCODE_VIEWER_DATA_CHECKING
@@ -3197,7 +3195,7 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
 #endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
     }
 
-    //BBS: time estimate section
+    //BBS: 时间估算部分
     assert(delta_xyz != 0.0f);
     float inv_distance = 1.0f / delta_xyz;
     float radius = ArcSegment::calc_arc_radius(start_point, m_arc_center);
@@ -3215,13 +3213,13 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
             minimum_travel_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), m_feedrate) :
             minimum_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), m_feedrate);
 
-        //BBS: calculeta enter and exit direction
+        //BBS: 计算进入和退出方向
         curr.enter_direction = start_dir;
         curr.exit_direction = end_dir;
 
         TimeBlock block;
         block.move_type = type;
-        //BBS: don't calculate travel time into extrusion path, except travel inside start and end gcode.
+        //BBS: 不将行程时间计入挤出路径，除非是开始和结束G代码内的行程。
         block.role = (type != EMoveType::Travel || m_extrusion_role == erCustom) ? m_extrusion_role : erNone;
         block.distance = delta_xyz;
         block.g1_line_id = m_g1_line_id;
@@ -3238,7 +3236,7 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
         float min_feedrate_factor = 1.0f;
         for (unsigned char a = X; a <= E; ++a) {
             if (a == X || a == Y)
-                //BBS: use resultant feedrate in x-y plane
+                //BBS: 使用XY平面中的合成进给率
                 curr.axis_feedrate[a] = curr.feedrate * arc_length * inv_distance;
             else if (a == Z)
                 curr.axis_feedrate[a] = curr.feedrate * delta_pos[a] * inv_distance;
@@ -3260,7 +3258,7 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
             }
         }
 
-        //BBS: calculates block acceleration
+        //BBS: 计算块的加速度
         float acceleration = (type == EMoveType::Travel) ?
                               get_travel_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i)) :
                               get_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i));
@@ -3268,7 +3266,7 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
         AxisCoords axis_acc;
         for (unsigned char a = X; a <= Z; ++a) {
             if (a == X || a == Y)
-                //BBS: use resultant feedrate in x-y plane
+                //BBS: 使用XY平面中的合成进给率
                 axis_acc[a] = acceleration * arc_length * inv_distance;
             else
                 axis_acc[a] = acceleration * std::abs(delta_pos[a]) * inv_distance;
@@ -3280,7 +3278,7 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
         }
         block.acceleration = acceleration * min_acc_factor;
 
-        //BBS: calculates block exit feedrate
+        //BBS: 计算块的退出进给率
         for (unsigned char a = X; a <= E; ++a) {
             float axis_max_jerk = get_axis_max_jerk(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
             if (curr.abs_axis_feedrate[a] > axis_max_jerk)
@@ -3288,20 +3286,20 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
         }
         block.feedrate_profile.exit = curr.safe_feedrate;
 
-        //BBS: calculates block entry feedrate
+        //BBS: 计算块的进入进给率
         static const float PREVIOUS_FEEDRATE_THRESHOLD = 0.0001f;
         float vmax_junction = curr.safe_feedrate;
         if (!blocks.empty() && prev.feedrate > PREVIOUS_FEEDRATE_THRESHOLD) {
             bool prev_speed_larger = prev.feedrate > block.feedrate_profile.cruise;
             float smaller_speed_factor = prev_speed_larger ? (block.feedrate_profile.cruise / prev.feedrate) : (prev.feedrate / block.feedrate_profile.cruise);
-            //BBS: Pick the smaller of the nominal speeds. Higher speed shall not be achieved at the junction during coasting.
+            //BBS: 选择标称速度中较小的一个。滑行时在连接点处不应达到较高的速度。
             vmax_junction = prev_speed_larger ? block.feedrate_profile.cruise : prev.feedrate;
 
             float v_factor = 1.0f;
             bool limited = false;
 
             for (unsigned char a = X; a <= E; ++a) {
-                //BBS: Limit an axis. We have to differentiate coasting from the reversal of an axis movement, or a full stop.
+                //BBS: 限制一个轴。我们必须区分滑行与轴运动反向或完全停止。
                 if (a == X) {
                     Vec3f exit_v = prev.feedrate * (prev.exit_direction);
                     if (prev_speed_larger)
@@ -3335,18 +3333,18 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
                         v_entry *= v_factor;
                     }
 
-                    //BBS: Calculate the jerk depending on whether the axis is coasting in the same direction or reversing a direction.
+                    //BBS: 根据轴是在同一方向滑行还是反向来计算加加速度。
                     float jerk =
                         (v_exit > v_entry) ?
                         (((v_entry > 0.0f) || (v_exit < 0.0f)) ?
-                            //BBS: coasting
+                            //BBS: 滑行
                             (v_exit - v_entry) :
-                            //BBS: axis reversal
+                            //BBS: 轴反向
                             std::max(v_exit, -v_entry)) :
                         (((v_entry < 0.0f) || (v_exit > 0.0f)) ?
-                            //BBS: coasting
+                            //BBS: 滑行
                             (v_entry - v_exit) :
-                            //BBS: axis reversal
+                            //BBS: 轴反向
                             std::max(-v_exit, v_entry));
 
 
@@ -3361,11 +3359,11 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
             if (limited)
                 vmax_junction *= v_factor;
 
-            //BBS: Now the transition velocity is known, which maximizes the shared exit / entry velocity while
+            //BBS: 现在过渡速度已知，它最大化共享的退出/进入速度，同时
             // respecting the jerk factors, it may be possible, that applying separate safe exit / entry velocities will achieve faster prints.
             float vmax_junction_threshold = vmax_junction * 0.99f;
 
-            //BBS: Not coasting. The machine will stop and start the movements anyway, better to start the segment from start.
+            //BBS: 非滑行。机器无论如何都会停止并重新开始移动，最好从头开始该段。
             if ((prev.safe_feedrate > vmax_junction_threshold) && (curr.safe_feedrate > vmax_junction_threshold))
                 vmax_junction = curr.safe_feedrate;
         }
@@ -3378,10 +3376,10 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
         block.flags.recalculate = true;
         block.safe_feedrate = curr.safe_feedrate;
 
-        //BBS: calculates block trapezoid
+        //BBS: 计算块的梯形
         block.calculate_trapezoid();
 
-        //BBS: updates previous
+        //BBS: 更新前一块
         prev = curr;
 
         blocks.push_back(block);
@@ -3390,11 +3388,11 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
             machine.calculate_time(TimeProcessor::Planner::queue_size);
     }
 
-    //BBS: seam detector
+    //BBS: 接缝检测器
     Vec3f plate_offset = {(float) m_x_offset, (float) m_y_offset, 0.0f};
 
     if (m_seams_detector.is_active()) {
-        //BBS: check for seam starting vertex
+        //BBS: 检查接缝起始顶点
         if (type == EMoveType::Extrude && m_extrusion_role == erExternalPerimeter) {
             const Vec3f new_pos = m_result.moves.back().position - m_extruder_offsets[m_extruder_id] - plate_offset;
             if (!m_seams_detector.has_first_vertex()) {
@@ -3407,7 +3405,7 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
                 }
             }
         }
-        //BBS: check for seam ending vertex and store the resulting move
+        //BBS: 检查接缝结束顶点并存储结果移动
         else if ((type != EMoveType::Extrude || (m_extrusion_role != erExternalPerimeter && m_extrusion_role != erOverhangPerimeter)) && m_seams_detector.has_first_vertex()) {
             auto set_end_position = [this](const Vec3f& pos) {
                 m_end_position[X] = pos.x(); m_end_position[Y] = pos.y(); m_end_position[Z] = pos.z();
@@ -3415,7 +3413,7 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
             const Vec3f curr_pos(m_end_position[X], m_end_position[Y], m_end_position[Z]);
             const Vec3f new_pos = m_result.moves.back().position - m_extruder_offsets[m_extruder_id] - plate_offset;
             const std::optional<Vec3f> first_vertex = m_seams_detector.get_first_vertex();
-            //BBS: the threshold value = 0.0625f == 0.25 * 0.25 is arbitrary, we may find some smarter condition later
+            //BBS: 阈值= 0.0625f == 0.25 * 0.25是任意的，我们以后可能会找到更智能的条件
 
             if ((new_pos - *first_vertex).squaredNorm() < 0.0625f) {
                 set_end_position(0.5f * (new_pos + *first_vertex));
@@ -3431,7 +3429,7 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
         m_seams_detector.set_first_vertex(m_result.moves.back().position - m_extruder_offsets[m_extruder_id] - plate_offset);
     }
 
-    // Orca: we now use spiral_vase_layers for proper layer detect when scarf joint is enabled,
+    // Orca:当启用围巾接缝时，我们现在使用spiral_vase_layers进行正确的层检测，
     // and this is needed if the layer has only arc moves
     if (m_detect_layer_based_on_tag && !m_result.spiral_vase_layers.empty()) {
         if (delta_pos[Z] >= 0.0 && type == EMoveType::Extrude) {
@@ -3447,7 +3445,7 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
             m_result.spiral_vase_layers.back().second.second = m_result.moves.size() - 1 - m_seams_count;
     }
 
-    //BBS: store move
+    //BBS: 存储移动
     store_move_vertex(type, m_move_path_type);
 }
 
@@ -3465,8 +3463,8 @@ void GCodeProcessor::process_G4(const GCodeReader::GCodeLine& line)
 //BBS
 void GCodeProcessor::process_G29(const GCodeReader::GCodeLine& line)
 {
-    //BBS: hardcode 260 seconds for G29
-    //Todo: use a machine related setting when we have second kind of BBL printer
+    //BBS: 对G29硬编码260秒
+    //Todo: 当我们有第二种BBL打印机时，使用机器相关设置
     const float value_s = 260.0;
     simulate_st_synchronize(value_s);
 }
@@ -3607,8 +3605,8 @@ void GCodeProcessor::process_M104(const GCodeReader::GCodeLine& line)
 
 void GCodeProcessor::process_M106(const GCodeReader::GCodeLine& line)
 {
-    //BBS: for Bambu machine ,we both use M106 P1 and M106 to indicate the part cooling fan
-    //So we must not ignore M106 P1
+    //BBS: 对于拓竹机器，我们都使用M106 P1和M106来表示部件冷却风扇
+    //所以我们不能忽略M106 P1
     if (!line.has('P') || (line.has('P') && line.p() == 1.0f)) {
         // The absence of P means the print cooling fan, so ignore anything else.
         float new_fan_speed;
@@ -3658,7 +3656,7 @@ void GCodeProcessor::process_M109(const GCodeReader::GCodeLine& line)
 void GCodeProcessor::process_M132(const GCodeReader::GCodeLine& line)
 {
     // This command is used by Makerbot to load the current home position from EEPROM
-    // see: https://github.com/makerbot/s3g/blob/master/doc/GCodeProtocol.md
+    // 参见：https://github.com/makerbot/s3g/blob/master/doc/GCodeProtocol.md
 
     if (line.has('X'))
         m_origin[X] = 0.0f;
@@ -3713,7 +3711,7 @@ void GCodeProcessor::process_M191(const GCodeReader::GCodeLine& line)
 
 void GCodeProcessor::process_M201(const GCodeReader::GCodeLine& line)
 {
-    // see http://reprap.org/wiki/G-code#M201:_Set_max_printing_acceleration
+    // 参见 http://reprap.org/wiki/G-code#M201:_Set_max_printing_acceleration
     float factor = ((m_flavor != gcfRepRapSprinter && m_flavor != gcfRepRapFirmware) && m_units == EUnits::Inches) ? INCHES_TO_MM : 1.0f;
 
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
@@ -3736,12 +3734,12 @@ void GCodeProcessor::process_M201(const GCodeReader::GCodeLine& line)
 
 void GCodeProcessor::process_M203(const GCodeReader::GCodeLine& line)
 {
-    // see http://reprap.org/wiki/G-code#M203:_Set_maximum_feedrate
+    // 参见 http://reprap.org/wiki/G-code#M203:_Set_maximum_feedrate
     if (m_flavor == gcfRepetier)
         return;
 
-    // see http://reprap.org/wiki/G-code#M203:_Set_maximum_feedrate
-    // http://smoothieware.org/supported-g-codes
+    // 参见 http://reprap.org/wiki/G-code#M203:_Set_maximum_feedrate
+    // 参见 http://smoothieware.org/supported-g-codes
     float factor = (m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware || m_flavor == gcfSmoothie || m_flavor == gcfKlipper) ? 1.0f : MMMIN_TO_MMSEC;
 
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
@@ -3908,7 +3906,7 @@ void GCodeProcessor::process_M402(const GCodeReader::GCodeLine& line)
         return;
 
     // see for reference:
-    // https://github.com/repetier/Repetier-Firmware/blob/master/src/ArduinoAVR/Repetier/Printer.cpp
+    // 参考：https://github.com/repetier/Repetier-Firmware/blob/master/src/ArduinoAVR/Repetier/Printer.cpp
     // void Printer::GoToMemoryPosition(bool x, bool y, bool z, bool e, float feed)
 
     bool has_xyz = !(line.has('X') || line.has('Y') || line.has('Z'));
@@ -3976,7 +3974,7 @@ void GCodeProcessor::process_T(const std::string_view command)
 
     if (command.length() > 1) {
         if (new_extruder < 0 || new_extruder > 254) {
-            //BBS: T255, T1000 and T1100 is used as special command for BBL machine and does not cost time. return directly
+            //BBS: T255、T1000和T1100用作BBL机器的特殊命令，不消耗时间，直接返回
             if ((m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware) && (command == "Tx" || command == "Tc" || command == "T?" ||
                  new_extruder == 1000 || new_extruder == 1100 || new_extruder == 255))
                 return;
@@ -3994,7 +3992,7 @@ void GCodeProcessor::process_T(const std::string_view command)
                     process_filaments(CustomGCode::ToolChange);
                     m_extruder_id = id;
                     m_cp_color.current = m_extruder_colors[id];
-                    //BBS: increase filament change times
+                    //BBS: 增加丝材更换次数
                     m_result.lock();
                     m_result.print_statistics.total_filamentchanges++;
                     m_result.unlock();
@@ -4257,7 +4255,7 @@ void GCodeProcessor::run_post_process()
         void insert_lines(const Backtrace& backtrace, const std::string& cmd,
             std::function<std::string(unsigned int, const std::vector<float>&)> line_inserter,
             std::function<std::string(const std::string&)> line_replacer) {
-            // Orca: find start pos by seaching G28/G29/PRINT_START/START_PRINT commands
+            // Orca:通过搜索G28/G29/PRINT_START/START_PRINT命令找到起始位置
             auto is_start_pos = [](const std::string& curr_cmd) {
                 return boost::iequals(curr_cmd, "G28") 
                 || boost::iequals(curr_cmd, "G29") 
@@ -4438,7 +4436,7 @@ void GCodeProcessor::run_post_process()
                     if (mode == PrintEstimatedStatistics::ETimeMode::Normal || machine.enabled) {
                         char buf[128];
                         if (!s_IsBBLPrinter)
-                            // Orca: compatibility with klipper_estimator
+                            // Orca:与klipper_estimator的兼容性
                             sprintf(buf, "; estimated printing time (%s mode) = %s\n",
                                     (mode == PrintEstimatedStatistics::ETimeMode::Normal) ? "normal" : "silent",
                                     get_time_dhms(machine.time).c_str());
@@ -4462,7 +4460,7 @@ void GCodeProcessor::run_post_process()
                     }
                 }
             }
-            // Orca: write total layer number, this is used by Bambu printers only as of now
+            // Orca:写入总层数，目前仅由拓竹打印机使用
             else if (line == reserved_tag(ETags::Total_Layer_Number_Placeholder)) {
                 char buf[128];
                 sprintf(buf, "; total layer number: %u\n", m_layer_id);
@@ -4621,7 +4619,7 @@ void GCodeProcessor::run_post_process()
                     [tool_number, this](unsigned int id, const std::vector<float>& time_diffs) {
                         const int temperature = int(m_layer_id != 1 ? m_extruder_temps_config[tool_number] :
                                                                     m_extruder_temps_first_layer_config[tool_number]);
-                        // Orca: M104.1 for XL printers, I can't find the documentation for this so I copied the C++ comments from
+                        // Orca:XL打印机的M104.1，我找不到相关文档，所以复制了来自
                         // Prusa-Firmware-Buddy here
                         /**
                         * M104.1: Early Set Hotend Temperature (preheat, and with stealth mode support)
@@ -4772,7 +4770,7 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type)
         m_line_id + 1 :
         ((type == EMoveType::Seam) ? m_last_line_id : m_line_id);
 
-    //BBS: apply plate's and extruder's offset to arc interpolation points
+    //BBS: 将平台和挤出机的偏移量应用于弧插值点
     if (path_type == EMovePathType::Arc_move_cw ||
         path_type == EMovePathType::Arc_move_ccw) {
         for (size_t i = 0; i < m_interpolation_points.size(); i++)
@@ -4789,7 +4787,7 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type)
         m_extrusion_role,
         m_extruder_id,
         m_cp_color.current,
-        //BBS: add plate's offset to the rendering vertices
+        //BBS: 将平台偏移量添加到渲染顶点
         Vec3f(m_end_position[X] + m_x_offset, m_end_position[Y] + m_y_offset, m_processing_start_custom_gcode ? m_first_layer_height : m_end_position[Z]- m_z_offset) + m_extruder_offsets[m_extruder_id],
         static_cast<float>(m_end_position[E] - m_start_position[E]),
         m_feedrate,
@@ -4800,8 +4798,8 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type)
         m_fan_speed,
         m_extruder_temps[m_extruder_id],
         static_cast<float>(m_result.moves.size()),
-        static_cast<float>(m_layer_id), //layer_duration: set later
-        //BBS: add arc move related data
+        static_cast<float>(m_layer_id), //layer_duration: 稍后设置
+        //BBS: 添加圆弧移动相关数据
         path_type,
         Vec3f(m_arc_center(0, 0) + m_x_offset, m_arc_center(1, 0) + m_y_offset, m_arc_center(2, 0)) + m_extruder_offsets[m_extruder_id],
         m_interpolation_points,
@@ -4938,13 +4936,13 @@ void GCodeProcessor::set_travel_acceleration(PrintEstimatedStatistics::ETimeMode
 
 float GCodeProcessor::get_filament_load_time(size_t extruder_id)
 {
-    //BBS: change load time to machine config and all extruder has same value
+    //BBS: 将加载时间更改为机器配置，所有挤出机具有相同的值
     return m_time_processor.extruder_unloaded ? 0.0f : m_time_processor.filament_load_times;
 }
 
 float GCodeProcessor::get_filament_unload_time(size_t extruder_id)
 {
-    //BBS: change unload time to machine config and all extruder has same value
+    //BBS: 将卸载时间更改为机器配置，所有挤出机具有相同的值
     return m_time_processor.extruder_unloaded ? 0.0f : m_time_processor.filament_unload_times;
 }
 
@@ -4966,7 +4964,7 @@ void GCodeProcessor::process_custom_gcode_time(CustomGCode::Type code)
 
         TimeMachine::CustomGCodeTime& gcode_time = machine.gcode_time;
         gcode_time.needed = true;
-        //FIXME this simulates st_synchronize! is it correct?
+        //FIXME 这模拟了st_synchronize！正确吗？
         // The estimated time may be longer than the real print time.
         machine.simulate_st_synchronize();
         if (gcode_time.cache != 0.0f) {
@@ -4985,7 +4983,7 @@ void GCodeProcessor::process_filaments(CustomGCode::Type code)
         m_used_filaments.process_model_cache(this);
         m_used_filaments.process_support_cache(this);
         m_used_filaments.process_total_volume_cache(this);
-        //BBS: reset remaining filament
+        //BBS: 重置剩余丝材
         m_remaining_volume = m_nozzle_volume;
     }
 }
@@ -5024,7 +5022,7 @@ void GCodeProcessor::update_estimated_times_stats()
     m_result.print_statistics.total_volumes_per_extruder = m_used_filaments.total_volumes_per_extruder;
 }
 
-//BBS: ugly code...
+//BBS: 丑陋的代码...
 void GCodeProcessor::update_slice_warnings()
 {
     m_result.warnings.clear();
@@ -5056,7 +5054,7 @@ void GCodeProcessor::update_slice_warnings()
         m_result.warnings.push_back(warning);
     }
 
-    //bbs:HRC checker
+    //bbs:HRC检查器
     warning.params.clear();
     warning.level=1;
 

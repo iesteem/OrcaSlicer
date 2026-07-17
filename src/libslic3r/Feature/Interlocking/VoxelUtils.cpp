@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #include "VoxelUtils.hpp"
 #include "libslic3r/Geometry.hpp"
@@ -13,7 +13,7 @@ DilationKernel::DilationKernel(GridPoint3 kernel_size, DilationKernel::Type type
     : kernel_size_(kernel_size)
     , type_(type)
 {
-    coord_t mult = kernel_size.x() * kernel_size.y() * kernel_size.z(); // multiplier for division to avoid rounding and to avoid use of floating point numbers
+    coord_t mult = kernel_size.x() * kernel_size.y() * kernel_size.z(); // 乘数以避免舍入和使用浮点数
     relative_cells_.reserve(mult);
     GridPoint3 half_kernel = kernel_size / 2;
 
@@ -38,7 +38,7 @@ DilationKernel::DilationKernel(GridPoint3 kernel_size, DilationKernel::Type type
                     const GridPoint3 rel_dists = (mult * current).array() / limit.array();
                     if ((type == Type::DIAMOND && rel_dists.x() + rel_dists.y() + rel_dists.z() > mult) || (type == Type::PRISM && rel_dists.x() + rel_dists.y() > mult))
                     {
-                        continue; // don't consider this cell
+                        continue; // 不考虑此单元格
                     }
                 }
                 relative_cells_.emplace_back(x, y, z);
@@ -68,7 +68,7 @@ bool VoxelUtils::walkLine(Vec3crd start, Vec3crd end, const std::function<bool(G
             return false;
         }
 
-        int stepping_dim = -1; // dimension in which the line next exits the current cell
+        int stepping_dim = -1; // 直线下一个退出当前单元格的维度
         double percentage_along_line = std::numeric_limits<double>::max();
         for (int dim = 0; dim < 3; dim++)
         {
@@ -87,7 +87,7 @@ bool VoxelUtils::walkLine(Vec3crd start, Vec3crd end, const std::function<bool(G
         assert(stepping_dim != -1);
         if (percentage_along_line > 1.0)
         {
-            // next cell is beyond the end
+            // 下一个单元格超出终点
             return true;
         }
         current_cell[stepping_dim] += (diff[stepping_dim] > 0) ? 1 : -1;
@@ -132,7 +132,7 @@ bool VoxelUtils::walkDilatedPolygons(const ExPolygon& polys, coord_t z, const Di
 bool VoxelUtils::walkAreas(const ExPolygon& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
     ExPolygon translated = polys;
-    const Vec3crd translation = -cell_size_ / 2; // offset half a cell so that the dots of spreadDotsArea are centered on the middle of the cell isntead of the lower corners.
+    const Vec3crd translation = -cell_size_ / 2; // 偏移半个单元格，使 spreadDotsArea 的点位于单元格中心而不是左下角
     if (translation.x() && translation.y())
     {
         translated.translate(Point(translation.x(), translation.y()));
@@ -194,8 +194,8 @@ bool VoxelUtils::walkDilatedAreas(const ExPolygon& polys, coord_t z, const Dilat
     k.x() %= 2;
     k.y() %= 2;
     k.z() %= 2;
-    const Vec3crd translation = (Vec3crd(1, 1, 1) - k).array() * cell_size_.array() / 2 // offset half a cell when using an even kernel
-                               - cell_size_.array() / 2; // offset half a cell so that the dots of spreadDotsArea are centered on the middle of the cell isntead of the lower corners.
+    const Vec3crd translation = (Vec3crd(1, 1, 1) - k).array() * cell_size_.array() / 2 // 使用偶数核时偏移半个单元格
+                               - cell_size_.array() / 2; // 偏移半个单元格，使 spreadDotsArea 的点位于单元格中心而不是左下角
     if (translation.x() && translation.y())
     {
         translated.translate(Point(translation.x(), translation.y()));

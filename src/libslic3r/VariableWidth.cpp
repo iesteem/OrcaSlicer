@@ -126,15 +126,15 @@ ExtrusionMultiPath thick_polyline_to_multi_path(const ThickPolyline& thick_polyl
 
         const coordf_t line_len = line.length();
         if (line_len < SCALED_EPSILON) {
-            // The line is so tiny that we don't care about its width when we connect it to another line.
+            // 线条非常微小，连接时我们不考虑其宽度。
             if (!path.empty())
-                path.polyline.points.back() = line.b; // If the variable path is non-empty, connect this tiny line to it.
-            else if (i + 1 < (int)lines.size()) // If there is at least one following line, connect this tiny line to it.
+                path.polyline.points.back() = line.b; // 如果可变路径非空，将此微小线条连接到它。
+            else if (i + 1 < (int)lines.size()) // 如果至少有一条后续线条，将其连接到它。
                 lines[i + 1].a = line.a;
             else if (!multi_path.paths.empty())
-                multi_path.paths.back().polyline.points.back() = line.b; // Connect this tiny line to the last finished path.
+                multi_path.paths.back().polyline.points.back() = line.b; // 将此微小线条连接到最后完成的路径。
 
-            // If any of the above isn't satisfied, then remove this tiny line.
+            // 如果以上条件均不满足，则删除此微小线条。
             continue;
         }
 
@@ -179,8 +179,7 @@ ExtrusionMultiPath thick_polyline_to_multi_path(const ThickPolyline& thick_polyl
         if (path.polyline.points.empty()) {
             path.polyline.append(line.a);
             path.polyline.append(line.b);
-            // Convert from spacing to extrusion width based on the extrusion model
-            // of a square extrusion ended with semi circles.
+            // 基于方形挤出末端为半圆的挤出模型，从间距转换为挤出宽度。
             #ifdef SLIC3R_DEBUG
             printf("  filling %f gap\n", flow.width);
             #endif
@@ -191,8 +190,7 @@ ExtrusionMultiPath thick_polyline_to_multi_path(const ThickPolyline& thick_polyl
             assert(path.width >= EPSILON);
             thickness_delta = scaled<double>(fabs(path.width - new_flow.width()));
             if (thickness_delta <= merge_tolerance) {
-                // the width difference between this line and the current flow
-                // (of the previous line) width is within the accepted tolerance
+                // 此线条与当前流量（前一条线）的宽度差在接受的容差范围内
                 path.polyline.append(line.b);
             } else {
                 // we need to initialize a new line
@@ -229,9 +227,9 @@ static ExtrusionPaths thick_polyline_to_extrusion_paths_2(const ThickPolyline& t
         if (line_len < SCALED_EPSILON) continue;
 
         double thickness_delta = std::max(fabs(max_width - line.b_width), fabs(min_width - line.b_width));
-        //BBS: has large difference in width
+        //BBS: 宽度差异较大
         if (thickness_delta > tolerance) {
-            //BBS: 1 generate path from start_index to i(not included)
+            //BBS: 1 生成从 start_index 到 i（不包括）的路径
             if (start_index != i){
                 path = ExtrusionPath(role);
                 double length = lines[start_index].length();
@@ -257,7 +255,7 @@ static ExtrusionPaths thick_polyline_to_extrusion_paths_2(const ThickPolyline& t
             max_width = line.a_width;
             min_width = line.a_width;
 
-            //BBS: 2 handle the i-th segment
+            //BBS: 2 处理第i个线段
             thickness_delta = fabs(line.a_width - line.b_width);
             if (thickness_delta > tolerance){
                 const unsigned int segments = (unsigned int)ceil(thickness_delta / tolerance);
@@ -281,7 +279,7 @@ static ExtrusionPaths thick_polyline_to_extrusion_paths_2(const ThickPolyline& t
                     assert(width.size() == segments * 2);
                 }
 
-                // delete this line and insert new ones
+                // 删除此线条并插入新线条
                 lines.erase(lines.begin() + i);
                 for (size_t j = 0; j < segments; ++j) {
                     ThickLine new_line(pp[j], pp[j + 1]);
@@ -293,13 +291,13 @@ static ExtrusionPaths thick_polyline_to_extrusion_paths_2(const ThickPolyline& t
                 continue;
             }
         }
-        //BBS: just update the max and min width and continue
+        //BBS: 仅更新最大和最小宽度并继续
         else {
             max_width = std::max(max_width, std::max(line.a_width, line.b_width));
             min_width = std::min(min_width, std::min(line.a_width, line.b_width));
         }
     }
-    //BBS: handle the remaining segment
+    //BBS: 处理剩余线段
     size_t final_size = lines.size();
     if (start_index < final_size) {
         path = ExtrusionPath(role);
@@ -327,9 +325,8 @@ static ExtrusionPaths thick_polyline_to_extrusion_paths_2(const ThickPolyline& t
 
 void variable_width(const ThickPolylines& polylines, ExtrusionRole role, const Flow& flow, std::vector<ExtrusionEntity*>& out)
 {
-    // This value determines granularity of adaptive width, as G-code does not allow
-    // variable extrusion within a single move; this value shall only affect the amount
-    // of segments, and any pruning shall be performed before we apply this tolerance.
+    // 此值确定自适应宽度的粒度，因为G-code不允许在单个移动中可变挤出；
+    // 此值只影响段的数量，任何修剪应在应用此容差之前执行。
     const float tolerance = float(scale_(0.05));
     const ThickPolylines* source_polylines = &polylines;
     ThickPolylines        deduplicated_gap_fill_loops;
@@ -358,7 +355,7 @@ void variable_width(const ThickPolylines& polylines, ExtrusionRole role, const F
             paths = closed_gap_fill_loop_to_extrusion_paths(p, role, flow);
         if (paths.empty())
             paths = thick_polyline_to_extrusion_paths_2(p, role, flow, tolerance);
-        // Append paths to collection.
+        // 将路径追加到集合。
         if (!paths.empty()) {
             if (paths.front().first_point() == paths.back().last_point())
                 out.emplace_back(new ExtrusionLoop(std::move(paths)));

@@ -21,34 +21,34 @@
 #include "Print.hpp"
 static const int overhang_sampling_number = 6;
 static const double narrow_loop_length_threshold = 10;
-//BBS: when the width of expolygon is smaller than
-//ext_perimeter_width + ext_perimeter_spacing  * (1 - SMALLER_EXT_INSET_OVERLAP_TOLERANCE),
-//we think it's small detail area and will generate smaller line width for it
+//BBS: 当 expolygon 的宽度小于
+//ext_perimeter_width + ext_perimeter_spacing * (1 - SMALLER_EXT_INSET_OVERLAP_TOLERANCE) 时，
+//我们认为它是小细节区域，将为其生成较小的线宽
 static constexpr double SMALLER_EXT_INSET_OVERLAP_TOLERANCE = 0.22;
 
 namespace Slic3r {
     
 using namespace Slic3r::Feature::FuzzySkin;
 
-// Hierarchy of perimeters.
+// 周长层级结构。
 class PerimeterGeneratorLoop {
 public:
-    // Polygon of this contour.
+    // 此轮廓的多边形。
     Polygon                             polygon;
-    // Is it a contour or a hole?
+    // 是外轮廓还是孔？
     bool                                is_contour;
-    // BBS: is perimeter using smaller width
+    // BBS: 是否使用较小宽度的周长
     bool is_smaller_width_perimeter;
-    // Depth in the hierarchy. External perimeter has depth = 0. An external perimeter could be both a contour and a hole.
+    // 层级深度。外部周长的深度 = 0。外部周长可以是外轮廓也可以是孔。
     unsigned short                      depth;
-    // Children contour, may be both CCW and CW oriented (outer contours or holes).
+    // 子轮廓，可以是 CCW 或 CW 方向（外轮廓或孔）。
     std::vector<PerimeterGeneratorLoop> children;
     
     PerimeterGeneratorLoop(const Polygon &polygon, unsigned short depth, bool is_contour, bool is_small_width_perimeter = false) :
         polygon(polygon), is_contour(is_contour), is_smaller_width_perimeter(is_small_width_perimeter), depth(depth) {}
-    // External perimeter. It may be CCW or CW oriented (outer contour or hole contour).
+    // 外部周长。可以是 CCW 或 CW 方向（外轮廓或孔轮廓）。
     bool is_external() const { return this->depth == 0; }
-    // An island, which may have holes, but it does not have another internal island.
+    // 一个孤岛，可能有孔，但没有另一个内部孤岛。
     bool is_internal_contour() const;
 };
 
@@ -65,7 +65,7 @@ static bool detect_steep_overhang(const PrintRegionConfig *config,
                                   bool                    &steep_overhang_hole)
 {
     double threshold = config->overhang_reverse_threshold.get_abs_value(extrusion_width);
-    // Special case: reverse on every even (from GUI POV) layer
+    // 特殊情况：在每个偶数层（从 GUI 视角）反转
     if (threshold < EPSILON) {
         if (is_contour) {
             steep_overhang_contour = true;
@@ -78,7 +78,7 @@ static bool detect_steep_overhang(const PrintRegionConfig *config,
 
     Polygons lower_slcier_chopped = ClipperUtils::clip_clipper_polygons_with_subject_bbox(*lower_slices, extrusion_bboxs, true);
 
-    // All we need to check is whether we have lines outside `threshold`
+    // 我们需要检查的是是否有线段在 `threshold` 之外
     double off = threshold - 0.5 * extrusion_width;
 
     auto limiton_polygons = offset(lower_slcier_chopped, float(scale_(off)));
@@ -100,11 +100,11 @@ static bool detect_steep_overhang(const PrintRegionConfig *config,
 static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perimeter_generator, const PerimeterGeneratorLoops &loops, ThickPolylines &thin_walls,
     bool &steep_overhang_contour, bool &steep_overhang_hole)
 {
-    // loops is an arrayref of ::Loop objects
-    // turn each one into an ExtrusionLoop object
+    // loops 是 ::Loop 对象的数组引用
+    // 将每个对象转换为 ExtrusionLoop 对象
     ExtrusionEntityCollection   coll;
     
-    // Detect steep overhangs
+    // 检测陡峭悬垂
     bool overhangs_reverse = perimeter_generator.config->overhang_reverse &&
                              perimeter_generator.layer_id % 2 == 1; // Only calculate overhang degree on even (from GUI POV) layers
 
@@ -116,50 +116,49 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
         ExtrusionLoopRole loop_role;
         role = is_external ? erExternalPerimeter : erPerimeter;
         if (loop.is_internal_contour()) {
-            // Note that we set loop role to ContourInternalPerimeter
-            // also when loop is both internal and external (i.e.
-            // there's only one contour loop).
+            // 注意，当循环同时是内部和外部时（即只有一个轮廓循环时），
+            // 我们将循环角色设置为 ContourInternalPerimeter。
             loop_role = elrInternal;
         } else {
             loop_role = loop.is_contour? elrDefault : elrHole;
         }
 
-        // BBS: get lower polygons series, width, mm3_per_mm
+    // 获取下多边形序列、宽度、mm3_per_mm
         const std::vector<Polygons> *lower_polygons_series;
         double extrusion_mm3_per_mm;
         double extrusion_width;
         if (is_external) {
             if (is_small_width) {
-                //BBS: smaller width external perimeter
+                //BBS: 较小宽度的外部周长
                 lower_polygons_series = &perimeter_generator.m_smaller_external_lower_polygons_series;
                 extrusion_mm3_per_mm = perimeter_generator.smaller_width_ext_mm3_per_mm();
                 extrusion_width = perimeter_generator.smaller_ext_perimeter_flow.width();
             } else {
-                //BBS: normal external perimeter
+                //BBS: 正常外部周长
                 lower_polygons_series = &perimeter_generator.m_external_lower_polygons_series;
                 extrusion_mm3_per_mm = perimeter_generator.ext_mm3_per_mm();
                 extrusion_width = perimeter_generator.ext_perimeter_flow.width();
             }
         } else {
-            //BBS: normal perimeter
+            //BBS: 正常周长
             lower_polygons_series = &perimeter_generator.m_lower_polygons_series;
             extrusion_mm3_per_mm = perimeter_generator.mm3_per_mm();
             extrusion_width = perimeter_generator.perimeter_flow.width();
         }
 
-        // Apply fuzzy skin if it is enabled for at least some part of the polygon.
+        // 如果启用模糊皮肤，则至少对多边形的一部分应用模糊皮肤。
         const Polygon polygon = apply_fuzzy_skin(loop.polygon, perimeter_generator, loop.depth, loop.is_contour);
 
         ExtrusionPaths paths;
         if (perimeter_generator.config->detect_overhang_wall && perimeter_generator.layer_id > perimeter_generator.object_config->raft_layers) {
-            // detect overhanging/bridging perimeters
+            // 检测悬垂/桥接周长
 
-            // get non 100% overhang paths by intersecting this loop with the grown lower slices
-            // prepare grown lower layer slices for overhang detection
+            // 通过将此循环与已生长的下层切片相交获取非 100% 悬垂路径
+            // 准备用于悬垂检测的已生长下层切片
             BoundingBox bbox(polygon.points);
             bbox.offset(SCALED_EPSILON);
 
-            // Always reverse extrusion if use fuzzy skin: https://github.com/SoftFever/OrcaSlicer/pull/2413#issuecomment-1769735357
+            // 如果使用模糊皮肤，始终反转挤出方向: https://github.com/SoftFever/OrcaSlicer/pull/2413#issuecomment-1769735357
             if (overhangs_reverse && perimeter_generator.has_fuzzy_skin) {
                 if (loop.is_contour) {
                     steep_overhang_contour = true;
@@ -168,7 +167,7 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
                 }
             }
             // Detect steep overhang
-            // Skip the check if we already found steep overhangs
+            // 如果已找到陡峭悬垂，则跳过检查
             bool found_steep_overhang = (loop.is_contour && steep_overhang_contour) || (!loop.is_contour && steep_overhang_hole);
             if (overhangs_reverse && !found_steep_overhang) {
                 detect_steep_overhang(perimeter_generator.config, loop.is_contour, bbox, extrusion_width, Polygons{polygon}, perimeter_generator.lower_slices,
@@ -193,9 +192,8 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
                     extrusion_width,
                     (float)perimeter_generator.layer_height);
             
-            // get 100% overhang paths by checking what parts of this loop fall
-            // outside the grown lower slices (thus where the distance between
-            // the loop centerline and original lower slices is >= half nozzle diameter
+            // 通过检查此循环的哪些部分落在已生长下层切片的外部来获取 100% 悬垂路径
+            // （即循环中心线与原始下层切片之间的距离 >= 喷嘴直径的一半）
             if (remain_polines.size() != 0) {
                 extrusion_paths_append(paths, std::move(remain_polines),
                                        erOverhangPerimeter, perimeter_generator.mm3_per_mm_overhang(),
@@ -203,8 +201,8 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
                                        perimeter_generator.overhang_flow.height());
             }
 
-            // Reapply the nearest point search for starting point.
-            // We allow polyline reversal because Clipper may have randomly reversed polylines during clipping.
+            // 重新应用最近点搜索寻找起点。
+            // 我们允许多段线反转，因为 Clipper 可能在裁剪过程中随机反转了多段线。
             if(paths.empty()) continue;
             chain_and_reorder_extrusion_paths(paths, &paths.front().first_point());
         } else {
@@ -226,20 +224,20 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
         coll.append(ExtrusionLoop(std::move(paths), loop_role));
     }
     
-    // Append thin walls to the nearest-neighbor search (only for first iteration)
+    // 将薄壁追加到最近邻搜索（仅首次迭代）
     if (! thin_walls.empty()) {
         variable_width(thin_walls, erExternalPerimeter, perimeter_generator.ext_perimeter_flow, coll.entities);
         thin_walls.clear();
     }
     
-    // Traverse children and build the final collection.
+    // 遍历子项并构建最终集合。
 	Point zero_point(0, 0);
 	std::vector<std::pair<size_t, bool>> chain = chain_extrusion_entities(coll.entities, &zero_point);
     ExtrusionEntityCollection out;
     for (const std::pair<size_t, bool> &idx : chain) {
 		assert(coll.entities[idx.first] != nullptr);
         if (idx.first >= loops.size()) {
-            // This is a thin wall.
+            // 这是一个薄壁。
 			out.entities.reserve(out.entities.size() + 1);
             out.entities.emplace_back(coll.entities[idx.first]);
 			coll.entities[idx.first] = nullptr;
@@ -357,7 +355,7 @@ struct PerimeterGeneratorArachneExtrusion
 static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& perimeter_generator, std::vector<PerimeterGeneratorArachneExtrusion>& pg_extrusions,
     bool &steep_overhang_contour, bool &steep_overhang_hole)
 {
-    // Detect steep overhangs
+    // 检测陡峭悬垂
     bool overhangs_reverse = perimeter_generator.config->overhang_reverse &&
                              perimeter_generator.layer_id % 2 == 1;  // Only calculate overhang degree on even (from GUI POV) layers
 
@@ -402,11 +400,11 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                 }
             }
 
-            // get non-overhang paths by intersecting this loop with the grown lower slices
+            // 通过将此循环与已生长的下层切片相交获取非悬垂路径
             extrusion_paths_append(paths, clip_extrusion(extrusion_path, lower_slices_paths, ClipperLib_Z::ctIntersection), role,
                                    is_external ? perimeter_generator.ext_perimeter_flow : perimeter_generator.perimeter_flow);
 
-            // Always reverse extrusion if use fuzzy skin: https://github.com/SoftFever/OrcaSlicer/pull/2413#issuecomment-1769735357
+            // 如果使用模糊皮肤，始终反转挤出方向: https://github.com/SoftFever/OrcaSlicer/pull/2413#issuecomment-1769735357
             if (overhangs_reverse && perimeter_generator.has_fuzzy_skin) {
                 if (pg_extrusion.is_contour) {
                     steep_overhang_contour = true;
@@ -415,7 +413,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                 }
             }
             // Detect steep overhang
-            // Skip the check if we already found steep overhangs
+            // 如果已找到陡峭悬垂，则跳过检查
             bool found_steep_overhang = (pg_extrusion.is_contour && steep_overhang_contour) || (!pg_extrusion.is_contour && steep_overhang_hole);
             if (overhangs_reverse && !found_steep_overhang) {
                 std::map<double, ExtrusionPaths> recognization_paths;
@@ -447,8 +445,8 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
             extrusion_paths_append(paths, clip_extrusion(extrusion_path, lower_slices_paths, ClipperLib_Z::ctDifference), erOverhangPerimeter,
                 perimeter_generator.overhang_flow);
 
-            // Reapply the nearest point search for starting point.
-            // We allow polyline reversal because Clipper may have randomly reversed polylines during clipping.
+            // 重新应用最近点搜索寻找起点。
+            // 我们允许多段线反转，因为 Clipper 可能在裁剪过程中随机反转了多段线。
             // Arachne sometimes creates extrusion with zero-length (just two same endpoints);
             if (!paths.empty()) {
                 Point start_point = paths.front().first_point();

@@ -9,12 +9,12 @@
 namespace Slic3r {
 
 void its_short_edge_collpase(indexed_triangle_set &mesh, size_t target_triangle_count) {
-    // whenever vertex is removed, its mapping is update to the index of vertex with wich it merged
+    // 每当顶点被移除时，其映射更新为与之合并的顶点索引
     std::vector<size_t> vertices_index_mapping(mesh.vertices.size());
     for (size_t idx = 0; idx < vertices_index_mapping.size(); ++idx) {
         vertices_index_mapping[idx] = idx;
     }
-    // Algorithm uses get_final_index query to get the actual vertex index. The query also updates all mappings on the way, essentially flattening the mapping
+    // 算法使用get_final_index查询来获取实际顶点索引。该查询还会沿途更新所有映射，本质上是展平映射
     std::vector<size_t> flatten_queue;
     auto get_final_index = [&vertices_index_mapping, &flatten_queue](const size_t &orig_index) {
         flatten_queue.clear();
@@ -30,16 +30,16 @@ void its_short_edge_collpase(indexed_triangle_set &mesh, size_t target_triangle_
 
     };
 
-    // if face is removed, mark it here
+    // 如果面被移除，在此标记
     std::vector<bool> face_removal_flags(mesh.indices.size(), false);
 
     std::vector<Vec3i32> triangles_neighbors = its_face_neighbors_par(mesh);
 
-    // now compute vertices dot product - this is used during edge collapse,
-    // to determine which vertex to remove and which to keep;  We try to keep the one with larger angle, because it defines the shape "more".
-    // The min vertex dot product is lowest dot product of its normal with the normals of faces around it.
-    // the lower the dot product, the more we want to keep the vertex
-    // NOTE: This score is not updated, even though the decimation does change the mesh. It saves computation time, and there are no strong reasons to update.
+    // 计算顶点点积 - 在边折叠期间使用，
+    // 确定要移除哪个顶点和保留哪个顶点；我们尝试保留角度较大的那个，因为它"更"能定义形状。
+    // 最小顶点点积是其法线与周围面法线的最低点积。
+    // 点积越低，我们越想保留该顶点
+    // 注意：即使精简改变了网格，此分数也不会更新。这节省了计算时间，且没有充分的理由去更新。
     std::vector<float> min_vertex_dot_product(mesh.vertices.size(), 1);
     {
         std::vector<Vec3f> face_normals = its_face_normals(mesh);
@@ -54,7 +54,7 @@ void its_short_edge_collpase(indexed_triangle_set &mesh, size_t target_triangle_
         }
     }
 
-    // lambda to remove face. It flags the face as removed, and updates neighbourhood info
+    // 删除面的lambda函数。它将面标记为已删除，并更新邻居信息
     auto remove_face = [&triangles_neighbors, &face_removal_flags](int face_idx, int other_face_idx) {
         if (face_idx < 0) {
             return;
@@ -79,68 +79,68 @@ void its_short_edge_collpase(indexed_triangle_set &mesh, size_t target_triangle_
             }
     };
 
-    std::mt19937_64 generator { 27644437 };// default constant seed! so that results are deterministic
+    std::mt19937_64 generator { 27644437 };// 默认常量种子！使结果具有确定性
     std::vector<size_t> face_indices(mesh.indices.size());
     for (size_t idx = 0; idx < face_indices.size(); ++idx) {
         face_indices[idx] = idx;
     }
-    //tmp face indices used only for swapping
+    // 临时面索引，仅用于交换
     std::vector<size_t> tmp_face_indices(mesh.indices.size());
 
-    float decimation_ratio = 1.0f; // decimation ratio updated in each iteration. it is number of removed triangles / number of all
-    float edge_len = 0.2f; // Allowed collapsible edge size. Starts low, but is gradually increased
+    float decimation_ratio = 1.0f; // 每次迭代更新的精简比率。它是移除的三角形数/总数
+    float edge_len = 0.2f; // 允许折叠的边长。从较小值开始，逐渐增大
 
     while (face_indices.size() > target_triangle_count) {
-        // simpple func to increase the edge len - if decimation ratio is low, it increases the len up to twice, if decimation ratio is high, increments are low
+        // 简单的增加边长的函数 - 如果精简比率低，则增加边长最多两倍，如果精简比率高，则增量较小
         edge_len = edge_len * (1.0f + 1.0 - decimation_ratio);
         float max_edge_len_squared = edge_len * edge_len;
 
-        //shuffle the faces and traverse in random order, this MASSIVELY improves the quality of the result
+        // 打乱面并以随机顺序遍历，这会极大地提高结果质量
         std::shuffle(face_indices.begin(), face_indices.end(), generator);
         
         int allowed_face_removals = int(face_indices.size()) - int(target_triangle_count);
         for (const size_t &face_idx : face_indices) {
             if (face_removal_flags[face_idx]) {
-                // if face already removed from previous collapses, skip (each collapse removes two triangles [at least] )
+                // 如果面已从之前的折叠中移除，则跳过（每次折叠至少移除两个三角形）
                 continue;
             }
 
-            // look at each edge if it is good candidate for collapse
+            // 检查每条边是否为折叠的好候选
             for (size_t edge_idx = 0; edge_idx < 3; ++edge_idx) {
                 size_t vertex_index_keep = get_final_index(mesh.indices[face_idx][edge_idx]);
                 size_t vertex_index_remove = get_final_index(mesh.indices[face_idx][(edge_idx + 1) % 3]);
-                //check distance, skip long edges
+                // 检查距离，跳过较长边
                 if ((mesh.vertices[vertex_index_keep] - mesh.vertices[vertex_index_remove]).squaredNorm()
                         > max_edge_len_squared) {
                     continue;
                 }
-                // swap indexes if vertex_index_keep has higher dot product (we want to keep low dot product vertices)
+                // 如果vertex_index_keep有更高的点积则交换索引（我们想要保留低点积的顶点）
                 if (min_vertex_dot_product[vertex_index_remove] < min_vertex_dot_product[vertex_index_keep]) {
                     size_t tmp = vertex_index_keep;
                     vertex_index_keep = vertex_index_remove;
                     vertex_index_remove = tmp;
                 }
 
-                //remove vertex
+                // 移除顶点
                 {
-                    // map its index to the index of the kept vertex
+                    // 将其索引映射到保留顶点的索引
                     vertices_index_mapping[vertex_index_remove] = vertices_index_mapping[vertex_index_keep];
                 }
 
                 int neighbor_to_remove_face_idx = triangles_neighbors[face_idx][edge_idx];
-                // remove faces
+                // 移除面
                 remove_face(face_idx, neighbor_to_remove_face_idx);
                 remove_face(neighbor_to_remove_face_idx, face_idx);
                 allowed_face_removals-=2;
 
-                // break. this triangle is done
+                // 跳出。这个三角形已完成
                 break;
             }
 
             if (allowed_face_removals <= 0) { break; }
         }
 
-        // filter face_indices, remove those that have been collapsed
+        // 过滤face_indices，移除已折叠的
         size_t prev_size = face_indices.size();
         tmp_face_indices.clear();
         for (size_t face_idx : face_indices) {
@@ -154,7 +154,7 @@ void its_short_edge_collpase(indexed_triangle_set &mesh, size_t target_triangle_
         //std::cout << " DECIMATION RATIO: " << decimation_ratio << std::endl;
     }
 
-    //Extract the result mesh
+    // 提取结果网格
     std::unordered_map<size_t, size_t> final_vertices_mapping;
     std::vector<Vec3f> final_vertices;
     std::vector<Vec3i32> final_indices;
@@ -165,7 +165,7 @@ void its_short_edge_collpase(indexed_triangle_set &mesh, size_t target_triangle_
             final_face[i] = get_final_index(mesh.indices[idx][i]);
         }
         if (final_face[0] == final_face[1] || final_face[1] == final_face[2] || final_face[2] == final_face[0]) {
-            continue; // discard degenerate triangles
+            continue; // 丢弃退化三角形
         }
 
         for (size_t i = 0; i < 3; ++i) {

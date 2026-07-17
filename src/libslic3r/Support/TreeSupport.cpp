@@ -272,10 +272,10 @@ static void draw_layer_mst
 
 #endif
 
-// Move point from inside polygon if distance>0, outside if distance<0.
-// Special case: distance=0 means find the nearest point of from on the polygon contour.
-// The max move distance should not excceed max_move_distance.
-// @return success(true) or not(false)
+// 如果距离>0，将点从多边形内部移出；如果距离<0，移入。
+// 特殊情况：distance=0表示在多边形轮廓上查找from的最近点。
+// 最大移动距离不应超过max_move_distance。
+// @return 成功(true)或失败(false)
 static bool move_inside_expoly(const ExPolygon &polygon, Point& from, double distance = 0, double max_move_distance = std::numeric_limits<double>::max())
 {
     //TODO: This is copied from the moveInside of Polygons.

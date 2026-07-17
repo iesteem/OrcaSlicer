@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿//Copyright (c) 2021 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #include "SquareGrid.hpp"
 
@@ -24,10 +24,10 @@ SquareGrid::GridPoint SquareGrid::toGridPoint(const Vec2i64 &point)  const
 
 SquareGrid::grid_coord_t SquareGrid::toGridCoord(const int64_t &coord)  const
 {
-    // This mapping via truncation results in the cells with
-    // GridPoint.x==0 being twice as large and similarly for
-    // GridPoint.y==0.  This doesn't cause any incorrect behavior,
-    // just changes the running time slightly.  The change in running
+    //// 此 mapping via truncation results in the cells with
+    //// GridPoint.x==0 being twice as large and similarly for
+    //// GridPoint.y==0.  此 doesn't cause 任何 不正确 behavior,
+    //// 仅 changes the running time slightly.  The change in running
     // time from this is probably not worth doing a proper floor
     // operation.
     return coord / cell_size;
@@ -35,10 +35,10 @@ SquareGrid::grid_coord_t SquareGrid::toGridCoord(const int64_t &coord)  const
 
 coord_t SquareGrid::toLowerCoord(const grid_coord_t& grid_coord)  const
 {
-    // This mapping via truncation results in the cells with
-    // GridPoint.x==0 being twice as large and similarly for
-    // GridPoint.y==0.  This doesn't cause any incorrect behavior,
-    // just changes the running time slightly.  The change in running
+    //// 此 mapping via truncation results in the cells with
+    //// GridPoint.x==0 being twice as large and similarly for
+    //// GridPoint.y==0.  此 doesn't cause 任何 不正确 behavior,
+    //// 仅 changes the running time slightly.  The change in running
     // time from this is probably not worth doing a proper floor
     // operation.
     return grid_coord * cell_size;
@@ -82,7 +82,7 @@ bool SquareGrid::processLineCells(const std::pair<Point, Point> line, const std:
         else
         {
             const int64_t area = int64_t(end.x() - start.x()) * int64_t(nearest_next_y - start.y());
-            // corresponding_x: the x coordinate corresponding to nearest_next_y
+            //// corresponding_x: the x coordinate corresponding to nearest_next_y
             int64_t corresponding_x = int64_t(start.x()) + area / y_diff;
             x_cell_end = toGridCoord(corresponding_x + ((corresponding_x < 0) && ((area % y_diff) != 0)));
             if (x_cell_end < start_cell.x())
@@ -103,9 +103,9 @@ bool SquareGrid::processLineCells(const std::pair<Point, Point> line, const std:
                 return true;
             }
         }
-        // TODO: this causes at least a one cell overlap for each row, which
+        //// TODO: 用于 每个 的 此 causes at least a one cell overlap row, 其
         // includes extra cells when crossing precisely on the corners
-        // where positive slope where x > 0 and negative slope where x < 0
+        //// 其中 正 slope 其中 x > 0 and 负 slope 其中 x < 0
         x_cell_start = x_cell_end;
     }
     assert(false && "We should have returned already before here!");

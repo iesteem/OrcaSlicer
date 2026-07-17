@@ -9,7 +9,7 @@ class Model;
 class TriangleMesh;
 class ModelObject;
 
-// Load an STL file into a provided model.
+// 将STL文件加载到提供的模型中。
 extern bool load_stl(const char *path, Model *model, const char *object_name = nullptr, ImportstlProgressFn stlFn = nullptr, int custom_header_length = 80);
 
 extern bool store_stl(const char *path, TriangleMesh *mesh, bool binary);

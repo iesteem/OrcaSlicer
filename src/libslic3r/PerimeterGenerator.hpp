@@ -61,7 +61,7 @@ namespace Slic3r {
 
 class PerimeterGenerator {
 public:
-    // Inputs:
+    // 输入：
     const SurfaceCollection     *slices;
     const LayerRegionPtrs       *compatible_regions;
     const ExPolygons            *upper_slices;
@@ -77,7 +77,7 @@ public:
     const PrintRegionConfig     *config;
     const PrintObjectConfig     *object_config;
     const PrintConfig           *print_config;
-    // Outputs:
+    // 输出：
     ExtrusionEntityCollection   *loops;
     ExtrusionEntityCollection   *gap_fill;
     SurfaceCollection           *fill_surfaces;
@@ -95,7 +95,7 @@ public:
     std::unordered_map<FuzzySkinConfig, ExPolygons> regions_by_fuzzify;
     
     PerimeterGenerator(
-        // Input:
+        // 输入：
         const SurfaceCollection*    slices,
         const LayerRegionPtrs       *compatible_regions,
         double                      layer_height,
@@ -106,11 +106,11 @@ public:
         const PrintConfig*          print_config,
         const bool                  spiral_mode,
         // Output:
-        // Loops with the external thin walls
+        // 带有外部薄壁的循环
         ExtrusionEntityCollection*  loops,
-        // Gaps without the thin walls
+        // 不带薄壁的间隙
         ExtrusionEntityCollection*  gap_fill,
-        // Infills without the gap fills
+        // 不带间隙填充的填充
         SurfaceCollection*          fill_surfaces,
         //BBS
         ExPolygons*                 fill_no_overlap)

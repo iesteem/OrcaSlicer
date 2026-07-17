@@ -9,7 +9,7 @@
 
 namespace Slic3r {
 
-// Generic file parser error, mostly copied from boost::property_tree::file_parser_error
+// 通用文件解析器错误，主要从 boost::property_tree::file_parser_error 复制而来
 class file_parser_error: public Slic3r::RuntimeError
 {
 public:
@@ -19,15 +19,14 @@ public:
     file_parser_error(const std::string &msg, const boost::filesystem::path &file, unsigned long line = 0) :
         Slic3r::RuntimeError(format_what(msg, file.string(), line)),
         m_message(msg), m_filename(file.string()), m_line(line) {}
-    // gcc 3.4.2 complains about lack of throw specifier on compiler
-    // generated dtor
+    // gcc 3.4.2 会因编译器生成的析构函数缺少 throw 说明符而发出警告
     ~file_parser_error() throw() {}
 
-    // Get error message (without line and file - use what() to get full message)
+    // 获取错误消息（不包含行和文件信息 - 使用 what() 获取完整消息）
     std::string message() const { return m_message; }
-    // Get error filename
+    // 获取错误文件名
     std::string filename() const { return m_filename; }
-    // Get error line number
+    // 获取错误行号
     unsigned long line() const { return m_line; }
 
 private:
@@ -35,7 +34,7 @@ private:
     std::string     m_filename;
     unsigned long   m_line;
 
-    // Format error message to be returned by Slic3r::RuntimeError::what()
+    // 格式化将由 Slic3r::RuntimeError::what() 返回的错误消息
     static std::string format_what(const std::string &msg, const std::string &file, unsigned long l)
     {
         std::stringstream stream;

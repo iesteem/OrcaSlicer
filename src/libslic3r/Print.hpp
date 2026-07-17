@@ -107,17 +107,17 @@ namespace FillLightning {
     using GeneratorPtr = std::unique_ptr<Generator, GeneratorDeleter>;
 }; // namespace FillLightning
 
-// Print step IDs for keeping track of the print state.
-// The Print steps are applied in this order.
+// 用于跟踪打印状态的打印步骤 ID。
+// 打印步骤按此顺序应用。
 enum PrintStep {
     psWipeTower,
-    // Ordering of the tools on PrintObjects for a multi-material print.
-    // psToolOrdering is a synonym to psWipeTower, as the Wipe Tower calculates and modifies the ToolOrdering,
-    // while if printing without the Wipe Tower, the ToolOrdering is calculated as well.
+    // 多材料打印时打印对象上的工具排序。
+    // psToolOrdering 是 psWipeTower 的同义词，因为擦洗塔计算和修改工具排序，
+    // 而在没有擦洗塔的情况下打印时，工具排序也会被计算。
     psToolOrdering = psWipeTower,
     psSkirtBrim,
-    // Last step before G-code export, after this step is finished, the initial extrusion path preview
-    // should be refreshed.
+    // G-code 导出前的最后一步，此步骤完成后，
+    // 应刷新初始挤出路径预览。
     psSlicingFinished = psSkirtBrim,
     psGCodeExport,
     psConflictCheck,
@@ -133,8 +133,7 @@ enum PrintObjectStep {
     posCount,
 };
 
-// A PrintRegion object represents a group of volumes to print
-// sharing the same config (including the same assigned extruder(s))
+// PrintRegion 对象表示一组共享相同配置（包括相同分配的挤出机）的要打印的体积
 class PrintRegion
 {
 public:
@@ -145,22 +144,22 @@ public:
     PrintRegion(PrintRegionConfig &&config, const size_t config_hash, int print_object_region_id = -1) : m_config(std::move(config)), m_config_hash(config_hash), m_print_object_region_id(print_object_region_id) {}
     ~PrintRegion() = default;
 
-// Methods NOT modifying the PrintRegion's state:
+// 不修改 PrintRegion 状态的方法：
 public:
     const PrintRegionConfig&    config() const throw() { return m_config; }
     size_t                      config_hash() const throw() { return m_config_hash; }
-    // Identifier of this PrintRegion in the list of Print::m_print_regions.
+    // 此 PrintRegion 在 Print::m_print_regions 列表中的标识符。
     int                         print_region_id() const throw() { return m_print_region_id; }
     int                         print_object_region_id() const throw() { return m_print_object_region_id; }
-	// 1-based extruder identifier for this region and role.
+	// 此区域和角色的基于 1 的挤出机标识符。
 	unsigned int 				extruder(FlowRole role) const;
     Flow                        flow(const PrintObject &object, FlowRole role, double layer_height, bool first_layer = false) const;
-    // Average diameter of nozzles participating on extruding this region.
+    // 参与挤出此区域的喷嘴平均直径。
     coordf_t                    nozzle_dmr_avg(const PrintConfig &print_config) const;
-    // Average diameter of nozzles participating on extruding this region.
+    // 参与挤出此区域的喷嘴平均直径。
     coordf_t                    bridging_height_avg(const PrintConfig &print_config) const;
 
-    // Collect 0-based extruder indices used to print this region's object.
+    // 收集用于打印此区域物体的基于 0 的挤出机索引。
 	void                        collect_object_printing_extruders(const Print &print, std::vector<unsigned int> &object_extruders) const;
 	static void                 collect_object_printing_extruders(const PrintConfig &print_config, const PrintRegionConfig &region_config, const bool has_brim, std::vector<unsigned int> &object_extruders);
 
@@ -220,25 +219,25 @@ class ConstSupportLayerPtrsAdaptor : public ConstVectorOfPtrsAdaptor<SupportLaye
     ConstSupportLayerPtrsAdaptor(const SupportLayerPtrs *data) : ConstVectorOfPtrsAdaptor<SupportLayer>(data) {}
 };
 
-// Single instance of a PrintObject.
-// As multiple PrintObjects may be generated for a single ModelObject (their instances differ in rotation around Z),
-// ModelObject's instancess will be distributed among these multiple PrintObjects.
+// PrintObject 的单个实例。
+// 由于单个 ModelObject 可能生成多个 PrintObject（其实例在绕 Z 轴旋转上不同），
+// ModelObject 的实例将分布在这些多个 PrintObject 之间。
 struct PrintInstance
 {
-    // Parent PrintObject
+    // 父 PrintObject
     PrintObject 		*print_object;
-    // Source ModelInstance of a ModelObject, for which this print_object was created.
+    // 为其创建此 print_object 的 ModelObject 的源 ModelInstance。
 	const ModelInstance *model_instance;
-	// Shift of this instance's center into the world coordinates.
+	// 将此实例的中心平移到世界坐标的偏移量。
 	Point 				 shift;
-    
+
     BoundingBoxf3   get_bounding_box();
     Polygon get_convex_hull_2d();
     // SoftFever
-    // 
-    // instance id
+    //
+    // 实例 ID
     size_t               id;
-    // Orca: unique id used by marlin/rrf cancel object feature
+    // Orca: marlin/rrf 取消物体功能使用的唯一 ID
     size_t               unique_id;
 
     //BBS: instance_shift is too large because of multi-plate, apply without plate offset.
@@ -250,9 +249,9 @@ typedef std::vector<PrintInstance> PrintInstances;
 class PrintObjectRegions
 {
 public:
-    // Bounding box of a ModelVolume transformed into the working space of a PrintObject, possibly
-    // clipped by a layer range modifier.
-    // Only Eigen types of Nx16 size are vectorized. This bounding box will not be vectorized.
+    // ModelVolume 的边界框，转换到 PrintObject 的工作空间，
+    // 可能被层范围修改器裁剪。
+    // 只有 Nx16 大小的 Eigen 类型被向量化。此边界框不会被向量化。
     static_assert(sizeof(Eigen::AlignedBox<float, 3>) == 24, "Eigen::AlignedBox<float, 3> is not being vectorized, thus it does not need to be aligned");
     using BoundingBox = Eigen::AlignedBox<float, 3>;
     struct VolumeExtents {
@@ -262,25 +261,25 @@ public:
 
     struct VolumeRegion
     {
-        // ID of the associated ModelVolume.
+        // 关联的 ModelVolume 的 ID。
         const ModelVolume   *model_volume { nullptr };
-        // Index of a parent VolumeRegion.
+        // 父 VolumeRegion 的索引。
         int                  parent { -1 };
-        // Pointer to PrintObjectRegions::all_regions, null for a negative volume.
+        // 指向 PrintObjectRegions::all_regions 的指针，负体积为 null。
         PrintRegion         *region { nullptr };
-        // Pointer to VolumeExtents::bbox.
+        // 指向 VolumeExtents::bbox 的指针。
         const BoundingBox   *bbox { nullptr };
-        // To speed up merging of same regions.
+        // 加速相同区域的合并。
         const VolumeRegion  *prev_same_region { nullptr };
     };
 
     struct PaintedRegion
     {
-        // 1-based extruder identifier.
+        // 基于 1 的挤出机标识符。
         unsigned int     extruder_id;
-        // Index of a parent VolumeRegion.
+        // 父 VolumeRegion 的索引。
         int              parent { -1 };
-        // Pointer to PrintObjectRegions::all_regions.
+        // 指向 PrintObjectRegions::all_regions 的指针。
         PrintRegion     *region { nullptr };
     };
 
@@ -291,27 +290,27 @@ public:
         enum class ParentType { VolumeRegion, PaintedRegion };
 
         ParentType   parent_type { ParentType::VolumeRegion };
-        // Index of a parent VolumeRegion or PaintedRegion.
+        // 父 VolumeRegion 或 PaintedRegion 的索引。
         int          parent { -1 };
-        // Pointer to PrintObjectRegions::all_regions.
+        // 指向 PrintObjectRegions::all_regions 的指针。
         PrintRegion *region { nullptr };
 
         PrintRegion *parent_print_object_region(const LayerRangeRegions &layer_range) const;
         int          parent_print_object_region_id(const LayerRangeRegions &layer_range) const;
     };
 
-    // One slice over the PrintObject (possibly the whole PrintObject) and a list of ModelVolumes and their bounding boxes
-    // possibly clipped by the layer_height_range.
+    // PrintObject 上的一个切片（可能是整个 PrintObject）以及 ModelVolume 列表及其边界框，
+    // 可能被 layer_height_range 裁剪。
     struct LayerRangeRegions
     {
         t_layer_height_range        layer_height_range;
-        // Config of the layer range, null if there is just a single range with no config override.
-        // Config is owned by the associated ModelObject.
+        // 层范围的配置，如果只有一个范围且没有配置覆盖则为 null。
+        // 配置由关联的 ModelObject 拥有。
         const DynamicPrintConfig*   config { nullptr };
-        // Volumes sorted by ModelVolume::id().
+        // 按 ModelVolume::id() 排序的体积。
         std::vector<VolumeExtents>  volumes;
 
-        // Sorted in the order of their source ModelVolumes, thus reflecting the order of region clipping, modifier overrides etc.
+        // 按源 ModelVolume 的顺序排序，因此反映了区域裁剪、修改器覆盖等的顺序。
         std::vector<VolumeRegion>           volume_regions;
         std::vector<PaintedRegion>          painted_regions;
         std::vector<FuzzySkinPaintedRegion> fuzzy_skin_painted_regions;
@@ -324,8 +323,8 @@ public:
 
     std::vector<std::unique_ptr<PrintRegion>>   all_regions;
     std::vector<LayerRangeRegions>              layer_ranges;
-    // Transformation of this ModelObject into one of the associated PrintObjects (all PrintObjects derived from a single modelObject differ by a Z rotation only).
-    // This transformation is used to calculate VolumeExtents.
+    // 此 ModelObject 到关联 PrintObject 之一的变换（所有从单个 ModelObject 派生的 PrintObject 仅通过 Z 旋转不同）。
+    // 此变换用于计算 VolumeExtents。
     Transform3d                                 trafo_bboxes;
     std::vector<ObjectID>                       cached_volume_ids;
 
@@ -339,8 +338,8 @@ public:
 
 private:
     friend class PrintObject;
-    // Number of PrintObjects generated from the same ModelObject and sharing the regions.
-    // ref_cnt could only be modified by the main thread, thus it does not need to be atomic.
+    // 从同一 ModelObject 生成并共享区域的 PrintObject 数量。
+    // ref_cnt 只能由主线程修改，因此不需要是原子的。
     size_t                                      m_ref_cnt{ 0 };
 };
 
@@ -350,20 +349,20 @@ private: // Prevents erroneous use by other classes.
     typedef PrintObjectBaseWithState<Print, PrintObjectStep, posCount> Inherited;
 
 public:
-    // Size of an object: XYZ in scaled coordinates. The size might not be quite snug in XY plane.
+    // 物体大小：缩放坐标中的 XYZ。在 XY 平面中大小可能不完全贴合。
     const Vec3crd&               size() const			{ return m_size; }
     const PrintObjectConfig&     config() const         { return m_config; }
     void                         configBrimWidth(double m)      {m_config.brim_width.value = m; }
     ConstLayerPtrsAdaptor        layers() const         { return ConstLayerPtrsAdaptor(&m_layers); }
     ConstSupportLayerPtrsAdaptor support_layers() const { return ConstSupportLayerPtrsAdaptor(&m_support_layers); }
     const Transform3d&           trafo() const          { return m_trafo; }
-    // Trafo with the center_offset() applied after the transformation, to center the object in XY before slicing.
+    // 在变换后应用 center_offset() 的变换，在切片前将物体在 XY 方向上居中。
     Transform3d                  trafo_centered() const
         { Transform3d t = this->trafo(); t.pretranslate(Vec3d(- unscale<double>(m_center_offset.x()), - unscale<double>(m_center_offset.y()), 0)); return t; }
     const PrintInstances&        instances() const      { return m_instances; }
     PrintInstances &instances() { return m_instances; }
 
-    // Whoever will get a non-const pointer to PrintObject will be able to modify its layers.
+    // 任何获得 PrintObject 非常量指针的人都能修改其层。
     LayerPtrs&                   layers()               { return m_layers; }
     SupportLayerPtrs&            support_layers()       { return m_support_layers; }
 
@@ -376,14 +375,14 @@ public:
         float max_bridge_length = scale_(10),
         bool break_bridge=false);
 
-    // Bounding box is used to align the object infill patterns, and to calculate attractor for the rear seam.
-    // The bounding box may not be quite snug.
+    // 边界框用于对齐物体填充图案，并计算后接缝的吸引子。
+    // 边界框可能不完全贴合。
     BoundingBox                  bounding_box() const   { return BoundingBox(Point(- m_size.x() / 2, - m_size.y() / 2), Point(m_size.x() / 2, m_size.y() / 2)); }
-    // Height is used for slicing, for sorting the objects by height for sequential printing and for checking vertical clearence in sequential print mode.
-    // The height is snug.
+    // 高度用于切片、按高度排序物体以进行顺序打印以及检查顺序打印模式下的垂直间隙。
+    // 高度是贴合的。
     coord_t 				     height() const         { return m_size.z(); }
     double                      max_z() const         { return m_max_z; }
-    // Centering offset of the sliced mesh from the scaled and rotated mesh of the model.
+    // 切片网格相对于缩放和旋转后的模型网格的居中偏移。
     const Point& 			     center_offset() const  { return m_center_offset; }
 
     // BBS
@@ -404,18 +403,17 @@ public:
         return m_skirt;
     }
 
-    // This is the *total* layer count (including support layers)
-    // this value is not supposed to be compared with Layer::id
-    // since they have different semantics.
+    // 这是*总*层数（包括支撑层）
+    // 此值不应与 Layer::id 比较，因为它们的语义不同。
     size_t 			total_layer_count() const { return this->layer_count() + this->support_layer_count(); }
     size_t 			layer_count() const { return m_layers.size(); }
     void 			clear_layers();
     const Layer* 	get_layer(int idx) const { return m_layers[idx]; }
     Layer* 			get_layer(int idx) 		 { return m_layers[idx]; }
-    // Get a layer exactly at print_z.
+    // 获取精确位于 print_z 的层。
     const Layer*	get_layer_at_printz(coordf_t print_z) const;
     Layer*			get_layer_at_printz(coordf_t print_z);
-    // Get a layer approximately at print_z.
+    // 获取近似位于 print_z 的层。
     const Layer*	get_layer_at_printz(coordf_t print_z, coordf_t epsilon) const;
     Layer*			get_layer_at_printz(coordf_t print_z, coordf_t epsilon);
     int             get_layer_idx_get_printz(coordf_t print_z, coordf_t epsilon);
@@ -423,10 +421,10 @@ public:
     const Layer*    get_layer_at_bottomz(coordf_t bottom_z, coordf_t epsilon) const;
     Layer*          get_layer_at_bottomz(coordf_t bottom_z, coordf_t epsilon);
 
-    // Get the first layer approximately bellow print_z.
+    // 获取大致在 print_z 下方的第一层。
     const Layer*	get_first_layer_bellow_printz(coordf_t print_z, coordf_t epsilon) const;
 
-    // print_z: top of the layer; slice_z: center of the layer.
+    // print_z: 层的顶部；slice_z: 层的中心。
     Layer*          add_layer(int id, coordf_t height, coordf_t print_z, coordf_t slice_z);
 
     // BBS
@@ -454,47 +452,45 @@ public:
     SupportLayer*   add_support_layer(int id, int interface_id, coordf_t height, coordf_t print_z);
     SupportLayerPtrs::iterator insert_support_layer(SupportLayerPtrs::iterator pos, size_t id, size_t interface_id, coordf_t height, coordf_t print_z, coordf_t slice_z);
 
-    // Initialize the layer_height_profile from the model_object's layer_height_profile, from model_object's layer height table, or from slicing parameters.
-    // Returns true, if the layer_height_profile was changed.
+    // 从 model_object 的 layer_height_profile、model_object 的层高表或切片参数初始化 layer_height_profile。
+    // 如果 layer_height_profile 已更改，则返回 true。
     static bool     update_layer_height_profile(const ModelObject &model_object,
                                                 const SlicingParameters &slicing_parameters,
                                                 std::vector<coordf_t> &layer_height_profile,
                                                 const PrintObject *print_object = nullptr);
 
-    // Collect the slicing parameters, to be used by variable layer thickness algorithm,
-    // by the interactive layer height editor and by the printing process itself.
-    // The slicing parameters are dependent on various configuration values
-    // (layer height, first layer height, raft settings, print nozzle diameter etc).
+    // 收集切片参数，供可变层厚算法、交互式层高编辑器和打印过程本身使用。
+    // 切片参数依赖于各种配置值（层高、第一层层高、筏垫设置、打印喷嘴直径等）。
     const SlicingParameters&    slicing_parameters() const { return m_slicing_params; }
     // Orca: XYZ shrinkage compensation has introduced the const Vec3d &object_shrinkage_compensation parameter to the function below
     static SlicingParameters    slicing_parameters(const DynamicPrintConfig &full_config, const ModelObject &model_object, float object_max_z, const Vec3d &object_shrinkage_compensation);
 
     size_t                      num_printing_regions() const throw() { return m_shared_regions->all_regions.size(); }
     const PrintRegion&          printing_region(size_t idx) const throw() { return *m_shared_regions->all_regions[idx].get(); }
-    //FIXME returing all possible regions before slicing, thus some of the regions may not be slicing at the end.
+    //FIXME 在切片前返回所有可能的区域，因此某些区域可能最终不会被切片。
     std::vector<std::reference_wrapper<const PrintRegion>> all_regions() const;
     const PrintObjectRegions*   shared_regions() const throw() { return m_shared_regions; }
 
     bool                        has_support()           const { return m_config.enable_support || m_config.enforce_support_layers > 0; }
     bool                        has_raft()              const { return m_config.raft_layers > 0; }
     bool                        has_support_material()  const { return this->has_support() || this->has_raft(); }
-    // Checks if the model object is painted using the multi-material painting gizmo.
+    // 检查模型对象是否使用多材料绘制工具进行了绘制。
     bool                        is_mm_painted()         const { return this->model_object()->is_mm_painted(); }
-    // Checks if the model object is painted using the fuzzy skin painting gizmo.
+    // 检查模型对象是否使用毛绒皮肤绘制工具进行了绘制。
     bool                        is_fuzzy_skin_painted() const { return this->model_object()->is_fuzzy_skin_painted(); }
 
-    // returns 0-based indices of extruders used to print the object (without brim, support and other helper extrusions)
+    // 返回用于打印物体的基于 0 的挤出机索引（不含裙边、支撑和其他辅助挤出）
     std::vector<unsigned int>   object_extruders() const;
 
-    // Called by make_perimeters()
+    // 由 make_perimeters() 调用
     void slice();
 
-    // Helpers to slice support enforcer / blocker meshes by the support generator.
+    // 辅助函数：由支撑生成器对支撑强制执行/阻挡网格进行切片。
     std::vector<Polygons>       slice_support_volumes(const ModelVolumeType model_volume_type) const;
     std::vector<Polygons>       slice_support_blockers() const { return this->slice_support_volumes(ModelVolumeType::SUPPORT_BLOCKER); }
     std::vector<Polygons>       slice_support_enforcers() const { return this->slice_support_volumes(ModelVolumeType::SUPPORT_ENFORCER); }
 
-    // Helpers to project custom facets on slices
+    // 辅助函数：在切片上投影自定义面
     void project_and_append_custom_facets(bool seam, EnforcerBlockerType type, std::vector<Polygons>& expolys, std::vector<std::pair<Vec3f,Vec3f>>* vertical_points=nullptr) const;
 
     //BBS
@@ -518,7 +514,7 @@ public:
     void set_id(size_t id) { m_id = id; }
 
   private:
-    // to be called from Print only.
+    // 仅由 Print 调用。
     friend class Print;
 
 	PrintObject(Print* print, ModelObject* model_object, const Transform3d& trafo, PrintInstances&& instances);
@@ -527,15 +523,15 @@ public:
     void                    config_apply(const ConfigBase &other, bool ignore_nonexistent = false) { m_config.apply(other, ignore_nonexistent); }
     void                    config_apply_only(const ConfigBase &other, const t_config_option_keys &keys, bool ignore_nonexistent = false) { m_config.apply_only(other, keys, ignore_nonexistent); }
     PrintBase::ApplyStatus  set_instances(PrintInstances &&instances);
-    // Invalidates the step, and its depending steps in PrintObject and Print.
+    // 使步骤及其在 PrintObject 和 Print 中的依赖步骤失效。
     bool                    invalidate_step(PrintObjectStep step);
-    // Invalidates all PrintObject and Print steps.
+    // 使所有 PrintObject 和 Print 步骤失效。
     bool                    invalidate_all_steps();
-    // Invalidate steps based on a set of parameters changed.
-    // It may be called for both the PrintObjectConfig and PrintRegionConfig.
+    // 根据一组已更改的参数使步骤失效。
+    // 可能为 PrintObjectConfig 和 PrintRegionConfig 调用。
     bool                    invalidate_state_by_config_options(
         const ConfigOptionResolver &old_config, const ConfigOptionResolver &new_config, const std::vector<t_config_option_key> &opt_keys);
-    // If ! m_slicing_params.valid, recalculate.
+    // 如果 ! m_slicing_params.valid，则重新计算。
     void                    update_slicing_parameters();
 
     static PrintObjectConfig object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders);
@@ -558,7 +554,7 @@ private:
 
    void _transform_hole_to_polyholes();
 
-    // Has any support (not counting the raft).
+    // 是否有任何支撑（不计算筏垫）。
     void detect_surfaces_type();
     void process_external_surfaces();
     void discover_vertical_shells();
@@ -574,20 +570,20 @@ private:
     // BBS
     SupportNecessaryType is_support_necessary();
 
-    // XYZ in scaled coordinates
+    // 缩放坐标中的 XYZ
     Vec3crd									m_size;
     double                                  m_max_z;
     PrintObjectConfig                       m_config;
-    // Translation in Z + Rotation + Scaling / Mirroring.
+    // Z 平移 + 旋转 + 缩放/镜像。
     Transform3d                             m_trafo = Transform3d::Identity();
-    // Slic3r::Point objects in scaled G-code coordinates
+    // 缩放 G-code 坐标中的 Slic3r::Point 对象
     std::vector<PrintInstance>              m_instances;
-    // The mesh is being centered before thrown to Clipper, so that the Clipper's fixed coordinates require less bits.
-    // This is the adjustment of the  the Object's coordinate system towards PrintObject's coordinate system.
+    // 网格在传递给 Clipper 之前被居中，以便 Clipper 的固定坐标需要更少的位数。
+    // 这是物体坐标系向 PrintObject 坐标系的调整。
     Point                                   m_center_offset;
 
-    // Object split into layer ranges and regions with their associated configurations.
-    // Shared among PrintObjects created for the same ModelObject.
+    // 物体被分割为层范围和区域及其关联的配置。
+    // 在为同一 ModelObject 创建的 PrintObject 之间共享。
     PrintObjectRegions                     *m_shared_regions { nullptr };
 
     SlicingParameters                       m_slicing_params;
@@ -598,8 +594,8 @@ private:
     // BBS
     std::shared_ptr<TreeSupportData>        m_tree_support_preview_cache;
 
-    // this is set to true when LayerRegion->slices is split in top/internal/bottom
-    // so that next call to make_perimeters() performs a union() before computing loops
+    // 当 LayerRegion->slices 被分割为顶部/内部/底部时，此项设置为 true
+    // 以便下一次调用 make_perimeters() 在计算循环之前执行 union()
     bool                    				m_typed_slices = false;
 
     std::pair<FillAdaptive::OctreePtr, FillAdaptive::OctreePtr> m_adaptive_fill_octrees;
@@ -630,7 +626,7 @@ private:
 
 struct FakeWipeTower
 {
-    // generate fake extrusion
+    // 生成虚拟挤出
     Vec2f pos;
     float width;
     float height;
@@ -775,11 +771,11 @@ struct FakeWipeTower
 
 struct WipeTowerData
 {
-    // Following section will be consumed by the GCodeGenerator.
-    // Tool ordering of a non-sequential print has to be known to calculate the wipe tower.
-    // Cache it here, so it does not need to be recalculated during the G-code generation.
+    // 以下部分将由 GCodeGenerator 消费。
+    // 必须知道非顺序打印的工具排序才能计算擦洗塔。
+    // 在此缓存，以便在 G-code 生成期间不需要重新计算。
     ToolOrdering                                         &tool_ordering;
-    // Cache of tool changes per print layer.
+    // 每打印层的工具更换缓存。
     std::unique_ptr<std::vector<WipeTower::ToolChangeResult>> priming;
     std::vector<std::vector<WipeTower::ToolChangeResult>> tool_changes;
     std::vector<std::vector<WipeTower::ToolChangeResult>> local_z_tool_changes;
@@ -787,7 +783,7 @@ struct WipeTowerData
     std::vector<float>                                    used_filament;
     int                                                   number_of_toolchanges;
 
-    // Depth of the wipe tower to pass to GLCanvas3D for exact bounding box:
+    // 擦洗塔的深度，传递给 GLCanvas3D 以获取精确的边界框：
     float                                                 depth;
     std::vector<std::pair<float, float>>                  z_and_depth_pairs;
     std::vector<std::vector<WipeTower::box_coordinates>>  local_z_reserve_boxes;
@@ -807,8 +803,8 @@ struct WipeTowerData
     }
 
 private:
-	// Only allow the WipeTowerData to be instantiated internally by Print, 
-	// as this WipeTowerData shares reference to Print::m_tool_ordering.
+	// 只允许 Print 内部实例化 WipeTowerData，
+	// 因为此 WipeTowerData 共享对 Print::m_tool_ordering 的引用。
 	friend class Print;
 	WipeTowerData(ToolOrdering &tool_ordering) : tool_ordering(tool_ordering) { clear(); }
 	WipeTowerData(const WipeTowerData & /* rhs */) = delete;
@@ -830,11 +826,11 @@ struct PrintStatistics
     unsigned int                    initial_tool;
     std::map<size_t, double>        filament_stats;
 
-    // Config with the filled in print statistics.
+    // 包含已填充打印统计信息的配置。
     DynamicConfig           config() const;
-    // Config with the statistics keys populated with placeholder strings.
+    // 包含已用占位符字符串填充统计键的配置。
     static DynamicConfig    placeholders();
-    // Replace the print statistics placeholders in the path.
+    // 替换路径中的打印统计占位符。
     std::string             finalize_output_path(const std::string &path_in) const;
 
     void clear() {
@@ -889,12 +885,12 @@ enum FilamentTempType {
     HighLowCompatible,
     Undefine
 };
-// The complete print tray with possibly multiple objects.
+// 完整的打印托盘，可能包含多个物体。
 class Print : public PrintBaseWithState<PrintStep, psCount>
 {
-private: // Prevents erroneous use by other classes.
+private: // 防止被其他类错误使用。
     typedef PrintBaseWithState<PrintStep, psCount> Inherited;
-    // Bool indicates if supports of PrintObject are top-level contour.
+    // Bool 指示 PrintObject 的支撑是否为顶层轮廓。
     typedef std::pair<PrintObject *, bool>         PrintObjectInfo;
 
 public:
@@ -903,31 +899,31 @@ public:
 
 	PrinterTechnology	technology() const noexcept override { return ptFFF; }
 
-    // Methods, which change the state of Print / PrintObject / PrintRegion.
-    // The following methods are synchronized with process() and export_gcode(),
-    // so that process() and export_gcode() may be called from a background thread.
-    // In case the following methods need to modify data processed by process() or export_gcode(),
-    // a cancellation callback is executed to stop the background processing before the operation.
+    // 更改 Print / PrintObject / PrintRegion 状态的方法。
+    // 以下方法与 process() 和 export_gcode() 同步，
+    // 因此 process() 和 export_gcode() 可以从后台线程调用。
+    // 如果以下方法需要修改由 process() 或 export_gcode() 处理的数据，
+    // 则在操作之前执行取消回调以停止后台处理。
     void                clear() override;
     bool                empty() const override { return m_objects.empty(); }
-    // List of existing PrintObject IDs, to remove notifications for non-existent IDs.
+    // 现有 PrintObject ID 列表，用于移除不存在的 ID 的通知。
     std::vector<ObjectID> print_object_ids() const override;
 
     ApplyStatus         apply(const Model &model, DynamicPrintConfig config) override;
 
     void                process(long long *time_cost_with_cache = nullptr, bool use_cache = false) override;
-    // Exports G-code into a file name based on the path_template, returns the file path of the generated G-code file.
-    // If preview_data is not null, the preview_data is filled in for the G-code visualization (not used by the command line Slic3r).
+    // 根据 path_template 将 G-code 导出到文件名，返回生成的 G-code 文件的路径。
+    // 如果 preview_data 不为 null，则填充 preview_data 用于 G-code 可视化（命令行 Slic3r 不使用）。
     std::string         export_gcode(const std::string& path_template, GCodeProcessorResult* result, ThumbnailsGeneratorCallback thumbnail_cb = nullptr);
-    //return 0 means successful
+    // 返回 0 表示成功
     int                 export_cached_data(const std::string& dir_path, bool with_space=false);
     int                 load_cached_data(const std::string& directory);
 
-    // methods for handling state
+    // 处理状态的方法
     bool                is_step_done(PrintStep step) const { return Inherited::is_step_done(step); }
-    // Returns true if an object step is done on all objects and there's at least one object.
+    // 如果所有物体上的物体步骤都已完成且至少有一个物体，则返回 true。
     bool                is_step_done(PrintObjectStep step) const;
-    // Returns true if the last step was finished with success.
+    // 如果最后一步成功完成，则返回 true。
     bool                finished() const override { return this->is_step_done(psGCodeExport); }
 
     bool                has_infinite_skirt() const;
@@ -938,7 +934,7 @@ public:
         return std::any_of(m_objects.begin(), m_objects.end(), [](PrintObject* object) { return object->config().brim_type == btAutoBrim; });
     }
 
-    // Returns an empty string if valid, otherwise returns an error message.
+    // 如果有效则返回空字符串，否则返回错误信息。
     StringObjectException validate(StringObjectException *warning = nullptr, Polygons* collison_polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr) const override;
     double              skirt_first_layer_height() const;
     Flow                brim_flow() const;
@@ -947,7 +943,7 @@ public:
     std::vector<unsigned int> object_extruders() const;
     std::vector<unsigned int> support_material_extruders() const;
     std::vector<unsigned int> extruders(bool conside_custom_gcode = false) const;
-    // On-demand evaluation vs filament_hot_bed_nozzles.json (calls extruders(true) once internally).
+    // 按需评估与 filament_hot_bed_nozzles.json 的比较（内部调用一次 extruders(true)）。
     void                filament_rule_mismatch_flags(NozzleFilamentRuleMismatch& out_nozzle_mismatch,
                                                      bool& out_gesp,
                                                      bool& out_pei_not_pla,
@@ -956,7 +952,7 @@ public:
     
     double              max_allowed_layer_height() const;
     bool                has_support_material() const;
-    // Make sure the background processing has no access to this model_object during this call!
+    // 确保在此调用期间后台处理无法访问此 model_object！
     void                auto_assign_extruders(ModelObject* model_object) const;
 
     const PrintConfig&          config() const { return m_config; }
@@ -967,8 +963,7 @@ public:
     ConstPrintObjectPtrsAdaptor objects() const { return ConstPrintObjectPtrsAdaptor(&m_objects); }
     PrintObject*                get_object(size_t idx) { return const_cast<PrintObject*>(m_objects[idx]); }
     const PrintObject*          get_object(size_t idx) const { return m_objects[idx]; }
-    // PrintObject by its ObjectID, to be used to uniquely bind slicing warnings to their source PrintObjects
-    // in the notification center.
+    // 通过 ObjectID 获取 PrintObject，用于在通知中心中唯一地将切片警告绑定到其源 PrintObject。
     const PrintObject*          get_object(ObjectID object_id) const {
         auto it = std::find_if(m_objects.begin(), m_objects.end(),
             [object_id](const PrintObject *obj) { return obj->id() == object_id; });
@@ -978,8 +973,8 @@ public:
     std::map<ObjectID, ExtrusionEntityCollection>&
         get_brimMap() { return m_brimMap; }
 
-    // How many of PrintObject::copies() over all print objects are there?
-    // If zero, then the print is empty and the print shall not be executed.
+    // 所有打印对象中 PrintObject::copies() 的数量是多少？
+    // 如果为零，则打印为空，不应执行打印。
     unsigned int                num_object_instances() const;
 
     // For Perl bindings.
@@ -987,11 +982,11 @@ public:
     PrintRegionPtrs&            print_regions_mutable() { return m_print_regions; }
     std::vector<size_t>         layers_sorted_for_object(float start, float end, std::vector<LayerPtrs> &layers_of_objects, std::vector<BoundingBox> &boundingBox_for_objects, VecOfPoints& objects_instances_shift);
     const ExtrusionEntityCollection& skirt() const { return m_skirt; }
-    // Convex hull of the 1st layer extrusions, for bed leveling and placing the initial purge line.
-    // It encompasses the object extrusions, support extrusions, skirt, brim, wipe tower.
-    // It does NOT encompass user extrusions generated by custom G-code,
-    // therefore it does NOT encompass the initial purge line.
-    // It does NOT encompass MMU/MMU2 starting (wipe) areas.
+    // 第一层挤出的凸包，用于调平和放置初始清洗线。
+    // 它包含物体挤出、支撑挤出、裙边、裙板、擦洗塔。
+    // 它不包含由自定义 G-code 生成的用户挤出，
+    // 因此它不包含初始清洗线。
+    // 它不包含 MMU/MMU2 启动（清洗）区域。
     const Polygon&                   first_layer_convex_hull() const { return m_first_layer_convex_hull; }
 
     const PrintStatistics&      print_statistics() const { return m_print_statistics; }
@@ -1069,16 +1064,16 @@ public:
         return std::all_of(this->objects().begin(), this->objects().end(), [&](PrintObject* obj) { return obj->height() < scale_(this->config().nozzle_height.value); });
     }
     
-    // Orca: Implement prusa's filament shrink compensation approach
-    // Returns if all used filaments have same shrinkage compensations.
+    // Orca: 实现 prusa 的耗材收缩补偿方法
+    // 返回是否所有使用的耗材具有相同的收缩补偿。
      bool has_same_shrinkage_compensations() const;
-    // Returns scaling for each axis representing shrinkage compensations in each axis.
+    // 返回每个轴的缩放比例，表示每个轴的收缩补偿。
      Vec3d shrinkage_compensation() const;
 
     std::tuple<float, float> object_skirt_offset(double margin_height = 0) const;
 
 protected:
-    // Invalidates the step, and its depending steps in Print.
+    // 使步骤及其在 Print 中的依赖步骤失效。
     bool                invalidate_step(PrintStep step);
 
 private:
@@ -1091,7 +1086,7 @@ private:
     void                _make_wipe_tower();
     void                finalize_first_layer_convex_hull();
 
-    // Islands of objects and their supports extruded at the 1st layer.
+    // 第一层挤出的物体及其支撑的孤岛。
     Polygons            first_layer_islands() const;
 
     PrintConfig                             m_config;
@@ -1104,24 +1099,24 @@ private:
     //SoftFever
     bool m_isBBLPrinter;
 
-    // Ordered collections of extrusion paths to build skirt loops and brim.
+    // 用于构建裙边环和裙板的挤出路径的有序集合。
     ExtrusionEntityCollection               m_skirt;
-    // BBS: collecting extrusion paths to build brim by objs
+    // BBS: 按物体收集挤出路径以构建裙板
     std::map<ObjectID, ExtrusionEntityCollection>         m_brimMap;
     std::map<ObjectID, ExtrusionEntityCollection>         m_supportBrimMap;
-    // Convex hull of the 1st layer extrusions.
-    // It encompasses the object extrusions, support extrusions, skirt, brim, wipe tower.
-    // It does NOT encompass user extrusions generated by custom G-code,
-    // therefore it does NOT encompass the initial purge line.
-    // It does NOT encompass MMU/MMU2 starting (wipe) areas.
+    // 第一层挤出的凸包。
+    // 它包含物体挤出、支撑挤出、裙边、裙板、擦洗塔。
+    // 它不包含由自定义 G-code 生成的用户挤出，
+    // 因此它不包含初始清洗线。
+    // 它不包含 MMU/MMU2 启动（清洗）区域。
     Polygon                                 m_first_layer_convex_hull;
     Points                                  m_skirt_convex_hull;
 
-    // Following section will be consumed by the GCodeGenerator.
+    // 以下部分将由 GCodeGenerator 消费。
     ToolOrdering 							m_tool_ordering;
     WipeTowerData                           m_wipe_tower_data {m_tool_ordering};
 
-    // Estimated print time, filament consumed.
+    // 预估打印时间，耗材消耗量。
     PrintStatistics                         m_print_statistics;
     bool                                    m_support_used {false};
 
@@ -1136,9 +1131,9 @@ private:
     //SoftFever: calibration
     Calib_Params m_calib_params;
 
-    // To allow GCode to set the Print's GCodeExport step status.
+    // 允许 GCode 设置 Print 的 GCodeExport 步骤状态。
     friend class GCode;
-    // Allow PrintObject to access m_mutex and m_cancel_callback.
+    // 允许 PrintObject 访问 m_mutex 和 m_cancel_callback。
     friend class PrintObject;
 
 public:

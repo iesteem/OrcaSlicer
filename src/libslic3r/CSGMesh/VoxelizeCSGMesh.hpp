@@ -1,4 +1,4 @@
-#ifndef VOXELIZECSGMESH_HPP
+﻿﻿#ifndef VOXELIZECSGMESH_HPP
 #define VOXELIZECSGMESH_HPP
 
 #include <functional>
@@ -12,7 +12,7 @@ namespace Slic3r { namespace csg {
 
 using VoxelizeParams = MeshToGridParams;
 
-// This method can be overriden when a specific CSGPart type supports caching
+//// 此 方法 可以 为 overriden 当 a 特定 CSGPart 类型 supports caching
 // of the voxel grid
 template<class CSGPartT>
 VoxelGridPtr get_voxelgrid(const CSGPartT &csgpart, VoxelizeParams params)

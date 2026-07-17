@@ -10,17 +10,17 @@ using namespace Slic3r;
 //    #define EXPENSIVE_DEBUG_CHECKS
 #endif // NDEBUG
 
-// only private namespace not neccessary be in .hpp
+// 私有命名空间，无需放在.hpp中
 namespace QuadricEdgeCollapse {
     // SymetricMatrix
     class SymMat {
         using T = double;
         static const constexpr size_t N = 10;
         T m[N];
-    public:    
+    public:
         explicit SymMat(ArithmeticOnly<T> c = T()) { std::fill(m, m + N, c); }
-    
-        // Make plane
+
+        // 创建平面
         SymMat(T a, T b, T c, T d)
         {
             m[0] = a * a; m[1] = a * b; m[2] = a * c; m[3] = a * d;
@@ -31,7 +31,7 @@ namespace QuadricEdgeCollapse {
     
         T operator[](int c) const { return m[c]; }
     
-        // Determinant
+        // 行列式
         T det(int a11, int a12, int a13,
               int a21, int a22, int a23,
               int a31, int a32, int a33) const
@@ -55,7 +55,7 @@ namespace QuadricEdgeCollapse {
     using Indices = std::vector<stl_triangle_vertex_indices>;
     using ThrowOnCancel = std::function<void(void)>;
     using StatusFn = std::function<void(int)>;
-    // smallest error caused by edges, identify smallest edge in triangle
+    // 边引起的最小误差，识别三角形中的最小边
     struct Error
     {
         float value = -1.; // identifying of smallest edge is stored inside of TriangleInfo
@@ -68,12 +68,12 @@ namespace QuadricEdgeCollapse {
     };
     using Errors = std::vector<Error>;
 
-    // merge information together - faster access during processing
+    // 合并信息 - 处理时更快访问
     struct TriangleInfo {
-        Vec3f n; // normalized normal - used for check when fliped
+        Vec3f n; // 归一化的法线 - 用于检查是否翻转
 
-        // range(0 .. 2), 
-        unsigned char min_index = 0; // identify edge for minimal Error -> lightweight Error structure
+        // 范围(0 .. 2),
+        unsigned char min_index = 0; // 识别最小误差的边 -> 轻量级Error结构
 
         TriangleInfo() = default;
         bool is_deleted() const { return n.x() > 2.f; }
@@ -81,20 +81,20 @@ namespace QuadricEdgeCollapse {
     };  
     using TriangleInfos = std::vector<TriangleInfo>;
     struct VertexInfo {
-        SymMat q; // sum quadric of surround triangles
-        uint32_t start = 0, count = 0; // vertex neighbor triangles
+        SymMat q; // 周围三角形的二次度量之和
+        uint32_t start = 0, count = 0; // 顶点邻接三角形
         VertexInfo() = default;
         bool is_deleted() const { return count == 0; }
     };
     using VertexInfos = std::vector<VertexInfo>;
     struct EdgeInfo {
-        uint32_t t_index=0; // triangle index
-        unsigned char edge = 0; // 0 or 1 or 2
+        uint32_t t_index=0; // 三角形索引
+        unsigned char edge = 0; // 0 或 1 或 2
         EdgeInfo() = default;
     };
     using EdgeInfos = std::vector<EdgeInfo>;
 
-    // DTO for change neighbors
+    // 变更邻居的数据传输对象
     struct CopyEdgeInfo {
         uint32_t start;
         uint32_t count;
@@ -142,12 +142,12 @@ namespace QuadricEdgeCollapse {
                          const VertexInfos &v_infos, const EdgeInfos &e_infos);
 #endif /* EXPENSIVE_DEBUG_CHECKS */
 
-    // constants --> may be move to config
-    const uint32_t check_cancel_period = 16; // how many edge to reduce before call throw_on_cancel
+    // 常量 --> 可能移到配置中
+    const uint32_t check_cancel_period = 16; // 每次调用throw_on_cancel之前减少的边数
     const size_t max_triangle_count_for_one_vertex = 50;
-    // change speed of progress bargraph
+    // 改变进度条的速度
     const int status_init_size = 10; // in percents
-    // parts of init size
+    // 初始化大小的各个部分
     const int status_normal_size = 25;
     const int status_sum_quadric = 25;
     const int status_set_offsets = 10;
@@ -164,7 +164,7 @@ void Slic3r::its_quadric_edge_collapse(
     std::function<void(void)> throw_on_cancel,
     std::function<void(int)>  status_fn)
 {
-    // check input
+        // 检查输入
     if (triangle_count >= its.indices.size()) return;
     float maximal_error = (max_error == nullptr)? std::numeric_limits<float>::max() : *max_error;
     if (maximal_error <= 0.f) return;
@@ -176,7 +176,7 @@ void Slic3r::its_quadric_edge_collapse(
         status_fn(static_cast<int>(std::round(n_percent)));
     };
 
-    TriangleInfos t_infos; // only normals with information about deleted triangle
+    TriangleInfos t_infos; // 仅法线附带已删除三角形的信息
     VertexInfos   v_infos;
     EdgeInfos     e_infos;
     Errors        errors;
@@ -187,7 +187,7 @@ void Slic3r::its_quadric_edge_collapse(
     //its_store_triangle(its, "triangle.obj", 1182);
     //store_surround("triangle_surround1.obj", 1182, 1, its, v_infos, e_infos);
 
-    // convert from triangle index to mutable priority queue index
+    // 从三角形索引转换为可变优先级队列索引
     std::vector<size_t> ti_2_mpqi(its.indices.size(), {0});
     auto setter = [&ti_2_mpqi](const Error &e, size_t index) { ti_2_mpqi[e.triangle_index] = index; };
     auto less = [](const Error &e1, const Error &e2) -> bool { return e1.value < e2.value; };
@@ -212,7 +212,7 @@ void Slic3r::its_quadric_edge_collapse(
                         (1. - reduced);            
         status_fn(static_cast<int>(std::round(status)));
     };
-    // modulo for update status, call each percent only once
+    // 更新状态的取模，每个百分比只调用一次
     uint32_t status_mod = std::max(uint32_t(16), 
         count_triangle_to_reduce / (100 - status_init_size));
 
@@ -223,9 +223,9 @@ void Slic3r::its_quadric_edge_collapse(
         if (iteration_number % status_mod == 0) increase_status();
         if (iteration_number % check_cancel_period == 0) throw_on_cancel();
 
-        // triangle index 0
+        // 三角形索引0
         Error e = mpq.top(); // copy
-        if (e.value >= maximal_error) break; // Too big error
+        if (e.value >= maximal_error) break; // 误差太大
         mpq.pop();
         uint32_t ti0 = e.triangle_index;
         TriangleInfo &t_info0 = t_infos[ti0];
@@ -235,18 +235,18 @@ void Slic3r::its_quadric_edge_collapse(
         const Triangle &t0 = its.indices[ti0];
         uint32_t vi0 = t0[t_info0.min_index];
         uint32_t vi1 = t0[(t_info0.min_index+1) %3];
-        // Need by move of neighbor edge infos in function: change_neighbors
+        // 在函数change_neighbors中移动邻居边信息所需
         if (vi0 > vi1) std::swap(vi0, vi1);
         VertexInfo &v_info0 = v_infos[vi0];
         VertexInfo &v_info1 = v_infos[vi1];
         assert(!v_info0.is_deleted() && !v_info1.is_deleted());
         
-        // new vertex position
+        // 新顶点位置
         SymMat q(v_info0.q);
         q += v_info1.q;
         Vec3f new_vertex0 = calculate_vertex(vi0, vi1, q, its.vertices);
-        // set of triangle indices that change quadric
-        uint32_t ti1 = -1; // triangle 1 index
+        // 改变二次度量的三角形索引集合
+        uint32_t ti1 = -1; // 三角形1索引
         auto ti1_opt = (v_info0.count < v_info1.count)?
             find_triangle_index1(vi1, v_info0, ti0, e_infos, its.indices) :
             find_triangle_index1(vi0, v_info1, ti0, e_infos, its.indices) ;
@@ -261,7 +261,7 @@ void Slic3r::its_quadric_edge_collapse(
             create_no_volume(vi0, vi1, ti0, ti1, v_info0, v_info1, e_infos, its.indices) ||
             is_flipped(new_vertex0, ti0, ti1, v_info0, t_infos, e_infos, its) ||
             is_flipped(new_vertex0, ti0, ti1, v_info1, t_infos, e_infos, its)) {
-            // try other triangle's edge
+            // 尝试另一条三角形的边
             Vec3d errors = calculate_3errors(t0, its.vertices, v_infos);
             Vec3i32 ord = (errors[0] < errors[1]) ? 
                 ((errors[0] < errors[2])? 
@@ -277,7 +277,7 @@ void Slic3r::its_quadric_edge_collapse(
                 t_info0.min_index = ord[2];
                 e.value = errors[t_info0.min_index];
             } else {
-                // error is changed when surround edge is reduced
+                // 当周围边被缩减时误差会改变
                 t_info0.min_index = 3; // bad index -> invalidate
                 e.value           = maximal_error;
             }
@@ -290,7 +290,7 @@ void Slic3r::its_quadric_edge_collapse(
         changed_triangle_indices.clear();
         changed_triangle_indices.reserve(v_info0.count + v_info1.count - 4);
         
-        // for each vertex0 triangles
+        // 遍历每个vertex0三角形
         uint32_t v_info0_end = v_info0.start + v_info0.count - 2;
         for (uint32_t di = v_info0.start; di < v_info0_end; ++di) {
             assert(di < e_infos.size());
@@ -298,29 +298,29 @@ void Slic3r::its_quadric_edge_collapse(
             changed_triangle_indices.emplace_back(ti);
         }
 
-        // for each vertex1 triangles
+        // 遍历每个vertex1三角形
         uint32_t v_info1_end = v_info1.start + v_info1.count - 2;
         for (uint32_t di = v_info1.start; di < v_info1_end; ++di) {
             assert(di < e_infos.size());
             EdgeInfo &e_info = e_infos[di];
             uint32_t    ti     = e_info.t_index;
             Triangle &t = its.indices[ti];
-            t[e_info.edge] = vi0; // change index
+            t[e_info.edge] = vi0; // 更改索引
             changed_triangle_indices.emplace_back(ti);
         }
         v_info0.q = q;
 
-        // fix neighbors      
-        // vertex index of triangle 0 which is not vi0 nor vi1
+        // 修复邻居
+        // 三角形0中既不是vi0也不是vi1的顶点索引
         uint32_t vi_top0 = t0[(t_info0.min_index + 2) % 3];
         const Triangle &t1 = its.indices[ti1];
         change_neighbors(e_infos, v_infos, ti0, ti1, vi0, vi1,
             vi_top0, t1, ceis, e_infos_swap);
         
-        // Change vertex
+        // 更改顶点
         its.vertices[vi0] = new_vertex0;
 
-        // fix errors - must be after set neighbors - v_infos
+        // 修复误差 - 必须在设置邻居(v_infos)之后
         mpq.remove(ti_2_mpqi[ti1]);
         for (uint32_t ti : changed_triangle_indices) {
             size_t priority_queue_index = ti_2_mpqi[ti];
@@ -334,14 +334,14 @@ void Slic3r::its_quadric_edge_collapse(
         TriangleInfo &t_info1 = t_infos[ti1];
         t_info0.set_deleted();
         t_info1.set_deleted();
-        // triangle counter decrementation
+        // 三角形计数器递减
         actual_triangle_count-=2;
 #ifdef EXPENSIVE_DEBUG_CHECKS
         assert(check_neighbors(its, t_infos, v_infos, e_infos));
 #endif // EXPENSIVE_DEBUG_CHECKS
     }
 
-    // compact triangle
+    // 压缩三角形
     compact(v_infos, t_infos, e_infos, its);
     if (max_error != nullptr) *max_error = last_collapsed_error;
 }
@@ -352,7 +352,7 @@ Vec3d QuadricEdgeCollapse::create_normal(const Triangle &triangle,
     Vec3d v0 = vertices[triangle[0]].cast<double>();
     Vec3d v1 = vertices[triangle[1]].cast<double>();
     Vec3d v2 = vertices[triangle[2]].cast<double>();
-    // n = triangle normal
+    // n = 三角形法线
     Vec3d n = (v1 - v0).cross(v2 - v0);
     n.normalize();
     return n;
@@ -395,7 +395,7 @@ double QuadricEdgeCollapse::calculate_error(uint32_t        id_v1,
 {
     double det = calculate_determinant(q);
     if (std::abs(det) < std::numeric_limits<double>::epsilon()) {
-        // can't divide by zero
+        // 不能除以零
         auto verts  = create_vertices(id_v1, id_v2, vertices);
         auto errors = vertices_error(q, verts);
         return *std::min_element(std::begin(errors), std::end(errors));
@@ -412,7 +412,7 @@ Vec3f QuadricEdgeCollapse::calculate_vertex(uint32_t          id_v1,
 {
     double det = calculate_determinant(q);
     if (std::abs(det) < std::numeric_limits<double>::epsilon()) {
-        // can't divide by zero
+        // 不能除以零
         auto verts  = create_vertices(id_v1, id_v2, vertices);
         auto errors = vertices_error(q, verts);
         auto mit    = std::min_element(std::begin(errors), std::end(errors));

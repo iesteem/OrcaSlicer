@@ -7,8 +7,8 @@
 
 #include "I18N.hpp"
 
-//! macro used to mark string used at localization,
-//! return same string
+//! 用于标记本地化使用的字符串的宏，
+//! 返回相同字符串
 #define L(s) Slic3r::I18N::translate(s)
 
 namespace Slic3r
@@ -21,10 +21,10 @@ void PrintTryCancel::operator()()
 
 size_t PrintStateBase::g_last_timestamp = 0;
 
-// Update "scale", "input_filename", "input_filename_base" placeholders from the current m_objects.
+// 从当前m_objects更新"scale"、"input_filename"、"input_filename_base"占位符。
 void PrintBase::update_object_placeholders(DynamicConfig &config, const std::string &default_ext) const
 {
-    // get the first input file name
+    // 获取第一个输入文件名
     std::string input_file;
     std::vector<std::string> v_scale;
     int num_objects = 0;
@@ -38,7 +38,7 @@ void PrintBase::update_object_placeholders(DynamicConfig &config, const std::str
 			}
 		if (printable) {
             ++ num_objects;
-	        // CHECK_ME -> Is the following correct ?
+	        // CHECK_ME -> 以下是否正确？
 			v_scale.push_back("x:" + boost::lexical_cast<std::string>(printable->get_scaling_factor(X) * 100) +
 				"% y:" + boost::lexical_cast<std::string>(printable->get_scaling_factor(Y) * 100) +
 				"% z:" + boost::lexical_cast<std::string>(printable->get_scaling_factor(Z) * 100) + "%");
@@ -52,7 +52,7 @@ void PrintBase::update_object_placeholders(DynamicConfig &config, const std::str
 
     config.set_key_value("scale", new ConfigOptionStrings(v_scale));
     if (! input_file.empty()) {
-        // get basename with and without suffix
+        // 获取带后缀和不带后缀的基本文件名
         const std::string input_filename = boost::filesystem::path(input_file).filename().string();
         const std::string input_filename_base = input_filename.substr(0, input_filename.find_last_of("."));
         config.set_key_value("input_filename", new ConfigOptionString(input_filename_base + default_ext));
@@ -60,8 +60,8 @@ void PrintBase::update_object_placeholders(DynamicConfig &config, const std::str
     }
 }
 
-// Generate an output file name based on the format template, default extension, and template parameters
-// (timestamps, object placeholders derived from the model, current placeholder prameters, print statistics - config_override)
+// 基于格式模板、默认扩展名和模板参数生成输出文件名
+// （时间戳、从模型派生的对象占位符、当前占位符参数、打印统计信息 - config_override）
 std::string PrintBase::output_filename(const std::string &format, const std::string &default_ext, const std::string &filename_base, const DynamicConfig *config_override) const
 {
     DynamicConfig cfg;
@@ -89,21 +89,21 @@ std::string PrintBase::output_filename(const std::string &format, const std::str
 
 std::string PrintBase::output_filepath(const std::string &path, const std::string &filename_base) const
 {
-    // if we were supplied no path, generate an automatic one based on our first object's input file
+    // 如果没有提供路径，则基于第一个对象的输入文件自动生成路径
     if (path.empty())
-        // get the first input file name
+        // 获取第一个输入文件名
         return (boost::filesystem::path(m_model.propose_export_file_name_and_path()).parent_path() / this->output_filename(filename_base)).make_preferred().string();
 
-    // if we were supplied a directory, use it and append our automatically generated filename
+    // 如果提供了目录，则使用它并附加自动生成的文件名
     boost::filesystem::path p(path);
     if (boost::filesystem::is_directory(p))
         return (p / this->output_filename(filename_base)).make_preferred().string();
 
-    // if we were supplied a file which is not a directory, use it
+    // 如果提供了不是目录的文件，则使用它
     return path;
 }
 
-//BBS: move set_status from hpp to cpp
+//BBS: 将set_status从hpp移动到cpp
 void  PrintBase::set_status(int percent, const std::string &message, unsigned int flags, int warning_step) const
 {
 	if (m_status_callback)
@@ -123,11 +123,11 @@ void PrintBase::status_update_warnings(int step, PrintStateBase::WarningLevel  w
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Print warning: %1%\n")% message.c_str();
 }
 
-//BBS: add PrintObject id into slicing status
+//BBS: 添加PrintObject id到切片状态中
 void PrintBase::status_update_warnings(int step, PrintStateBase::WarningLevel warning_level,
     const std::string& message, PrintObjectBase &object, PrintStateBase::SlicingNotificationType message_id)
 {
-    //BBS: add object it into slicing status
+    //BBS: 将对象id添加到切片状态中
     if (this->m_status_callback) {
         m_status_callback(SlicingStatus(object, step, message, message_id, warning_level));
     }

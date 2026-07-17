@@ -42,8 +42,7 @@ SupportTreeBuildsteps::SupportTreeBuildsteps(SupportTreeBuilder &   builder,
     , m_points(sm.pts.size(), 3)
     , m_thr(builder.ctl().cancelfn)
 {
-    // Prepare the support points in Eigen/IGL format as well, we will use
-    // it mostly in this form.
+    // 也将支撑点准备为 Eigen/IGL 格式，我们将主要使用此形式。
 
     long i = 0;
     for (const SupportPoint &sp : m_support_pts) {
@@ -63,8 +62,7 @@ bool SupportTreeBuildsteps::execute(SupportTreeBuilder &   builder,
 
     SupportTreeBuildsteps alg(builder, sm);
 
-    // Let's define the individual steps of the processing. We can experiment
-    // later with the ordering and the dependencies between them.
+    // 定义处理的各个步骤。我们稍后可以试验它们的顺序和依赖关系。
     enum Steps {
         BEGIN,
         FILTER,
@@ -119,7 +117,7 @@ bool SupportTreeBuildsteps::execute(SupportTreeBuilder &   builder,
         };
     }
 
-    // Let's define a simple automaton that will run our program.
+    // 定义一个简单的自动机来运行我们的程序。
     auto progress = [&builder, &pc] () {
         static const std::array<std::string, NUM_STEPS> stepstr {
             "Starting",
@@ -185,8 +183,7 @@ IndexedMesh::hit_result SupportTreeBuildsteps::pinhead_mesh_intersect(
 {
     static const size_t SAMPLES = 8;
 
-    // Move away slightly from the touching point to avoid raycasting on the
-    // inner surface of the mesh.
+    // 稍微远离接触点，以避免在网格内表面进行光线投射。
 
     auto& m = m_mesh;
     using HitResult = IndexedMesh::hit_result;
@@ -205,16 +202,15 @@ IndexedMesh::hit_result SupportTreeBuildsteps::pinhead_mesh_intersect(
         Vec3d pinring(size_t idx) { return ring.get(idx, spin, rpin); }
     } rings {r_pin + sd, r_back + sd, s, s + width * dir, dir};
 
-    // We will shoot multiple rays from the head pinpoint in the direction
-    // of the pinhead robe (side) surface. The result will be the smallest
-    // hit distance.
+    // 我们将从头部钉尖沿钉头连接体（侧面）表面方向发射多条射线。
+    // 结果将是最小的命中距离。
 
     ccr::for_each(size_t(0), hits.size(),
                   [&m, &rings, sd, &hits](size_t i) {
 
-       // Point on the circle on the pin sphere
+       // 钉球上的圆上的点
        Vec3d ps = rings.pinring(i);
-       // This is the point on the circle on the back sphere
+       // 这是背部球体上的圆上的点
        Vec3d p = rings.backring(i);
 
        auto &hit = hits[i];
@@ -230,22 +226,17 @@ IndexedMesh::hit_result SupportTreeBuildsteps::pinhead_mesh_intersect(
 
        if (q.is_inside()) { // the hit is inside the model
            if (q.distance() > rings.rpin) {
-               // If we are inside the model and the hit
-               // distance is bigger than our pin circle
-               // diameter, it probably indicates that the
-               // support point was already inside the
-               // model, or there is really no space
-               // around the point. We will assign a zero
-               // hit distance to these cases which will
-               // enforce the function return value to be
-               // an invalid ray with zero hit distance.
-               // (see min_element at the end)
+               // 如果我们在模型内部且命中距离大于钉圆直径，
+               // 这可能表明支撑点已经在模型内部，
+               // 或者点周围确实没有空间。
+               // 我们将为这些情况分配零命中距离，
+               // 这将使函数返回值为具有零命中距离的无效射线。
+               // （参见最后的 min_element）
                hit = HitResult(0.0);
            } else {
-               // re-cast the ray from the outside of the
-               // object. The starting point has an offset
-               // of 2*safety_distance because the
-               // original ray has also had an offset
+               // 从对象外部重新投射射线。
+               // 起始点有 2*safety_distance 的偏移，
+               // 因为原始射线也有一个偏移
                auto q2 = m.query_ray_hit(ps + (q.distance() + 2 * sd) * n, n);
                hit = q2;
            }
@@ -272,7 +263,7 @@ IndexedMesh::hit_result SupportTreeBuildsteps::bridge_mesh_intersect(
     {
         Hit &hit = hits[i];
 
-        // Point on the circle on the pin sphere
+        // 钉球上的圆上的点
         Vec3d p = ring.get(i, src, r + sd);
 
         auto hr = m_mesh.query_ray_hit(p + r * dir, dir);
@@ -280,7 +271,7 @@ IndexedMesh::hit_result SupportTreeBuildsteps::bridge_mesh_intersect(
         if(/*ins_check && */hr.is_inside()) {
             if(hr.distance() > 2 * r + sd) hit = Hit(0.0);
             else {
-                // re-cast the ray from the outside of the object
+                // 从对象外部重新投射射线
                 hit = m_mesh.query_ray_hit(p + (hr.distance() + EPSILON) * dir, dir);
             }
         } else hit = hr;
@@ -292,12 +283,9 @@ IndexedMesh::hit_result SupportTreeBuildsteps::bridge_mesh_intersect(
 bool SupportTreeBuildsteps::interconnect(const Pillar &pillar,
                                          const Pillar &nextpillar)
 {
-    // We need to get the starting point of the zig-zag pattern. We have to
-    // be aware that the two head junctions are at different heights. We
-    // may start from the lowest junction and call it a day but this
-    // strategy would leave unconnected a lot of pillar duos where the
-    // shorter pillar is too short to start a new bridge but the taller
-    // pillar could still be bridged with the shorter one.
+    // 我们需要获取锯齿模式的起点。我们需要注意两个柱头连接点的高度不同。
+    // 我们可以从最低的连接点开始，但这种策略会使许多柱对保持未连接状态，
+    // 其中较短的柱太短而无法开始新桥，但较长的柱仍然可以与较短的柱桥接。
     bool was_connected = false;
 
     Vec3d supper = pillar.startpoint();
@@ -309,7 +297,7 @@ bool SupportTreeBuildsteps::interconnect(const Pillar &pillar,
     eupper(Z) = std::max(eupper(Z), zmin);
     elower(Z) = std::max(elower(Z), zmin);
 
-    // The usable length of both pillars should be positive
+    // 两个柱的可用长度应为正数
     if(slower(Z) - elower(Z) < 0) return false;
     if(supper(Z) - eupper(Z) < 0) return false;
 
@@ -330,13 +318,13 @@ bool SupportTreeBuildsteps::interconnect(const Pillar &pillar,
     endz = eupper(Z) + zstep > elower(Z) ? eupper(Z) + zstep : eupper(Z);
 
     if(slower(Z) - eupper(Z) < std::abs(zstep)) {
-        // no space for even one cross
+        // 没有空间容纳一个交叉
 
-        // Get max available space
+        // 获取最大可用空间
         startz = std::min(supper(Z), slower(Z) - zstep);
         endz = std::max(eupper(Z) + zstep, elower(Z));
 
-        // Align to center
+        // 居中对齐
         double available_dist = (startz - endz);
         double rounds = std::floor(available_dist / std::abs(zstep));
         startz -= 0.5 * (available_dist - rounds * std::abs(zstep));
@@ -348,13 +336,12 @@ bool SupportTreeBuildsteps::interconnect(const Pillar &pillar,
         (pcm == PillarConnectionMode::dynamic &&
          pillar_dist > 2*m_cfg.base_radius_mm);
 
-    // 'sj' means starting junction, 'ej' is the end junction of a bridge.
-    // They will be swapped in every iteration thus the zig-zag pattern.
-    // According to a config parameter, a second bridge may be added which
-    // results in a cross connection between the pillars.
+    // 'sj' 表示起始连接点，'ej' 是桥的末端连接点。
+    // 它们将在每次迭代中交换，从而形成锯齿模式。
+    // 根据配置参数，可以添加第二座桥，从而在柱之间形成交叉连接。
     Vec3d sj = supper, ej = slower; sj(Z) = startz; ej(Z) = sj(Z) + zstep;
 
-    // TODO: This is a workaround to not have a faulty last bridge
+    // TODO: 这是一个变通方法，用于避免错误的最后一个桥
     while(ej(Z) >= eupper(Z) /*endz*/) {
         if(bridge_mesh_distance(sj, dirv(sj, ej), pillar.r) >= bridge_distance)
         {
@@ -369,7 +356,7 @@ bool SupportTreeBuildsteps::interconnect(const Pillar &pillar,
             if (sjback(Z) <= slower(Z) && ejback(Z) >= eupper(Z) &&
                 bridge_mesh_distance(sjback, dirv(sjback, ejback),
                                       pillar.r) >= bridge_distance) {
-                // need to check collision for the cross stick
+                // 需要检查交叉杆的碰撞
                 m_builder.add_crossbridge(sjback, ejback, pillar.r);
                 was_connected = true;
             }
@@ -411,8 +398,7 @@ bool SupportTreeBuildsteps::connect_to_nearpillar(const Head &head,
 
     // check the default situation if feasible for a bridge
     if(d3d > max_len || slope > -max_slope) {
-        // not feasible to connect the two head junctions. We have to search
-        // for a suitable touch point.
+        // 无法连接两个头部连接点。我们必须搜索合适的接触点。
 
         double Zdown = headjp(Z) + d2d * std::tan(-max_slope);
         Vec3d touchjp = bridgeend; touchjp(Z) = Zdown;
@@ -426,8 +412,7 @@ bool SupportTreeBuildsteps::connect_to_nearpillar(const Head &head,
 
             double t = bridge_mesh_distance(headjp, DOWN, r);
 
-            // We can't insert a pillar under the source head to connect
-            // with the nearby pillar's starting junction
+            // 我们无法在源头部下方插入柱来连接到附近柱的起始连接点
             if(t < zdiff) return false;
         }
 
@@ -437,20 +422,19 @@ bool SupportTreeBuildsteps::connect_to_nearpillar(const Head &head,
             return false;
     }
 
-    // There will be a minimum distance from the ground where the
-    // bridge is allowed to connect. This is an empiric value.
+    // 桥允许连接的位置与地面之间将有一个最小距离。这是一个经验值。
     double minz = m_builder.ground_level + 4 * head.r_back_mm;
     if(bridgeend(Z) < minz) return false;
 
     double t = bridge_mesh_distance(bridgestart, dirv(bridgestart, bridgeend), r);
 
-    // Cannot insert the bridge. (further search might not worth the hassle)
+    // 无法插入桥。（进一步搜索可能不值得麻烦）
     if(t < distance(bridgestart, bridgeend)) return false;
 
     std::lock_guard<ccr::BlockingMutex> lk(m_bridge_mutex);
 
     if (m_builder.bridgecount(nearpillar()) < m_cfg.max_bridges_on_pillar) {
-        // A partial pillar is needed under the starting head.
+        // 起始头部下方需要一个部分柱。
         if(zdiff > 0) {
             m_builder.add_pillar(head.id, headjp.z() - bridgestart.z());
             m_builder.add_junction(bridgestart, r);
@@ -474,9 +458,9 @@ bool SupportTreeBuildsteps::create_ground_pillar(const Vec3d &hjp,
     long   pillar_id    = SupportTreeNode::ID_UNSET;
     bool   can_add_base = false, non_head = false;
 
-    double gndlvl = 0.; // The Z level where pedestals should be
-    double jp_gnd = 0.; // The lowest Z where a junction center can be
-    double gap_dist = 0.; // The gap distance between the model and the pad
+    double gndlvl = 0.; // 底座应处的 Z 层级
+    double jp_gnd = 0.; // 连接点中心可以达到的最低 Z
+    double gap_dist = 0.; // 模型与垫之间的间隙距离
 
     auto to_floor = [&gndlvl](const Vec3d &p) { return Vec3d{p.x(), p.y(), gndlvl}; };
 
@@ -493,7 +477,7 @@ bool SupportTreeBuildsteps::create_ground_pillar(const Vec3d &hjp,
 
     eval_limits();
 
-    // We are dealing with a mini pillar that's potentially too long
+    // 我们正在处理一个可能太长的小柱
     if (radius < m_cfg.head_back_radius_mm && jp.z() - gndlvl > 20 * radius)
     {
         std::optional<DiffBridge> diffbr =
@@ -513,9 +497,8 @@ bool SupportTreeBuildsteps::create_ground_pillar(const Vec3d &hjp,
 
     if (m_cfg.object_elevation_mm < EPSILON)
     {
-        // get a suitable direction for the corrector bridge. It is the
-        // original sourcedir's azimuth but the polar angle is saturated to the
-        // configured bridge slope.
+        // 获取校正桥的合适方向。它是原始 sourcedir 的方位角，
+        // 但极角被饱和到配置的桥斜率。
         auto [polar, azimuth] = dir_to_spheric(dir);
         polar = PI - m_cfg.bridge_slope;
         Vec3d d = spheric_to_dir(polar, azimuth).normalized();
@@ -552,10 +535,10 @@ bool SupportTreeBuildsteps::create_ground_pillar(const Vec3d &hjp,
             }
         }
 
-        // Could not find a path to avoid the pad gap
+        // 找不到避免垫间隙的路径
         if (dlast < gap_dist) return false;
 
-        if (t > 0.) { // Need to make additional bridge
+        if (t > 0.) { // 需要制作额外的桥
             const Bridge& br = m_builder.add_bridge(endp, nexp, radius);
             if (head_id >= 0) m_builder.head(head_id).bridge_id = br.id;
 
@@ -574,7 +557,7 @@ bool SupportTreeBuildsteps::create_ground_pillar(const Vec3d &hjp,
     if (can_add_base)
         add_pillar_base(pillar_id);
 
-    if(pillar_id >= 0) // Save the pillar endpoint in the spatial index
+    if(pillar_id >= 0) // 将柱端点保存到空间索引中
         m_pillar_index.guarded_insert(m_builder.pillar(pillar_id).endpt,
                                       unsigned(pillar_id));
 
@@ -606,10 +589,10 @@ std::optional<DiffBridge> SupportTreeBuildsteps::search_widening_path(
 
             return ret;
         },
-        initvals({polar, azimuth, w}), // start with what we have
+        initvals({polar, azimuth, w}), // 从已有的开始
         bounds({
-            {PI - m_cfg.bridge_slope, PI}, // Must not exceed the slope limit
-            {-PI, PI}, // azimuth can be a full search
+            {PI - m_cfg.bridge_slope, PI}, // 不得超过斜率限制
+            {-PI, PI}, // 方位角可以全范围搜索
             {radius + m_cfg.head_back_radius_mm,
                   fallback_ratio * m_cfg.max_bridge_length_mm}
         }));
@@ -628,8 +611,7 @@ std::optional<DiffBridge> SupportTreeBuildsteps::search_widening_path(
 
 void SupportTreeBuildsteps::filter()
 {
-    // Get the points that are too close to each other and keep only the
-    // first one
+    // 获取相互距离太近的点，只保留第一个
     auto aliases = cluster(m_points, D_SP, 2);
 
     PtIndices filtered_indices;
@@ -637,7 +619,7 @@ void SupportTreeBuildsteps::filter()
     m_iheads.reserve(aliases.size());
     m_iheadless.reserve(aliases.size());
     for(auto& a : aliases) {
-        // Here we keep only the front point of the cluster.
+        // 这里我们只保留聚类中的前点。
         filtered_indices.emplace_back(a.front());
     }
 
@@ -672,16 +654,15 @@ void SupportTreeBuildsteps::filter()
         // for all normals we generate the spherical coordinates and
         // saturate the polar angle to 45 degrees from the bottom then
         // convert back to standard coordinates to get the new normal.
-        // Then we just create a quaternion from the two normals
-        // (Quaternion::FromTwoVectors) and apply the rotation to the
-        // arrow head.
+        // 然后我们只需从两个法线创建四元数 (Quaternion::FromTwoVectors)
+        // 并将旋转应用到箭头头部。
 
         auto [polar, azimuth] = dir_to_spheric(n);
 
         // skip if the tilt is not sane
         if (polar < PI - m_cfg.normal_cutoff_angle) return;
 
-        // We saturate the polar angle to 3pi/4
+        // 我们将极角饱和到 3pi/4
         polar = std::max(polar, PI - m_cfg.bridge_slope);
 
         // save the head (pinpoint) position
@@ -693,7 +674,7 @@ void SupportTreeBuildsteps::filter()
             lmin = 0., lmax = m_cfg.head_penetration_mm;
         }
 
-        // The distance needed for a pinhead to not collide with model.
+        // 钉头不与模型碰撞所需的距离。
         double w = lmin + 2 * back_r + 2 * m_cfg.head_front_radius_mm -
                    m_cfg.head_penetration_mm;
 
@@ -707,12 +688,11 @@ void SupportTreeBuildsteps::filter()
                                                            back_r, w);
 
         if (t.distance() < w) {
-            // Let's try to optimize this angle, there might be a
-            // viable normal that doesn't collide with the model
-            // geometry and its very close to the default.
+            // 让我们尝试优化这个角度，可能存在一个不与模型几何体碰撞
+            // 且非常接近默认值的可行法线。
 
             Optimizer<AlgNLoptGenetic> solver(get_criteria(m_cfg));
-            solver.seed(0); // we want deterministic behavior
+            solver.seed(0); // 我们希望行为是确定性的
 
             auto oresult = solver.to_max().optimize(
                 [this, pin_r, back_r, hp](const opt::Input<3> &input)
@@ -724,10 +704,10 @@ void SupportTreeBuildsteps::filter()
                     return pinhead_mesh_intersect(
                         hp, dir, pin_r, back_r, l).distance();
                 },
-                initvals({polar, azimuth, (lmin + lmax) / 2.}), // start with what we have
+                initvals({polar, azimuth, (lmin + lmax) / 2.}), // 从已有的开始
                 bounds({
-                    {PI - m_cfg.bridge_slope, PI},    // Must not exceed the slope limit
-                    {-PI, PI}, // azimuth can be a full search
+                    {PI - m_cfg.bridge_slope, PI},    // 不得超过斜率限制
+                    {-PI, PI}, // 方位角可以全范围搜索
                     {lmin, lmax}
                 }));
 
@@ -768,7 +748,7 @@ void SupportTreeBuildsteps::add_pinheads()
 
 void SupportTreeBuildsteps::classify()
 {
-    // We should first get the heads that reach the ground directly
+    // 我们应首先获取直接到达地面的头部
     PtIndices ground_head_indices;
     ground_head_indices.reserve(m_iheads.size());
     m_iheads_onmodel.reserve(m_iheads.size());
@@ -794,10 +774,8 @@ void SupportTreeBuildsteps::classify()
         m_head_to_ground_scans[i] = hit;
     }
 
-    // We want to search for clusters of points that are far enough
-    // from each other in the XY plane to not cross their pillar bases
-    // These clusters of support points will join in one pillar,
-    // possibly in their centroid support point.
+    // 我们想搜索在 XY 平面上彼此距离足够远、不会交叉其柱基的点聚类。
+    // 这些支撑点聚类将合并到一个柱中，可能在其质心支撑点处。
 
     auto pointfn = [this](unsigned i) {
         return m_builder.head(i).junction_point();
@@ -824,12 +802,10 @@ void SupportTreeBuildsteps::routing_to_ground()
         m_thr();
 
         // place all the centroid head positions into the index. We
-        // will query for alternative pillar positions. If a sidehead
-        // cannot connect to the cluster centroid, we have to search
-        // for another head with a full pillar. Also when there are two
-        // elements in the cluster, the centroid is arbitrary and the
-        // sidehead is allowed to connect to a nearby pillar to
-        // increase structural stability.
+        // 将查询替代的柱位置。如果侧头无法连接到聚类质心，
+        // 我们必须搜索另一个具有完整柱的头部。
+        // 此外，当聚类中有两个元素时，质心是任意的，
+        // 允许侧头连接到附近的柱以增加结构稳定性。
 
         if (cl.empty()) continue;
 
@@ -923,7 +899,7 @@ bool SupportTreeBuildsteps::connect_to_ground(Head &head)
     auto [polar, azimuth] = dir_to_spheric(head.dir);
 
     Optimizer<AlgNLoptGenetic> solver(get_criteria(m_cfg).stop_score(1e6));
-    solver.seed(0); // we want deterministic behavior
+    solver.seed(0); // 我们希望行为是确定性的
 
     double r_back = head.r_back_mm;
     Vec3d hjp = head.junction_point();
@@ -933,7 +909,7 @@ bool SupportTreeBuildsteps::connect_to_ground(Head &head)
             Vec3d n = spheric_to_dir(plr, azm).normalized();
             return bridge_mesh_distance(hjp, n, r_back);
         },
-        initvals({polar, azimuth}),  // let's start with what we have
+        initvals({polar, azimuth}),  // 让我们从已有的开始
         bounds({ {PI - m_cfg.bridge_slope, PI}, {-PI, PI} })
     );
 
@@ -960,10 +936,10 @@ bool SupportTreeBuildsteps::connect_to_model_body(Head &head)
     zangle = std::max(zangle, PI/4);
     double h = std::sin(zangle) * head.fullwidth();
 
-    // The width of the tail head that we would like to have...
+    // 我们想要的尾部头部的宽度...
     h = std::min(hit.distance() - head.r_back_mm, h);
 
-    // If this is a mini pillar dont bother with the tail width, can be 0.
+    // 如果这是小柱，不用管尾部宽度，可以为 0。
     if (head.r_back_mm < m_cfg.head_back_radius_mm) h = std::max(h, 0.);
     else if (h <= 0.) return false;
 
@@ -997,7 +973,7 @@ bool SupportTreeBuildsteps::connect_to_model_body(Head &head)
 bool SupportTreeBuildsteps::search_pillar_and_connect(const Head &source)
 {
     // Hope that a local copy takes less time than the whole search loop.
-    // We also need to remove elements progressively from the copied index.
+    // 我们还需要从复制的索引中逐步删除元素。
     PointIndex spindex = m_pillar_index.guarded_clone();
 
     long nearest_id = SupportTreeNode::ID_UNSET;
@@ -1033,9 +1009,8 @@ bool SupportTreeBuildsteps::search_pillar_and_connect(const Head &source)
 
 void SupportTreeBuildsteps::routing_to_model()
 {
-    // We need to check if there is an easy way out to the bed surface.
-    // If it can be routed there with a bridge shorter than
-    // min_bridge_distance.
+    // 我们需要检查是否有到热床表面的简单出路。
+    // 如果可以用短于最小桥接距离的桥接路由到那里。
 
     ccr::for_each(m_iheads_onmodel.begin(), m_iheads_onmodel.end(),
                   [this] (const unsigned idx) {
@@ -1053,7 +1028,7 @@ void SupportTreeBuildsteps::routing_to_model()
         // No route to the ground, so connect to the model body as a last resort
         if (connect_to_model_body(head)) { return; }
 
-        // We have failed to route this head.
+        // 我们未能路由此头部。
         BOOST_LOG_TRIVIAL(warning)
                 << "Failed to route model facing support point. ID: " << idx;
 
@@ -1063,27 +1038,22 @@ void SupportTreeBuildsteps::routing_to_model()
 
 void SupportTreeBuildsteps::interconnect_pillars()
 {
-    // Now comes the algorithm that connects pillars with each other.
-    // Ideally every pillar should be connected with at least one of its
-    // neighbors if that neighbor is within max_pillar_link_distance
+    // 现在介绍连接柱与柱的算法。
+    // 理想情况下，每个柱应至少与一个在其 max_pillar_link_distance 范围内的邻居连接
 
-    // Pillars with height exceeding H1 will require at least one neighbor
-    // to connect with. Height exceeding H2 require two neighbors.
+    // 高度超过 H1 的柱将需要至少一个邻居连接。高度超过 H2 则需要两个邻居。
     double H1 = m_cfg.max_solo_pillar_height_mm;
     double H2 = m_cfg.max_dual_pillar_height_mm;
     double d = m_cfg.max_pillar_link_distance_mm;
 
-    //A connection between two pillars only counts if the height ratio is
-    // bigger than 50%
+    // 只有当高度比大于 50% 时，两个柱之间的连接才有效
     double min_height_ratio = 0.5;
 
     std::set<unsigned long> pairs;
 
-    // A function to connect one pillar with its neighbors. THe number of
-    // neighbors is given in the configuration. This function if called
-    // for every pillar in the pillar index. A pair of pillar will not
-    // be connected multiple times this is ensured by the 'pairs' set which
-    // remembers the processed pillar pairs
+    // 将柱与其邻居连接的函数。邻居数量由配置指定。
+    // 此函数为 pillar 索引中的每个柱调用。
+    // 一对柱不会被多次连接，这是由记录已处理柱对的 'pairs' 集合保证的。
     auto cascadefn =
         [this, d, &pairs, min_height_ratio, H1] (const PointIndexEl& el)
     {
@@ -1091,7 +1061,7 @@ void SupportTreeBuildsteps::interconnect_pillars()
 
         const Pillar& pillar = m_builder.pillar(el.second); // actual pillar
 
-        // Get the max number of neighbors a pillar should connect to
+        // 获取柱应连接的最大邻居数
         unsigned neighbors = m_cfg.pillar_cascade_neighbors;
 
         // connections are already enough for the pillar
@@ -1103,7 +1073,7 @@ void SupportTreeBuildsteps::interconnect_pillars()
             return distance(e.first, qp) < max_d;
         });
 
-        // sort the result by distance (have to check if this is needed)
+        // 按距离排序结果（需要检查是否有必要）
         std::sort(qres.begin(), qres.end(),
                   [qp](const PointIndexEl& e1, const PointIndexEl& e2){
                       return distance(e1.first, qp) < distance(e2.first, qp);
@@ -1115,7 +1085,7 @@ void SupportTreeBuildsteps::interconnect_pillars()
 
             auto a = el.second, b = re.second;
 
-            // Get unique hash for the given pair (order doesn't matter)
+            // 获取给定对的唯一哈希值（顺序不重要）
             auto hashval = pairhash(a, b);
 
             // Search for the pair amongst the remembered pairs
@@ -1123,15 +1093,14 @@ void SupportTreeBuildsteps::interconnect_pillars()
 
             const Pillar& neighborpillar = m_builder.pillar(re.second);
 
-            // this neighbor is occupied, skip
+            // 此邻居已被占用，跳过
             if (neighborpillar.links >= neighbors) continue;
             if (neighborpillar.r < pillar.r) continue;
 
             if(interconnect(pillar, neighborpillar)) {
                 pairs.insert(hashval);
 
-                // If the interconnection length between the two pillars is
-                // less than 50% of the longer pillar's height, don't count
+                // 如果两个柱之间的互连长度小于较长柱高度的 50%，则不计数
                 if(pillar.height < H1 ||
                     neighborpillar.height / pillar.height > min_height_ratio)
                     m_builder.increment_links(pillar);
@@ -1142,7 +1111,7 @@ void SupportTreeBuildsteps::interconnect_pillars()
 
             }
 
-            // connections are enough for one pillar
+            // 一个柱的连接已经足够
             if(pillar.links >= neighbors) break;
         }
     };
@@ -1150,22 +1119,19 @@ void SupportTreeBuildsteps::interconnect_pillars()
     // Run the cascade for the pillars in the index
     m_pillar_index.foreach(cascadefn);
 
-    // We would be done here if we could allow some pillars to not be
-    // connected with any neighbors. But this might leave the support tree
-    // unprintable.
+    // 如果我们允许某些柱不与任何邻居连接，这里就完成了。
+    // 但这可能使支撑树无法打印。
     //
-    // The current solution is to insert additional pillars next to these
-    // lonely pillars. One or even two additional pillar might get inserted
-    // depending on the length of the lonely pillar.
+    // 当前的解决方案是在这些孤立柱旁边插入额外的柱。
+    // 根据孤立柱的长度，可能会插入一个甚至两个额外的柱。
 
     size_t pillarcount = m_builder.pillarcount();
 
-    // Again, go through all pillars, this time in the whole support tree
-    // not just the index.
+    // 再次遍历所有柱，这次是在整个支撑树中，而不仅仅是索引。
     for(size_t pid = 0; pid < pillarcount; pid++) {
         auto pillar = [this, pid]() { return m_builder.pillar(pid); };
 
-        // Decide how many additional pillars will be needed:
+        // 决定需要多少额外柱：
 
         unsigned needpillars = 0;
         if (pillar().bridges > m_cfg.max_bridges_on_pillar)
@@ -1181,14 +1147,14 @@ void SupportTreeBuildsteps::interconnect_pillars()
         needpillars = std::max(pillar().links, needpillars) - pillar().links;
         if (needpillars == 0) continue;
 
-        // Search for new pillar locations:
+        // 搜索新的柱位置：
 
         bool   found    = false;
         double alpha    = 0; // goes to 2Pi
         double r        = 2 * m_cfg.base_radius_mm;
         Vec3d  pillarsp = pillar().startpoint();
 
-        // temp value for starting point detection
+        // 起始点检测的临时值
         Vec3d sp(pillarsp(X), pillarsp(Y), pillarsp(Z) - r);
 
         // A vector of bool for placement feasbility
@@ -1210,12 +1176,12 @@ void SupportTreeBuildsteps::interconnect_pillars()
                 s(Y) += std::sin(a) * r;
                 spts[n] = s;
 
-                // Check the path vertically down
+                // 垂直向下检查路径
                 Vec3d check_from = s + Vec3d{0., 0., pillar().r};
                 auto hr = bridge_mesh_intersect(check_from, DOWN, pillar().r);
                 Vec3d gndsp{s(X), s(Y), gnd};
 
-                // If the path is clear, check for pillar base collisions
+                // 如果路径畅通，检查柱基碰撞
                 canplace[n] = std::isinf(hr.distance()) &&
                               std::sqrt(m_mesh.squared_distance(gndsp)) >
                                   min_dist;
@@ -1224,7 +1190,7 @@ void SupportTreeBuildsteps::interconnect_pillars()
             found = std::all_of(canplace.begin(), canplace.end(),
                                 [](bool v) { return v; });
 
-            // 20 angles will be tried...
+            // 将尝试 20 个角度...
             alpha += 0.1 * PI;
         }
 

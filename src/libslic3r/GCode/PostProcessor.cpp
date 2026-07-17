@@ -18,120 +18,120 @@
 
 #ifdef WIN32
 
-// The standard Windows includes.
+// 标准Windows包含。
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <Windows.h>
 #include <shellapi.h>
 
 // https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way/
-// This routine appends the given argument to a command line such that CommandLineToArgvW will return the argument string unchanged.
-// Arguments in a command line should be separated by spaces; this function does not add these spaces.
-// Argument    - Supplies the argument to encode.
-// CommandLine - Supplies the command line to which we append the encoded argument string.
+// 此例程将给定的参数追加到命令行，使得CommandLineToArgvW返回不变的参数字符串。
+// 命令行中的参数应该用空格分隔；此函数不添加这些空格。
+// Argument    - 提供要编码的参数。
+// CommandLine - 提供我们要追加编码参数字符串的命令行。
 static void quote_argv_winapi(const std::wstring &argument, std::wstring &commmand_line_out)
 {
-	// Don't quote unless we actually need to do so --- hopefully avoid problems if programs won't parse quotes properly.
-	if (argument.empty() == false && argument.find_first_of(L" \t\n\v\"") == argument.npos)
-		commmand_line_out.append(argument);
-	else {
-		commmand_line_out.push_back(L'"');
-		for (auto it = argument.begin(); ; ++ it) {
-			unsigned number_backslashes = 0;
-			while (it != argument.end() && *it == L'\\') {
-				++ it;
-				++ number_backslashes;
-			}
-			if (it == argument.end()) {
-				// Escape all backslashes, but let the terminating double quotation mark we add below be interpreted as a metacharacter.
-				commmand_line_out.append(number_backslashes * 2, L'\\');
-				break;
-			} else if (*it == L'"') {
-				// Escape all backslashes and the following double quotation mark.
-				commmand_line_out.append(number_backslashes * 2 + 1, L'\\');
-				commmand_line_out.push_back(*it);
-			} else {
-				// Backslashes aren't special here.
-				commmand_line_out.append(number_backslashes, L'\\');
-				commmand_line_out.push_back(*it);
-			}
-		}
-		commmand_line_out.push_back(L'"');
-	}
+    // 除非确实需要，否则不加引号---希望避免程序无法正确解析引号的问题。
+    if (argument.empty() == false && argument.find_first_of(L" \t\n\v\"") == argument.npos)
+        commmand_line_out.append(argument);
+    else {
+        commmand_line_out.push_back(L'"');
+        for (auto it = argument.begin(); ; ++ it) {
+            unsigned number_backslashes = 0;
+            while (it != argument.end() && *it == L'\\') {
+                ++ it;
+                ++ number_backslashes;
+            }
+            if (it == argument.end()) {
+                // 转义所有反斜杠，但让我们要添加的终止双引号被解释为元字符。
+                commmand_line_out.append(number_backslashes * 2, L'\\');
+                break;
+            } else if (*it == L'"') {
+                // 转义所有反斜杠和后面的双引号。
+                commmand_line_out.append(number_backslashes * 2 + 1, L'\\');
+                commmand_line_out.push_back(*it);
+            } else {
+                // 反斜杠在这里并不特殊。
+                commmand_line_out.append(number_backslashes, L'\\');
+                commmand_line_out.push_back(*it);
+            }
+        }
+        commmand_line_out.push_back(L'"');
+    }
 }
 
 static DWORD execute_process_winapi(const std::wstring &command_line)
 {
-    // Extract the current environment to be passed to the child process.
-	std::wstring envstr;
-	{
-		wchar_t *env = GetEnvironmentStrings();
-		assert(env != nullptr);
-		const wchar_t* var = env;
-		size_t totallen = 0;
-		size_t len;
-		while ((len = wcslen(var)) > 0) {
-			totallen += len + 1;
-			var += len + 1;
-		}
-		envstr = std::wstring(env, totallen);
-		FreeEnvironmentStrings(env);
-	}
+    // 提取当前环境以传递给子进程。
+    std::wstring envstr;
+    {
+        wchar_t *env = GetEnvironmentStrings();
+        assert(env != nullptr);
+        const wchar_t* var = env;
+        size_t totallen = 0;
+        size_t len;
+        while ((len = wcslen(var)) > 0) {
+            totallen += len + 1;
+            var += len + 1;
+        }
+        envstr = std::wstring(env, totallen);
+        FreeEnvironmentStrings(env);
+    }
 
-	STARTUPINFOW startup_info;
-	memset(&startup_info, 0, sizeof(startup_info));
-	startup_info.cb			 = sizeof(STARTUPINFO);
+    STARTUPINFOW startup_info;
+    memset(&startup_info, 0, sizeof(startup_info));
+    startup_info.cb             = sizeof(STARTUPINFO);
 #if 0
-	startup_info.dwFlags	 = STARTF_USESHOWWINDOW;
-	startup_info.wShowWindow = SW_HIDE;
+    startup_info.dwFlags     = STARTF_USESHOWWINDOW;
+    startup_info.wShowWindow = SW_HIDE;
 #endif
-	PROCESS_INFORMATION process_info;
-	if (! ::CreateProcessW(
+    PROCESS_INFORMATION process_info;
+    if (! ::CreateProcessW(
             nullptr /* lpApplicationName */, (LPWSTR)command_line.c_str(), nullptr /* lpProcessAttributes */, nullptr /* lpThreadAttributes */, false /* bInheritHandles */,
-			CREATE_UNICODE_ENVIRONMENT /* | CREATE_NEW_CONSOLE */ /* dwCreationFlags */, (LPVOID)envstr.c_str(), nullptr /* lpCurrentDirectory */, &startup_info, &process_info))
-		throw Slic3r::RuntimeError(std::string("Failed starting the script ") + boost::nowide::narrow(command_line) + ", Win32 error: " + std::to_string(int(::GetLastError())));
-	::WaitForSingleObject(process_info.hProcess, INFINITE);
-	ULONG rc = 0;
-	::GetExitCodeProcess(process_info.hProcess, &rc);
-	::CloseHandle(process_info.hThread);
-	::CloseHandle(process_info.hProcess);
-	return rc;
+                CREATE_UNICODE_ENVIRONMENT /* | CREATE_NEW_CONSOLE */ /* dwCreationFlags */, (LPVOID)envstr.c_str(), nullptr /* lpCurrentDirectory */, &startup_info, &process_info))
+        throw Slic3r::RuntimeError(std::string("启动脚本失败 ") + boost::nowide::narrow(command_line) + ", Win32错误: " + std::to_string(int(::GetLastError())));
+    ::WaitForSingleObject(process_info.hProcess, INFINITE);
+    ULONG rc = 0;
+    ::GetExitCodeProcess(process_info.hProcess, &rc);
+    ::CloseHandle(process_info.hThread);
+    ::CloseHandle(process_info.hProcess);
+    return rc;
 }
 
-// Run the script. If it is a perl script, run it through the bundled perl interpreter.
-// If it is a batch file, run it through the cmd.exe.
-// Otherwise run it directly.
+// 运行脚本。如果是perl脚本，通过捆绑的perl解释器运行。
+// 如果是批处理文件，通过cmd.exe运行。
+// 否则直接运行。
 static int run_script(const std::string &script, const std::string &gcode, std::string &/*std_err*/)
 {
-    // Unpack the argument list provided by the user.
+    // 解包用户提供的参数列表。
     int     nArgs;
     LPWSTR *szArglist = CommandLineToArgvW(boost::nowide::widen(script).c_str(), &nArgs);
     if (szArglist == nullptr || nArgs <= 0) {
-        // CommandLineToArgvW failed. Maybe the command line escapment is invalid?
-		throw Slic3r::RuntimeError(std::string("Post processing script ") + script + " on file " + gcode + " failed. CommandLineToArgvW() refused to parse the command line path.");
+        // CommandLineToArgvW失败。可能命令行转义无效？
+        throw Slic3r::RuntimeError(std::string("后处理脚本 ") + script + " 在文件 " + gcode + " 上失败。CommandLineToArgvW()拒绝解析命令行路径。");
     }
 
     std::wstring command_line;
     std::wstring command = szArglist[0];
-	if (! boost::filesystem::exists(boost::filesystem::path(command)))
-		throw Slic3r::RuntimeError(std::string("The configured post-processing script does not exist: ") + boost::nowide::narrow(command));
+    if (! boost::filesystem::exists(boost::filesystem::path(command)))
+        throw Slic3r::RuntimeError(std::string("配置的后处理脚本不存在: ") + boost::nowide::narrow(command));
     if (boost::iends_with(command, L".pl")) {
-        // This is a perl script. Run it through the perl interpreter.
-        // The current process may be slic3r.exe or slic3r-console.exe.
-        // Find the path of the process:
+        // 这是一个perl脚本。通过perl解释器运行。
+        // 当前进程可能是slic3r.exe或slic3r-console.exe。
+        // 查找进程的路径：
         wchar_t wpath_exe[_MAX_PATH + 1];
         ::GetModuleFileNameW(nullptr, wpath_exe, _MAX_PATH);
         boost::filesystem::path path_exe(wpath_exe);
         boost::filesystem::path path_perl = path_exe.parent_path() / "perl" / "perl.exe";
         if (! boost::filesystem::exists(path_perl)) {
-			LocalFree(szArglist);
-			throw Slic3r::RuntimeError(std::string("Perl interpreter ") + path_perl.string() + " does not exist.");
+            LocalFree(szArglist);
+            throw Slic3r::RuntimeError(std::string("Perl解释器 ") + path_perl.string() + " 不存在。");
         }
-        // Replace it with the current perl interpreter.
+        // 用当前的perl解释器替换它。
         quote_argv_winapi(boost::nowide::widen(path_perl.string()), command_line);
         command_line += L" ";
     } else if (boost::iends_with(command, ".bat")) {
-        // Run a batch file through the command line interpreter.
+        // 通过命令行解释器运行批处理文件。
         command_line = L"cmd.exe /C ";
     }
 
@@ -140,7 +140,7 @@ static int run_script(const std::string &script, const std::string &gcode, std::
         command_line += L" ";
     }
     LocalFree(szArglist);
-	quote_argv_winapi(boost::nowide::widen(gcode), command_line);
+    quote_argv_winapi(boost::nowide::widen(gcode), command_line);
     return (int)execute_process_winapi(command_line);
 }
 
@@ -155,11 +155,11 @@ namespace process = boost::process;
 
 static int run_script(const std::string &script, const std::string &gcode, std::string &std_err)
 {
-    // Try to obtain user's default shell
+    // 尝试获取用户的默认shell
     const char *shell = ::getenv("SHELL");
     if (shell == nullptr) { shell = "/bin/sh"; }
 
-    // Quote and escape the gcode path argument
+    // 引用和转义gcode路径参数
     std::string command { script };
     command.append(" '");
     for (char c : gcode) {
@@ -168,7 +168,7 @@ static int run_script(const std::string &script, const std::string &gcode, std::
     }
     command.push_back('\'');
 
-    BOOST_LOG_TRIVIAL(debug) << boost::format("Executing script, shell: %1%, command: %2%") % shell % command;
+    BOOST_LOG_TRIVIAL(debug) << boost::format("执行脚本, shell: %1%, 命令: %2%") % shell % command;
 
     process::ipstream istd_err;
     process::child child(shell, "-c", command, process::std_err > istd_err);
@@ -189,8 +189,8 @@ static int run_script(const std::string &script, const std::string &gcode, std::
 
 namespace Slic3r {
 
-//! macro used to mark string used at localization,
-//! return same string
+//! 用于标记本地化字符串的宏，
+//! 返回相同的字符串
 #define L(s) (s)
 #define _(s) Slic3r::I18N::translate(s)
 
@@ -225,43 +225,43 @@ void gcode_add_line_number(const std::string& path, const DynamicPrintConfig& co
     fs.close();
 }
 
-// Run post processing script / scripts if defined.
-// Returns true if a post-processing script was executed.
-// Returns false if no post-processing script was defined.
-// Throws an exception on error.
-// host is one of "File", "PrusaLink", "Repetier", "SL1Host", "OctoPrint", "FlashAir", "Duet", "AstroBox" ...
-// For a "File" target, a temp file will be created for src_path by adding a ".pp" suffix and src_path will be updated.
-// In that case the caller is responsible to delete the temp file created.
-// output_name is the final name of the G-code on SD card or when uploaded to PrusaLink or OctoPrint.
-// If uploading to PrusaLink or OctoPrint, then the file will be renamed to output_name first on the target host.
-// The post-processing script may change the output_name.
+// 如果定义了后处理脚本，则运行该脚本。
+// 如果后处理脚本被执行，则返回true。
+// 如果没有定义后处理脚本，则返回false。
+// 出错时抛出异常。
+// host是"File"、"PrusaLink"、"Repetier"、"SL1Host"、"OctoPrint"、"FlashAir"、"Duet"、"AstroBox"...
+// 对于"File"目标，通过添加".pp"后缀为src_path创建临时文件，并更新src_path。
+// 在这种情况下，调用者负责删除创建的临时文件。
+// output_name是G-code在SD卡上或上传到PrusaLink或OctoPrint时的最终名称。
+// 如果上传到PrusaLink或OctoPrint，则文件首先在目标主机上重命名为output_name。
+// 后处理脚本可能会更改output_name。
 bool run_post_process_scripts(std::string &src_path, bool make_copy, const std::string &host, std::string &output_name, const DynamicPrintConfig &config)
 {
     const auto *post_process = config.opt<ConfigOptionStrings>("post_process");
-    if (// likely running in SLA mode
-        post_process == nullptr || 
-        // no post-processing script
+    if (// 可能以SLA模式运行
+        post_process == nullptr ||
+        // 没有后处理脚本
         post_process->values.empty())
         return false;
 
     std::string path;
     if (make_copy) {
-        // Don't run the post-processing script on the input file, it will be memory mapped by the G-code viewer.
-        // Make a copy.
+        // 不要在输入文件上运行后处理脚本，它将被G-code查看器内存映射。
+        // 制作一个副本。
         path = src_path + ".pp";
-        // First delete an old file if it exists.
+        // 首先删除旧文件（如果存在）。
         try {
             if (boost::filesystem::exists(path))
                 boost::filesystem::remove(path);
         } catch (const std::exception &err) {
-            BOOST_LOG_TRIVIAL(error) << Slic3r::format("Failed deleting an old temporary file %1% before running a post-processing script: %2%", path, err.what());
+            BOOST_LOG_TRIVIAL(error) << Slic3r::format("在运行后处理脚本之前删除旧临时文件 %1% 失败: %2%", path, err.what());
         }
-        // Second make a copy.
+        // 其次制作副本。
         std::string error_message;
         if (copy_file(src_path, path, error_message, false) != SUCCESS)
-            throw Slic3r::RuntimeError(Slic3r::format("Failed making a temporary copy of G-code file %1% before running a post-processing script: %2%", src_path, error_message));
+            throw Slic3r::RuntimeError(Slic3r::format("在运行后处理脚本之前制作G-code文件 %1% 的临时副本失败: %2%", src_path, error_message));
     } else {
-        // Don't make a copy of the G-code before running the post-processing script.
+        // 不制作运行后处理脚本之前的G-code副本。
         path = src_path;
     }
 
@@ -271,59 +271,59 @@ bool run_post_process_scripts(std::string &src_path, bool make_copy, const std::
                 if (boost::filesystem::exists(path))
                     boost::filesystem::remove(path);
             } catch (const std::exception &err) {
-                BOOST_LOG_TRIVIAL(error) << Slic3r::format("Failed deleting a temporary copy %1% of a G-code file %2% : %3%", path, src_path, err.what());
+                BOOST_LOG_TRIVIAL(error) << Slic3r::format("删除G-code文件 %2% 的临时副本 %1% 失败: %3%", path, src_path, err.what());
             }
     };
 
     auto gcode_file = boost::filesystem::path(path);
     if (! boost::filesystem::exists(gcode_file))
-        throw Slic3r::RuntimeError(std::string("Post-processor can't find exported gcode file"));
+        throw Slic3r::RuntimeError(std::string("后处理器找不到导出的gcode文件"));
 
-    // Store print configuration into environment variables.
+    // 将打印配置存储到环境变量中。
     config.setenv_();
-    // Let the post-processing script know the target host ("File", "PrusaLink", "Repetier", "SL1Host", "OctoPrint", "FlashAir", "Duet", "AstroBox" ...)
+    // 让后处理脚本知道目标主机（"File"、"PrusaLink"、"Repetier"、"SL1Host"、"OctoPrint"、"FlashAir"、"Duet"、"AstroBox"...）
     boost::nowide::setenv("SLIC3R_PP_HOST", host.c_str(), 1);
-    // Let the post-processing script know the final file name. For "File" host, it is a full path of the target file name and its location, for example pointing to an SD card.
-    // For "PrusaLink" or "OctoPrint", it is a file name optionally with a directory on the target host.
+    // 让后处理脚本知道最终文件名。对于"File"主机，它是目标文件名的完整路径及其位置，例如指向SD卡。
+    // 对于"PrusaLink"或"OctoPrint"，它是文件名可选地带目标主机上的目录。
     boost::nowide::setenv("SLIC3R_PP_OUTPUT_NAME", output_name.c_str(), 1);
 
-    // Path to an optional file that the post-processing script may create and populate it with a single line containing the output_name replacement.
+    // 后处理脚本可能创建并填充一个可选文件的路径，该文件包含单行的output_name替换。
     std::string path_output_name = path + ".output_name";
     auto remove_output_name_file = [&path_output_name, &src_path]() {
         try {
             if (boost::filesystem::exists(path_output_name))
                 boost::filesystem::remove(path_output_name);
         } catch (const std::exception &err) {
-            BOOST_LOG_TRIVIAL(error) << Slic3r::format("Failed deleting a file %1% carrying the final name / path of a G-code file %2%: %3%", path_output_name, src_path, err.what());
+            BOOST_LOG_TRIVIAL(error) << Slic3r::format("删除携带G-code文件 %2% 的最终名称/路径的文件 %1% 失败: %3%", path_output_name, src_path, err.what());
         }
     };
-    // Remove possible stalled path_output_name of the previous run.
+    // 删除上次运行可能遗留的path_output_name。
     remove_output_name_file();
 
     try {
         for (const std::string &scripts : post_process->values) {
-    		std::vector<std::string> lines;
-    		boost::split(lines, scripts, boost::is_any_of("\r\n"));
+            std::vector<std::string> lines;
+            boost::split(lines, scripts, boost::is_any_of("\r\n"));
             for (std::string script : lines) {
-                // Ignore empty post processing script lines.
+                // 忽略空的后处理脚本行。
                 boost::trim(script);
                 if (script.empty())
                     continue;
-                BOOST_LOG_TRIVIAL(info) << "Executing script " << script << " on file " << path;
+                BOOST_LOG_TRIVIAL(info) << "在文件 " << path << " 上执行脚本 " << script;
                 std::string std_err;
                 const int result = run_script(script, gcode_file.string(), std_err);
                 if (result != 0) {
-                    const std::string msg = std_err.empty() ? (boost::format("Post-processing script %1% on file %2% failed.\nError code: %3%") % script % path % result).str()
-                        : (boost::format("Post-processing script %1% on file %2% failed.\nError code: %3%\nOutput:\n%4%") % script % path % result % std_err).str();
+                    const std::string msg = std_err.empty() ? (boost::format("后处理脚本 %1% 在文件 %2% 上失败。\n错误代码: %3%") % script % path % result).str()
+                        : (boost::format("后处理脚本 %1% 在文件 %2% 上失败。\n错误代码: %3%\n输出:\n%4%") % script % path % result % std_err).str();
                     BOOST_LOG_TRIVIAL(error) << msg;
                     delete_copy();
                     throw Slic3r::RuntimeError(msg);
                 }
                 if (! boost::filesystem::exists(gcode_file)) {
                     const std::string msg = (boost::format(_(L(
-                        "Post-processing script %1% failed.\n\n"
-                        "The post-processing script is expected to change the G-code file %2% in place, but the G-code file was deleted and likely saved under a new name.\n"
-                        "Please adjust the post-processing script to change the G-code in place and consult the manual on how to optionally rename the post-processed G-code file.\n")))
+                        "后处理脚本 %1% 失败。\n\n"
+                        "后处理脚本应原地更改G-code文件 %2%，但该G-code文件已被删除并可能以新名称保存。\n"
+                        "请调整后处理脚本以原地更改G-code，并查阅手册了解如何可选地重命名后处理后的G-code文件。\n")))
                         % script % path).str();
                     BOOST_LOG_TRIVIAL(error) << msg;
                     throw Slic3r::RuntimeError(msg);
@@ -332,7 +332,7 @@ bool run_post_process_scripts(std::string &src_path, bool make_copy, const std::
         }
         if (boost::filesystem::exists(path_output_name)) {
             try {
-                // Read a single line from path_output_name, which should contain the new output name of the post-processed G-code.
+                // 从path_output_name读取单行，应包含后处理G-code的新输出名称。
                 boost::nowide::fstream f;
                 f.open(path_output_name, std::ios::in);
                 std::string new_output_name;
@@ -343,25 +343,25 @@ bool run_post_process_scripts(std::string &src_path, bool make_copy, const std::
                     namespace fs = boost::filesystem;
                     fs::path op(new_output_name);
                     if (op.is_relative() && op.has_filename() && op.parent_path().empty()) {
-                        // Is this just a filename? Make it an absolute path.
+                        // 这只是文件名吗？使其成为绝对路径。
                         auto outpath = fs::path(output_name).parent_path();
                         outpath /= op.string();
                         new_output_name = outpath.string();
                     }
                     else {
                         if (! op.is_absolute() || ! op.has_filename())
-                            throw Slic3r::RuntimeError("Unable to parse desired new path from output name file");
+                            throw Slic3r::RuntimeError("无法从输出名称文件解析所需的新路径");
                     }
                     if (! fs::exists(fs::path(new_output_name).parent_path()))
-                        throw Slic3r::RuntimeError(Slic3r::format("Output directory does not exist: %1%",
+                        throw Slic3r::RuntimeError(Slic3r::format("输出目录不存在: %1%",
                                                                   fs::path(new_output_name).parent_path().string()));
                 }
 
-                BOOST_LOG_TRIVIAL(trace) << "Post-processing script changed the file name from " << output_name << " to " << new_output_name;
+                BOOST_LOG_TRIVIAL(trace) << "后处理脚本将文件名从 " << output_name << " 更改为 " << new_output_name;
                 output_name = new_output_name;
             } catch (const std::exception &err) {
-                throw Slic3r::RuntimeError(Slic3r::format("run_post_process_scripts: Failed reading a file %1% "
-                                                          "carrying the final name / path of a G-code file: %2%",
+                throw Slic3r::RuntimeError(Slic3r::format("run_post_process_scripts: 读取文件 %1% 失败，"
+                                                          "该文件携带G-code文件的最终名称/路径: %2%",
                                                           path_output_name, err.what()));
             }
             remove_output_name_file();

@@ -93,7 +93,7 @@ GCodeSender::connect(std::string devname, unsigned int baud_rate)
         return false;
     }
     
-    // a reset firmware expect line numbers to start again from 1
+    // 重置固件期望行号从 1 重新开始
     this->sent = 0;
     this->last_sent.clear();
 
@@ -102,11 +102,11 @@ GCodeSender::connect(std::string devname, unsigned int baud_rate)
     fs.open("serial.txt", std::fstream::out | std::fstream::trunc);
 #endif
     
-    // this gives some work to the io_service before it is started
-    // (post() runs the supplied function in its thread)
+    // 在 io_service 启动之前给它一些工作
+    // (post() 在其线程中运行提供的函数)
     this->io.post(boost::bind(&GCodeSender::do_read, this));
     
-    // start reading in the background thread
+    // 在后台线程中开始读取
     boost::thread t(boost::bind(&boost::asio::io_service::run, &this->io));
     this->background_thread.swap(t);
     
@@ -122,7 +122,7 @@ void
 GCodeSender::set_baud_rate(unsigned int baud_rate)
 {
     try {
-        // This does not support speeds > 115200
+        // 不支持大于 115200 的速度
         this->serial.set_option(boost::asio::serial_port_base::baud_rate(baud_rate));
     } catch (boost::system::system_error &) {
         boost::asio::serial_port::native_handle_type handle = this->serial.native_handle();
@@ -227,11 +227,11 @@ GCodeSender::purge_queue(bool priority)
 {
     boost::lock_guard<boost::mutex> l(this->queue_mutex);
     if (priority) {
-        // clear priority queue
+        // 清空优先级队列
         std::list<std::string> empty;
         std::swap(this->priqueue, empty);
     } else {
-        // clear queue
+        // 清空队列
         std::queue<std::string> empty;
         std::swap(this->queue, empty);
         this->queue_paused = false;
@@ -340,8 +340,8 @@ GCodeSender::on_read(const boost::system::error_code& error,
     fs << "<< " << line << std::endl << std::flush;
 #endif
         
-        // note that line might contain \r at its end
-        // parse incoming line
+        // 注意行尾可能包含 \r
+        // 解析传入行
         if (!this->connected
             && (boost::starts_with(line, "start")
              || boost::starts_with(line, "Grbl ")

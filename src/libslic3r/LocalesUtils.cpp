@@ -62,8 +62,8 @@ double string_to_double_decimal_point(const std::string_view str, size_t* pos /*
 
 std::string float_to_string_decimal_point(double value, int precision/* = -1*/)
 {
-    // Our Windows build server fully supports C++17 std::to_chars. Let's use it.
-    // Other platforms are behind, fall back to slow stringstreams for now.
+    // 我们的 Windows 构建服务器完全支持 C++17 std::to_chars。让我们使用它。
+    // 其他平台落后，暂时回退到较慢的 stringstream。
 #ifdef _WIN32
     constexpr size_t SIZE = 20;
     char out[SIZE] = "";

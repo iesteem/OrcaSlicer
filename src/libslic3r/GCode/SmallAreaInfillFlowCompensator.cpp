@@ -1,9 +1,8 @@
-// Modify the flow of extrusion lines inversely proportional to the length of
-// the extrusion line. When infill lines get shorter the flow rate will auto-
-// matically be reduced to mitigate the effect of small infill areas being
-// over-extruded.
+// 与挤出线长度成反比地修改挤出线的流量。
+// 当填充线变短时，流量率会自动减少以减轻
+// 小填充区域过度挤出的影响。
 
-// Based on original work by Alexander Þór licensed under the GPLv3:
+// 基于Alexander Thor的原创作品，根据GPLv3许可：
 // https://github.com/Alexander-T-Moss/Small-Area-Flow-Comp
 
 #include <math.h>
@@ -35,7 +34,7 @@ SmallAreaInfillFlowCompensator::SmallAreaInfillFlowCompensator(const Slic3r::GCo
 
             if (std::getline(iss, value_str, ',')) {
                 try {
-                    // Trim leading and trailing whitespace
+                    // 修剪前导和尾随空白
                     value_str = std::regex_replace(value_str, std::regex("^\\s+|\\s+$"), "");
                     if (value_str.empty()) {
                         continue;
@@ -47,7 +46,7 @@ SmallAreaInfillFlowCompensator::SmallAreaInfillFlowCompensator(const Slic3r::GCo
                     }
                 } catch (...) {
                     std::stringstream ss;
-                    ss << "Error parsing data point in small area infill compensation model:" << line << std::endl;
+                    ss << "解析小面积填充补偿模型中的数据点时出错:" << line << std::endl;
 
                     throw Slic3r::InvalidArgument(ss.str());
                 }
@@ -57,27 +56,27 @@ SmallAreaInfillFlowCompensator::SmallAreaInfillFlowCompensator(const Slic3r::GCo
         for (int i = 0; i < eLengths.size(); i++) {
             if (i == 0) {
                 if (!nearly_equal(eLengths[i], 0.0)) {
-                    throw Slic3r::InvalidArgument("First extrusion length for small area infill compensation model must be 0");
+                    throw Slic3r::InvalidArgument("小面积填充补偿模型的第一个挤出长度必须为0");
                 }
             } else {
                 if (nearly_equal(eLengths[i], 0.0)) {
-                    throw Slic3r::InvalidArgument("Only the first extrusion length for small area infill compensation model can be 0");
+                    throw Slic3r::InvalidArgument("只有小面积填充补偿模型的第一个挤出长度可以为0");
                 }
                 if (eLengths[i] <= eLengths[i - 1]) {
-                    throw Slic3r::InvalidArgument("Extrusion lengths for subsequent points must be increasing");
+                    throw Slic3r::InvalidArgument("后续点的挤出长度必须递增");
                 }
             }
         }
 
         if (!flowComps.empty() && !nearly_equal(flowComps.back(), 1.0)) {
-            throw Slic3r::InvalidArgument("Final compensation factor for small area infill flow compensation model must be 1.0");
+            throw Slic3r::InvalidArgument("小面积填充流量补偿模型的最终补偿因子必须为1.0");
         }
 
         flowModel = std::make_unique<tk::spline>();
         flowModel->set_points(eLengths, flowComps);
 
     } catch (std::exception& e) {
-        BOOST_LOG_TRIVIAL(error) << "Error parsing small area infill compensation model: " << e.what();
+        BOOST_LOG_TRIVIAL(error) << "解析小面积填充补偿模型时出错: " << e.what();
     }
 }
 

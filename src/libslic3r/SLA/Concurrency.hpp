@@ -1,7 +1,7 @@
 #ifndef SLA_CONCURRENCY_H
 #define SLA_CONCURRENCY_H
 
-// FIXME: Deprecated
+// FIXME: 已弃用
 
 #include <libslic3r/Execution/ExecutionSeq.hpp>
 #include <libslic3r/Execution/ExecutionTBB.hpp>
@@ -9,8 +9,8 @@
 namespace Slic3r {
 namespace sla {
 
-// Set this to true to enable full parallelism in this module.
-// Only the well tested parts will be concurrent if this is set to false.
+// 设置为 true 以启用此模块中的完全并行性。
+// 如果设置为 false，则只有经过充分测试的部分会并发执行。
 const constexpr bool USE_FULL_CONCURRENCY = true;
 
 template<bool> struct _ccr {};

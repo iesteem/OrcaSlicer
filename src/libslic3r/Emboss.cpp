@@ -21,26 +21,26 @@
 #include "libslic3r/Line.hpp"
 #include "libslic3r/BoundingBox.hpp"
 
-// Experimentaly suggested ration of font ascent by multiple fonts
-// to get approx center of normal text line
-const double ASCENT_CENTER = 1/3.; // 0.5 is above small letter
+// 通过多个字体实验性建议的字体上升比例
+// 以获得普通文本行的大致中心
+const double ASCENT_CENTER = 1/3.; // 0.5 高于小写字母
 
-// every glyph's shape point is divided by SHAPE_SCALE - increase precission of fixed point value
-// stored in fonts (to be able represents curve by sequence of lines)
-static constexpr double SHAPE_SCALE = 0.001; // SCALING_FACTOR promile is fine enough
+// 每个字形形状点除以 SHAPE_SCALE - 提高定点值的精度
+// 存储在字体中（以便能够用线段序列表示曲线）
+static constexpr double SHAPE_SCALE = 0.001; // SCALING_FACTOR 的千分之一足够精细
 static unsigned MAX_HEAL_ITERATION_OF_TEXT = 10;
 
 using namespace Slic3r;
 using namespace Emboss;
 using fontinfo_opt = std::optional<stbtt_fontinfo>;
 
-// NOTE: approach to heal shape by Clipper::Closing is not working
+// 注意：通过 Clipper::Closing 修复形状的方法不起作用
 
-// functionality to remove all spikes from shape
-// Potentionaly useable for eliminate spike in layer
+// 从形状中移除所有尖刺的功能
+// 可能可用于消除层中的尖刺
 //#define REMOVE_SPIKES
 
-// function to remove useless islands and holes
+// 移除无用的孤岛和孔洞的函数
 // #define REMOVE_SMALL_ISLANDS
 #ifdef REMOVE_SMALL_ISLANDS
 namespace { void remove_small_islands(ExPolygons &shape, double minimal_area);}
@@ -49,8 +49,8 @@ namespace { void remove_small_islands(ExPolygons &shape, double minimal_area);}
 //#define VISUALIZE_HEAL
 #ifdef VISUALIZE_HEAL
 namespace {
-// for debug purpose only
-// NOTE: check scale when store svg !!
+// 仅用于调试目的
+// 注意：存储svg时检查比例!!
 #include "libslic3r/SVG.hpp" // for visualize_heal
 static std::string visualize_heal_svg_filepath = "C:/data/temp/heal.svg";
 void               visualize_heal(const std::string &svg_filepath, const ExPolygons &expolygons)
@@ -73,28 +73,28 @@ void               visualize_heal(const std::string &svg_filepath, const ExPolyg
 } // namespace
 #endif // VISUALIZE_HEAL
 
-// do not expose out of this file stbtt_ data types
+// 不要在此文件外暴露 stbtt_ 数据类型
 namespace{
 using Polygon = Slic3r::Polygon;
 bool is_valid(const FontFile &font, unsigned int index);
 fontinfo_opt load_font_info(const unsigned char *data, unsigned int index = 0);
 std::optional<Glyph> get_glyph(const stbtt_fontinfo &font_info, int unicode_letter, float flatness);
 
-// take glyph from cache
-const Glyph* get_glyph(int unicode, const FontFile &font, const FontProp &font_prop, 
+// 从缓存中获取字形
+const Glyph* get_glyph(int unicode, const FontFile &font, const FontProp &font_prop,
         Glyphs &cache, fontinfo_opt &font_info_opt);
 
-// scale and convert float to int coordinate
+// 缩放并将浮点坐标转换为整数坐标
 Point to_point(const stbtt__point &point);
 
-// bad is contour smaller than 3 points
+// 小于3个点的轮廓为无效
 void remove_bad(Polygons &polygons);
 void remove_bad(ExPolygons &expolygons);
 
-// Try to remove self intersection by subtracting rect 2x2 px
+// 尝试通过减去 2x2 像素矩形来移除自相交
 ExPolygon create_bounding_rect(const ExPolygons &shape);
 
-// Heal duplicates points and self intersections
+// 修复重复点和自相交
 bool heal_dupl_inter(ExPolygons &shape, unsigned max_iteration);
 
 const Points pts_2x2({Point(0, 0), Point(1, 0), Point(1, 1), Point(0, 1)});
@@ -102,31 +102,31 @@ const Points pts_3x3({Point(-1, -1), Point(1, -1), Point(1, 1), Point(-1, 1)});
 
 struct SpikeDesc
 {
-    // cosinus of max spike angle
-    double cos_angle; // speed up to skip acos
+    // 最大尖角角度的余弦值
+    double cos_angle; // 加速以跳过 acos
 
-    // Half of Wanted bevel size
-    double half_bevel; 
+    // 所需倒角大小的一半
+    double half_bevel;
 
     /// <summary>
-    /// Calculate spike description
+    /// 计算尖刺描述
     /// </summary>
-    /// <param name="bevel_size">Size of spike width after cut of the tip, has to be grater than 2.5</param>
-    /// <param name="pixel_spike_length">When spike has same or more pixels with width less than 1 pixel</param>
-    SpikeDesc(double bevel_size, double pixel_spike_length = 6):         
-        // create min angle given by spike_length
-        // Use it as minimal height of 1 pixel base spike
+    /// <param name="bevel_size">切割尖端后的尖刺宽度大小，必须大于2.5</param>
+    /// <param name="pixel_spike_length">当尖刺有相同或更多像素且宽度小于1像素时</param>
+    SpikeDesc(double bevel_size, double pixel_spike_length = 6):
+        // 由 spike_length 创建最小角度
+        // 用作1像素基础尖刺的最小高度
         cos_angle(std::fabs(std::cos(
-            /*angle*/ 2. * std::atan2(pixel_spike_length, .5)
+            /*角度*/ 2. * std::atan2(pixel_spike_length, .5)
         ))),
 
-        // When remove spike this angle is set.
-        // Value must be grater than min_angle
+        // 当移除尖刺时设置此角度。
+        // 值必须大于 min_angle
         half_bevel(bevel_size / 2)
     {}
 };
 
-// return TRUE when remove point. It could create polygon with 2 points.
+// 当移除点时返回TRUE。可能创建只有2个点的多边形。
 bool remove_when_spike(Polygon &polygon, size_t index, const SpikeDesc &spike_desc);
 void remove_spikes_in_duplicates(ExPolygons &expolygons, const Points &duplicates);
 
@@ -139,8 +139,8 @@ void remove_spikes(Polygons &polygons, const SpikeDesc &spike_desc);
 void remove_spikes(ExPolygons &expolygons, const SpikeDesc &spike_desc);
 #endif
 
-// spike ... very sharp corner - when not removed cause iteration of heal process
-// index ... index of duplicit point in polygon
+// spike ... 非常尖锐的角 - 如果不移除会导致修复过程迭代
+// index ... 多边形中重复点的索引
 bool remove_when_spike(Slic3r::Polygon &polygon, size_t index, const SpikeDesc &spike_desc) {
 
     std::optional<Point> add;
@@ -155,30 +155,30 @@ bool remove_when_spike(Slic3r::Polygon &polygon, size_t index, const SpikeDesc &
         const Point &b = pts[index];
         const Point &c = (index == (pts_size - 1)) ? pts.front() : pts[index + 1];
 
-        // calc sides
+        // 计算边
         Vec2d ba = (a - b).cast<double>();
         Vec2d bc = (c - b).cast<double>();
 
         double dot_product = ba.dot(bc);
 
-        // sqrt together after multiplication save one sqrt
+        // 相乘后一起开平方根，节省一次开平方根
         double ba_size_sq = ba.squaredNorm();
         double bc_size_sq = bc.squaredNorm();
         double norm       = sqrt(ba_size_sq * bc_size_sq);
         double cos_angle  = dot_product / norm;
 
-        // small angle are around 1 --> cos(0) = 1
+        // 小角度接近 1 --> cos(0) = 1
         if (cos_angle < spike_desc.cos_angle)
-            return false; // not a spike
+            return false; // 不是尖刺
 
-        // has to be in range <-1, 1>
-        // Due to preccission of floating point number could be sligtly out of range
+        // 必须在范围 <-1, 1> 内
+        // 由于浮点数精度问题，可能略微超出范围
         if (cos_angle > 1.)
             cos_angle = 1.;
         // if (cos_angle < -1.)
         //     cos_angle = -1.;
 
-        // Current Spike angle
+        // 当前尖角角度
         double angle          = acos(cos_angle);
         double wanted_size    = spike_desc.half_bevel / cos(angle / 2.);
         double wanted_size_sq = wanted_size * wanted_size;
@@ -196,21 +196,21 @@ bool remove_when_spike(Slic3r::Polygon &polygon, size_t index, const SpikeDesc &
         };
 
         if (is_ba_short && is_bc_short) {
-            // remove short spike
+            // 移除短尖刺
             do_erase = true;
         } else if (is_ba_short) {
-            // move point B on C-side
+            // 将点B移动到C侧
             pts[index] = c_side();
         } else if (is_bc_short) {
-            // move point B on A-side
+            // 将点B移动到A侧
             pts[index] = a_side();
         } else {
-            // move point B on C-side and add point on A-side(left - before)
+            // 将点B移动到C侧并在A侧（左侧-之前）添加点
             pts[index] = c_side();
             add = a_side();
             if (*add == pts[index]) {
-                // should be very rare, when SpikeDesc has small base
-                // will be fixed by remove B point
+                // 应该非常罕见，当 SpikeDesc 有小的基础时
+                // 将通过移除B点来修复
                 add.reset();
                 do_erase = true;
             }
@@ -271,12 +271,12 @@ fontinfo_opt load_font_info(
     int font_offset = stbtt_GetFontOffsetForIndex(data, index);
     if (font_offset < 0) {
         assert(false);
-        // "Font index(" << index << ") doesn't exist.";
-        return {};        
+        // "字体索引(" << index << ") 不存在。";
+        return {};
     }
     stbtt_fontinfo font_info;
     if (stbtt_InitFont(&font_info, data, font_offset) == 0) {
-        // Can't initialize font.
+        // 无法初始化字体。
         assert(false);
         return {};
     }
@@ -306,10 +306,10 @@ bool Emboss::divide_segments_for_close_point(ExPolygons &expolygons, double dist
     if (expolygons.empty()) return false;
     if (distance < 0.) return false;
 
-    // ExPolygons can't contain same neigbours
+    // ExPolygons 不能包含相同的相邻点
     remove_same_neighbor(expolygons);
 
-    // IMPROVE: use int(insted of double) lines and tree
+    // 改进：使用 int（代替 double）线和树
     const ExPolygonsIndices ids(expolygons);
     const std::vector<Linef> lines = Slic3r::to_linesf(expolygons, ids.get_count());
     AABBTreeIndirect::Tree<2, double> tree = AABBTreeLines::build_aabb_tree_over_indexed_lines(lines);
@@ -321,13 +321,13 @@ bool Emboss::divide_segments_for_close_point(ExPolygons &expolygons, double dist
             Vec2d p_d = p.cast<double>();
             std::vector<size_t> close_lines = AABBTreeLines::all_lines_in_radius(lines, tree, p_d, distance);
             for (size_t index : close_lines) {
-                // skip point neighbour lines indices
+                // 跳过点的相邻线索引
                 if (index == point_index) continue;
                 if (&p != &pts.front()) { 
                     if (index == point_index - 1) continue;
                 } else if (index == (pts.size()-1)) continue;
 
-                // do not doubled side point of segment
+                // 不要重复线段的侧点
                 const ExPolygonsIndex id = ids.cvt(index);
                 const ExPolygon &expoly = expolygons[id.expolygons_index];
                 const Polygon &poly = id.is_contour() ? expoly.contour : expoly.holes[id.hole_index()];
@@ -349,18 +349,18 @@ bool Emboss::divide_segments_for_close_point(ExPolygons &expolygons, double dist
             check_points(hole.points);
     }
 
-    // check if exist division
+    // 检查是否存在分割
     if (divs.empty()) return false;
 
-    // sort from biggest index to zero
-    // to be able add points and not interupt indices
+    // 从最大索引到零排序
+    // 以便能够添加点而不中断索引
     std::sort(divs.begin(), divs.end(), 
         [](const Div &d1, const Div &d2) { return d1.second > d2.second; });
     
     auto it = divs.begin();
-    // divide close line
+    // 分割接近的线
     while (it != divs.end()) {
-        // colect division of a line segmen
+        // 收集线段的分割
         size_t index = it->second;
         auto it2 = it+1;
         while (it2 != divs.end() && it2->second == index) ++it2;
@@ -371,31 +371,31 @@ bool Emboss::divide_segments_for_close_point(ExPolygons &expolygons, double dist
         Points &pts = poly.points;        
         size_t count = it2 - it;
 
-        // add points into polygon to divide in place of near point
+        // 将点添加到多边形中以在接近点位置分割
         if (count == 1) {
             pts.insert(pts.begin() + id.point_index + 1, it->first);
             ++it;
         } else {
-            // collect points to add into polygon
+            // 收集要添加到多边形中的点
             Points points;
             points.reserve(count);
             for (; it < it2; ++it) 
                 points.push_back(it->first);            
 
-            // need sort by line direction
+            // 需要按线方向排序
             const Linef &line = lines[index];
             Vec2d        dir  = line.b - line.a;
-            // select mayorit direction
+            // 选择主要方向
             int axis  = (abs(dir.x()) > abs(dir.y())) ? 0 : 1;
             using Fnc = std::function<bool(const Point &, const Point &)>;
             Fnc fnc   = (dir[axis] < 0) ? Fnc([axis](const Point &p1, const Point &p2) { return p1[axis] > p2[axis]; }) :
                                           Fnc([axis](const Point &p1, const Point &p2) { return p1[axis] < p2[axis]; }) ;
             std::sort(points.begin(), points.end(), fnc);
 
-            // use only unique points
+            // 仅使用唯一点
             points.erase(std::unique(points.begin(), points.end()), points.end());
 
-            // divide line by adding points into polygon
+            // 通过将点添加到多边形来分割线
             pts.insert(pts.begin() + id.point_index + 1,
                 points.begin(), points.end());
         }
@@ -406,12 +406,12 @@ bool Emboss::divide_segments_for_close_point(ExPolygons &expolygons, double dist
 
 HealedExPolygons Emboss::heal_polygons(const Polygons &shape, bool is_non_zero, unsigned int max_iteration)
 {
-    const double clean_distance = 1.415; // little grater than sqrt(2)
+    const double clean_distance = 1.415; // 略大于 sqrt(2)
     ClipperLib::PolyFillType fill_type = is_non_zero ? 
         ClipperLib::pftNonZero : ClipperLib::pftEvenOdd;
 
-    // When edit this code check that font 'ALIENATE.TTF' and glyph 'i' still work
-    // fix of self intersections
+    // 编辑此代码时检查字体 'ALIENATE.TTF' 和字形 'i' 仍然有效
+    // 修复自相交
     // http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Functions/SimplifyPolygon.htm
     ClipperLib::Paths paths = ClipperLib::SimplifyPolygons(ClipperUtils::PolygonsProvider(shape), fill_type);
     ClipperLib::CleanPolygons(paths, clean_distance);
@@ -422,8 +422,8 @@ HealedExPolygons Emboss::heal_polygons(const Polygons &shape, bool is_non_zero, 
     if (polygons.empty())
         return {{}, false};
 
-    // Do not remove all duplicates but do it better way
-    // Overlap all duplicit points by rectangle 3x3
+    // 不要移除所有重复点，而是以更好的方式处理
+    // 用 3x3 矩形覆盖所有重复点
     Points duplicits = collect_duplicates(to_points(polygons));
     if (!duplicits.empty()) {
         polygons.reserve(polygons.size() + duplicits.size());
@@ -452,14 +452,14 @@ Points get_unique_intersections(const Slic3r::IntersectionsLines &intersections)
     if (intersections.empty())
         return result;
 
-    // convert intersections into Points
+    // 将交点转换为 Points
     result.reserve(intersections.size());
     std::transform(intersections.begin(), intersections.end(), std::back_inserter(result),
         [](const Slic3r::IntersectionLines &i) { return Point(
-            std::floor(i.intersection.x()), 
-            std::floor(i.intersection.y())); 
+            std::floor(i.intersection.x()),
+            std::floor(i.intersection.y()));
         });
-    // intersections should be unique poits
+    // 交点应为唯一点
     std::sort(result.begin(), result.end());
     auto it = std::unique(result.begin(), result.end());
     result.erase(it, result.end());
@@ -480,14 +480,14 @@ Polygons get_holes_with_points(const Polygons &holes, const Points &points)
 }
 
 /// <summary>
-/// Fill holes which create duplicits or intersections
-/// When healing hole creates trouble in shape again try to heal by an union instead of diff_ex
+/// 填充产生重复点或交点的孔洞
+/// 当修复孔洞再次在形状中产生问题时，尝试使用联合而不是 diff_ex 进行修复
 /// </summary>
-/// <param name="holes">Holes which was substracted from shape previous</param>
-/// <param name="duplicates">Current duplicates in shape</param>
-/// <param name="intersections">Current intersections in shape</param>
-/// <param name="shape">Partialy healed shape[could be modified]</param>
-/// <returns>True when modify shape otherwise False</returns>
+/// <param name="holes">之前从形状中减去的孔洞</param>
+/// <param name="duplicates">形状中当前的重复点</param>
+/// <param name="intersections">形状中当前的交点</param>
+/// <param name="shape">部分修复的形状[可能被修改]</param>
+/// <returns>修改形状时返回 True，否则返回 False</returns>
 bool fill_trouble_holes(const Polygons &holes, const Points &duplicates, const Points &intersections, ExPolygons &shape)
 {
     if (holes.empty())
@@ -504,8 +504,8 @@ bool fill_trouble_holes(const Polygons &holes, const Points &duplicates, const P
     return true;
 }
 
-// extend functionality from Points.cpp --> collect_duplicates
-// with address of duplicated points
+// 从 Points.cpp 扩展功能 --> collect_duplicates
+// 包含重复点的地址
 struct Duplicate {
     Point point;
     std::vector<uint32_t> indices;
@@ -515,7 +515,7 @@ Duplicates collect_duplicit_indices(const ExPolygons &expoly)
 {
     Points pts = to_points(expoly);
 
-    // initialize original index locations
+    // 初始化原始索引位置
     std::vector<uint32_t> idx(pts.size());
     std::iota(idx.begin(), idx.end(), 0);
     std::sort(idx.begin(), idx.end(), 
@@ -527,9 +527,9 @@ Duplicates collect_duplicit_indices(const ExPolygons &expoly)
         uint32_t index = idx[i];
         const Point *act = &pts[index];
         if (*prev == *act) {
-            // duplicit point
+            // 重复点
             if (!result.empty() && result.back().point == *act) {
-                // more than 2 points with same coordinate
+                // 超过2个点具有相同坐标
                 result.back().indices.push_back(index);
             } else {
                 uint32_t prev_index = idx[i-1];
@@ -548,7 +548,7 @@ Points get_points(const Duplicates& duplicate_indices)
     if (duplicate_indices.empty())
         return result;
 
-    // convert intersections into Points
+    // 将交点转换为 Points
     result.reserve(duplicate_indices.size());
     std::transform(duplicate_indices.begin(), duplicate_indices.end(), std::back_inserter(result), 
         [](const Duplicate &d) { return d.point; });
@@ -560,14 +560,14 @@ bool heal_dupl_inter(ExPolygons &shape, unsigned max_iteration)
     if (shape.empty()) return true;
     remove_same_neighbor(shape);
 
-    // create loop permanent memory
+    // 创建循环永久内存
     Polygons holes;
     while (--max_iteration) {        
         Duplicates duplicate_indices = collect_duplicit_indices(shape);
         //Points duplicates = collect_duplicates(to_points(shape));
         IntersectionsLines intersections = get_intersections(shape);
                 
-        // Check whether shape is already healed
+        // 检查形状是否已修复
         if (intersections.empty() && duplicate_indices.empty())
             return true;
 
@@ -584,14 +584,14 @@ bool heal_dupl_inter(ExPolygons &shape, unsigned max_iteration)
 
         remove_spikes_in_duplicates(shape, duplicate_points);
 
-        // Fix self intersection in result by subtracting hole 2x2
+        // 通过减去 2x2 孔洞修复结果中的自相交
         for (const Point &p : intersection_points) {
             Polygon hole(pts_2x2);
             hole.translate(p);
             holes.push_back(hole);
         }
 
-        // Fix duplicit points by hole 3x3 around duplicit point
+        // 通过在重复点周围用 3x3 孔洞修复重复点
         for (const Point &p : duplicate_points) {
             Polygon hole(pts_3x3);
             hole.translate(p);
@@ -599,23 +599,23 @@ bool heal_dupl_inter(ExPolygons &shape, unsigned max_iteration)
         }
 
         shape = Slic3r::diff_ex(shape, holes, ApplySafetyOffset::No);
-        // ApplySafetyOffset::Yes is incompatible with function fill_trouble_holes
+        // ApplySafetyOffset::Yes 与 fill_trouble_holes 函数不兼容
     }
 
-    // Create partialy healed output
+    // 创建部分修复的输出
     Duplicates duplicates = collect_duplicit_indices(shape);
     IntersectionsLines intersections = get_intersections(shape);
     if (duplicates.empty() && intersections.empty()){
-        // healed in the last loop
+        // 在最后一次循环中修复
         return true;
     }
-    
+
     #ifdef VISUALIZE_HEAL
     visualize_heal(visualize_heal_svg_filepath, shape);
     #endif // VISUALIZE_HEAL
 
-    assert(false); // Can not heal this shape
-    // investigate how to heal better way
+    assert(false); // 无法修复此形状
+    // 研究如何更好地修复
 
     ExPolygonsIndices ei(shape);
     std::vector<bool> is_healed(shape.size(), {true});
@@ -630,7 +630,7 @@ bool heal_dupl_inter(ExPolygons &shape, unsigned max_iteration)
 
     for (size_t shape_index = 0; shape_index < shape.size(); shape_index++) {
         if (!is_healed[shape_index]) {
-            // exchange non healed expoly with bb rect
+            // 用边界框矩形替换未修复的 expoly
             ExPolygon &expoly = shape[shape_index];
             expoly = create_bounding_rect({expoly});
         }
@@ -646,14 +646,14 @@ ExPolygon create_bounding_rect(const ExPolygons &shape) {
     if (size.y() < 10)
         bb.max.y() += 10;
 
-    Polygon rect({// CCW
+    Polygon rect({// 逆时针
         bb.min,
         {bb.max.x(), bb.min.y()},
         bb.max,
         {bb.min.x(), bb.max.y()}});
 
     Point   offset = bb.size() * 0.1;
-    Polygon hole({// CW
+    Polygon hole({// 顺时针
         bb.min + offset,
         {bb.min.x() + offset.x(), bb.max.y() - offset.y()},
         bb.max - offset,
@@ -700,14 +700,14 @@ std::optional<Glyph> get_glyph(const stbtt_fontinfo &font_info, int unicode_lett
 
     stbtt_vertex *vertices;
     int num_verts = stbtt_GetGlyphShape(&font_info, glyph_index, &vertices);
-    if (num_verts <= 0) return glyph; // no shape
+    if (num_verts <= 0) return glyph; // 无形状
     ScopeGuard sg1([&vertices]() { free(vertices); });
 
     int *contour_lengths = NULL;
     int  num_countour_int = 0;
     stbtt__point *points = stbtt_FlattenCurves(vertices, num_verts,
         flatness, &contour_lengths, &num_countour_int, font_info.userdata);
-    if (!points) return glyph; // no valid flattening
+    if (!points) return glyph; // 无效的展平
     ScopeGuard sg2([&contour_lengths, &points]() {
         free(contour_lengths); 
         free(points); 
@@ -716,33 +716,33 @@ std::optional<Glyph> get_glyph(const stbtt_fontinfo &font_info, int unicode_lett
     size_t   num_contour = static_cast<size_t>(num_countour_int);
     Polygons glyph_polygons;
     glyph_polygons.reserve(num_contour);
-    size_t pi = 0; // point index
+    size_t pi = 0; // 点索引
     for (size_t ci = 0; ci < num_contour; ++ci) {
         int length = contour_lengths[ci];
-        // check minimal length for triangle
+        // 检查三角形的最小长度
         if (length < 4) {
-            // weird font
+            // 奇怪的字体
             pi+=length;
             continue;
         }
-        // last point is first point
+        // 最后一个点是第一个点
         --length;
         Points pts;
         pts.reserve(length);
         for (int i = 0; i < length; ++i) 
             pts.emplace_back(to_point(points[pi++]));
         
-        // last point is first point --> closed contour
+        // 最后一个点是第一个点 --> 闭合轮廓
         assert(pts.front() == to_point(points[pi]));
         ++pi;
 
-        // change outer cw to ccw and inner ccw to cw order
+        // 将外部顺时针改为逆时针，内部逆时针改为顺时针顺序
         std::reverse(pts.begin(), pts.end());
         glyph_polygons.emplace_back(pts);
     }
     if (!glyph_polygons.empty()) {
         unsigned max_iteration = 10;
-        // TrueTypeFonts use non zero winding number
+        // TrueType 字体使用非零缠绕数
         // https://docs.microsoft.com/en-us/typography/opentype/spec/ttch01
         // https://developer.apple.com/fonts/TrueType-Reference-Manual/RM01/Chap1.html
         bool is_non_zero = true;
@@ -758,8 +758,8 @@ const Glyph* get_glyph(
     Glyphs &         cache,
     fontinfo_opt &font_info_opt)
 {
-    // TODO: Use resolution by printer configuration, or add it into FontProp
-    const float RESOLUTION = 0.0125f; // [in mm]
+    // TODO: 使用打印机配置的分辨率，或将其添加到 FontProp 中
+    const float RESOLUTION = 0.0125f; // [mm]
     auto glyph_item = cache.find(unicode);
     if (glyph_item != cache.end()) return &glyph_item->second;
 
@@ -769,26 +769,26 @@ const Glyph* get_glyph(
     if (!font_info_opt.has_value()) {
         
         font_info_opt  = load_font_info(font.data->data(), font_index);
-        // can load font info?
+        // 能否加载字体信息？
         if (!font_info_opt.has_value()) return nullptr;
     }
 
     float flatness = font.infos[font_index].ascent * RESOLUTION / font_prop.size_in_mm;
 
-    // Fix for very small flatness because it create huge amount of points from curve
+    // 修复非常小的平坦度，因为它会从曲线创建大量点
     if (flatness < RESOLUTION) flatness = RESOLUTION;
 
     std::optional<Glyph> glyph_opt = get_glyph(*font_info_opt, unicode, flatness);
 
-    // IMPROVE: multiple loadig glyph without data
-    // has definition inside of font?
+    // 改进：多次加载字形而不带数据
+    // 字体内部是否有定义？
     if (!glyph_opt.has_value()) return nullptr;
 
     Glyph &glyph = *glyph_opt;
     if (font_prop.char_gap.has_value()) 
         glyph.advance_width += *font_prop.char_gap;
 
-    // scale glyph size
+    // 缩放字形大小
     glyph.advance_width = static_cast<int>(glyph.advance_width / SHAPE_SCALE);
     glyph.left_side_bearing = static_cast<int>(glyph.left_side_bearing / SHAPE_SCALE);
 
@@ -835,7 +835,7 @@ EmbossStyle create_style(const std::wstring& name, const std::wstring& path) {
 }
 } // namespace
 
-// Get system font file path
+// 获取系统字体文件路径
 std::optional<std::wstring> Emboss::get_font_path(const std::wstring &font_face_name)
 {
 //    static const LPWSTR fontRegistryPath = L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Fonts";
@@ -843,7 +843,7 @@ std::optional<std::wstring> Emboss::get_font_path(const std::wstring &font_face_
     HKEY hKey;
     LONG result;
 
-    // Open Windows font registry key
+    // 打开 Windows 字体注册表键
     result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, fontRegistryPath, 0, KEY_READ, &hKey);
     if (result != ERROR_SUCCESS) return {};    
 
@@ -857,7 +857,7 @@ std::optional<std::wstring> Emboss::get_font_path(const std::wstring &font_face_
     DWORD valueNameSize, valueDataSize, valueType;
     std::wstring wsFontFile;
 
-    // Look for a matching font name
+    // 查找匹配的字体名称
     do {
         wsFontFile.clear();
         valueDataSize = maxValueDataSize;
@@ -872,7 +872,7 @@ std::optional<std::wstring> Emboss::get_font_path(const std::wstring &font_face_
 
         std::wstring wsValueName(valueName, valueNameSize);
 
-        // Found a match
+        // 找到匹配
         if (_wcsnicmp(font_face_name.c_str(), wsValueName.c_str(), font_face_name.length()) == 0) {
 
             wsFontFile.assign((LPWSTR)valueData, valueDataSize);
@@ -887,7 +887,7 @@ std::optional<std::wstring> Emboss::get_font_path(const std::wstring &font_face_
 
     if (wsFontFile.empty()) return {};
     
-    // Build full font file path
+    // 构建完整字体文件路径
     WCHAR winDir[MAX_PATH];
     GetWindowsDirectory(winDir, MAX_PATH);
 
@@ -912,7 +912,7 @@ EmbossStyles Emboss::get_font_list_by_register() {
     HKEY hKey;
     LONG result;
 
-    // Open Windows font registry key
+    // 打开 Windows 字体注册表键
     result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, fontRegistryPath, 0, KEY_READ, &hKey);
     if (result != ERROR_SUCCESS) {
         assert(false);
@@ -930,14 +930,14 @@ EmbossStyles Emboss::get_font_list_by_register() {
         return {}; 
     }
 
-    // Build full font file path
+    // 构建完整字体文件路径
     WCHAR winDir[MAX_PATH];
     GetWindowsDirectory(winDir, MAX_PATH);
     std::wstring font_path = std::wstring(winDir) + L"\\Fonts\\";
 
     EmbossStyles font_list;
     DWORD    valueIndex = 0;
-    // Look for a matching font name
+    // 查找匹配的字体名称
     LPWSTR font_name = new WCHAR[maxValueNameSize];
     LPBYTE fileTTF_name = new BYTE[maxValueDataSize];
     DWORD  font_name_size, fileTTF_name_size, valueType;
@@ -953,10 +953,10 @@ EmbossStyles Emboss::get_font_list_by_register() {
         std::wstring file_name_w((LPWSTR) fileTTF_name, fileTTF_name_size);
         std::wstring path_w = font_path + file_name_w;
 
-        // filtrate .fon from lists
+        // 从列表中过滤 .fon
         size_t pos = font_name_w.rfind(L" (TrueType)");
         if (pos >= font_name_w.size()) continue;
-        // remove TrueType text from name
+        // 从名称中移除 TrueType 文本
         font_name_w = std::wstring(font_name_w, 0, pos);
         font_list.emplace_back(create_style(font_name_w, path_w));
     } while (result != ERROR_NO_MORE_ITEMS);
@@ -967,7 +967,7 @@ EmbossStyles Emboss::get_font_list_by_register() {
     return font_list;
 }
 
-// TODO: Fix global function
+// TODO: 修复全局函数
 bool CALLBACK EnumFamCallBack(LPLOGFONT       lplf,
                               LPNEWTEXTMETRIC lpntm,
                               DWORD           FontType,
@@ -1005,16 +1005,16 @@ EmbossStyles Emboss::get_font_list_by_folder() {
     std::wstring search_dir = std::wstring(winDir, winDir_size) + L"\\Fonts\\";
     WIN32_FIND_DATA fd;
     HANDLE          hFind;
-    // By https://en.wikipedia.org/wiki/TrueType has also suffix .tte
+    // 根据 https://en.wikipedia.org/wiki/TrueType 也有后缀 .tte
     std::vector<std::wstring> suffixes = {L"*.ttf", L"*.ttc", L"*.tte"};
     for (const std::wstring &suffix : suffixes) {
         hFind = ::FindFirstFile((search_dir + suffix).c_str(), &fd);
         if (hFind == INVALID_HANDLE_VALUE) continue;
         do {
-            // skip folder . and ..
+            // 跳过文件夹 . 和 ..
             if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
             std::wstring file_name(fd.cFileName);
-            // TODO: find font name instead of filename
+            // TODO: 查找字体名称而不是文件名
             result.emplace_back(create_style(file_name, search_dir + file_name));
         } while (::FindNextFile(hFind, &fd));
         ::FindClose(hFind);
@@ -1023,13 +1023,13 @@ EmbossStyles Emboss::get_font_list_by_folder() {
 }
 
 #else
-EmbossStyles Emboss::get_font_list() { 
-    // not implemented
-    return {}; 
+EmbossStyles Emboss::get_font_list() {
+    // 未实现
+    return {};
 }
 
 std::optional<std::wstring> Emboss::get_font_path(const std::wstring &font_face_name){
-    // not implemented
+    // 未实现
     return {};
 }
 #endif
@@ -1038,10 +1038,10 @@ std::unique_ptr<FontFile> Emboss::create_font_file(
     std::unique_ptr<std::vector<unsigned char>> data)
 {
     int collection_size = stbtt_GetNumberOfFonts(data->data());
-    // at least one font must be inside collection
+    // 集合中必须至少有一个字体
     if (collection_size < 1) {
         assert(false);
-        // There is no font collection inside font data
+        // 字体数据中没有字体集合
         return nullptr;
     }
 
@@ -1053,11 +1053,11 @@ std::unique_ptr<FontFile> Emboss::create_font_file(
         if (!font_info.has_value()) return nullptr;
 
         const stbtt_fontinfo *info = &(*font_info);
-        // load information about line gap
+        // 加载行间距信息
         int ascent, descent, linegap;
         stbtt_GetFontVMetrics(info, &ascent, &descent, &linegap);
 
-        float pixels       = 1000.; // value is irelevant
+        float pixels       = 1000.; // 值不相关
         float em_pixels    = stbtt_ScaleForMappingEmToPixels(info, pixels);
         int   units_per_em = static_cast<int>(std::round(pixels / em_pixels));
 
@@ -1076,7 +1076,7 @@ std::unique_ptr<FontFile> Emboss::create_font_file(const char *file_path)
     }
     ScopeGuard sg([&file]() { std::fclose(file); });
 
-    // find size of file
+    // 查找文件大小
     if (fseek(file, 0L, SEEK_END) != 0) {
         assert(false);
         BOOST_LOG_TRIVIAL(error) << "Couldn't fseek file " << file_path << " for size measure.";
@@ -1109,15 +1109,15 @@ static bool load_hfont(void* hfont, DWORD &dwTable, DWORD &dwOffset, size_t& siz
         if (hdc == NULL) return false;
     }
     
-    // To retrieve the data from the beginning of the file for TrueType
-    // Collection files specify 'ttcf' (0x66637474).
+    // 为了从文件开头检索 TrueType 数据
+    // 集合文件指定 'ttcf' (0x66637474)。
     dwTable  = 0x66637474;
     dwOffset = 0;
 
     ::SelectObject(hdc, hfont);
     size = ::GetFontData(hdc, dwTable, dwOffset, NULL, 0);
     if (size == GDI_ERROR) {
-        // HFONT is NOT TTC(collection)
+        // HFONT 不是 TTC（集合）
         dwTable = 0;
         size    = ::GetFontData(hdc, dwTable, dwOffset, NULL, 0);
     }
@@ -1202,12 +1202,12 @@ ExPolygons letter2shapes(
 
     if (letter == '\n') {
         cursor.x() = 0;
-        // 2d shape has opposit direction of y
+        // 2D 形状具有相反的 y 方向
         cursor.y() -= get_line_height(font, font_prop);
         return {};
     }
     if (letter == '\t') {
-        // '\t' = 4*space => same as imgui
+        // '\t' = 4*空格 => 与 imgui 相同
         const int count_spaces = 4;
         const Glyph *space = get_glyph(int(' '), font, font_prop, cache, font_info_cache);
         if (space == nullptr)
@@ -1221,12 +1221,12 @@ ExPolygons letter2shapes(
     int unicode = static_cast<int>(letter);
     auto it = cache.find(unicode);
 
-    // Create glyph from font file and cache it
+    // 从字体文件创建字形并缓存
     const Glyph *glyph_ptr = (it != cache.end()) ? &it->second : get_glyph(unicode, font, font_prop, cache, font_info_cache);
     if (glyph_ptr == nullptr)
         return {};
 
-    // move glyph to cursor position
+    // 将字形移动到光标位置
     ExPolygons expolygons = glyph_ptr->shape; // copy
     for (ExPolygon &expolygon : expolygons)
         expolygon.translate(cursor);
@@ -1235,16 +1235,16 @@ ExPolygons letter2shapes(
     return expolygons;
 }
 
-// Check cancel every X letters in text
-// Lower number - too much checks(slows down)
-// Higher number - slows down response on cancelation
+// 检查文本中每X个字母取消
+// 数字越小 - 检查太多（减慢速度）
+// 数字越大 - 取消响应变慢
 const int CANCEL_CHECK = 10;
 } // namespace
 
 namespace {
 HealedExPolygons union_with_delta(const ExPolygonsWithIds &shapes, float delta, unsigned max_heal_iteration)
 {
-    // unify to one expolygons
+    // 统一为一个 expolygons
     ExPolygons expolygons;
     for (const ExPolygonsWithId &shape : shapes) {
         if (shape.expoly.empty())
@@ -1301,13 +1301,13 @@ HealedExPolygons Emboss::text2shapes(FontFileWithCache &font_with_cache, const c
 
 namespace {
 /// <summary>
-/// Align shape against pivot
+/// 根据枢轴对齐形状
 /// </summary>
-/// <param name="shapes">Shapes to align
-/// Prerequisities: shapes are aligned left top</param>
-/// <param name="text">To detect end of lines - to be able horizontal center the line</param>
-/// <param name="prop">Containe Horizontal and vertical alignment</param>
-/// <param name="font">Needed for scale and font size</param>
+/// <param name="shapes">要对齐的形状
+/// 前提条件：形状已左上对齐</param>
+/// <param name="text">检测行尾 - 以便水平居中</param>
+/// <param name="prop">包含水平和垂直对齐</param>
+/// <param name="font">需要缩放和字体大小</param>
 void align_shape(ExPolygonsWithIds &shapes, const std::wstring &text, const FontProp &prop, const FontFile &font);
 }
 
@@ -1374,8 +1374,8 @@ unsigned Emboss::get_count_lines(const std::string &text)
 
 unsigned Emboss::get_count_lines(const ExPolygonsWithIds &shapes) {
     if (shapes.empty())
-        return 0; // no glyphs
-    unsigned result = 1; // one line is minimum
+        return 0; // 无字形
+    unsigned result = 1; // 一行是最小值
     for (const ExPolygonsWithId &shape_id : shapes)
         if (shape_id.id == ENTER_UNICODE)
             ++result;
@@ -1403,7 +1403,7 @@ bool Emboss::is_italic(const FontFile &font, unsigned int font_index)
 
     // https://docs.microsoft.com/cs-cz/typography/opentype/spec/name
     // https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6name.html
-    // 2 ==> Style / Subfamily name
+    // 2 ==> 样式/子系列名称
     int name_id = 2;
     int length;
     const char* value = stbtt_GetFontNameString(info, &length,
@@ -1412,13 +1412,13 @@ bool Emboss::is_italic(const FontFile &font, unsigned int font_index)
                                                STBTT_MS_LANG_ENGLISH,                            
                                                name_id);
 
-    // value is big endian utf-16 i need extract only normal chars
+    // 值是大端 utf-16，我需要只提取普通字符
     std::string value_str;
     value_str.reserve(length / 2);
     for (int i = 1; i < length; i += 2)
         value_str.push_back(value[i]);
 
-    // lower case
+    // 小写
     std::transform(value_str.begin(), value_str.end(), value_str.begin(),
                    [](unsigned char c) { return std::tolower(c); });
 
@@ -1440,7 +1440,7 @@ std::string Emboss::create_range_text(const std::string &text,
             
     std::wstring ws = boost::nowide::widen(text);
 
-    // need remove symbols not contained in font
+    // 需要移除字体中不包含的符号
     std::sort(ws.begin(), ws.end());
 
     auto font_info_opt = load_font_info(font.data->data(), 0);
@@ -1453,16 +1453,16 @@ std::string Emboss::create_range_text(const std::string &text,
         [&prev_unicode, font_info, exist_unknown](wchar_t wc) -> bool {
             int unicode = static_cast<int>(wc);
 
-            // skip white spaces
+            // 跳过空白字符
             if (unicode == '\n' || 
                 unicode == '\r' || 
                 unicode == '\t') return true;
 
-            // is duplicit?
+            // 是否重复？
             if (prev_unicode == unicode) return true;
             prev_unicode = unicode;
 
-            // can find in font?
+            // 能在字体中找到吗？
             bool is_unknown = !stbtt_FindGlyphIndex(font_info, unicode);
             if (is_unknown && exist_unknown != nullptr)
                 *exist_unknown = true;
@@ -1476,7 +1476,7 @@ double Emboss::get_text_shape_scale(const FontProp &fp, const FontFile &ff)
 {
     const FontFile::Info &info = get_font_info(ff, fp);
     double scale  = fp.size_in_mm / (double) info.unit_per_em;
-    // Shape is scaled for store point coordinate as integer
+    // 形状被缩放以将点坐标存储为整数
     return scale * SHAPE_SCALE;
 }
 
@@ -1487,7 +1487,7 @@ void add_quad(uint32_t              i1,
               indexed_triangle_set &result,
               uint32_t              count_point)
 {
-    // bottom indices
+    // 底部索引
     uint32_t i1_ = i1 + count_point;
     uint32_t i2_ = i2 + count_point;
     result.indices.emplace_back(i2, i2_, i1);
@@ -1499,13 +1499,13 @@ indexed_triangle_set polygons2model_unique(
     const IProjection &projection,
     const Points              &points)
 {
-    // CW order of triangle indices
+    // 三角面索引的顺时针顺序
     std::vector<Vec3i32> shape_triangles=Triangulation::triangulate(shape2d, points);
     uint32_t           count_point     = points.size();
 
     indexed_triangle_set result;
     result.vertices.reserve(2 * count_point);
-    std::vector<Vec3f> &front_points = result.vertices; // alias
+    std::vector<Vec3f> &front_points = result.vertices; // 别名
     std::vector<Vec3f>  back_points;
     back_points.reserve(count_point);
 
@@ -1515,26 +1515,26 @@ indexed_triangle_set polygons2model_unique(
         back_points.push_back(p2.second.cast<float>());
     }    
     
-    // insert back points, front are already in
+    // 插入后面点，前面点已经存在
     result.vertices.insert(result.vertices.end(),
                            std::make_move_iterator(back_points.begin()),
                            std::make_move_iterator(back_points.end()));
     result.indices.reserve(shape_triangles.size() * 2 + points.size() * 2);
-    // top triangles - change to CCW
+    // 顶部三角形 - 改为逆时针
     for (const Vec3i32 &t : shape_triangles)
         result.indices.emplace_back(t.x(), t.z(), t.y());
-    // bottom triangles - use CW
+    // 底部三角形 - 使用顺时针
     for (const Vec3i32 &t : shape_triangles)
         result.indices.emplace_back(t.x() + count_point, 
                                     t.y() + count_point,
                                     t.z() + count_point);
 
-    // quads around - zig zag by triangles
+    // 周围四边形 - 三角形锯齿
     size_t polygon_offset = 0;
     auto add_quads = [&polygon_offset,&result, &count_point]
     (const Polygon& polygon) {
         uint32_t polygon_points = polygon.points.size();
-        // previous index
+        // 上一个索引
         uint32_t prev = polygon_offset + polygon_points - 1;
         for (uint32_t p = 0; p < polygon_points; ++p) { 
             uint32_t index = polygon_offset + p;
@@ -1558,7 +1558,7 @@ indexed_triangle_set polygons2model_duplicit(
     const Points              &points,
     const Points              &duplicits)
 {
-    // CW order of triangle indices
+    // 三角面索引的顺时针顺序
     std::vector<uint32_t> changes = Triangulation::create_changes(points, duplicits);
     std::vector<Vec3i32> shape_triangles = Triangulation::triangulate(shape2d, points, changes);
     uint32_t count_point = *std::max_element(changes.begin(), changes.end()) + 1;
@@ -1573,7 +1573,7 @@ indexed_triangle_set polygons2model_duplicit(
     for (uint32_t i = 0; i < changes.size(); ++i) { 
         uint32_t index = changes[i];
         if (max_index != std::numeric_limits<uint32_t>::max() &&
-            index <= max_index) continue; // duplicit point
+            index <= max_index) continue; // 重复点
         assert(index == max_index + 1);
         assert(front_points.size() == index);
         assert(back_points.size() == index);
@@ -1585,26 +1585,26 @@ indexed_triangle_set polygons2model_duplicit(
     }
     assert(max_index+1 == count_point);    
     
-    // insert back points, front are already in
+    // 插入后面点，前面点已经存在
     result.vertices.insert(result.vertices.end(),
                            std::make_move_iterator(back_points.begin()),
                            std::make_move_iterator(back_points.end()));
 
     result.indices.reserve(shape_triangles.size() * 2 + points.size() * 2);
-    // top triangles - change to CCW
+    // 顶部三角形 - 改为逆时针
     for (const Vec3i32 &t : shape_triangles)
         result.indices.emplace_back(t.x(), t.z(), t.y());
-    // bottom triangles - use CW
+    // 底部三角形 - 使用顺时针
     for (const Vec3i32 &t : shape_triangles)
         result.indices.emplace_back(t.x() + count_point, t.y() + count_point,
                                     t.z() + count_point);
 
-    // quads around - zig zag by triangles
+    // 周围四边形 - 三角形锯齿
     size_t polygon_offset = 0;
     auto add_quads = [&polygon_offset, &result, count_point, &changes]
     (const Polygon &polygon) {
         uint32_t polygon_points = polygon.points.size();
-        // previous index
+        // 上一个索引
         uint32_t prev = changes[polygon_offset + polygon_points - 1];
         for (uint32_t p = 0; p < polygon_points; ++p) {
             uint32_t index = changes[polygon_offset + p];
@@ -1653,18 +1653,18 @@ std::optional<Vec2d> Emboss::ProjectZ::unproject(const Vec3d &p, double *depth) 
 
 Vec3d Emboss::suggest_up(const Vec3d normal, double up_limit) 
 {
-    // Normal must be 1
+    // 法线必须为 1
     assert(is_approx(normal.squaredNorm(), 1.));
 
-    // wanted up direction of result
+    // 期望的结果向上方向
     Vec3d wanted_up_side = 
         (std::fabs(normal.z()) > up_limit)?
         Vec3d::UnitY() : Vec3d::UnitZ();
 
-    // create perpendicular unit vector to surface triangle normal vector
-    // lay on surface of triangle and define up vector for text
+    // 创建垂直于曲面三角形法线向量的单位向量
+    // 位于三角形表面并定义文本的向上向量
     Vec3d wanted_up_dir = normal.cross(wanted_up_side).cross(normal);
-    // normal3d is NOT perpendicular to normal_up_dir
+    // normal3d 不垂直于 normal_up_dir
     wanted_up_dir.normalize();
 
     return wanted_up_dir;
@@ -1673,9 +1673,9 @@ Vec3d Emboss::suggest_up(const Vec3d normal, double up_limit)
 std::optional<float> Emboss::calc_up(const Transform3d &tr, double up_limit)
 {
     auto tr_linear = tr.linear().eval();
-    // z base of transformation ( tr * UnitZ )
+    // 变换的 z 基 ( tr * UnitZ )
     Vec3d normal = tr_linear.col(2);
-    // scaled matrix has base with different size
+    // 缩放后的矩阵具有不同大小的基
     normal.normalize();
     Vec3d suggested = suggest_up(normal, up_limit);
     assert(is_approx(suggested.squaredNorm(), 1.));
@@ -1698,26 +1698,26 @@ Transform3d Emboss::create_transformation_onto_surface(const Vec3d &position,
                                                        const Vec3d &normal,
                                                        double       up_limit)
 {
-    // is normalized ?
+    // 是否已归一化？
     assert(is_approx(normal.squaredNorm(), 1.));
 
-    // up and emboss direction for generated model
+    // 生成模型的向上和浮雕方向
     Vec3d up_dir     = Vec3d::UnitY();
     Vec3d emboss_dir = Vec3d::UnitZ();
 
-    // after cast from float it needs to be normalized again
+    // 从 float 转换后需要再次归一化
     Vec3d wanted_up_dir = suggest_up(normal, up_limit);
 
-    // perpendicular to emboss vector of text and normal
+    // 垂直于文本的浮雕向量和法线
     Vec3d axis_view;
     double angle_view;
     if (normal == -Vec3d::UnitZ()) {
-        // text_emboss_dir has opposit direction to wanted_emboss_dir
+        // text_emboss_dir 与 wanted_emboss_dir 方向相反
         axis_view = Vec3d::UnitY();
         angle_view = M_PI;
     } else {
         axis_view = emboss_dir.cross(normal);
-        angle_view = std::acos(emboss_dir.dot(normal)); // in rad
+        angle_view = std::acos(emboss_dir.dot(normal)); // 弧度
         axis_view.normalize();
     }
 
@@ -1730,7 +1730,7 @@ Transform3d Emboss::create_transformation_onto_surface(const Vec3d &position,
     Vec3d diff_view  = emboss_dir - text_view;
     if (std::fabs(diff_view.x()) > 1. ||
         std::fabs(diff_view.y()) > 1. ||
-        std::fabs(diff_view.z()) > 1.) // oposit direction
+        std::fabs(diff_view.z()) > 1.) // 相反方向
         angle_up *= -1.;
 
     Eigen::AngleAxis up_rot(angle_up, emboss_dir);
@@ -1743,7 +1743,7 @@ Transform3d Emboss::create_transformation_onto_surface(const Vec3d &position,
 }
 
 
-// OrthoProject
+// 正交投影
 
 std::pair<Vec3d, Vec3d> Emboss::OrthoProject::create_front_back(const Point &p) const {
     Vec3d front(p.x(), p.y(), 0.);
@@ -1763,7 +1763,7 @@ std::optional<Vec2d> Emboss::OrthoProject::unproject(const Vec3d &p, double *dep
     return Vec2d(pp.x(), pp.y());
 }
 
-// sample slice
+// 采样切片
 namespace {
 
 // using coor2 = int64_t;
@@ -1775,7 +1775,7 @@ bool point_in_distance(const Coord2 &distance_sq, PolygonPoint &polygon_point, c
     size_t s  = polygon.size();
     size_t ii = (i + polygon_point.index) % s;
 
-    // second point of line
+    // 线的第二个点
     const Point &p = polygon[ii];
     Point p_d = p - polygon_point.point;
 
@@ -1784,18 +1784,18 @@ bool point_in_distance(const Coord2 &distance_sq, PolygonPoint &polygon_point, c
     if (p_distance_sq < distance_sq)
         return false;
 
-    // found line
+    // 找到线
     if (is_first) {
-        // on same line
-        // center also lay on line
-        // new point is distance moved from point by direction
+        // 在同一条线上
+        // 中心也在线上
+        // 新点是从点沿方向移动距离
         polygon_point.point += p_d * sqrt(distance_sq / p_distance_sq);
         return true;
     }
 
-    // line cross circle
+    // 线与圆相交
 
-    // start point of line
+    // 线的起点
     size_t ii2          = (is_reverse) ? (ii + 1) % s : (ii + s - 1) % s;
     polygon_point.index = (is_reverse) ? ii : ii2;
     const Point &p2 = polygon[ii2];
@@ -1810,25 +1810,23 @@ bool point_in_distance(const Coord2 &distance_sq, PolygonPoint &polygon_point, c
     double discriminant = b * b - 4 * a * c;
     if (discriminant < 0) {
         assert(false);
-        // no intersection
+        // 无交点
         polygon_point.point = p;
         return true;
     }
 
-    // ray didn't totally miss sphere,
-    // so there is a solution to
-    // the equation.
+    // 射线没有完全错过球体，
+    // 所以方程有一个解。
     discriminant = sqrt(discriminant);
 
-    // either solution may be on or off the ray so need to test both
-    // t1 is always the smaller value, because BOTH discriminant and
-    // a are nonnegative.
+    // 任一解可能在射线上或外，因此需要测试两者
+    // t1 总是较小的值，因为判别式和 a 都是非负的。
     double t1 = (-b - discriminant) / (2 * a);
     double t2 = (-b + discriminant) / (2 * a);
 
     double t = std::min(t1, t2);
     if (t < 0. || t > 1.) {
-        // Bad intersection
+        // 错误的交点
         assert(false);
         polygon_point.point = p;
         return true;
@@ -1847,7 +1845,7 @@ void point_in_distance(int32_t distance, PolygonPoint &p, const Slic3r::Polygon 
             return;
         is_first = false;
     }
-    // There is not point on polygon with this distance
+    // 多边形上没有该距离的点
 }
 
 void point_in_reverse_distance(int32_t distance, PolygonPoint &p, const Slic3r::Polygon &polygon)
@@ -1860,14 +1858,14 @@ void point_in_reverse_distance(int32_t distance, PolygonPoint &p, const Slic3r::
             return;
         is_first = false;
     }
-    // There is not point on polygon with this distance
+    // 多边形上没有该距离的点
 }
 } // namespace
 
-// calculate rotation, need copy of polygon point
+// 计算旋转，需要多边形点的副本
 double Emboss::calculate_angle(int32_t distance, PolygonPoint polygon_point, const Polygon &polygon)
 {
-    PolygonPoint polygon_point2 = polygon_point; // copy
+    PolygonPoint polygon_point2 = polygon_point; // 副本
     point_in_distance(distance, polygon_point, polygon);
     point_in_reverse_distance(distance, polygon_point2, polygon);
 
@@ -1889,10 +1887,10 @@ std::vector<double> Emboss::calculate_angles(int32_t distance, const PolygonPoin
 
 PolygonPoints Emboss::sample_slice(const TextLine &slice, const BoundingBoxes &bbs, double scale)
 {
-    // find BB in center of line
+    // 在线中心找到 BB
     size_t first_right_index = 0;
     for (const BoundingBox &bb : bbs)
-        if (!bb.defined) // white char do not have bb
+        if (!bb.defined) // 空白字符没有 bb
             continue;
         else if (bb.min.x() < 0)
             ++first_right_index;
@@ -1902,7 +1900,7 @@ PolygonPoints Emboss::sample_slice(const TextLine &slice, const BoundingBoxes &b
     PolygonPoints samples(bbs.size());
     int32_t shapes_x_cursor = 0;
 
-    PolygonPoint cursor = slice.start; //copy
+    PolygonPoint cursor = slice.start; // 副本
 
     auto create_sample = [&] //polygon_cursor, &polygon_line_index, &line_bbs, &shapes_x_cursor, &shape_scale, &em_2_polygon, &line, &offsets]
     (const BoundingBox &bb, bool is_reverse) {
@@ -1920,19 +1918,19 @@ PolygonPoints Emboss::sample_slice(const TextLine &slice, const BoundingBoxes &b
         return cursor;
     };
 
-    // calc transformation for letters on the Right side from center
+    // 计算中心右侧字母的变换
     bool is_reverse = true;
     for (size_t index = first_right_index; index < bbs.size(); ++index)
         samples[index] = create_sample(bbs[index], is_reverse);
 
-    // calc transformation for letters on the Left side from center
+    // 计算中心左侧字母的变换
     if (first_right_index < bbs.size()) {
         shapes_x_cursor = bbs[first_right_index].center().x();
         cursor          = samples[first_right_index];
     }else{
-        // only left side exists
+        // 仅左侧存在
         shapes_x_cursor = 0;
-        cursor = slice.start; // copy    
+        cursor = slice.start; // 副本
     }
     is_reverse = false;
     for (size_t index_plus_one = first_right_index; index_plus_one > 0; --index_plus_one) {
@@ -1950,8 +1948,8 @@ float get_align_y_offset(FontProp::VerticalAlign align, unsigned count_lines, co
     int ascent = get_font_info(ff, fp).ascent / SHAPE_SCALE;
     float line_center = static_cast<float>(std::round(ascent * ASCENT_CENTER));
 
-    // direction of Y in 2d is from top to bottom
-    // zero is on base line of first line
+    // 2D 中 Y 的方向是从上到下
+    // 零点在第一行的基线上
     switch (align) {
     case FontProp::VerticalAlign::bottom: return line_height * (count_lines - 1);
     case FontProp::VerticalAlign::top: return -ascent;
@@ -1966,7 +1964,7 @@ int32_t get_align_x_offset(FontProp::HorizontalAlign align, const BoundingBox &s
     switch (align) {
     case FontProp::HorizontalAlign::right: return -shape_bb.max.x() + (shape_bb.size().x() - line_bb.size().x());
     case FontProp::HorizontalAlign::center: return -shape_bb.center().x() + (shape_bb.size().x() - line_bb.size().x()) / 2;
-    case FontProp::HorizontalAlign::left: // no change
+    case FontProp::HorizontalAlign::left: // 无变化
     default: break;
     }
     return 0;
@@ -1974,15 +1972,15 @@ int32_t get_align_x_offset(FontProp::HorizontalAlign align, const BoundingBox &s
 
 void align_shape(ExPolygonsWithIds &shapes, const std::wstring &text, const FontProp &prop, const FontFile &font)
 {
-    // Shapes have to match letters in text
+    // 形状必须与文本中的字母匹配
     assert(shapes.size() == text.length());
 
     unsigned count_lines = get_count_lines(text);
     int y_offset = get_align_y_offset(prop.align.second, count_lines, font, prop);
 
-    // Speed up for left aligned text
+    // 加速左对齐文本
     if (prop.align.first == FontProp::HorizontalAlign::left){
-        // already horizontaly aligned
+        // 已经水平对齐
         for (ExPolygonsWithId& shape : shapes)
             for (ExPolygon &s : shape.expoly)
                 s.translate(Point(0, y_offset));
@@ -2000,7 +1998,7 @@ void align_shape(ExPolygonsWithIds &shapes, const std::wstring &text, const Font
         return line_bb;
     };
 
-    // Align x line by line
+    // 逐行对齐 X
     Point offset(
         get_align_x_offset(prop.align.first, shape_bb, get_line_bb(0)), 
         y_offset);

@@ -1,4 +1,4 @@
-#ifndef SRC_LIBSLIC3R_AABBTREELINES_HPP_
+﻿#ifndef SRC_LIBSLIC3R_AABBTREELINES_HPP_
 #define SRC_LIBSLIC3R_AABBTREELINES_HPP_
 
 #include "Point.hpp"
@@ -216,7 +216,7 @@ namespace AABBTreeLines {
             hit_idx_out, hit_point_out);
     }
 
-    // Returns all lines within the given radius limit
+    // 返回给定半径限制内的所有线
     template <typename LineType, typename TreeType, typename VectorType>
     inline std::vector<size_t> all_lines_in_radius(const std::vector<LineType>& lines,
         const TreeType& tree,

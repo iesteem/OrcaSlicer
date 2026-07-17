@@ -1,4 +1,4 @@
-// AABB tree built upon external data set, referencing the external data by integer indices.
+﻿// AABB tree built upon external data set, referencing the external data by integer indices.
 // The AABB tree balancing and traversal (ray casting, closest triangle of an indexed triangle mesh)
 // were adapted from libigl AABB.{cpp,hpp} Copyright (C) 2015 Alec Jacobson <alecjacobson@gmail.com>
 // while the implicit balanced tree representation and memory optimizations are Vojtech's.
@@ -16,7 +16,7 @@
 #include "BoundingBox.hpp"
 #include "Utils.hpp" // for next_highest_power_of_2()
 
-// Definition of the ray intersection hit structure.
+// 光线相交命中结构的定义。
 #include <igl/Hit.h>
 
 namespace Slic3r {
@@ -54,7 +54,7 @@ public:
     // Single node of the implicit balanced AABB tree. There are no links to the children nodes,
     // as these links are calculated implicitely using a power of two rule.
     struct Node {
-    	// Index of the external source entity, for which this AABB tree was built, npos for internal nodes.
+    	// 外部源实体的索引，此 AABB 树是为该实体构建的，内部节点为 npos。
         size_t 			idx = npos;
     	// Bounding box around this entity, possibly with epsilons applied to fight numeric rounding errors
     	// when traversing the AABB tree.
@@ -225,7 +225,7 @@ public:
 	using BoundingBox = Eigen::AlignedBox<coord_t, 2>;
 	BoundingBoxWrapper(const size_t idx, const Slic3r::BoundingBox &bbox) :
         m_idx(idx),
-        // Inflate the bounding box a bit to account for numerical issues.
+        // 稍微膨胀边界框以考虑数值问题。
         m_bbox(bbox.min - Point(SCALED_EPSILON, SCALED_EPSILON), bbox.max + Point(SCALED_EPSILON, SCALED_EPSILON)) {}
     size_t             idx() const { return m_idx; }
     const BoundingBox& bbox() const { return m_bbox; }
@@ -470,12 +470,12 @@ namespace detail {
 		}
 	}
 
-    // Real-time collision detection, Ericson, Chapter 5
+    // 实时碰撞检测，Ericson，第 5 章
     template<typename Vector>
     static inline Vector closest_point_to_triangle(const Vector &p, const Vector &a, const Vector &b, const Vector &c)
     {
         using Scalar = typename Vector::Scalar;
-        // Check if P in vertex region outside A
+        // 检查 P 是否在顶点区域 A 外部
         Vector ab = b - a;
         Vector ac = c - a;
         Vector ap = p - a;
@@ -483,37 +483,37 @@ namespace detail {
         Scalar d2 = ac.dot(ap);
         if (d1 <= 0 && d2 <= 0)
           return a;
-        // Check if P in vertex region outside B
+        // 检查 P 是否在顶点区域 B 外部
         Vector bp = p - b;
         Scalar d3 = ab.dot(bp);
         Scalar d4 = ac.dot(bp);
         if (d3 >= 0 && d4 <= d3)
           return b;
-        // Check if P in edge region of AB, if so return projection of P onto AB
+        // 检查 P 是否在 AB 的边区域中，如果是则返回 P 在 AB 上的投影
         Scalar vc = d1*d4 - d3*d2;
         if (a != b && vc <= 0 && d1 >= 0 && d3 <= 0) {
             Scalar v = d1 / (d1 - d3);
             return a + v * ab;
         }
-        // Check if P in vertex region outside C
+        // 检查 P 是否在顶点区域 C 外部
         Vector cp = p - c;
         Scalar d5 = ab.dot(cp);
         Scalar d6 = ac.dot(cp);
         if (d6 >= 0 && d5 <= d6)
           return c;
-        // Check if P in edge region of AC, if so return projection of P onto AC
+        // 检查 P 是否在 AC 的边区域中，如果是则返回 P 在 AC 上的投影
         Scalar vb = d5*d2 - d1*d6;
         if (vb <= 0 && d2 >= 0 && d6 <= 0) {
           Scalar w = d2 / (d2 - d6);
           return a + w * ac;
         }
-        // Check if P in edge region of BC, if so return projection of P onto BC
+        // 检查 P 是否在 BC 的边区域中，如果是则返回 P 在 BC 上的投影
         Scalar va = d3*d6 - d5*d4;
         if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0) {
           Scalar w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
           return b + w * (c - b);
         }
-        // P inside face region. Compute Q through its barycentric coordinates (u,v,w)
+        // P 在面区域内。通过重心坐标 (u,v,w) 计算 Q
         Scalar denom = Scalar(1.0) / (va + vb + vc);
         Scalar v = vb * denom;
         Scalar w = vc * denom;
@@ -820,15 +820,15 @@ inline typename VectorType::Scalar squared_distance_to_indexed_triangle_set(
 // Returns true if exists some triangle in defined radius, false otherwise.
 template<typename VertexType, typename IndexedFaceType, typename TreeType, typename VectorType>
 inline bool is_any_triangle_in_radius(
-        // Indexed triangle set - 3D vertices.
+        // 索引三角形集 - 3D 顶点。
         const std::vector<VertexType> 		&vertices,
-        // Indexed triangle set - triangular faces, references to vertices.
+        // 索引三角形集 - 三角面，引用顶点。
         const std::vector<IndexedFaceType> 	&faces,
-        // AABBTreeIndirect::Tree over vertices & faces, bounding boxes built with the accuracy of vertices.
+        // AABBTreeIndirect::Tree 覆盖顶点和面，边界框以顶点的精度构建。
         const TreeType 						&tree,
-        // Point to which the closest point on the indexed triangle set is searched for.
+        // 搜索索引三角形集上最近点的目标点。
         const VectorType					&point,
-        //Square of maximum distance in which triangle is searched for
+        // 搜索三角形的最大距离的平方
         typename VectorType::Scalar &max_distance_squared)
 {
     using Scalar = typename VectorType::Scalar;
@@ -851,11 +851,11 @@ inline bool is_any_triangle_in_radius(
 // Returns all triangles within the given radius limit
 template<typename VertexType, typename IndexedFaceType, typename TreeType, typename VectorType>
 inline std::vector<size_t> all_triangles_in_radius(
-        // Indexed triangle set - 3D vertices.
+        // 索引三角形集 - 3D 顶点。
         const std::vector<VertexType> 		&vertices,
-        // Indexed triangle set - triangular faces, references to vertices.
+        // 索引三角形集 - 三角面，引用顶点。
         const std::vector<IndexedFaceType> 	&faces,
-        // AABBTreeIndirect::Tree over vertices & faces, bounding boxes built with the accuracy of vertices.
+        // AABBTreeIndirect::Tree 覆盖顶点和面，边界框以顶点的精度构建。
         const TreeType 						&tree,
         // Point to which the distances on the indexed triangle set is searched for.
         const VectorType					&point,
@@ -957,13 +957,13 @@ bool traverse_recurse(const Tree<Dims, T> &tree,
         return callback(tree.node(idx));
     } else {
 
-        // call this with left and right node idx:
+        // 使用左右节点索引调用此方法：
         auto trv = [&](size_t idx) -> bool {
             return traverse_recurse(tree, idx, std::forward<Pred>(pred),
                                     std::forward<Fn>(callback));
         };
 
-        // Left / right child node index.
+        // 左/右子节点索引。
         // Returns true if both children allow the traversal to continue.
         return trv(Tree<Dims, T>::left_child_idx(idx)) &&
         	   trv(Tree<Dims, T>::right_child_idx(idx));

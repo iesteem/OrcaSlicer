@@ -42,7 +42,7 @@ Point ConcaveHull::centroid(const Points &pp)
 
 Points ConcaveHull::calculate_centroids() const
 {
-    // We get the centroids of all the islands in the 2D slice
+    // 获取2D切片中所有岛的质心
     Points centroids;
     centroids.reserve(m_polys.size());
     std::transform(m_polys.begin(), m_polys.end(),
@@ -58,8 +58,7 @@ void ConcaveHull::add_connector_rectangles(const Points &centroids,
                                            coord_t       max_dist,
                                            ThrowOnCancel thr)
 {
-    // Centroid of the centroids of islands. This is where the additional
-    // connector sticks are routed.
+    // 岛的质心的质心。这里是附加连接杆的路径位置。
     Point cc = centroid(centroids);
 
     PointIndex ctrindex;

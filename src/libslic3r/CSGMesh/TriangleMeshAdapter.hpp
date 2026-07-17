@@ -1,4 +1,4 @@
-#ifndef TRIANGLEMESHADAPTER_HPP
+﻿﻿#ifndef TRIANGLEMESHADAPTER_HPP
 #define TRIANGLEMESHADAPTER_HPP
 
 #include "CSGMesh.hpp"
@@ -7,8 +7,8 @@
 
 namespace Slic3r { namespace csg {
 
-// Provide default overloads for indexed_triangle_set to be usable as a plain
-// CSGPart with an implicit union operation
+//// 用于 indexed_triangle_set 的 Provide 默认 overloads to 为 usable as a plain
+//// CSGPart with an implicit union operation
 
 inline CSGType get_operation(const indexed_triangle_set &part)
 {

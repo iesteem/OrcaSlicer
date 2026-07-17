@@ -1,4 +1,4 @@
-#ifndef slic3r_BuildVolume_hpp_
+﻿#ifndef slic3r_BuildVolume_hpp_
 #define slic3r_BuildVolume_hpp_
 
 #include "Point.hpp"
@@ -13,15 +13,15 @@ namespace Slic3r {
 
 struct GCodeProcessorResult;
 enum class BuildVolume_Type : unsigned char {
-  // Not set yet or undefined.
+  // 尚未设置或未定义。
   Invalid,
-  // Rectangular print bed. Most common, cheap to work with.
+  // 矩形打印平台。最常见，处理成本低。
   Rectangle,
-  // Circular print bed. Common on detals, cheap to work with.
+  // 圆形打印平台。在细节上常见，处理成本低。
   Circle,
-  // Convex print bed. Complex to process.
+  // 凸形打印平台。处理复杂。
   Convex,
-  // Some non convex shape.
+  // 一些非凸形状。
   Custom
 };
 // For collision detection of objects and G-code (extrusion paths) against the build volume.
@@ -30,33 +30,33 @@ class BuildVolume
 public:
 
 
-    // Initialized to empty, all zeros, Invalid.
+    // 初始化为空，全零，无效。
     BuildVolume() {}
-    // Initialize from PrintConfig::printable_area and PrintConfig::printable_height
+    // 从 PrintConfig::printable_area 和 PrintConfig::printable_height 初始化
     BuildVolume(const std::vector<Vec2d> &printable_area, const double printable_height);
 
-    // Source data, unscaled coordinates.
+    // 源数据，未缩放的坐标。
     const std::vector<Vec2d>&   printable_area()         const { return m_bed_shape; }
     double                      printable_height()  const { return m_max_print_height; }
     
-    // Derived data
+    // 派生数据
     BuildVolume_Type                        type()              const { return m_type; }
-    // Format the type for console output.
+    // 格式化类型以用于控制台输出。
     static std::string_view     type_name(BuildVolume_Type type);
     std::string_view            type_name()         const { return type_name(m_type); }
     bool                        valid()             const { return m_type != BuildVolume_Type::Invalid; }
-    // Same as printable_area(), but scaled coordinates.
+    // 与 printable_area() 相同，但为缩放坐标。
     const Polygon&              polygon()           const { return m_polygon; }
-    // Bounding box of polygon(), scaled.
+    // polygon() 的边界框，已缩放。
     const BoundingBox&          bounding_box()      const { return m_bbox; }
-    // Bounding volume of printable_area(), printable_height(), unscaled.
+    // printable_area()、printable_height() 的边界体积，未缩放。
     const BoundingBoxf3&        bounding_volume()   const { return m_bboxf; }
     BoundingBoxf                bounding_volume2d() const { return { to_2d(m_bboxf.min), to_2d(m_bboxf.max) }; }
     indexed_triangle_set        bounding_mesh(bool scale=true) const;
 
-    // Center of the print bed, unscaled.
+    // 打印平台中心，未缩放。
     Vec2d                       bed_center()        const { return to_2d(m_bboxf.center()); }
-    // Convex hull of polygon(), scaled.
+    // polygon() 的凸包，已缩放。
     const Polygon&              convex_hull()       const { return m_convex_hull; }
     // Smallest enclosing circle of polygon(), scaled.
     const Geometry::Circled&    circle()            const { return m_circle; }

@@ -6,8 +6,8 @@
 namespace Slic3r {
 namespace Measure {
 
-// Utility class used to calculate distance circle-circle
-// Adaptation of code found in:
+// 用于计算圆-圆距离的工具类
+// 改编自以下代码：
 // https://github.com/davideberly/GeometricTools/blob/master/GTE/Mathematics/Polynomial1.h
 
 class Polynomial1
@@ -15,34 +15,29 @@ class Polynomial1
 public:
     Polynomial1(std::initializer_list<double> values)
     {
-        // C++ 11 will call the default constructor for
-        // Polynomial1<Real> p{}, so it is guaranteed that
-        // values.size() > 0.
+        // C++ 11 将调用 Polynomial1<Real> p{} 的默认构造函数，
+        // 因此保证 values.size() > 0。
         m_coefficient.resize(values.size());
         std::copy(values.begin(), values.end(), m_coefficient.begin());
         EliminateLeadingZeros();
     }
 
-    // Construction and destruction.  The first constructor creates a
-    // polynomial of the specified degree but sets all coefficients to
-    // zero (to ensure initialization).  You are responsible for setting
-    // the coefficients, presumably with the degree-term set to a nonzero
-    // number.  In the second constructor, the degree is the number of
-    // initializers plus 1, but then adjusted so that coefficient[degree]
-    // is not zero (unless all initializer values are zero).
+    // 构造和析构。第一个构造函数创建指定次数的多项式，
+    // 但将所有系数设置为零（以确保初始化）。您负责设置
+    // 系数，通常度项设置为非零值。
+    // 在第二个构造函数中，度数是初始化器数量加1，
+    // 但随后进行调整，使得 coefficient[degree] 不为零（除非所有初始化器值都为零）。
     explicit Polynomial1(uint32_t degree)
         : m_coefficient(static_cast<size_t>(degree) + 1, 0.0)
     {}
 
-    // Eliminate any leading zeros in the polynomial, except in the case
-    // the degree is 0 and the coefficient is 0.  The elimination is
-    // necessary when arithmetic operations cause a decrease in the degree
-    // of the result.  For example, (1 + x + x^2) + (1 + 2*x - x^2) =
-    // (2 + 3*x).  The inputs both have degree 2, so the result is created
-    // with degree 2.  After the addition we find that the degree is in
-    // fact 1 and resize the array of coefficients.  This function is
-    // called internally by the arithmetic operators, but it is exposed in
-    // the public interface in case you need it for your own purposes.
+    // 消除多项式中的任何前导零，除非次数为 0 且系数为 0。
+    // 当算术运算导致结果次数降低时，消除是必要的。
+    // 例如，(1 + x + x^2) + (1 + 2*x - x^2) = (2 + 3*x)。
+    // 两个输入都有次数 2，因此结果创建时具有次数 2。
+    // 加法后我们发现次数实际上是 1，并调整系数数组的大小。
+    // 此函数由算术运算符内部调用，但也暴露在公共接口中，
+    // 以便您在自己的用途中需要它。
     void EliminateLeadingZeros()
     {
         const size_t size = m_coefficient.size();
@@ -58,7 +53,7 @@ public:
         }
     }
 
-    // Set all coefficients to the specified value.
+    // 将所有系数设置为指定值。
     void SetCoefficients(double value)
     {
         std::fill(m_coefficient.begin(), m_coefficient.end(), value);
@@ -66,15 +61,14 @@ public:
 
     inline uint32_t GetDegree() const
     {
-        // By design, m_coefficient.size() > 0.
+        // 根据设计，m_coefficient.size() > 0。
         return static_cast<uint32_t>(m_coefficient.size() - 1);
     }
 
     inline const double& operator[](uint32_t i) const { return m_coefficient[i]; }
     inline double& operator[](uint32_t i) { return m_coefficient[i]; }
 
-    // Evaluate the polynomial.  If the polynomial is invalid, the
-    // function returns zero.
+    // 计算多项式的值。如果多项式无效，函数返回零。
     double operator()(double t) const
     {
         int32_t i = static_cast<int32_t>(m_coefficient.size());
@@ -87,7 +81,7 @@ public:
     }
 
 protected:
-    // The class is designed so that m_coefficient.size() >= 1.
+    // 该类被设计为 m_coefficient.size() >= 1。
     std::vector<double> m_coefficient;
 };
 
@@ -173,18 +167,17 @@ inline Polynomial1 operator * (double scalar, const Polynomial1& p)
     return result;
 }
 
-// Utility class used to calculate distance circle-circle
-// Adaptation of code found in:
+// 用于计算圆-圆距离的工具类
+// 改编自以下代码：
 // https://github.com/davideberly/GeometricTools/blob/master/GTE/Mathematics/RootsPolynomial.h
 
 class RootsPolynomial
 {
 public:
-    // General equations: sum_{i=0}^{d} c(i)*t^i = 0.  The input array 'c'
-    // must have at least d+1 elements and the output array 'root' must
-    // have at least d elements.
+    // 通用方程：sum_{i=0}^{d} c(i)*t^i = 0。输入数组 'c' 必须至少有 d+1 个元素，
+    // 输出数组 'root' 必须至少有 d 个元素。
 
-    // Find the roots on (-infinity,+infinity).
+    // 在 (-infinity,+infinity) 上求根。
     static int32_t Find(int32_t degree, const double* c, uint32_t maxIterations, double* roots)
     {
         if (degree >= 0 && c != nullptr) {
@@ -194,7 +187,7 @@ public:
             }
 
             if (degree > 0) {
-                // Compute the Cauchy bound.
+                // 计算柯西界限。
                 const double one = 1.0;
                 const double invLeading = one / c[degree];
                 double maxValue = zero;
@@ -208,21 +201,20 @@ public:
                 return FindRecursive(degree, c, -bound, bound, maxIterations, roots);
             }
             else if (degree == 0)
-                // The polynomial is a nonzero constant.
+                // 多项式是一个非零常数。
                 return 0;
             else {
-                // The polynomial is identically zero.
+                // 多项式恒为零。
                 roots[0] = zero;
                 return 1;
             }
         }
         else
-            // Invalid degree or c.
+            // 无效的次数或 c。
             return 0;
     }
 
-    // If you know that p(tmin) * p(tmax) <= 0, then there must be at
-    // least one root in [tmin, tmax].  Compute it using bisection.
+    // 如果您知道 p(tmin) * p(tmax) <= 0，则在 [tmin, tmax] 中至少有一个根。使用二分法计算。
     static bool Find(int32_t degree, const double* c, double tmin, double tmax, uint32_t maxIterations, double& root)
     {
         const double zero = 0.0;
@@ -238,18 +230,17 @@ public:
         }
 
         if (pmin * pmax > zero)
-            // It is not known whether the interval bounds a root.
+            // 不知道区间是否包含一个根。
             return false;
 
         if (tmin >= tmax)
-            // Invalid ordering of interval endpoitns.
+            // 区间端点排序无效。
             return false;
 
         for (uint32_t i = 1; i <= maxIterations; ++i) {
             root = 0.5 * (tmin + tmax);
 
-            // This test is designed for 'float' or 'double' when tmin
-            // and tmax are consecutive floating-point numbers.
+            // 当 tmin 和 tmax 是连续的浮点数时，此测试设计用于 'float' 或 'double'。
             if (root == tmin || root == tmax)
                 break;
 
@@ -270,10 +261,10 @@ public:
         return true;
     }
 
-    // Support for the Find functions.
+    // 对 Find 函数的支持。
     static int32_t FindRecursive(int32_t degree, double const* c, double tmin, double tmax, uint32_t maxIterations, double* roots)
     {
-        // The base of the recursion.
+        // 递归的基例。
         const double zero = 0.0;
         double root = zero;
         if (degree == 1) {
@@ -296,12 +287,10 @@ public:
             return 0;
         }
 
-        // Find the roots of the derivative polynomial scaled by 1/degree.
-        // The scaling avoids the factorial growth in the coefficients;
-        // for example, without the scaling, the high-order term x^d
-        // becomes (d!)*x through multiple differentiations.  With the
-        // scaling we instead get x.  This leads to better numerical
-        // behavior of the root finder.
+        // 求按 1/degree 缩放的导数多项式的根。
+        // 缩放避免了系数中的阶乘增长；
+        // 例如，没有缩放时，高阶项 x^d 通过多次微分变为 (d!)*x。
+        // 通过缩放我们反而得到 x。这导致求根器更好的数值行为。
         const int32_t derivDegree = degree - 1;
         std::vector<double> derivCoeff(static_cast<size_t>(derivDegree) + 1);
         std::vector<double> derivRoots(derivDegree);
@@ -312,22 +301,22 @@ public:
 
         int32_t numRoots = 0;
         if (numDerivRoots > 0) {
-            // Find root on [tmin,derivRoots[0]].
+            // 在 [tmin,derivRoots[0]] 上求根。
             if (Find(degree, c, tmin, derivRoots[0], maxIterations, root))
                 roots[numRoots++] = root;
 
-            // Find root on [derivRoots[i],derivRoots[i+1]].
+            // 在 [derivRoots[i],derivRoots[i+1]] 上求根。
             for (int32_t i = 0, ip1 = 1; i <= numDerivRoots - 2; ++i, ++ip1) {
                 if (Find(degree, c, derivRoots[i], derivRoots[ip1], maxIterations, root))
                     roots[numRoots++] = root;
             }
 
-            // Find root on [derivRoots[numDerivRoots-1],tmax].
+            // 在 [derivRoots[numDerivRoots-1],tmax] 上求根。
             if (Find(degree, c, derivRoots[static_cast<size_t>(numDerivRoots) - 1], tmax, maxIterations, root))
                 roots[numRoots++] = root;
         }
         else {
-            // The polynomial is monotone on [tmin,tmax], so has at most one root.
+            // 多项式在 [tmin,tmax] 上是单调的，因此最多有一个根。
             if (Find(degree, c, tmin, tmax, maxIterations, root))
                 roots[numRoots++] = root;
         }
@@ -345,13 +334,12 @@ public:
     }
 };
 
-// Adaptation of code found in:
+// 改编自以下代码：
 // https://github.com/davideberly/GeometricTools/blob/master/GTE/Mathematics/Vector.h
 
-// Construct a single vector orthogonal to the nonzero input vector.  If
-// the maximum absolute component occurs at index i, then the orthogonal
-// vector U has u[i] = v[i+1], u[i+1] = -v[i], and all other components
-// zero.  The index addition i+1 is computed modulo N.
+// 构造一个与非零输入向量正交的单个向量。如果
+// 最大绝对分量出现在索引 i 处，则正交向量 U 具有 u[i] = v[i+1], u[i+1] = -v[i]，
+// 且所有其他分量为零。索引加法 i+1 按模 N 计算。
 inline Vec3d get_orthogonal(const Vec3d& v, bool unitLength)
 {
     double cmax = std::fabs(v[0]);

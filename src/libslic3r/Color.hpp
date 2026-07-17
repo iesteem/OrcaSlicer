@@ -177,8 +177,8 @@ ColorRGBA to_rgba(const ColorRGB& other_rgb, float alpha);
 
 ColorRGBA picking_decode(unsigned int id);
 unsigned int picking_encode(unsigned char r, unsigned char g, unsigned char b);
-// Produce an alpha channel checksum for the red green blue components. The alpha channel may then be used to verify, whether the rgb components
-// were not interpolated by alpha blending or multi sampling.
+// 为红绿蓝分量生成Alpha通道校验和。Alpha通道可用于验证RGB分量
+// 是否未因Alpha混合或多采样而产生插值。
 unsigned char picking_checksum_alpha_channel(unsigned char red, unsigned char green, unsigned char blue);
 
 } // namespace Slic3r

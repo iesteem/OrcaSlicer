@@ -1,4 +1,4 @@
-#include "libslic3r/libslic3r.h"
+﻿#include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
 #include "AppConfig.hpp"
 //BBS
@@ -113,18 +113,18 @@ void AppConfig::reset()
     set_defaults();
 };
 
-// Override missing or keys with their defaults.
+// 用默认值覆盖缺失的键。
 void AppConfig::set_defaults()
 {
     if (m_mode == EAppMode::Editor) {
 #ifdef SUPPORT_AUTO_CENTER
-        // Reset the empty fields to defaults.
+        // 将空字段重置为默认值。
         if (get("autocenter").empty())
             set_bool("autocenter", true);
 #endif
 
 #ifdef SUPPORT_BACKGROUND_PROCESSING
-        // Disable background processing by default as it is not stable.
+        // 默认禁用后台处理，因为它不稳定。
         if (get("background_processing").empty())
             set_bool("background_processing", false);
 #endif
@@ -142,7 +142,7 @@ void AppConfig::set_defaults()
 
 #endif // _WIN32
 
-        // remove old 'use_legacy_opengl' parameter from this config, if present
+        // 如果存在，从此配置中删除旧的 'use_legacy_opengl' 参数
         if (!get("use_legacy_opengl").empty())
             erase("app", "use_legacy_opengl");
 
@@ -280,7 +280,7 @@ void AppConfig::set_defaults()
     if(get("check_stable_update_only").empty()) {
         set_bool("check_stable_update_only", false);
     }
-    // SM prerelease does not update
+    // SM 预发布版本不更新
     set_bool("check_stable_update_only", true);
 
 
@@ -308,7 +308,7 @@ void AppConfig::set_defaults()
     if (get("show_daily_tips").empty()) {
         set_bool("show_daily_tips", true);
     }
-    //true is auto calculate
+    //true 为自动计算
     if (get("auto_calculate").empty()) {
         set_bool("auto_calculate", true);
     }
@@ -518,7 +518,7 @@ std::string AppConfig::load()
 {
     json j;
 
-    // 1) Read the complete config file into a boost::property_tree.
+    // 1) 将完整的配置文件读入 boost::property_tree。
     namespace pt = boost::property_tree;
     pt::ptree tree;
     boost::nowide::ifstream ifs;
@@ -706,7 +706,7 @@ std::string AppConfig::load()
         return err.what();
     }
 
-    // Convert "China" to "Chinese Mainland" for region parameter
+    // 将 "China" 转换为 "Chinese Mainland" 用于区域参数
     auto it_app = m_storage.find("app");
     if (it_app != m_storage.end()) {
         auto it_region = it_app->second.find("region");
@@ -716,7 +716,7 @@ std::string AppConfig::load()
         }
     }
 
-    // Figure out if datadir has legacy presets
+    // 判断数据目录是否有遗留预设
     auto ini_ver = Semver::parse(get("version"));
     m_legacy_datadir = false;
     if (ini_ver) {
@@ -725,7 +725,7 @@ std::string AppConfig::load()
         ini_ver->set_prerelease(boost::none);
     }
 
-    // Legacy conversion
+    // 遗留数据转换
     if (m_mode == EAppMode::Editor) {
         // Convert [extras] "physical_printer" to [presets] "physical_printer",
         // remove the [extras] section if it becomes empty.
@@ -739,7 +739,7 @@ std::string AppConfig::load()
         }
     }
 
-    // Override missing or keys with their defaults.
+    // 用默认值覆盖缺失的键。
     this->set_defaults();
     m_dirty = false;
     return "";
@@ -763,7 +763,7 @@ void AppConfig::save()
     else
         j["header"] = Slic3r::header_gcodeviewer_generated();
 
-    // Make sure the "no" category is written first.
+    // 确保 "no" 类别首先被写入。
     for (const auto& kvp : m_storage["app"]) {
         if (kvp.second == "true") {
             j["app"][kvp.first] = true;
@@ -802,7 +802,7 @@ void AppConfig::save()
         j["calis"].push_back(cali_json);
     }
 
-    // Write the other categories.
+    // 写入其他类别。
     for (const auto& category : m_storage) {
         if (category.first.empty())
             continue;
@@ -843,7 +843,7 @@ void AppConfig::save()
         }
     }
 
-    // Write vendor sections
+    // 写入供应商部分
     for (const auto& vendor : m_vendors) {
         size_t size_sum = 0;
         for (const auto& model : vendor.second) { size_sum += model.second.size(); }
@@ -925,7 +925,7 @@ void AppConfig::save()
 
 std::string AppConfig::load()
 {
-    // 1) Read the complete config file into a boost::property_tree.
+    // 1) 将完整的配置文件读入 boost::property_tree。
     namespace pt = boost::property_tree;
     pt::ptree tree;
     boost::nowide::ifstream ifs;
@@ -1023,7 +1023,7 @@ std::string AppConfig::load()
         }
     }
 
-    // Figure out if datadir has legacy presets
+    // 判断数据目录是否有遗留预设
     auto ini_ver = Semver::parse(get("version"));
     m_legacy_datadir = false;
     if (ini_ver) {
@@ -1034,7 +1034,7 @@ std::string AppConfig::load()
         //m_legacy_datadir = ini_ver < Semver(1, 40, 0);
     }
 
-    // Legacy conversion
+    // 遗留数据转换
     if (m_mode == EAppMode::Editor) {
         // Convert [extras] "physical_printer" to [presets] "physical_printer",
         // remove the [extras] section if it becomes empty.
@@ -1048,7 +1048,7 @@ std::string AppConfig::load()
         }
     }
 
-    // Override missing or keys with their defaults.
+    // 用默认值覆盖缺失的键。
     this->set_defaults();
     m_dirty = false;
     return "";
@@ -1069,10 +1069,10 @@ void AppConfig::save()
         config_ss << "# " << Slic3r::header_slic3r_generated() << std::endl;
     else
         config_ss << "# " << Slic3r::header_gcodeviewer_generated() << std::endl;
-    // Make sure the "no" category is written first.
+    // 确保 "no" 类别首先被写入。
     for (const auto& kvp : m_storage[""])
         config_ss << kvp.first << " = " << kvp.second << std::endl;
-    // Write the other categories.
+    // 写入其他类别。
     for (const auto& category : m_storage) {
     	if (category.first.empty())
     		continue;
@@ -1080,7 +1080,7 @@ void AppConfig::save()
         for (const auto& kvp : category.second)
             config_ss << kvp.first << " = " << kvp.second << std::endl;
 	}
-    // Write vendor sections
+    // 写入供应商部分
     for (const auto &vendor : m_vendors) {
         size_t size_sum = 0;
         for (const auto &model : vendor.second) { size_sum += model.second.size(); }
@@ -1095,7 +1095,7 @@ void AppConfig::save()
             config_ss << MODEL_PREFIX << model.first << " = " << escaped << std::endl;
         }
     }
-    // One empty line before the MD5 sum.
+    // MD5 校验和之前的一个空行。
     config_ss << std::endl;
 
     std::string config_str = config_ss.str();

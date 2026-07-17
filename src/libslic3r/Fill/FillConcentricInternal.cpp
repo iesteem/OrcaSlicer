@@ -18,7 +18,7 @@ void FillConcentricInternal::fill_surface_extrusion(const Surface* surface, cons
     for (size_t i = 0; i < this->no_overlap_expolygons.size(); ++i) {
         ExPolygon &expolygon = this->no_overlap_expolygons[i];
 
-        // no rotation is supported for this infill pattern
+        // 此填充图案不支持旋转
         Point   bbox_size = expolygon.contour.bounding_box().size();
         coord_t min_spacing = params.flow.scaled_spacing();
 
@@ -45,7 +45,7 @@ void FillConcentricInternal::fill_surface_extrusion(const Surface* surface, cons
                 all_extrusions.emplace_back(&wall);
         }
 
-        // Split paths using a nearest neighbor search.
+        // 使用最近邻搜索分割路径。
         size_t firts_poly_idx = thick_polylines_out.size();
         Point  last_pos(0, 0);
         for (const Arachne::ExtrusionLine* extrusion : all_extrusions) {
@@ -64,8 +64,8 @@ void FillConcentricInternal::fill_surface_extrusion(const Surface* surface, cons
             thick_polylines_out.emplace_back(std::move(thick_polyline));
         }
 
-        // clip the paths to prevent the extruder from getting exactly on the first point of the loop
-        // Keep valid paths only.
+        // 裁剪路径以防止挤出机正好位于循环的第一个点上
+        // 仅保留有效路径。
         size_t j = firts_poly_idx;
         for (size_t i = firts_poly_idx; i < thick_polylines_out.size(); ++i) {
             thick_polylines_out[i].clip_end(this->loop_clipping);
@@ -82,7 +82,7 @@ void FillConcentricInternal::fill_surface_extrusion(const Surface* surface, cons
     }
 
     ExtrusionEntityCollection *coll_nosort = new ExtrusionEntityCollection();
-    coll_nosort->no_sort = this->no_sort(); //can be sorted inside the pass
+    coll_nosort->no_sort = this->no_sort(); //可以在遍历内部排序
 
     if (!thick_polylines_out.empty()) {
         Flow new_flow = params.flow.with_spacing(float(this->spacing));

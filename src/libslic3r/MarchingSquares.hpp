@@ -9,7 +9,7 @@
 
 namespace marchsq {
 
-// Marks a square in the grid
+// 标记网格中的一个方块
 struct Coord {
     long r = 0, c = 0;
     
@@ -22,24 +22,24 @@ struct Coord {
     Coord operator+(const Coord& b) const { Coord a = *this; a += b; return a; }
 };
 
-// Closed ring of cell coordinates
+// 单元格坐标的闭合环
 using Ring = std::vector<Coord>;
 
-// Specialize this struct to register a raster type for the Marching squares alg
+// 特化此结构体以注册 Marching squares 算法的栅格类型
 template<class T, class Enable = void> struct _RasterTraits {
     
-    // The type of pixel cell in the raster
+    // 栅格中像素单元的类型
     using ValueType = typename T::ValueType;
     
-    // Value at a given position
+    // 给定位置的值
     static ValueType get(const T &raster, size_t row, size_t col);
     
-    // Number of rows and cols of the raster
+    // 栅格的行数和列数
     static size_t rows(const T &raster);
     static size_t cols(const T &raster);
 };
 
-// Specialize this to use parellel loops within the algorithm
+// 特化此结构以在算法中使用并行循环
 template<class ExecutionPolicy, class Enable = void> struct _Loop {
     template<class It, class Fn> static void for_each(It from, It to, Fn &&fn)
     {
@@ -73,9 +73,9 @@ void for_each(ExecutionPolicy&& policy, It from, It to, Fn &&fn)
     _Loop<ExecutionPolicy>::for_each(from, to, fn);
 }
 
-// Type of squares (tiles) depending on which vertices are inside an ROI
-// The vertices would be marked a, b, c, d in counter clockwise order from the 
-// bottom left vertex of a square.
+// 方块（瓦片）的类型，取决于哪些顶点在 ROI 内部
+// 顶点按逆时针顺序标记为 a, b, c, d，从方块的
+// 左下顶点开始。
 // d --- c
 // |     |
 // |     |
@@ -93,22 +93,22 @@ template<class E> constexpr std::underlying_type_t<E> _t(E e) noexcept
 enum class Dir: uint8_t { left, down, right, up, none};
 
 static const constexpr Dir NEXT_CCW[] = {
-    /* 00 */ Dir::none,      // SquareTag::none (empty square, nowhere to go)
+    /* 00 */ Dir::none,      // SquareTag::none（空方块，无处可去）
     /* 01 */ Dir::left,      // SquareTag::a
     /* 02 */ Dir::down,      // SquareTag::b
     /* 03 */ Dir::left,      // SquareTag::ab
     /* 04 */ Dir::right,     // SquareTag::c
-    /* 05 */ Dir::none,      // SquareTag::ac   (ambiguous case)
+    /* 05 */ Dir::none,      // SquareTag::ac（歧义情况）
     /* 06 */ Dir::down,      // SquareTag::bc
     /* 07 */ Dir::left,      // SquareTag::abc
     /* 08 */ Dir::up,        // SquareTag::d
     /* 09 */ Dir::up,        // SquareTag::ad
-    /* 10 */ Dir::none,      // SquareTag::bd   (ambiguous case)
+    /* 10 */ Dir::none,      // SquareTag::bd（歧义情况）
     /* 11 */ Dir::up,        // SquareTag::abd
     /* 12 */ Dir::right,     // SquareTag::cd
     /* 13 */ Dir::right,     // SquareTag::acd
     /* 14 */ Dir::down,      // SquareTag::bcd
-    /* 15 */ Dir::none       // SquareTag::full (full covered, nowhere to go)
+    /* 15 */ Dir::none       // SquareTag::full（完全覆盖，无处可去）
 };
 
 static const constexpr uint8_t PREV_CCW[] = {
@@ -143,7 +143,7 @@ inline Coord step(const Coord &crd, Dir d)
 template<class Rst> class Grid {
     const Rst *            m_rst = nullptr;
     Coord                  m_cellsize, m_res_1, m_window, m_gridsize, m_grid_1;
-    std::vector<uint8_t>   m_tags;     // Assign tags to each square
+    std::vector<uint8_t>   m_tags;     // 为每个方块分配标签
 
     Coord rastercoord(const Coord &crd) const
     {
@@ -161,8 +161,8 @@ template<class Rst> class Grid {
         return crd.r >= 0 && crd.r < R && crd.c >= 0 && crd.c < C;
     };
 
-    // Calculate the tag for a cell (or square). The cell coordinates mark the
-    // top left vertex of a square in the raster. v is the isovalue
+    // 计算单元格（或方块）的标签。单元格坐标标记
+    // 栅格中方块的左上顶点。v 是等值
     uint8_t get_tag_for_cell(const Coord &cell, TRasterValue<Rst> v)
     {        
         Coord sqr[] = {bl(cell), br(cell), tr(cell), tl(cell)};
@@ -176,7 +176,7 @@ template<class Rst> class Grid {
         return t;
     }
     
-    // Get a cell coordinate from a sequential index
+    // 从顺序索引获取单元格坐标
     Coord coord(size_t i) const
     {
         return {long(i) / m_gridsize.c, long(i) % m_gridsize.c};
@@ -203,11 +203,10 @@ template<class Rst> class Grid {
         return t == SquareTag::ac || t == SquareTag::bd;
     }
 
-    // Search for a new starting square
+    // 搜索新的起始方块
     size_t search_start_cell(size_t i = 0) const
     {
-        // Skip ambiguous tags as starting tags due to unknown previous
-        // direction.
+        // 由于前一个方向未知，跳过歧义标签作为起始标签。
         while ((i < m_tags.size()) && (is_visited(i) || is_ambiguous(i))) ++i;
         
         return i;
@@ -217,7 +216,7 @@ template<class Rst> class Grid {
         
     Dir next_dir(Dir prev, SquareTag tag) const
     {
-        // Treat ambiguous cases as two separate regions in one square.
+        // 将歧义情况视为一个方块中的两个独立区域。
         switch (tag) {
         case SquareTag::ac:
             switch (prev) {
@@ -253,8 +252,7 @@ template<class Rst> class Grid {
         using iterator_category = std::forward_iterator_tag;
     };
     
-    // Two cell iterators representing an edge of a square. This is then
-    // used for binary search for the first active pixel on the edge.
+    // 两个单元格迭代器表示方块的边。然后用于二分搜索边上的第一个活动像素。
     struct Edge { CellIt from, to; };
     
     Edge _edge(const Coord &ringvertex) const
@@ -338,11 +336,11 @@ public:
         , m_tags(m_gridsize.r * m_gridsize.c, 0)
     {}
     
-    // Go through the cells and mark them with the appropriate tag.
+    // 遍历单元格并用适当的标签标记它们。
     template<class ExecutionPolicy>
     void tag_grid(ExecutionPolicy &&policy, TRasterValue<Rst> isoval)
     {        
-        // parallel for r
+        // 对 r 进行并行循环
         for_each (std::forward<ExecutionPolicy>(policy),
                  m_tags.begin(), m_tags.end(),
                  [this, isoval](uint8_t& tag, size_t idx) {
@@ -350,9 +348,8 @@ public:
         });
     }
     
-    // Scan for the rings on the tagged grid. Each ring vertex stores the
-    // sequential index of the cell and the next direction (Dir).
-    // This info can be used later to calculate the exact raster coordinate.
+    // 在标记的网格上扫描环。每个环顶点存储单元格的顺序索引和下一个方向（Dir）。
+    // 此信息稍后可用于计算精确的栅格坐标。
     std::vector<Ring> scan_rings()
     {
         std::vector<Ring> rings;
@@ -373,7 +370,7 @@ public:
                 next = next_dir(next, get_tag(idx));
             }
             
-            // To prevent infinite loops in case of degenerate input
+            // 防止在退化输入的情况下出现无限循环
             if (next == Dir::none) m_tags[startidx] = _t(SquareTag::none);
             
             if (ring.size() > 1) {
@@ -385,8 +382,7 @@ public:
         return rings;
     }
     
-    // Calculate the exact raster position from the cells which store the
-    // sequantial index of the square and the next direction
+    // 从存储方块顺序索引和下一个方向的单元格计算精确的栅格位置
     template<class ExecutionPolicy>
     void interpolate_rings(ExecutionPolicy && policy,
                            std::vector<Ring> &rings,

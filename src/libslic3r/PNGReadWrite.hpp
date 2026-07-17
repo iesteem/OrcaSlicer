@@ -8,15 +8,14 @@
 
 namespace Slic3r { namespace png {
 
-// Interface for an input stream of encoded png image data.
+// 编码 PNG 图像数据的输入流接口。
 struct IStream {
     virtual ~IStream() = default;
     virtual size_t read(std::uint8_t *outp, size_t amount) = 0;
     virtual bool is_ok() const = 0;
 };
 
-// The output format of decode_png: a 2D pixel matrix stored continuously row
-// after row (row major layout).
+// decode_png 的输出格式：一个连续逐行存储的二维像素矩阵（行主序布局）。
 template<class PxT> struct Image {
     std::vector<PxT> buf;
     size_t rows, cols;
@@ -30,20 +29,20 @@ struct ImageColorscale:Image<unsigned char>
 };
 
 
-// Only decodes true 8 bit grayscale png images. Returns false for other formats
-// TODO (if needed): implement transformation of rgb images into grayscale...
+// 仅解码真正的 8 位灰度 PNG 图像。对其他格式返回 false。
+// TODO（如果需要）：实现将 RGB 图像转换为灰度...
 bool decode_png(IStream &stream, ImageGreyscale &out_img);
 
-//BBS: decode png for other format
+//BBS: 解码其他格式的 png
 bool decode_colored_png(IStream &in_buf, ImageColorscale &out_img);
 
-// TODO (if needed)
+// TODO（如果需要）
 // struct RGB { uint8_t r, g, b; };
 // using ImageRGB = Image<RGB>;
 // bool decode_png(IStream &stream, ImageRGB &img);
 
 
-// Encoded png data buffer: a simple read-only buffer and its size.
+// 编码的 PNG 数据缓冲区：一个简单的只读缓冲区及其大小。
 struct ReadBuf { const void *buf = nullptr; const size_t sz = 0; };
 
 bool is_png(const ReadBuf &pngbuf);
@@ -78,25 +77,25 @@ template<class Img> bool decode_png(const ReadBuf &in_buf, Img &out_img)
 bool decode_colored_png(const ReadBuf &in_buf, ImageColorscale &out_img);
 
 
-// TODO: std::istream of FILE* could be similarly adapted in case its needed...
+// TODO: std::istream 或 FILE* 可以类似地进行适配，以备需要时使用...
 
 
 
-// Down to earth function to store a packed RGB image to file. Mostly useful for debugging purposes.
+// 实用的函数，将打包的 RGB 图像存储到文件。主要用于调试目的。
 bool write_rgb_to_file(const char *file_name_utf8, size_t width, size_t height, const uint8_t *data_rgb);
 bool write_rgb_to_file(const std::string &file_name_utf8, size_t width, size_t height, const uint8_t *data_rgb);
 bool write_rgb_to_file(const std::string &file_name_utf8, size_t width, size_t height, const std::vector<uint8_t> &data_rgb);
-// Grayscale variants
+// 灰度变体
 bool write_gray_to_file(const char *file_name_utf8, size_t width, size_t height, const uint8_t *data_gray);
 bool write_gray_to_file(const std::string &file_name_utf8, size_t width, size_t height, const uint8_t *data_gray);
 bool write_gray_to_file(const std::string &file_name_utf8, size_t width, size_t height, const std::vector<uint8_t> &data_gray);
 
-// Scaled variants are mostly useful for debugging purposes, for example to export images of low resolution distance fileds.
-// Scaling is done by multiplying rows and columns without any smoothing to emphasise the original pixels.
+// 缩放变体主要用于调试目的，例如导出低分辨率距离场的图像。
+// 通过复制行和列来实现缩放，没有任何平滑处理，以突出原始像素。
 bool write_rgb_to_file_scaled(const char *file_name_utf8, size_t width, size_t height, const uint8_t *data_rgb, size_t scale);
 bool write_rgb_to_file_scaled(const std::string &file_name_utf8, size_t width, size_t height, const uint8_t *data_rgb, size_t scale);
 bool write_rgb_to_file_scaled(const std::string &file_name_utf8, size_t width, size_t height, const std::vector<uint8_t> &data_rgb, size_t scale);
-// Grayscale variants
+// 灰度变体
 bool write_gray_to_file_scaled(const char *file_name_utf8, size_t width, size_t height, const uint8_t *data_gray, size_t scale);
 bool write_gray_to_file_scaled(const std::string &file_name_utf8, size_t width, size_t height, const uint8_t *data_gray, size_t scale);
 bool write_gray_to_file_scaled(const std::string &file_name_utf8, size_t width, size_t height, const std::vector<uint8_t> &data_gray, size_t scale);

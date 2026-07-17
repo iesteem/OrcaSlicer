@@ -1,10 +1,10 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #ifndef SKELETAL_TRAPEZOIDATION_JOINT_H
 #define SKELETAL_TRAPEZOIDATION_JOINT_H
 
-#include <memory> // smart pointers
+#include <memory> // 智能指针
 
 #include "libslic3r/Arachne/BeadingStrategy/BeadingStrategy.hpp"
 
@@ -31,7 +31,7 @@ public:
 
     coord_t distance_to_boundary;
     coord_t bead_count;
-    float transition_ratio; //! The distance near the skeleton to leave free because this joint is in the middle of a transition, as a fraction of the inner bead width of the bead at the higher transition.
+    float transition_ratio; //! 骨架附近留空的距离，因为此连接点位于过渡中间，作为较高过渡处bead内部bead宽度的比例。
     SkeletalTrapezoidationJoint()
     : distance_to_boundary(-1)
     , bead_count(-1)

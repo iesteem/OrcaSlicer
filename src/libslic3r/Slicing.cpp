@@ -8,7 +8,7 @@
 
 // #define SLIC3R_DEBUG
 
-// Make assert active if SLIC3R_DEBUG
+// 如果定义了 SLIC3R_DEBUG，则启用 assert
 #ifdef SLIC3R_DEBUG
     #undef NDEBUG
     #define DEBUG
@@ -25,15 +25,15 @@ static const coordf_t MIN_LAYER_HEIGHT = 0.01;
 static const coordf_t MIN_LAYER_HEIGHT_DEFAULT = 0.07;
 static const double LAYER_HEIGHT_CHANGE_STEP = 0.04;
 
-// Minimum layer height for the variable layer height algorithm.
+// 可变层高算法的最小层高。
 inline coordf_t min_layer_height_from_nozzle(const PrintConfig &print_config, int idx_nozzle)
 {
     coordf_t min_layer_height = print_config.min_layer_height.get_at(idx_nozzle - 1);
     return (min_layer_height == 0.) ? MIN_LAYER_HEIGHT_DEFAULT : std::max(MIN_LAYER_HEIGHT, min_layer_height);
 }
 
-// Maximum layer height for the variable layer height algorithm, 3/4 of a nozzle dimaeter by default,
-// it should not be smaller than the minimum layer height.
+// 可变层高算法的最大层高，默认为喷嘴直径的3/4，
+// 不应小于最小层高。
 inline coordf_t max_layer_height_from_nozzle(const PrintConfig &print_config, int idx_nozzle)
 {
     coordf_t min_layer_height = min_layer_height_from_nozzle(print_config, idx_nozzle);
@@ -42,15 +42,15 @@ inline coordf_t max_layer_height_from_nozzle(const PrintConfig &print_config, in
     return std::max(min_layer_height, (max_layer_height == 0.) ? (0.75 * nozzle_dmr) : max_layer_height);
 }
 
-// Minimum layer height for the variable layer height algorithm.
+// 可变层高算法的最小层高。
 coordf_t Slicing::min_layer_height_from_nozzle(const DynamicPrintConfig &print_config, int idx_nozzle)
 {
     coordf_t min_layer_height = print_config.opt_float("min_layer_height", idx_nozzle - 1);
     return (min_layer_height == 0.) ? MIN_LAYER_HEIGHT_DEFAULT : std::max(MIN_LAYER_HEIGHT, min_layer_height);
 }
 
-// Maximum layer height for the variable layer height algorithm, 3/4 of a nozzle dimaeter by default,
-// it should not be smaller than the minimum layer height.
+// 可变层高算法的最大层高，默认为喷嘴直径的3/4，
+// 不应小于最小层高。
 coordf_t Slicing::max_layer_height_from_nozzle(const DynamicPrintConfig &print_config, int idx_nozzle)
 {
     coordf_t min_layer_height = min_layer_height_from_nozzle(print_config, idx_nozzle);
@@ -68,11 +68,11 @@ SlicingParameters SlicingParameters::create_from_config(
 {
     coordf_t initial_layer_print_height                      = (print_config.initial_layer_print_height.value <= 0) ? 
         object_config.layer_height.value : print_config.initial_layer_print_height.value;
-    // If object_config.support_filament == 0 resp. object_config.support_interface_filament == 0,
-    // print_config.nozzle_diameter.get_at(size_t(-1)) returns the 0th nozzle diameter,
-    // which is consistent with the requirement that if support_filament == 0 resp. support_interface_filament == 0,
-    // support will not trigger tool change, but it will use the current nozzle instead.
-    // In that case all the nozzles have to be of the same diameter.
+    // 如果 object_config.support_filament == 0 或 object_config.support_interface_filament == 0，
+    // print_config.nozzle_diameter.get_at(size_t(-1)) 返回第0个喷嘴直径，
+    // 这与以下要求一致：如果 support_filament == 0 或 support_interface_filament == 0，
+    // 支撑不会触发工具切换，而是使用当前喷嘴。
+    // 在这种情况下，所有喷嘴必须具有相同的直径。
     coordf_t support_material_extruder_dmr           = print_config.nozzle_diameter.get_at(object_config.support_filament.value - 1);
     coordf_t support_material_interface_extruder_dmr = print_config.nozzle_diameter.get_at(object_config.support_interface_filament.value - 1);
     bool     soluble_interface                       = object_config.support_top_z_distance.value == 0.;
@@ -82,18 +82,18 @@ SlicingParameters SlicingParameters::create_from_config(
     params.first_print_layer_height = initial_layer_print_height;
     params.first_object_layer_height = initial_layer_print_height;
     params.object_print_z_min = 0.;
-    // Orca: XYZ filament compensation
+    // Orca: XYZ 丝材补偿
     params.object_print_z_max = object_height * object_shrinkage_compensation.z();
     params.object_print_z_uncompensated_max = object_height;
     params.object_shrinkage_compensation_z = object_shrinkage_compensation.z();
     params.base_raft_layers = object_config.raft_layers.value;
     params.soluble_interface = soluble_interface;
 
-    // Miniumum/maximum of the minimum layer height over all extruders.
+    // 所有挤出机中最小层高的最小/最大值。
     params.min_layer_height = MIN_LAYER_HEIGHT;
     params.max_layer_height = std::numeric_limits<double>::max();
     if (object_config.enable_support.value || params.base_raft_layers > 0 || object_config.enforce_support_layers > 0) {
-        // Has some form of support. Add the support layers to the minimum / maximum layer height limits.
+        // 有某种形式的支撑。将支撑层添加到最小/最大层高限制中。
         params.min_layer_height = std::max(
             min_layer_height_from_nozzle(print_config, object_config.support_filament), 
             min_layer_height_from_nozzle(print_config, object_config.support_interface_filament));
@@ -117,7 +117,7 @@ SlicingParameters SlicingParameters::create_from_config(
     if (! soluble_interface) {
         params.gap_raft_object    = object_config.raft_contact_distance.value;
         //BBS
-        params.gap_object_support = object_config.support_bottom_z_distance.value; 
+        params.gap_object_support = object_config.support_bottom_z_distance.value;
         params.gap_support_object = object_config.support_top_z_distance.value;
 
         if (!print_config.independent_support_layer_height) {
@@ -130,7 +130,7 @@ SlicingParameters SlicingParameters::create_from_config(
     if (params.base_raft_layers > 0) {
 		params.interface_raft_layers = (params.base_raft_layers + 1) / 2;
         params.base_raft_layers -= params.interface_raft_layers;
-        // Use as large as possible layer height for the intermediate raft layers.
+        // 尽可能使用大的层高作为中间底座层。
         params.base_raft_layer_height       = std::max(params.layer_height, 0.75 * support_material_extruder_dmr);
         params.interface_raft_layer_height  = std::max(params.layer_height, 0.75 * support_material_interface_extruder_dmr);
         params.first_object_layer_bridging  = false;
@@ -139,18 +139,18 @@ SlicingParameters SlicingParameters::create_from_config(
     }
 
     if (params.has_raft()) {
-        // Raise first object layer Z by the thickness of the raft itself plus the extra distance required by the support material logic.
-        //FIXME The last raft layer is the contact layer, which shall be printed with a bridging flow for ease of separation. Currently it is not the case.
+        // 将第一个对象层Z提高到底座本身的厚度加上支撑材料逻辑所需的额外距离。
+        //FIXME 最后一个底座层是接触层，为便于分离应使用桥接流量打印。目前尚未实现。
 		if (params.raft_layers() == 1) {
-            // There is only the contact layer.
+            // 只有接触层。
             params.contact_raft_layer_height = initial_layer_print_height;
             params.raft_contact_top_z        = initial_layer_print_height;
 		} else {
             assert(params.base_raft_layers > 0);
             assert(params.interface_raft_layers > 0);
-            // Number of the base raft layers is decreased by the first layer.
+            // 基础底座层数减去第一层。
             params.raft_base_top_z       = initial_layer_print_height + coordf_t(params.base_raft_layers - 1) * params.base_raft_layer_height;
-            // Number of the interface raft layers is decreased by the contact layer.
+            // 界面底座层数减去接触层。
             params.raft_interface_top_z  = params.raft_base_top_z + coordf_t(params.interface_raft_layers - 1) * params.interface_raft_layer_height;
 			params.raft_contact_top_z    = params.raft_interface_top_z + params.contact_raft_layer_height;
 		}
@@ -164,34 +164,34 @@ SlicingParameters SlicingParameters::create_from_config(
     return params;
 }
 
-// Convert layer_config_ranges to layer_height_profile. Both are referenced to z=0, meaning the raft layers are not accounted for
-// in the height profile and the printed object may be lifted by the raft thickness at the time of the G-code generation.
+// 将 layer_config_ranges 转换为 layer_height_profile。两者都相对于 z=0 引用，
+// 意味着高度配置文件中不考虑底座层，打印对象在 G-code 生成时可能会被底座厚度抬高。
 std::vector<coordf_t> layer_height_profile_from_ranges(
 	const SlicingParameters 	&slicing_params,
 	const t_layer_config_ranges &layer_config_ranges)
 {
-    // 1) If there are any height ranges, trim one by the other to make them non-overlapping. Insert the 1st layer if fixed.
+    // 1) 如果有任何高度范围，相互修剪使其不重叠。如果固定则插入第一层。
     std::vector<std::pair<t_layer_height_range,coordf_t>> ranges_non_overlapping;
     ranges_non_overlapping.reserve(layer_config_ranges.size() * 4);
     if (slicing_params.first_object_layer_height_fixed())
         ranges_non_overlapping.push_back(std::pair<t_layer_height_range,coordf_t>(
             t_layer_height_range(0., slicing_params.first_object_layer_height), 
             slicing_params.first_object_layer_height));
-    // The height ranges are sorted lexicographically by low / high layer boundaries.
+    // 高度范围按低/高层边界按字典序排序。
     for (t_layer_config_ranges::const_iterator it_range = layer_config_ranges.begin(); it_range != layer_config_ranges.end(); ++ it_range) {
         coordf_t lo = it_range->first.first;
         coordf_t hi = std::min(it_range->first.second, slicing_params.object_print_z_height());
         coordf_t height = it_range->second.option("layer_height")->getFloat();
         if (! ranges_non_overlapping.empty())
-            // Trim current low with the last high.
+            // 用上一个高端修剪当前低端。
             lo = std::max(lo, ranges_non_overlapping.back().first.second);
         if (lo + EPSILON < hi)
-            // Ignore too narrow ranges.
+            // 忽略过窄的范围。
             ranges_non_overlapping.push_back(std::pair<t_layer_height_range,coordf_t>(t_layer_height_range(lo, hi), height));
     }
 
-    // 2) Convert the trimmed ranges to a height profile, fill in the undefined intervals between z=0 and z=slicing_params.object_print_z_max()
-    // with slicing_params.layer_height
+    // 2) 将修剪后的范围转换为高度配置文件，填充 z=0 和 z=slicing_params.object_print_z_max() 之间未定义的间隔
+    // 使用 slicing_params.layer_height
     std::vector<coordf_t> layer_height_profile;
     auto last_z = [&layer_height_profile]() {
         return layer_height_profile.empty() ? 0. : *(layer_height_profile.end() - 2);
@@ -202,11 +202,11 @@ std::vector<coordf_t> layer_height_profile_from_ranges(
             bool last_h_matches = is_approx(layer_height_profile.back(), layer_height);
             if (last_h_matches) {
                 if (last_z_matches) {
-                    // Drop a duplicate.
+                    // 丢弃重复项。
                     return;
                 }
                 if (layer_height_profile.size() >= 4 && is_approx(*(layer_height_profile.end() - 3), layer_height)) {
-                    // Third repetition of the same layer_height. Update z of the last entry.
+                    // 同一层高的第三次重复。更新最后一条目的z值。
                     *(layer_height_profile.end() - 2) = z;
                     return;
                 }
@@ -221,17 +221,17 @@ std::vector<coordf_t> layer_height_profile_from_ranges(
         coordf_t hi = non_overlapping_range.first.second;
         coordf_t height = non_overlapping_range.second;
         if (coordf_t z = last_z(); lo > z + EPSILON) {
-            // Insert a step of normal layer height.
+            // 插入一个正常层高步骤。
             lh_append(z, slicing_params.layer_height);
             lh_append(lo, slicing_params.layer_height);
         }
-        // Insert a step of the overriden layer height.
+        // 插入一个覆盖层高步骤。
         lh_append(lo, height);
         lh_append(hi, height);
     }
 
     if (coordf_t z = last_z(); z < slicing_params.object_print_z_uncompensated_height()) {
-        // Insert a step of normal layer height up to the object top.
+        // 插入到对象顶部的正常层高步骤。
         lh_append(z, slicing_params.layer_height);
         lh_append(slicing_params.object_print_z_uncompensated_height(), slicing_params.layer_height);
     }
@@ -239,16 +239,16 @@ std::vector<coordf_t> layer_height_profile_from_ranges(
    	return layer_height_profile;
 }
 
-// Based on the work of @platsch
-// Fill layer_height_profile by heights ensuring a prescribed maximum cusp height.
+// 基于 @platsch 的工作
+// 通过确保预设的最大尖点高度来填充 layer_height_profile。
 std::vector<double> layer_height_profile_adaptive(const SlicingParameters& slicing_params, const ModelObject& object, float quality_factor)
 {
-    // 1) Initialize the SlicingAdaptive class with the object meshes.
+    // 1) 使用对象网格初始化 SlicingAdaptive 类。
     SlicingAdaptive as;
     as.set_slicing_parameters(slicing_params);
     as.prepare(object);
 
-    // 2) Generate layers using the algorithm of @platsch 
+    // 2) 使用 @platsch 的算法生成层
     std::vector<double> layer_height_profile;
     layer_height_profile.push_back(0.0);
     layer_height_profile.push_back(slicing_params.first_object_layer_height);
@@ -257,13 +257,13 @@ std::vector<double> layer_height_profile_adaptive(const SlicingParameters& slici
         layer_height_profile.push_back(slicing_params.first_object_layer_height);
     }
     double print_z = slicing_params.first_object_layer_height;
-    // last facet visited by the as.next_layer_height() function, where the facets are sorted by their increasing Z span.
+    // 由 as.next_layer_height() 函数访问的上一个面片，其中的面片按递增的Z跨度排序。
     size_t current_facet = 0;
-    // loop until we have at least one layer and the max slice_z reaches the object height
+    // 循环直到至少有一层且最大 slice_z 达到对象高度
     while (print_z + EPSILON < slicing_params.object_print_z_height()) {
         float height = slicing_params.max_layer_height;
         // Slic3r::debugf "\n Slice layer: %d\n", $id;
-        // determine next layer height
+        // 确定下一层层高
         float cusp_height = as.next_layer_height(float(print_z), quality_factor, current_facet);
 
 #if 0
@@ -293,7 +293,7 @@ std::vector<double> layer_height_profile_adaptive(const SlicingParameters& slici
 #endif
         height = std::min(cusp_height, height);
 
-        // apply z-gradation
+        // 应用Z梯度
         /*
         my $gradation = $self->config->get_value('adaptive_slicing_z_gradation');
         if($gradation > 0) {
@@ -301,7 +301,7 @@ std::vector<double> layer_height_profile_adaptive(const SlicingParameters& slici
         }
         */
     
-        // look for an applicable custom range
+        // 查找适用的自定义范围
         /*
         if (my $range = first { $_->[0] <= $print_z && $_->[1] > $print_z } @{$self->layer_height_ranges}) {
             $height = $range->[2];
@@ -313,7 +313,7 @@ std::vector<double> layer_height_profile_adaptive(const SlicingParameters& slici
             }
         }
         */
-        //BBS: avoid the layer height change to be too steep
+        //BBS: 避免层高变化过于剧烈
         if (layer_height_profile.back() < height && height - layer_height_profile.back() > LAYER_HEIGHT_CHANGE_STEP)
             height = layer_height_profile.back() + LAYER_HEIGHT_CHANGE_STEP;
         else if (layer_height_profile.back() > height && layer_height_profile.back() - height > LAYER_HEIGHT_CHANGE_STEP)
@@ -349,7 +349,7 @@ std::vector<double> smooth_height_profile(const std::vector<double>& profile, co
             std::vector<double> ret;
             ret.reserve(size);
 
-            // Reworked from static inline int getGaussianKernelSize(float sigma) taken from opencv-4.1.2\modules\features2d\src\kaze\AKAZEFeatures.cpp
+            // 从 opencv-4.1.2\modules\features2d\src\kaze\AKAZEFeatures.cpp 中的 static inline int getGaussianKernelSize(float sigma) 改编而来
             double sigma = 0.3 * (double)(radius - 1) + 0.8;
             double two_sq_sigma = 2.0 * sigma * sigma;
             double inv_root_two_pi_sq_sigma = 1.0 / ::sqrt(M_PI * two_sq_sigma);
@@ -363,10 +363,10 @@ std::vector<double> smooth_height_profile(const std::vector<double>& profile, co
             return ret;
         };
 
-        // skip first layer ?
+        // 跳过第一层？
         size_t skip_count = slicing_params.first_object_layer_height_fixed() ? 4 : 0;
 
-        // not enough data to smmoth
+        // 数据不足以进行平滑
         if ((int)profile.size() - (int)skip_count < 6)
             return profile;
         
@@ -378,7 +378,7 @@ std::vector<double> smooth_height_profile(const std::vector<double>& profile, co
         size_t size = profile.size();
         ret.reserve(size);
 
-        // leave first layer untouched
+        // 保留第一层不变
         for (size_t i = 0; i < skip_count; ++i)
         {
             ret.push_back(profile[i]);
@@ -760,7 +760,7 @@ std::vector<coordf_t> generate_object_layers(
     // Orca: XYZ shrinkage compensation
     const coordf_t shrinkage_compensation_z = slicing_params.object_shrinkage_compensation_z;
     size_t idx_layer_height_profile = 0;
-    // loop until we have at least one layer and the max slice_z reaches the object height
+    // 循环直到至少有一层且最大 slice_z 达到对象高度
     coordf_t slice_z = print_z + 0.5 * slicing_params.min_layer_height;
     while (slice_z < slicing_params.object_print_z_height()) {
         height = slicing_params.min_layer_height;

@@ -1,4 +1,4 @@
-#include "CustomGCode.hpp"
+﻿#include "CustomGCode.hpp"
 #include "Config.hpp"
 #include "GCode.hpp"
 #include "GCodeWriter.hpp"
@@ -7,18 +7,18 @@ namespace Slic3r {
 
 namespace CustomGCode {
 
-//BBS: useless config and function
+//BBS: 无用的配置和函数
 #if 0
-// If loaded configuration has a "colorprint_heights" option (if it was imported from older Slicer), 
-// and if CustomGCode::Info.gcodes is empty (there is no color print data available in a new format
-// then CustomGCode::Info.gcodes should be updated considering this option.
+// 如果加载的配置包含"colorprint_heights"选项（如果从旧版Slicer导入），
+// 并且 CustomGCode::Info.gcodes 为空（没有以新格式提供的颜色打印数据），
+// 则 CustomGCode::Info.gcodes 应根据此选项进行更新。
 extern void update_custom_gcode_per_print_z_from_config(Info& info, DynamicPrintConfig* config)
 {
 	auto *colorprint_heights = config->option<ConfigOptionFloats>("colorprint_heights");
     if (colorprint_heights == nullptr)
         return;
     if (info.gcodes.empty() && ! colorprint_heights->values.empty()) {
-		// Convert the old colorprint_heighs only if there is no equivalent data in a new format.
+		// 仅当没有新格式的等效数据时，才转换旧颜色打印高度。
         const std::vector<std::string>& colors = ColorPrintColors::get();
         const auto& colorprint_values = colorprint_heights->values;
         info.gcodes.clear();
@@ -36,8 +36,8 @@ extern void update_custom_gcode_per_print_z_from_config(Info& info, DynamicPrint
 }
 #endif
 
-// If information for custom Gcode per print Z was imported from older Slicer, mode will be undefined.
-// So, we should set CustomGCode::Info.mode should be updated considering code values from items.
+// 如果按打印高度自定义Gcode的信息是从旧版Slicer导入的，模式将是未定义的。
+// 因此，我们应根据项中的代码值更新 CustomGCode::Info.mode。
 extern void check_mode_for_custom_gcode_per_print_z(Info& info)
 {
     if (info.mode != Undef)
@@ -57,15 +57,14 @@ extern void check_mode_for_custom_gcode_per_print_z(Info& info)
     info.mode = is_single_extruder ? SingleExtruder : MultiExtruder;
 }
 
-// Return pairs of <print_z, 1-based filament ID> sorted by increasing print_z
-// from custom_gcode_per_print_z.
+// 返回按打印Z排序的<print_z, 1-based 耗材ID>对
+// 来自 custom_gcode_per_print_z。
 std::vector<std::pair<double, unsigned int>> custom_tool_changes(const Info& custom_gcode_per_print_z, size_t num_filaments)
 {
     std::vector<std::pair<double, unsigned int>> custom_tool_changes;
     for (const Item& custom_gcode : custom_gcode_per_print_z.gcodes)
         if (custom_gcode.type == ToolChange) {
-            // If available filament slots changed, fall back to filament 1 for
-            // stale IDs beyond the current physical+mixed range.
+            // 如果可用的耗材槽发生变化，对于超出当前物理+混合范围的过期ID，回退到耗材1。
             assert(custom_gcode.extruder >= 0);
             custom_tool_changes.emplace_back(custom_gcode.print_z, static_cast<unsigned int>(size_t(custom_gcode.extruder) > num_filaments ? 1 : custom_gcode.extruder));
         }

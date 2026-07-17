@@ -1,4 +1,4 @@
-#ifndef slic3r_Config_hpp_
+﻿#ifndef slic3r_Config_hpp_
 #define slic3r_Config_hpp_
 
 #include <assert.h>
@@ -69,7 +69,7 @@ namespace std {
 
 namespace Slic3r {
 
-// Name of the configuration option.
+// 配置选项的名称。
 typedef std::string                 t_config_option_key;
 typedef std::vector<std::string>    t_config_option_keys;
 
@@ -110,13 +110,13 @@ namespace ConfigHelpers {
     };
 };
 
-// Base for all exceptions thrown by the configuration layer.
+// 配置层抛出的所有异常的基类。
 class ConfigurationError : public Slic3r::RuntimeError {
 public:
     using RuntimeError::RuntimeError;
 };
 
-// Specialization of std::exception to indicate that an unknown config option has been encountered.
+// std::exception 的特化，指示遇到了未知的配置选项。
 class UnknownOptionException : public ConfigurationError {
 public:
     UnknownOptionException() :
@@ -125,7 +125,7 @@ public:
         ConfigurationError(std::string("Unknown option exception: ") + opt_key) {}
 };
 
-// Indicate that the ConfigBase derived class does not provide config definition (the method def() returns null).
+// 指示 ConfigBase 派生类未提供配置定义（方法 def() 返回 null）。
 class NoDefinitionException : public ConfigurationError
 {
 public:
@@ -135,7 +135,7 @@ public:
         ConfigurationError(std::string("No definition exception: ") + opt_key) {}
 };
 
-// Indicate that an unsupported accessor was called on a config option.
+// 指示对配置选项调用了不支持的访问器。
 class BadOptionTypeException : public ConfigurationError
 {
 public:
@@ -144,7 +144,7 @@ public:
     BadOptionTypeException(const char* message) : ConfigurationError(message) {}
 };
 
-// Indicate that an option has been deserialized from an invalid value.
+// 指示选项已从无效值反序列化。
 class BadOptionValueException : public ConfigurationError
 {
 public:
@@ -153,41 +153,41 @@ public:
     BadOptionValueException(const char* message) : ConfigurationError(message) {}
 };
 
-// Type of a configuration value.
+// 配置值的类型。
 enum ConfigOptionType {
     coVectorType    = 0x4000,
     coNone          = 0,
-    // single float
+    // 单个浮点数
     coFloat         = 1,
-    // vector of floats
+    // 浮点数向量
     coFloats        = coFloat + coVectorType,
-    // single int
+    // 单个整数
     coInt           = 2,
-    // vector of ints
+    // 整数向量
     coInts          = coInt + coVectorType,
-    // single string
+    // 单个字符串
     coString        = 3,
-    // vector of strings
+    // 字符串向量
     coStrings       = coString + coVectorType,
-    // percent value. Currently only used for infill.
+    // 百分比值。目前仅用于填充。
     coPercent       = 4,
-    // percents value. Currently used for retract before wipe only.
+    // 百分比值。目前仅用于擦拭前回抽。
     coPercents      = coPercent + coVectorType,
-    // a fraction or an absolute value
+    // 分数或绝对值
     coFloatOrPercent = 5,
-    // vector of the above
+    // 上述类型的向量
     coFloatsOrPercents = coFloatOrPercent + coVectorType,
-    // single 2d point (Point2f). Currently not used.
+    // 单个2D点（Point2f）。目前未使用。
     coPoint         = 6,
-    // vector of 2d points (Point2f). Currently used for the definition of the print bed and for the extruder offsets.
+    // 2D点向量（Point2f）。目前用于打印床定义和挤出机偏移。
     coPoints        = coPoint + coVectorType,
     coPoint3        = 7,
 //    coPoint3s       = coPoint3 + coVectorType,
-    // single boolean value
+    // 单个布尔值
     coBool          = 8,
-    // vector of boolean values
+    // 布尔值向量
     coBools         = coBool + coVectorType,
-    // a generic enum
+    // 通用枚举
     coEnum          = 9,
     // BBS: vector of enums
     coEnums         = coEnum + coVectorType,
@@ -201,13 +201,13 @@ enum ConfigOptionMode {
 
 enum PrinterTechnology : unsigned char
 {
-    // Fused Filament Fabrication
+    // 熔融沉积制造
     ptFFF,
-    // Stereolitography
+    // 立体光刻
     ptSLA,
-    // Unknown, useful for command line processing
+    // 未知，用于命令行处理
     ptUnknown,
-    // Any technology, useful for parameters compatible with both ptFFF and ptSLA
+    // 任何技术，用于与 ptFFF 和 ptSLA 兼容的参数
     ptAny
 };
 

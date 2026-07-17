@@ -24,16 +24,16 @@
 #include "FillRectilinear.hpp"
 #include "FillAdaptive.hpp"
 #include "FillLightning.hpp"
-// BBS: new infill pattern header
+// BBS: 新填充图案头文件
 #include "FillConcentricInternal.hpp"
 #include "FillCrossHatch.hpp"
 // #define INFILL_DEBUG_OUTPUT
 
 namespace Slic3r {
 
-//BBS: 0% of sparse_infill_line_width, no anchor at the start of sparse infill
+//BBS: 稀疏填充线宽的 0%，稀疏填充起始处无锚点
 float Fill::infill_anchor = 400;
-//BBS: 20mm
+//BBS: 20 毫米
 float Fill::infill_anchor_max = 20;
 
 Fill* Fill::new_from_type(const InfillPattern type)
@@ -62,12 +62,12 @@ Fill* Fill::new_from_type(const InfillPattern type)
     case ipOctagramSpiral:      return new FillOctagramSpiral();
     case ipAdaptiveCubic:       return new FillAdaptive::Filler();
     case ipSupportCubic:        return new FillAdaptive::Filler();
-    case ipSupportBase:         return new FillSupportBase();  // simply line fill
+    case ipSupportBase:         return new FillSupportBase();  // 简单的线条填充
     case ipLightning:           return new FillLightning::Filler();
-    // BBS: for internal solid infill only
+    // BBS: 仅用于内部实体填充
     case ipConcentricInternal:  return new FillConcentricInternal();
-    // BBS: for bottom and top surface only
-    // Orca: Replace BBS implementation with Prusa implementation
+    // BBS: 仅用于底部和顶部表面
+    // Orca: 用 Prusa 实现替换 BBS 实现
     case ipMonotonicLine:       return new FillMonotonicLines();
     case ipZigZag:              return new FillZigZag();
     case ipCrossZag:            return new FillCrossZag();
@@ -83,8 +83,8 @@ Fill* Fill::new_from_type(const std::string &type)
     return (it == enum_keys_map.end()) ? nullptr : new_from_type(InfillPattern(it->second));
 }
 
-// Force initialization of the Fill::use_bridge_flow() internal static map in a thread safe fashion even on compilers
-// not supporting thread safe non-static data member initializers.
+// 以线程安全的方式强制初始化 Fill::use_bridge_flow() 内部静态映射，
+// 即使在不支持线程安全的非静态数据成员初始化器的编译器上也是如此。
 static bool use_bridge_flow_initializer = Fill::use_bridge_flow(ipGrid);
 
 bool Fill::use_bridge_flow(const InfillPattern type)
@@ -103,9 +103,9 @@ bool Fill::use_bridge_flow(const InfillPattern type)
 
 Polylines Fill::fill_surface(const Surface *surface, const FillParams &params)
 {
-    // Perform offset.
+    // 执行偏移。
     Slic3r::ExPolygons expp = offset_ex(surface->expolygon, float(scale_(this->overlap - 0.5 * this->spacing)));
-    // Create the infills for each of the regions.
+    // 为每个区域创建填充。
     Polylines polylines_out;
     for (size_t i = 0; i < expp.size(); ++ i)
         _fill_surface_single(
@@ -119,16 +119,16 @@ Polylines Fill::fill_surface(const Surface *surface, const FillParams &params)
 
 ThickPolylines Fill::fill_surface_arachne(const Surface* surface, const FillParams& params)
 {
-    // Perform offset.
+    // 执行偏移。
     Slic3r::ExPolygons expp = offset_ex(surface->expolygon, float(scale_(this->overlap - 0.5 * this->spacing)));
-    // Create the infills for each of the regions.
+    // 为每个区域创建填充。
     ThickPolylines thick_polylines_out;
     for (ExPolygon& expoly : expp)
         _fill_surface_single(params, surface->thickness_layers, _infill_direction(surface), std::move(expoly), thick_polylines_out);
     return thick_polylines_out;
 }
 
-// BBS: this method is used to fill the ExtrusionEntityCollection. It call fill_surface by default
+// BBS: 此方法用于填充 ExtrusionEntityCollection。默认调用 fill_surface
 void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& params, ExtrusionEntitiesPtr& out)
 {
     Polylines polylines;
@@ -142,26 +142,24 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
     catch (InfillFailedException&) {}
 
     if (!polylines.empty() || !thick_polylines.empty()) {
-        // calculate actual flow from spacing (which might have been adjusted by the infill
-        // pattern generator)
+        // 根据间距计算实际流量（可能已由填充图案生成器调整）
         double flow_mm3_per_mm = params.flow.mm3_per_mm();
         double flow_width = params.flow.width();
         if (params.using_internal_flow) {
-            // if we used the internal flow we're not doing a solid infill
-            // so we can safely ignore the slight variation that might have
-            // been applied to f->spacing
+            // 如果我们使用了内部流量，则不是在进行实体填充
+            // 因此我们可以安全地忽略可能应用于 f->spacing 的微小变化
         }
         else {
             Flow new_flow = params.flow.with_spacing(this->spacing);
             flow_mm3_per_mm = new_flow.mm3_per_mm();
             flow_width = new_flow.width();
         }
-        // Save into layer.
+        // 保存到层。
         ExtrusionEntityCollection* eec = nullptr;
         out.push_back(eec = new ExtrusionEntityCollection());
-        // Only concentric fills are not sorted.
+        // 只有同心填充不被排序。
         eec->no_sort = this->no_sort();
-        // ORCA: special flag for flow rate calibration
+        // ORCA: 流量校准的特殊标志
         auto is_flow_calib = params.extrusion_role == erTopSolidInfill && this->print_object_config->has("calib_flowrate_topinfill_special_order") &&
                              this->print_object_config->option("calib_flowrate_topinfill_special_order")->getBool();
         if (is_flow_calib) {
@@ -184,19 +182,18 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
                 eec->entities[i]->set_reverse();
         }
 
-        // Orca: run gap fill
+        // Orca: 运行间隙填充
         this->_create_gap_fill(surface, params, eec);
     }
 }
 
-// Orca: Dedicated function to calculate gap fill lines for the provided surface, according to the print object parameters
-// and append them to the out ExtrusionEntityCollection.
+// Orca: 专用函数，根据打印对象参数计算提供的表面的间隙填充线，并将它们追加到输出 ExtrusionEntityCollection。
 void Fill::_create_gap_fill(const Surface* surface, const FillParams& params, ExtrusionEntityCollection* out){
 
-    //Orca: just to be safe, check against null pointer for the print object config and if NULL return.
+    //Orca: 为安全起见，检查打印对象配置的空指针，如果为 NULL 则返回。
     if (this->print_object_config == nullptr) return;
 
-    // Orca: Enable gap fill as per the user preference. Return early if gap fill is to not be applied.
+    // Orca: 根据用户偏好启用间隙填充。如果不应用间隙填充则提前返回。
     if ((this->print_object_config->gap_fill_target.value == gftNowhere) ||
         (surface->surface_type == stInternalSolid && this->print_object_config->gap_fill_target.value != gftEverywhere))
         return;

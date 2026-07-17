@@ -1,4 +1,4 @@
-// Needed since the CGAL headers are not self-contained.
+// CGAL头文件不自包含，因此需要此包含。
 #include <boost/next_prior.hpp>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Arr_segment_traits_2.h>
@@ -27,13 +27,13 @@ using PolygonsSegmentIndexConstIt = std::vector<Arachne::PolygonsSegmentIndex>::
 using LinesIt                     = Lines::iterator;
 using ColoredLinesConstIt         = ColoredLines::const_iterator;
 
-// Explicit template instantiation.
+// 显式模板实例化。
 template bool VoronoiUtilsCgal::is_voronoi_diagram_planar_angle(const VD &, LinesIt, LinesIt);
 template bool VoronoiUtilsCgal::is_voronoi_diagram_planar_angle(const VD &, VD::SegmentIt, VD::SegmentIt);
 template bool VoronoiUtilsCgal::is_voronoi_diagram_planar_angle(const VD &, ColoredLinesConstIt, ColoredLinesConstIt);
 template bool VoronoiUtilsCgal::is_voronoi_diagram_planar_angle(const VD &, PolygonsSegmentIndexConstIt, PolygonsSegmentIndexConstIt);
 
-// The tangent vector of the parabola is computed based on the Proof of the reflective property.
+// 抛物线的切向量基于反射性质的证明计算。
 // https://en.wikipedia.org/wiki/Parabola#Proof_of_the_reflective_property
 // https://math.stackexchange.com/q/2439647/2439663#comment5039739_2439663
 namespace impl {
@@ -46,14 +46,14 @@ namespace impl {
 
     template<typename K>
     inline typename K::Vector_2 calculate_parabolic_tangent_vector(
-        // Test point on the parabola, where the tangent will be calculated.
+        // 抛物线上的测试点，将在该点计算切线。
         const typename K::Point_2 &p,
-        // Focus point of the parabola.
+        // 抛物线的焦点。
         const typename K::Point_2 &f,
-        // Points of a directrix of the parabola.
+        // 抛物线的准线点。
         const typename K::Point_2 &u,
         const typename K::Point_2 &v,
-        // On which side of the parabolic segment endpoints the focus point is, which determines the orientation of the tangent.
+        // 焦点位于抛物线段端点的哪一侧，决定切线的方向。
         const typename K::Orientation &tangent_orientation)
     {
         using RT       = typename K::RT;
@@ -74,16 +74,16 @@ namespace impl {
         using result_type = typename K::Orientation;
 
         result_type operator()(
-            // Test point on the parabola, where the tangent will be calculated.
+            // 抛物线上的测试点，将在该点计算切线。
             const Point_2 &p,
-            // End of the linear segment (p, q), for which orientation towards the tangent to parabola will be evaluated.
+            // 线性线段(p, q)的端点，将评估其相对于抛物线切线的方向。
             const Point_2 &q,
-            // Focus point of the parabola.
+            // 抛物线的焦点。
             const Point_2 &f,
-            // Points of a directrix of the parabola.
+            // 抛物线的准线点。
             const Point_2 &u,
             const Point_2 &v,
-            // On which side of the parabolic segment endpoints the focus point is, which determines the orientation of the tangent.
+            // 焦点位于抛物线段端点的哪一侧，决定切线的方向。
             const Orientation &tangent_orientation) const
         {
             assert(tangent_orientation == CGAL::Orientation::LEFT_TURN || tangent_orientation == CGAL::Orientation::RIGHT_TURN);
@@ -103,21 +103,21 @@ namespace impl {
         using result_type = typename K::Orientation;
 
         result_type operator()(
-            // Common point on both parabolas, where the tangent will be calculated.
+            // 两条抛物线上的公共点，将在该点计算切线。
             const Point_2 &p,
-            // Focus point of the first parabola.
+            // 第一条抛物线的焦点。
             const Point_2 &f_0,
-            // Points of a directrix of the first parabola.
+            // 第一条抛物线的准线点。
             const Point_2 &u_0,
             const Point_2 &v_0,
-            // On which side of the parabolic segment endpoints the focus point is, which determines the orientation of the tangent.
+            // 焦点位于抛物线段端点的哪一侧，决定切线的方向。
             const Orientation &tangent_orientation_0,
-            // Focus point of the second parabola.
+            // 第二条抛物线的焦点。
             const Point_2 &f_1,
-            // Points of a directrix of the second parabola.
+            // 第二条抛物线的准线点。
             const Point_2 &u_1,
             const Point_2 &v_1,
-            // On which side of the parabolic segment endpoints the focus point is, which determines the orientation of the tangent.
+            // 焦点位于抛物线段端点的哪一侧，决定切线的方向。
             const Orientation &tangent_orientation_1) const
         {
             assert(tangent_orientation_0 == CGAL::Orientation::LEFT_TURN || tangent_orientation_0 == CGAL::Orientation::RIGHT_TURN);
@@ -151,7 +151,7 @@ inline Linef make_linef(const VD::edge_type &edge)
 
 [[maybe_unused]] inline bool is_equal(const VD::vertex_type &vertex_first, const VD::vertex_type &vertex_second) { return vertex_first.x() == vertex_second.x() && vertex_first.y() == vertex_second.y(); }
 
-// FIXME Lukas H.: Also includes parabolic segments.
+// FIXME Lukas H.: 也包括抛物线段。
 bool VoronoiUtilsCgal::is_voronoi_diagram_planar_intersection(const VD &voronoi_diagram)
 {
     using CGAL_E_Point   = CGAL::Exact_predicates_exact_constructions_kernel::Point_2;
@@ -189,9 +189,9 @@ struct ParabolicSegment
 {
     const Point focus;
     const Line  directrix;
-    // Two points on the parabola;
+    // 抛物线上的两个点；
     const Linef segment;
-    // Indicate if focus point is on the left side or right side relative to parabolic segment endpoints.
+    // 指示焦点相对于抛物线段端点是在左侧还是右侧。
     const CGAL::Orientation is_focus_on_left;
 };
 
@@ -277,18 +277,18 @@ check_if_three_edges_are_ccw(const VD::edge_type  &edge_first,
 
     CGAL::Orientation orientation = orientation_of_two_edges(edge_first, edge_second, segment_begin, segment_end);
     if (orientation == CGAL::Orientation::COLLINEAR) {
-        // The first two edges are collinear, so the third edge must be on the right side on the first of them.
+        // 前两条边共线，因此第三条边必须在第一条边的右侧。
         return orientation_of_two_edges(edge_first, edge_third, segment_begin, segment_end) == CGAL::Orientation::RIGHT_TURN;
     } else if (orientation == CGAL::Orientation::LEFT_TURN) {
-        // CCW oriented angle between vectors (common_pt, pt1) and (common_pt, pt2) is bellow PI.
-        // So we need to check if test_pt isn't between them.
+        // 向量(common_pt, pt1)和(common_pt, pt2)之间的CCW方向角小于PI。
+        // 因此我们需要检查test_pt是否不在它们之间。
         CGAL::Orientation orientation1 = orientation_of_two_edges(edge_first, edge_third, segment_begin, segment_end);
         CGAL::Orientation orientation2 = orientation_of_two_edges(edge_second, edge_third, segment_begin, segment_end);
         return (orientation1 != CGAL::Orientation::LEFT_TURN || orientation2 != CGAL::Orientation::RIGHT_TURN);
     } else {
         assert(orientation == CGAL::Orientation::RIGHT_TURN);
-        // CCW oriented angle between vectors (common_pt, pt1) and (common_pt, pt2) is upper PI.
-        // So we need to check if test_pt is between them.
+        // 向量(common_pt, pt1)和(common_pt, pt2)之间的CCW方向角大于PI。
+        // 因此我们需要检查test_pt是否在它们之间。
         CGAL::Orientation orientation1 = orientation_of_two_edges(edge_first, edge_third, segment_begin, segment_end);
         CGAL::Orientation orientation2 = orientation_of_two_edges(edge_second, edge_third, segment_begin, segment_end);
         return (orientation1 == CGAL::Orientation::RIGHT_TURN || orientation2 == CGAL::Orientation::LEFT_TURN);
@@ -315,7 +315,7 @@ VoronoiUtilsCgal::is_voronoi_diagram_planar_angle(const VD             &voronoi_
             edge = edge->rot_next();
         } while (edge != vertex.incident_edge());
 
-        // Checking for CCW make sense for three and more edges.
+        // 检查CCW方向对于三条及以上边有意义。
         if (edges.size() > 2) {
             for (auto edge_it = edges.begin() ; edge_it != edges.end(); ++edge_it) {
                 const VD::edge_type *prev_edge = edge_it == edges.begin() ? edges.back() : *std::prev(edge_it);

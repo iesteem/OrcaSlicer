@@ -16,10 +16,9 @@ inline Polygons get_contours(const ExPolygons &poly)
 
 using ThrowOnCancel = std::function<void()>;
 
-/// A fake concave hull that is constructed by connecting separate shapes
-/// with explicit bridges. Bridges are generated from each shape's centroid
-/// to the center of the "scene" which is the centroid calculated from the shape
-/// centroids (a star is created...)
+/// 一种伪凹包，通过显式桥接连接分离的形状来构造。
+/// 桥接从每个形状的质心生成到"场景"的中心，该中心是根据形状质心
+/// 计算得到的质心（形成一个星形...）
 class ConcaveHull {
     Polygons m_polys;
 

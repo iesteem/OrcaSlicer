@@ -48,7 +48,7 @@ inline CGALMeshPtr triangle_mesh_to_cgal(const TriangleMesh &M)
 TriangleMesh cgal_to_triangle_mesh(const CGALMesh &cgalmesh);
 indexed_triangle_set cgal_to_indexed_triangle_set(const CGALMesh &cgalmesh);
 
-// Do boolean mesh difference with CGAL bypassing igl.
+// 使用 CGAL 执行布尔网格差运算，绕过 igl。
 void minus(TriangleMesh &A, const TriangleMesh &B);
 void plus(TriangleMesh &A, const TriangleMesh &B);
 void intersect(TriangleMesh &A, const TriangleMesh &B);
@@ -84,15 +84,15 @@ bool empty(const McutMesh &mesh);
 McutMeshPtr  triangle_mesh_to_mcut(const indexed_triangle_set &M);
 TriangleMesh mcut_to_triangle_mesh(const McutMesh &mcutmesh);
 
-// do boolean and save result to srcMesh
-// return true if sucessful
+// 执行布尔运算并将结果保存到 srcMesh
+// 如果成功返回 true
 bool do_boolean_single(McutMesh& srcMesh, const McutMesh& cutMesh, const std::string& boolean_opts);
-// do boolean of mesh with multiple volumes and save result to srcMesh
-// Both srcMesh and cutMesh may have multiple volumes.
+// 对具有多个体积的网格执行布尔运算并将结果保存到 srcMesh
+// srcMesh 和 cutMesh 都可能具有多个体积。
 void do_boolean(McutMesh &srcMesh, const McutMesh &cutMesh, const std::string &boolean_opts);
 
 
-// do boolean and convert result to TriangleMesh
+// 执行布尔运算并将结果转换为 TriangleMesh
 void make_boolean(const TriangleMesh &src_mesh, const TriangleMesh &cut_mesh, std::vector<TriangleMesh> &dst_mesh, const std::string &boolean_opts);
 } // namespace mcut
 

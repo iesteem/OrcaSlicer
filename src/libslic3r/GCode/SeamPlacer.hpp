@@ -38,23 +38,23 @@ enum class EnforcedBlockedSeamPoint {
   Enforced = 2,
 };
 
-// struct representing single perimeter loop
+// 表示单个周长环的结构
 struct Perimeter {
   size_t start_index{};
-  size_t end_index{}; //inclusive!
+  size_t end_index{}; //包含！
   size_t seam_index{};
   float flow_width{};
 
-  // During alignment, a final position may be stored here. In that case, finalized is set to true.
-  // Note that final seam position is not limited to points of the perimeter loop. In theory it can be any position
-  // Random position also uses this flexibility to set final seam point position
+  // 在对齐期间，最终位置可以存储在此处。在这种情况下，finalized设置为true。
+  // 注意，最终接缝位置不限于周长环的点。理论上它可以是任何位置。
+  // 随机位置也使用此灵活性来设置最终接缝点位置
   bool finalized = false;
   Vec3f final_seam_position = Vec3f::Zero();
 };
 
-//Struct over which all processing of perimeters is done. For each perimeter point, its respective candidate is created,
-// then all the needed attributes are computed and finally, for each perimeter one point is chosen as seam.
-// This seam position can be then further aligned
+// 所有周长处理都在此结构上进行。对于每个周长点，创建其对应的候选点，
+// 然后计算所有需要的属性，最后为每个周长选择一个点作为接缝。
+// 此接缝位置可以进一步对齐
 struct SeamCandidate {
   SeamCandidate(const Vec3f &pos, Perimeter &perimeter,
                 float local_ccw_angle,
@@ -63,17 +63,17 @@ struct SeamCandidate {
                                                                                                                                                      local_ccw_angle), type(type), central_enforcer(false) {
   }
   const Vec3f position;
-  // pointer to Perimeter loop of this point. It is shared across all points of the loop
+  // 指向此点所在Perimeter环的指针。由环的所有点共享
   Perimeter &perimeter;
   float visibility;
   float overhang;
   float unsupported_dist;
-  // distance inside the merged layer regions, for detecting perimeter points which are hidden indside the print (e.g. multimaterial join)
-  // Negative sign means inside the print, comes from EdgeGrid structure
+  // 合并层区域内的距离，用于检测隐藏在打印内部的周长点（例如多材料连接）
+  // 负号表示在打印内部，来自EdgeGrid结构
   float embedded_distance;
   float local_ccw_angle;
   EnforcedBlockedSeamPoint type;
-  bool central_enforcer; //marks this candidate as central point of enforced segment on the perimeter - important for alignment
+  bool central_enforcer; //将此候选标记为周长上强制段的中点 - 对对齐很重要
 };
 
 struct SeamCandidateCoordinateFunctor {
@@ -97,10 +97,10 @@ struct PrintObjectSeamData
     std::vector<SeamPlacerImpl::SeamCandidate> points;
     std::unique_ptr<SeamCandidatesTree> points_tree;
   };
-  // Map of PrintObjects (PO) -> vector of layers of PO -> vector of perimeter
+  // PrintObjects (PO)的映射 -> PO的层向量 -> 周长向量
   std::vector<LayerSeams> layers;
-  // Map of PrintObjects (PO) -> vector of layers of PO -> unique_ptr to KD
-  // tree of all points of the given layer
+  // PrintObjects (PO)的映射 -> PO的层向量 -> 唯一指针指向KD树
+  // 包含给定层的所有点
 
   void clear()
   {
@@ -110,35 +110,35 @@ struct PrintObjectSeamData
 
 class SeamPlacer {
 public:
-  // Number of samples generated on the mesh. There are sqr_rays_per_sample_point*sqr_rays_per_sample_point rays casted from each samples
+  // 在网格上生成的样本数。每个样本有sqr_rays_per_sample_point*sqr_rays_per_sample_point条射线投射
   static constexpr size_t raycasting_visibility_samples_count = 30000;
   static constexpr size_t fast_decimation_triangle_count_target = 16000;
-  //square of number of rays per sample point
+  //每个样本点的射线数平方
   static constexpr size_t sqr_rays_per_sample_point = 5;
 
-  // snapping angle - angles larger than this value will be snapped to during seam painting
+  // 吸附角度 - 大于此值的角度将在接缝绘制期间被吸附
   static constexpr float sharp_angle_snapping_threshold = 55.0f * float(PI) / 180.0f;
-  // overhang angle for seam placement that still yields good results, in degrees, measured from vertical direction
+  // 仍能产生良好结果的接缝放置悬垂角度，以度为单位，从垂直方向测量
   static constexpr float overhang_angle_threshold = 45.0f * float(PI) / 180.0f;
 
-  // determines angle importance compared to visibility ( neutral value is 1.0f. )
+  // 确定角度与可见性相比的重要性（中性值为1.0f。）
   static constexpr float angle_importance_aligned = 0.6f;
-  static constexpr float angle_importance_nearest = 1.0f; // use much higher angle importance for nearest mode, to combat the visibility info noise
+  static constexpr float angle_importance_nearest = 1.0f; // 对最近模式使用更高的角度重要性，以对抗可见性信息噪声
 
-  // For long polygon sides, if they are close to the custom seam drawings, they are oversampled with this step size
+  // 对于长多边形边，如果它们靠近自定义接缝绘制，则使用此步长进行过采样
   static constexpr float enforcer_oversampling_distance = 0.2f;
 
-  // When searching for seam clusters for alignment:
-  // following value describes, how much worse score can point have and still be picked into seam cluster instead of original seam point on the same layer
+  // 在搜索接缝簇进行对齐时：
+  // 以下值描述了一个点可以有多差的分值，但仍然可以被选入接缝簇而不是同一层上的原始接缝点
   static constexpr float seam_align_score_tolerance = 0.3f;
-  // seam_align_tolerable_dist_factor - how far to search for seam from current position, final dist is seam_align_tolerable_dist_factor * flow_width
+  // seam_align_tolerable_dist_factor - 从当前位置搜索接缝的距离，最终距离为seam_align_tolerable_dist_factor * flow_width
   static constexpr float seam_align_tolerable_dist_factor = 4.0f;
-  // minimum number of seams needed in cluster to make alignment happen
+  // 使对齐发生所需的簇中最小接缝数
   static constexpr size_t seam_align_minimum_string_seams = 6;
-  // millimeters covered by spline; determines number of splines for the given string
+  // 每个段覆盖的毫米数；确定给定字符串的样条数
   static constexpr size_t seam_align_mm_per_segment = 4.0f;
 
-  //The following data structures hold all perimeter points for all PrintObject.
+  //以下数据结构包含所有PrintObject的所有周长点。
   std::unordered_map<const PrintObject*, PrintObjectSeamData> m_seam_per_object;
 
   void init(const Print &print, std::function<void(void)> throw_if_canceled_func);

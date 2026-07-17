@@ -348,7 +348,7 @@ static const t_config_enum_values s_keys_map_BrimType = {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(BrimType)
 
-// using 0,1 to compatible with old files
+// 使用 0,1 以兼容旧文件
 static const t_config_enum_values s_keys_map_TimelapseType = {
     {"0",       tlTraditional},
     {"1",       tlSmooth}
@@ -399,8 +399,8 @@ static const t_config_enum_values s_keys_map_BedType = {
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(BedType)
 
 namespace {
-// Two keys map to btGESP; enum_names_from_keys_map assigns the lexicographically last key to names[btGESP].
-// Force the canonical string used by serialize() / 3MF export.
+// 两个键映射到 btGESP；enum_names_from_keys_map 按字典序将最后一个键分配给 names[btGESP]。
+// 强制使用 serialize() / 3MF 导出所使用的规范字符串。
 struct BedTypeGespCanonicalSerializeName
 {
     BedTypeGespCanonicalSerializeName()
@@ -516,7 +516,7 @@ void PrintConfigDef::init_common_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPoints{ Vec2d(0, 0), Vec2d(200, 0), Vec2d(200, 200), Vec2d(0, 200) });
 
-    //BBS: add "bed_exclude_area"
+    //BBS: 添加 "bed_exclude_area"
     def = this->add("bed_exclude_area", coPoints);
     def->label = L("Bed exclude area");
     def->tooltip = L("Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. "
@@ -693,7 +693,7 @@ void PrintConfigDef::init_fff_params()
 {
     ConfigOptionDef* def;
 
-    // Maximum extruder temperature, bumped to 1500 to support printing of glass.
+    // 最大挤出机温度，提升至 1500 以支持玻璃打印。
     const int max_temp = 1500;
 
     def = this->add("reduce_crossing_wall", coBool);
@@ -860,7 +860,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Bed types supported by the printer.");
     def->mode = comSimple;
     def->enum_keys_map = &s_keys_map_BedType;
-    // Orca: make sure the order of the values is the same as the BedType enum 
+    // Orca: 确保值的顺序与 BedType 枚举相同
     def->enum_values.emplace_back("Cool Plate");
     def->enum_values.emplace_back("Engineering Plate");
     def->enum_values.emplace_back("High Temp Plate");
@@ -897,8 +897,8 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels_ex.emplace_back(L("Graphic Effect Plate"));
     def->set_default_value(new ConfigOptionEnum<BedType>(btPC));
 
-    // Orca: allow profile maker to set default bed type in machine profile
-    // This option won't be shown in the UI
+    // Orca: 允许配置文件制作者在机器配置文件中设置默认热床类型
+    // 此选项不会在 UI 中显示
     def = this->add("default_bed_type", coString);
     def->label = L("Default bed type");
     def->tooltip = L("Default bed type for the printer (supports both numeric and string format).");
@@ -1448,7 +1448,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionStrings());
     def->cli = ConfigOptionDef::nocli;
 
-    //BBS: add logic for checking between different system presets
+    //BBS: 添加检查不同系统预设之间的逻辑
     def = this->add("different_settings_to_system", coStrings);
     def->set_default_value(new ConfigOptionStrings());
     def->cli = ConfigOptionDef::nocli;
@@ -1950,7 +1950,7 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0.02 });
     
-    // Orca: Adaptive pressure advance option and calibration values
+    // Orca: 自适应压力提前选项和校准值
     def = this->add("adaptive_pressure_advance", coBools);
     def->label = L("Enable adaptive pressure advance (beta)");
     // xgettext:no-c-format, no-boost-format
@@ -1966,7 +1966,7 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBools{ false });
 
-    // Orca: Adaptive pressure advance option and calibration values
+    // Orca: 自适应压力提前选项和校准值
     def = this->add("adaptive_pressure_advance_model", coStrings);
     def->label = L("Adaptive pressure advance measurements (beta)");
     // xgettext:no-c-format, no-boost-format
@@ -2432,7 +2432,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_settings_id", coStrings);
     def->set_default_value(new ConfigOptionStrings { "" });
-    //BBS: open this option to command line
+    //BBS: 向命令行开放此选项
     //def->cli = ConfigOptionDef::nocli;
 
     def = this->add("filament_ids", coStrings);
@@ -3186,7 +3186,7 @@ void PrintConfigDef::init_fff_params()
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
-    // Orca: may remove this option later
+    // Orca: 以后可能会移除这个选项
     def =this->add("support_chamber_temp_control",coBool);
     def->label=L("Support control chamber temperature");
     def->tooltip=L("This option is enabled if machine support controlling chamber temperature\nG-code command: M141 S(0-255)");
@@ -4401,12 +4401,12 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("print_settings_id", coString);
     def->set_default_value(new ConfigOptionString());
-    //BBS: open this option to command line
+    //BBS: 向命令行开放此选项
     //def->cli = ConfigOptionDef::nocli;
 
     def = this->add("printer_settings_id", coString);
     def->set_default_value(new ConfigOptionString());
-    //BBS: open this option to command line
+    //BBS: 向命令行开放此选项
     //def->cli = ConfigOptionDef::nocli;
 
     def = this->add("raft_contact_distance", coFloat);
@@ -4444,7 +4444,7 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = "mm";	// milimeters, don't need translation
     def->min = 0;
     def->mode = comAdvanced;
-    //BBS: change from 3.0 to 2.0
+    //BBS: 从 3.0 改为 2.0
     def->set_default_value(new ConfigOptionFloat(2.0));
 
     def = this->add("raft_layers", coInt);
@@ -5189,7 +5189,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(0));
     
     def = this->add("enable_support", coBool);
-    //BBS: remove material behind support
+    //BBS: 移除支撑后面的材料
     def->label = L("Enable support");
     def->category = L("Support");
     def->tooltip = L("Enable support generation.");
@@ -6395,7 +6395,7 @@ void PrintConfigDef::init_fff_params()
         def->enum_values   = it_opt->second.enum_values;
         def->min        = it_opt->second.min;
         def->max        = it_opt->second.max;
-        //BBS: shown specific filament retract config because we hide the machine retract into comDevelop mode
+        //BBS: 显示特定的耗材回退配置，因为我们将机器回退隐藏到 comDevelop 模式中
         if ((strcmp(opt_key, "retraction_length") == 0) ||
             (strcmp(opt_key, "z_hop") == 0)||
             (strcmp(opt_key, "long_retractions_when_cut") == 0)||
@@ -7132,7 +7132,7 @@ void PrintConfigDef::init_sla_params()
 
 void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &value)
 {
-    //BBS: handle legacy options
+    //BBS: 处理遗留选项
     if (opt_key == "enable_wipe_tower") {
         opt_key = "enable_prime_tower";
     } else if (opt_key == "wipe_tower_width") {
@@ -7168,7 +7168,7 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
                 opt_key == "support_interface_speed"      ||
                 opt_key == "outer_wall_speed"             ||
                 opt_key == "support_object_xy_distance")     && value.find("%") != std::string::npos) {
-        //BBS: this is old profile in which value is expressed as percentage.
+        //BBS: 这是旧配置文件，其中值以百分比表示。
         //But now these key-value must be absolute value.
         //Reset to default value by erasing these key to avoid parsing error.
         opt_key = "";
@@ -7295,7 +7295,7 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
 
 // Called after a config is loaded as a whole.
 // Perform composite conversions, for example merging multiple keys into one key.
-// Don't convert single options here, implement such conversion in PrintConfigDef::handle_legacy() instead.
+// 不要在此处转换单个选项，请在 PrintConfigDef::handle_legacy() 中实现此类转换。
 void PrintConfigDef::handle_legacy_composite(DynamicPrintConfig &config)
 {
     if (config.has("thumbnails")) {
@@ -7327,8 +7327,8 @@ void PrintConfigDef::handle_legacy_composite(DynamicPrintConfig &config)
     }
 
     if (config.has("wiping_volumes_matrix") && !config.has("wiping_volumes_use_custom_matrix")) {
-        // This is apparently some pre-2.7.3 config, where the wiping_volumes_matrix was always used.
-        // The 2.7.3 introduced an option to use defaults derived from config. In case the matrix
+        // 这似乎是某些 2.7.3 之前的配置，其中始终使用 wiping_volumes_matrix。
+        // 2.7.3 引入了一个选项，可以使用从配置派生的默认值。如果矩阵
         // contains only default values, switch it to default behaviour. The default values
         // were zeros on the diagonal and 140 otherwise.
         std::vector<double> matrix = config.opt<ConfigOptionFloats>("wiping_volumes_matrix")->values;
@@ -7375,7 +7375,7 @@ double min_object_distance(const ConfigBase &cfg)
     if (printer_technology == ptSLA)
         ret = 6.;
     else {
-        //BBS: duplicate_distance seam to be useless
+        //BBS: duplicate_distance 接缝已无用
         constexpr double duplicate_distance = 6.;
         auto ecr_opt = cfg.option<ConfigOptionFloat>("extruder_clearance_radius");
         auto co_opt  = cfg.option<ConfigOptionEnum<PrintSequence>>("print_sequence");
@@ -7626,7 +7626,7 @@ void DynamicPrintConfig::set_num_filaments(unsigned int num_filaments)
     }
 }
 
-//BBS: pass map to recording all invalid valies
+//BBS: 传递映射以记录所有无效值
 std::map<std::string, std::string> DynamicPrintConfig::validate(bool under_cli)
 {
     // Full print config is initialized from the defaults.
@@ -7637,7 +7637,7 @@ std::map<std::string, std::string> DynamicPrintConfig::validate(bool under_cli)
     {
         FullPrintConfig fpc;
         fpc.apply(*this, true);
-        // Verify this print options through the FullPrintConfig.
+        // 通过 FullPrintConfig 验证此打印选项。
         return Slic3r::validate(fpc, under_cli);
     }
     default:
@@ -7723,7 +7723,7 @@ bool DynamicPrintConfig::is_custom_defined()
     return false;
 }
 
-//BBS: pass map to recording all invalid valies
+//BBS: 传递映射以记录所有无效值
 //FIXME localize this function.
 std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool under_cli)
 {
@@ -7965,7 +7965,7 @@ PRINT_CONFIG_CACHE_INITIALIZE((
     SLAMaterialConfig, SLAPrintConfig, SLAPrintObjectConfig, SLAPrinterConfig, SLAFullPrintConfig))
 static int print_config_static_initialized = print_config_static_initializer();
 
-//BBS: remove unused command currently
+//BBS: 当前移除未使用的命令
 CLIActionsConfigDef::CLIActionsConfigDef()
 {
     ConfigOptionDef* def;
@@ -8126,12 +8126,12 @@ CLIActionsConfigDef::CLIActionsConfigDef()
     def->set_default_value(new ConfigOptionString());
 }
 
-//BBS: remove unused command currently
+//BBS: 当前移除未使用的命令
 CLITransformConfigDef::CLITransformConfigDef()
 {
     ConfigOptionDef* def;
 
-    // Transform options:
+    // 变换选项：
     /*def = this->add("align_xy", coPoint);
     def->label = L("Align XY");
     def->tooltip = L("Align the model to the given point.");
@@ -8456,7 +8456,7 @@ void DynamicPrintAndCLIConfig::handle_legacy(t_config_option_key &opt_key, std::
 // SlicingStatesConfigDefs
 
 // Create a new config definition with a label and tooltip
-// Note: the L() macro is already used for LABEL and TOOLTIP
+// 注意：L() 宏已经用于 LABEL 和 TOOLTIP
 #define new_def(OPT_KEY, TYPE, LABEL, TOOLTIP) \
         def = this->add(OPT_KEY, TYPE); \
         def->label = L(LABEL); \

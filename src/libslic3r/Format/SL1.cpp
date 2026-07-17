@@ -30,16 +30,16 @@ namespace marchsq {
 template<> struct _RasterTraits<Slic3r::png::ImageGreyscale> {
     using Rst = Slic3r::png::ImageGreyscale;
 
-    // The type of pixel cell in the raster
+    // 光栅中像素单元的类型
     using ValueType = uint8_t;
 
-    // Value at a given position
+    // 给定位置的值
     static uint8_t get(const Rst &rst, size_t row, size_t col)
     {
         return rst.get(row, col);
     }
 
-    // Number of rows and cols of the raster
+    // 光栅的行数和列数
     static size_t rows(const Rst &rst) { return rst.rows; }
     static size_t cols(const Rst &rst) { return rst.cols; }
 };
@@ -92,7 +92,7 @@ ArchiveData extract_sla_archive(const std::string &zipfname,
 {
     ArchiveData arch;
 
-    // Little RAII
+    // 轻量级RAII
     struct Arch: public MZ_Archive {
         Arch(const std::string &fname) {
             if (!open_zip_reader(&arch, fname))
@@ -148,7 +148,7 @@ ExPolygons rings_to_expolygons(const std::vector<marchsq::Ring> &rings,
         polys.emplace_back(poly);
     }
 
-    // TODO: Is a union necessary?
+    // TODO: 是否需要union？
     return union_ex(polys);
 }
 
@@ -186,10 +186,10 @@ void invert_raster_trafo(ExPolygons &                  expolys,
 }
 
 struct RasterParams {
-    sla::RasterBase::Trafo trafo; // Raster transformations
-    coord_t        width, height; // scaled raster dimensions (not resolution)
-    double         px_h, px_w;    // pixel dimesions
-    marchsq::Coord win;           // marching squares window size
+    sla::RasterBase::Trafo trafo; // 光栅变换
+    coord_t        width, height; // 缩放后的光栅尺寸（非分辨率）
+    double         px_h, px_w;    // 像素尺寸
+    marchsq::Coord win;           // 行进正方形窗口大小
 };
 
 RasterParams get_raster_params(const DynamicPrintConfig &cfg)
@@ -254,7 +254,7 @@ std::vector<ExPolygons> extract_slices_from_sla_archive(
 
     tbb::parallel_for(size_t(0), arch.images.size(),
                      [&arch, &slices, &st, &rstp, progr](size_t i) {
-        // Status indication guarded with the spinlock
+        // 受自旋锁保护的状态指示
         {
             std::lock_guard<tbb::spin_mutex> lck(st.mutex);
             if (st.stop) return;
@@ -275,7 +275,7 @@ std::vector<ExPolygons> extract_slices_from_sla_archive(
         auto rings = marchsq::execute(img, isoval, rstp.win);
         ExPolygons expolys = rings_to_expolygons(rings, rstp.px_w, rstp.px_h);
 
-        // Invert the raster transformations indicated in the profile metadata
+        // 反转配置文件中指示的光栅变换
         invert_raster_trafo(expolys, rstp.trafo, rstp.width, rstp.height);
 
         slices[i] = std::move(expolys);
@@ -294,9 +294,9 @@ ConfigSubstitutions import_sla_archive(const std::string &zipfname, DynamicPrint
     return out.load(arch.profile, ForwardCompatibilitySubstitutionRule::Enable);
 }
 
-// If the profile is missing from the archive (older PS versions did not have
-// it), profile_out's initial value will be used as fallback. profile_out will be empty on
-// function return if the archive did not contain any profile.
+// 如果存档中缺少配置文件（旧版PS版本没有配置文件），
+// 将使用profile_out的初始值作为回退。如果存档不包含任何配置文件，
+// 函数返回时profile_out将为空。
 ConfigSubstitutions import_sla_archive(
     const std::string &      zipfname,
     Vec2i32                    windowsize,
@@ -304,7 +304,7 @@ ConfigSubstitutions import_sla_archive(
     DynamicPrintConfig &     profile_out,
     std::function<bool(int)> progr)
 {
-    // Ensure minimum window size for marching squares
+    // 确保行进正方形的最小窗口大小
     windowsize.x() = std::max(2, windowsize.x());
     windowsize.y() = std::max(2, windowsize.y());
 
@@ -315,9 +315,8 @@ ConfigSubstitutions import_sla_archive(
         profile_in.load(arch.profile,
                         ForwardCompatibilitySubstitutionRule::Enable);
 
-    if (profile_in.empty()) { // missing profile... do guess work
-        // try to recover the layer height from the config.ini which was
-        // present in all versions of sl1 files.
+    if (profile_in.empty()) { // 缺少配置文件...进行猜测工作
+        // 尝试从所有版本sl1文件都包含的config.ini中恢复层高
         if (auto lh_opt = arch.config.find("layerHeight");
             lh_opt != arch.config.not_found())
         {
@@ -325,15 +324,15 @@ ConfigSubstitutions import_sla_archive(
 
             size_t pos;
             double lh = string_to_double_decimal_point(lh_str, &pos);
-            if (pos) { // TODO: verify that pos is 0 when parsing fails
+            if (pos) { // TODO: 验证解析失败时pos是否为0
                 profile_out.set("layer_height", lh);
                 profile_out.set("initial_layer_height", lh);
             }
         }
     }
 
-    // If the archive contains an empty profile, use the one that was passed as output argument
-    // then replace it with the readed profile to report that it was empty.
+    // 如果存档包含空配置文件，则使用作为输出参数传递的配置文件，
+    // 然后将其替换为读取的配置文件以报告其为空。
     profile_use = profile_in.empty() ? profile_out : profile_in;
     profile_out = profile_in;
 
@@ -377,7 +376,7 @@ std::string get_cfg_value(const DynamicPrintConfig &cfg, const std::string &key)
 
 void fill_iniconf(ConfMap &m, const SLAPrint &print)
 {
-    CNumericLocalesSetter locales_setter; // for to_string
+    CNumericLocalesSetter locales_setter; // 用于to_string
     auto &cfg = print.full_print_config();
     m["layerHeight"]    = get_cfg_value(cfg, "layer_height");
     m["expTime"]        = get_cfg_value(cfg, "exposure_time");
@@ -392,7 +391,7 @@ void fill_iniconf(ConfMap &m, const SLAPrint &print)
     m["prusaSlicerVersion"]    = SLIC3R_BUILD_ID;
     
     SLAPrintStatistics stats = print.print_statistics();
-    // Set statistics values to the printer
+    // 将统计数据设置到打印机
     
     double used_material = (stats.objects_used_material +
                             stats.support_used_material) / 1000;
@@ -420,7 +419,7 @@ void fill_slicerconf(ConfMap &m, const SLAPrint &print)
 {
     using namespace std::literals::string_view_literals;
     
-    // Sorted list of config keys, which shall not be stored into the ini.
+    // 不应存储到ini文件中的配置键的排序列表。
     static constexpr auto banned_keys = { 
 		"compatible_printers"sv,
         "compatible_prints"sv
@@ -510,7 +509,7 @@ void SL1Archive::export_print(Zipper& zipper,
         }
     } catch(std::exception& e) {
         BOOST_LOG_TRIVIAL(error) << e.what();
-        // Rethrow the exception
+        // 重新抛出异常
         throw;
     }
 }

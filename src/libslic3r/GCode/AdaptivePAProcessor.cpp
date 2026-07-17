@@ -1,7 +1,7 @@
 // AdaptivePAProcessor.cpp
 // Snapmaker_Orca
 //
-// Implementation of the AdaptivePAProcessor class, responsible for processing G-code layers with adaptive pressure advance.
+// AdaptivePAProcessor类的实现，负责处理带有自适应压力提前的G-code层。
 
 #include "../GCode.hpp"
 #include "AdaptivePAProcessor.hpp"
@@ -12,13 +12,13 @@
 namespace Slic3r {
 
 /**
- * @brief Constructor for AdaptivePAProcessor.
+ * @brief AdaptivePAProcessor的构造函数。
  *
- * This constructor initializes the AdaptivePAProcessor with a reference to a GCode object.
- * It also initializes the configuration reference, pressure advance interpolation object,
- * and regular expression patterns used for processing the G-code.
+ * 此构造函数使用GCode对象的引用初始化AdaptivePAProcessor。
+ * 它还初始化配置引用、压力提前插值对象
+ * 以及用于处理G-code的正则表达式模式。
  *
- * @param gcodegen A reference to the GCode object that generates the G-code.
+ * @param gcodegen 生成G-code的GCode对象引用。
  */
 AdaptivePAProcessor::AdaptivePAProcessor(GCode &gcodegen, const std::vector<unsigned int> &tools_used)
     : m_gcodegen(gcodegen),
@@ -31,37 +31,37 @@ AdaptivePAProcessor::AdaptivePAProcessor(GCode &gcodegen, const std::vector<unsi
       m_pa_change_pattern(R"(; PA_CHANGE:T(\d+) MM3MM:([0-9]*\.[0-9]+) ACCEL:(\d+) BR:(\d+) RC:(\d+) OV:(\d+))"),
       m_g1_f_pattern(R"(G1 F([0-9]+))")
 {
-    // Constructor body can be used for further initialization if necessary
+    // 构造函数体可用于进一步的初始化（如有必要）
     for (unsigned int tool : tools_used) {
-        // Only enable model for the tool if both PA and adaptive PA options are enabled
+        // 仅当PA和自适应PA选项都启用时才为该工具启用模型
         if(m_config.adaptive_pressure_advance.get_at(tool) && m_config.enable_pressure_advance.get_at(tool)){
             auto interpolator = std::make_unique<AdaptivePAInterpolator>();
-            // Get calibration values from extruder
+            // 从挤出机获取校准值
             std::string pa_calibration_values = m_config.adaptive_pressure_advance_model.get_at(tool);
-            // Setup the model and store it in the tool-interpolation model map
+            // 设置模型并将其存储在工具-插值模型映射中
             interpolator->parseAndSetData(pa_calibration_values);
             m_AdaptivePAInterpolators[tool] = std::move(interpolator);
         }
     }
 }
 
-// Method to get the interpolator for a specific tool ID
+// 获取特定工具ID的插值器的方法
 AdaptivePAInterpolator* AdaptivePAProcessor::getInterpolator(unsigned int tool_id) {
     auto it = m_AdaptivePAInterpolators.find(tool_id);
     if (it != m_AdaptivePAInterpolators.end()) {
         return it->second.get();
     }
-    return nullptr;  // Handle the case where the tool_id was not found
+    return nullptr;  // 处理未找到tool_id的情况
 }
 
 /**
- * @brief Processes a layer of G-code and applies adaptive pressure advance.
+ * @brief 处理一层G-code并应用自适应压力提前。
  *
- * This method processes the G-code for a single layer, identifying the appropriate
- * pressure advance settings and applying them based on the current state and configurations.
+ * 此方法处理单层的G-code，识别适当的
+ * 压力提前设置并基于当前状态和配置应用它们。
  *
- * @param gcode A string containing the G-code for the layer.
- * @return A string containing the processed G-code with adaptive pressure advance applied.
+ * @param gcode 包含该层G-code的字符串。
+ * @return 包含已应用自适应压力提前的处理后G-code的字符串。
  */
 std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
     std::istringstream stream(gcode);
@@ -72,40 +72,40 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
     std::string pa_change_line;
     bool wipe_command = false;
 
-    // Iterate through each line of the layer G-code
+    // 遍历该层G-code的每一行
     while (std::getline(stream, line)) {
-        
-        // If a wipe start command is found, ignore all speed changes till the wipe end part is found
+
+        // 如果找到擦拭开始命令，忽略所有速度变化直到找到擦拭结束部分
         if (line.find("WIPE_START") != std::string::npos) {
             wipe_command = true;
         }
-                
-        // Update current feed rate (this is preceding an extrude or wipe command only). Ignore any speed changes that are emitted during a wipe move.
-        // Travel feedrate is output as part of a G1 X Y (Z) F command
-        if ( (line.find("G1 F") == 0) && (!wipe_command) ) { // prune lines quickly before running pattern matching
+
+        // 更新当前进给率（这位于挤出或擦拭命令之前）。忽略擦拭移动期间发出的任何速度变化。
+        // 移动进给率作为G1 X Y (Z) F命令的一部分输出
+        if ( (line.find("G1 F") == 0) && (!wipe_command) ) { // 在运行正则匹配前快速过滤行
             std::size_t pos = line.find('F');
             if (pos != std::string::npos){
-                m_current_feedrate = std::stod(line.substr(pos + 1)) / 60.0; // Convert from mm/min to mm/s
+                m_current_feedrate = std::stod(line.substr(pos + 1)) / 60.0; // 从mm/min转换为mm/s
             }
         }
-        
-        // Wipe end found, continue searching for current feed rate.
+
+        // 找到擦拭结束，继续搜索当前进给率。
         if (line.find("WIPE_END") != std::string::npos) {
             wipe_command = false;
         }
-        
-        // Reset next feedrate to zero enable searching for the first encountered
-        // feedrate change command after the PA change tag.
+
+        // 将下一个进给率重置为零，以便在PA更改标签后
+        // 搜索遇到的第一个进给率变化命令。
         m_next_feedrate = 0;
-        
-        // Check for PA_CHANGE pattern in the line
-        // We will only find this pattern for extruders where adaptive PA is enabled.
-        // If there is mixed extruders in the layer (i.e. with adaptive PA on and off
-        // this will only update the extruders where the adaptive PA is enabled
-        // as these are the only ones where the PA pattern is output
-        // For a mixed extruder layer with both adaptive PA enabled and disabled when the new tool is selected
-        // the PA for that material is set. As no tag below will be found for this extruder, the original PA is retained.
-        if (line.find("; PA_CHANGE") == 0) { // prune lines quickly before running regex check as regex is more expensive to run
+
+        // 检查行中是否有PA_CHANGE模式
+        // 我们只会为启用了自适应PA的挤出机找到此模式。
+        // 如果层中有混合的挤出机（即自适应PA打开和关闭），
+        // 这只会更新启用了自适应PA的挤出机，
+        // 因为只有这些挤出机才会输出PA模式。
+        // 对于启用了和禁用了自适应PA的混合挤出机层，当选择新工具时，
+        // 会设置该材料的PA。由于下面找不到该挤出机的标签，将保留原始PA。
+        if (line.find("; PA_CHANGE") == 0) { // 在运行更昂贵的正则检查前快速过滤行
             if (std::regex_search(line, m_match, m_pa_change_pattern)) {
                 int extruder_id = std::stoi(m_match[1].str());
                 mm3mm_value = std::stod(m_match[2].str());
@@ -113,168 +113,167 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
                 int isBridge = std::stoi(m_match[4].str());
                 int roleChange = std::stoi(m_match[5].str());
                 int isOverhang = std::stoi(m_match[6].str());
-                
-                // Check if the extruder ID has changed
+
+                // 检查挤出机ID是否已更改
                 bool extruder_changed = (extruder_id != m_last_extruder_id);
                 m_last_extruder_id = extruder_id;
-                
-                // Save the PA_CHANGE line to output later after finding feedrate
+
+                // 保存PA_CHANGE行以便在找到进给率后输出
                 pa_change_line = line;
-                
-                // Look ahead for feedrate before any line containing both G and E commands
+
+                // 在包含G和E命令的任何行之前向前查找进给率
                 std::streampos current_pos = stream.tellg();
                 std::string next_line;
                 double temp_feed_rate = 0;
                 bool extrude_move_found = false;
                 int line_counter = 0;
-                
-                // Carry on searching on the layer gcode lines to find the print speed
-                // If a G1 Fxxxx pattern is found, the new speed is identified
-                // Carry on searching for feedrates to find the maximum print speed
-                // until a feature change pattern or a wipe command is detected
+
+                // 在层的G-code行上继续搜索以找到打印速度
+                // 如果找到G1 Fxxxx模式，则识别新速度
+                // 继续搜索进给率以找到最大打印速度
+                // 直到检测到特征变化模式或擦拭命令
                 while (std::getline(stream, next_line)) {
                     line_counter++;
-                    // Found an extrude move, set extrude move found flag and move to the next line
+                    // 找到挤出移动，设置挤出移动找到标志并移动到下一行
                     if ((!extrude_move_found) && next_line.find("G1 ") == 0 &&
                         next_line.find('X') != std::string::npos &&
                         next_line.find('Y') != std::string::npos &&
                         next_line.find('E') != std::string::npos) {
-                        // Pattern matched, break the loop
+                        // 模式匹配，跳出循环
                         extrude_move_found = true;
                         continue;
                     }
-                    
-                    // Found a travel move after we've found at least one extrude move
-                    // We now need to stop searching for speeds as we're done printing this island
+
+                    // 在找到至少一个挤出移动后找到移动移动
+                    // 现在需要停止搜索速度，因为我们完成了此岛的打印
                     if (next_line.find("G1 ") == 0 &&
-                        next_line.find('X') != std::string::npos && // X is present
-                        next_line.find('Y') != std::string::npos && // Y is present
-                        next_line.find('E') == std::string::npos && // no "E" present
-                        extrude_move_found) {                       // An extrude move has happened already
-                        // First travel move after extrude move found. Stop searching
+                        next_line.find('X') != std::string::npos && // X存在
+                        next_line.find('Y') != std::string::npos && // Y存在
+                        next_line.find('E') == std::string::npos && // 没有"E"
+                        extrude_move_found) {                       // 已经发生了挤出移动
+                        // 找到挤出移动后的第一个移动移动。停止搜索。
                         break;
                     }
-                    
-                    // Found a WIPE command
-                    // If we have a wipe command, usually the wipe speed is different (larger) than the max print speed
-                    // for that feature. So stop searching if a wipe command is found because we do not want to overwrite the
-                    // speed used for PA calculation by the Wipe speed.
+
+                    // 找到WIPE命令
+                    // 如果有擦拭命令，通常擦拭速度与最大打印速度不同（更大）
+                    // 因此如果找到擦拭命令就停止搜索，因为我们不想
+                    // 用擦拭速度覆盖用于PA计算的速度。
                     if (next_line.find("WIPE") != std::string::npos) {
-                        break; // Stop searching if wipe command is found
+                        break; // 如果找到擦拭命令则停止搜索
                     }
-                    
-                    // Found another PA_CHANGE pattern
-                    // If RC = 1, it means we have a role change, so stop trying to find the max speed for the feature.
-                    // This is possibly redundant as a new feature would always have a travel move preceding it
-                    // but check anyway. However check last so to not invoke it without reason...
-                    if (next_line.find("; PA_CHANGE") == 0) { // prune lines quickly before running pattern matching
+
+                    // 找到另一个PA_CHANGE模式
+                    // 如果RC=1，表示有角色变化，所以停止尝试为该特征找到最大速度。
+                    // 这可能有些冗余，因为新特征之前总会有移动移动，
+                    // 但还是检查一下。不过最后检查以免无理由调用它...
+                    if (next_line.find("; PA_CHANGE") == 0) { // 在运行模式匹配前快速过滤行
                         std::size_t rc_pos = next_line.rfind("RC:");
                         if (rc_pos != std::string::npos) {
                             int rc_value = std::stoi(next_line.substr(rc_pos + 3));
                             if (rc_value == 1) {
-                                break; // Role change found, stop searching
+                                break; // 找到角色变化，停止搜索
                             }
                         }
                     }
-                    
-                    // Found a Feedrate change command
-                    // If the new feedrate is greater than any feedrate encountered so far after the PA change command, use that to calculate the PA value
-                    // Also if this is the first feedrate we encounter, store it as the next feedrate.
-                    if (next_line.find("G1 F") == 0) { // prune lines quickly before running pattern matching
+
+                    // 找到进给率变化命令
+                    // 如果新进给率大于PA更改命令后遇到的任何进给率，则使用它来计算PA值
+                    // 如果这是我们遇到的第一个进给率，将其存储为下一个进给率。
+                    if (next_line.find("G1 F") == 0) { // 在运行模式匹配前快速过滤行
                         std::size_t pos = next_line.find('F');
                         if (pos != std::string::npos) {
-                            double feedrate = std::stod(next_line.substr(pos + 1)) / 60.0; // Convert from mm/min to mm/s
-                            if(line_counter==1){ // this is the first command after the PA change pattern, and hence before any extrusion has happened. Reset
-                                                // the current speed to this one
+                            double feedrate = std::stod(next_line.substr(pos + 1)) / 60.0; // 从mm/min转换为mm/s
+                            if(line_counter==1){ // 这是PA更改模式后的第一个命令，因此在任何挤出之前。将当前速度重置为此速度
                                 m_current_feedrate = feedrate;
                             }
                             if (temp_feed_rate < feedrate) {
                                 temp_feed_rate = feedrate;
                             }
-                            if(m_next_feedrate < EPSILON){ // This the first feedrate found after the PA Change command
+                            if(m_next_feedrate < EPSILON){ // 这是PA更改命令后找到的第一个进给率
                                 m_next_feedrate = feedrate;
                             }
                         }
                         continue;
                     }
                 }
-                
-                // If we found a new maximum feedrate after the PA change command, use it
+
+                // 如果在PA更改命令后找到新的最大进给率，使用它
                 if (temp_feed_rate > 0) {
                     m_max_next_feedrate = temp_feed_rate;
-                } else // If we didnt find a new feedrate at all after the PA change command, use the current feedrate.
+                } else // 如果在PA更改命令后根本没有找到新的进给率，使用当前进给率。
                     m_max_next_feedrate = m_current_feedrate;
-                
-                // Restore stream position
+
+                // 恢复流位置
                 stream.clear();
                 stream.seekg(current_pos);
-                
-                // Calculate the predicted PA using the upcomming feature maximum feedrate
-                // Get the interpolator for the active tool
+
+                // 使用即将到来的特征的最大进给率计算预测PA
+                // 获取活动工具的插值器
                 AdaptivePAInterpolator* interpolator = getInterpolator(m_last_extruder_id);
-                
+
                 double predicted_pa = 0;
                 double adaptive_PA_speed = 0;
-            
-                if(!interpolator){ // Tool not found in the interpolator map
-                    // Tool not found in the PA interpolator to tool map
+
+                if(!interpolator){ // 在插值器映射中未找到工具
+                    // 工具未在PA插值器到工具映射中找到
                     predicted_pa = m_config.enable_pressure_advance.get_at(m_last_extruder_id) ? m_config.pressure_advance.get_at(m_last_extruder_id) : 0;
-                    if(m_config.gcode_comments) output << "; APA: Tool doesnt have APA enabled\n";
+                    if(m_config.gcode_comments) output << "; APA: 工具没有启用APA\n";
                 } else if (!interpolator->isInitialised() || (!m_config.adaptive_pressure_advance.get_at(m_last_extruder_id)) )
-                    // Check if the model is not initialised by the constructor for the active extruder
-                    // Also check that adaptive PA is enabled for that extruder. This should not be needed
-                    // as the PA change flag should not be set upstream (in the GCode.cpp file) if adaptive PA is disabled
-                    // however check for robustness sake.
+                    // 检查模型是否未被活动挤出机的构造函数初始化
+                    // 也检查自适应PA是否已为该挤出机启用。这应该不需要，
+                    // 因为如果自适应PA被禁用，PA更改标志不应该在上游（在GCode.cpp文件中）设置，
+                    // 但为了健壮性还是检查一下。
                 {
-                    // Model failed or adaptive pressure advance not enabled - use default value from m_config
+                    // 模型失败或自适应压力提前未启用 - 使用m_config中的默认值
                     predicted_pa = m_config.enable_pressure_advance.get_at(m_last_extruder_id) ? m_config.pressure_advance.get_at(m_last_extruder_id) : 0;
-                    if(m_config.gcode_comments) output << "; APA: Interpolator setup failed, using default pressure advance\n";
-                } else { // Model setup succeeded
-                    // Proceed to identify the print speed to use to calculate the adaptive PA value
-                    if(isOverhang > 0){  // If we are in an overhang area, use the minimum between current print speed
-                                        // and any speed immediately after
-                                        // In most cases the current speed is the minimum one;
-                                        // however if slowdown for layer cooling is enabled, the overhang
-                                        // may be slowed down more than the current speed.
+                    if(m_config.gcode_comments) output << "; APA: 插值器设置失败，使用默认压力提前\n";
+                } else { // 模型设置成功
+                    // 继续识别用于计算自适应PA值的打印速度
+                    if(isOverhang > 0){  // 如果我们在悬垂区域，使用当前打印速度和
+                                        // 之后任何速度中的最小值
+                                        // 在大多数情况下，当前速度是最小值；
+                                        // 但是如果启用层冷却减速，悬垂
+                                        // 可能比当前速度减速更多。
                         adaptive_PA_speed = (m_current_feedrate == 0 || m_next_feedrate == 0) ?
                                                 std::max(m_current_feedrate, m_next_feedrate) :
                                                 std::min(m_current_feedrate, m_next_feedrate);
-                    }else{                // If this is not an overhang area, use the maximum speed from the current and
-                                          // upcomming speeds for the island.
+                    }else{                // 如果不是悬垂区域，使用当前速度和
+                                          // 即将到来的岛的速度中的最大值。
                         adaptive_PA_speed = std::max(m_max_next_feedrate,m_current_feedrate);
                     }
-                    
-                    // Calculate the adaptive PA value
+
+                    // 计算自适应PA值
                     predicted_pa = (*interpolator)(mm3mm_value * adaptive_PA_speed, accel_value);
-                    
-                    // This is a bridge, use the dedicated PA setting.
+
+                    // 这是桥接，使用专用的PA设置。
                     if(isBridge && m_config.adaptive_pressure_advance_bridges.get_at(m_last_extruder_id) > EPSILON)
                         predicted_pa = m_config.adaptive_pressure_advance_bridges.get_at(m_last_extruder_id);
-                    
-                    if (predicted_pa < 0) { // If extrapolation fails, fall back to the default PA for the extruder.
+
+                    if (predicted_pa < 0) { // 如果外推失败，回退到挤出机的默认PA。
                         predicted_pa = m_config.enable_pressure_advance.get_at(m_last_extruder_id) ? m_config.pressure_advance.get_at(m_last_extruder_id) : 0;
-                        if(m_config.gcode_comments) output << "; APA: Interpolation failed, using fallback pressure advance value\n";
+                        if(m_config.gcode_comments) output << "; APA: 插值失败，使用回退压力提前值\n";
                     }
                 }
                 if(m_config.gcode_comments) {
-                    // Output debug GCode comments
-                    output << pa_change_line << '\n'; // Output PA change command tag
+                    // 输出调试G-code注释
+                    output << pa_change_line << '\n'; // 输出PA更改命令标签
                     if(isBridge && m_config.adaptive_pressure_advance_bridges.get_at(m_last_extruder_id) > EPSILON)
-                        output << "; APA Model Override (bridge)\n";
-                    output << "; APA Current Speed: " << std::to_string(m_current_feedrate) << "\n";
-                    output << "; APA Next Speed: " << std::to_string(m_next_feedrate) << "\n";
-                    output << "; APA Max Next Speed: " << std::to_string(m_max_next_feedrate) << "\n";
-                    output << "; APA Speed Used: " << std::to_string(adaptive_PA_speed) << "\n";
-                    output << "; APA Flow rate: " << std::to_string(mm3mm_value * m_max_next_feedrate) << "\n";
-                    output << "; APA Prev PA: " << std::to_string(m_last_predicted_pa) << " New PA: " << std::to_string(predicted_pa) << "\n"; 
+                        output << "; APA 模型覆盖（桥接）\n";
+                    output << "; APA 当前速度: " << std::to_string(m_current_feedrate) << "\n";
+                    output << "; APA 下一个速度: " << std::to_string(m_next_feedrate) << "\n";
+                    output << "; APA 最大下一个速度: " << std::to_string(m_max_next_feedrate) << "\n";
+                    output << "; APA 使用的速度: " << std::to_string(adaptive_PA_speed) << "\n";
+                    output << "; APA 流量: " << std::to_string(mm3mm_value * m_max_next_feedrate) << "\n";
+                    output << "; APA 上一个PA: " << std::to_string(m_last_predicted_pa) << " 新PA: " << std::to_string(predicted_pa) << "\n";
                 }
                 if (extruder_changed || std::fabs(predicted_pa - m_last_predicted_pa) > EPSILON) {
-                    output << m_gcodegen.writer().set_pressure_advance(predicted_pa); // Use m_writer to set pressure advance
-                    m_last_predicted_pa = predicted_pa; // Update the last predicted PA value
+                    output << m_gcodegen.writer().set_pressure_advance(predicted_pa); // 使用m_writer设置压力提前
+                    m_last_predicted_pa = predicted_pa; // 更新上次预测的PA值
                 }
             }
         }else {
-            // Output the current line as this isn't a PA change tag
+            // 输出当前行，因为这不是PA更改标签
             output << line << '\n';
         }
     }

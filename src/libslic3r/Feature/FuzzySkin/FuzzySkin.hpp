@@ -1,4 +1,4 @@
-#ifndef libslic3r_FuzzySkin_hpp_
+﻿﻿#ifndef libslic3r_FuzzySkin_hpp_
 #define libslic3r_FuzzySkin_hpp_
 
 #include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"

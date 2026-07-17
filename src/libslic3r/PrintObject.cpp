@@ -44,7 +44,7 @@ using namespace std::literals;
 // #define PRINT_OBJECT_TIMING
 
 #ifdef PRINT_OBJECT_TIMING
-    // time limit for one ClipperLib operation (union / diff / offset), in ms
+    // 一次 ClipperLib 操作（union / diff / offset）的时间限制，单位毫秒
     #define PRINT_OBJECT_TIME_LIMIT_DEFAULT 50
     #include <boost/current_function.hpp>
     #include "Timer.hpp"
@@ -60,7 +60,7 @@ using namespace std::literals;
 #endif
 
 // #define SLIC3R_DEBUG
-// Make assert active if SLIC3R_DEBUG
+// 如果定义了 SLIC3R_DEBUG，则激活 assert
 #ifdef SLIC3R_DEBUG
     #undef NDEBUG
     #define DEBUG
@@ -72,24 +72,24 @@ using namespace std::literals;
 
 namespace Slic3r {
 
-// Constructor is called from the main thread, therefore all Model / ModelObject / ModelIntance data are valid.
+// 构造函数从主线程调用，因此所有 Model / ModelObject / ModelIntance 数据都是有效的。
 PrintObject::PrintObject(Print* print, ModelObject* model_object, const Transform3d& trafo, PrintInstances&& instances) :
     PrintObjectBaseWithState(print, model_object),
     m_trafo(trafo),
     // BBS
     m_tree_support_preview_cache(nullptr)
 {
-    // Compute centering offet to be applied to our meshes so that we work with smaller coordinates
-    // requiring less bits to represent Clipper coordinates.
+    // 计算要应用于网格的居中偏移，以便我们使用更小的坐标，
+    // 从而需要更少的位数来表示 Clipper 坐标。
 
-	// Snug bounding box of a rotated and scaled object by the 1st instantion, without the instance translation applied.
-	// All the instances share the transformation matrix with the exception of translation in XY and rotation by Z,
-	// therefore a bounding box from 1st instance of a ModelObject is good enough for calculating the object center,
-	// snug height and an approximate bounding box in XY.
+	// 第一个实例的旋转和缩放物体的贴合边界框，不应用实例平移。
+	// 所有实例共享变换矩阵，除了 XY 平移和 Z 旋转，
+	// 因此来自 ModelObject 第一个实例的边界框足以计算物体中心、
+	// 贴合高度和 XY 中的近似边界框。
     BoundingBoxf3  bbox        = model_object->raw_bounding_box();
     Vec3d 		   bbox_center = bbox.center();
     
-	// We may need to rotate the bbox / bbox_center from the original instance to the current instance.
+	// 我们可能需要将 bbox / bbox_center 从原始实例旋转到当前实例。
 	double z_diff = Geometry::rotation_diff_z(model_object->instances.front()->get_rotation(), instances.front().model_instance->get_rotation());
 	if (std::abs(z_diff) > EPSILON) {
 		auto z_rot  = Eigen::AngleAxisd(z_diff, Vec3d::UnitZ());
@@ -97,9 +97,9 @@ PrintObject::PrintObject(Print* print, ModelObject* model_object, const Transfor
 		bbox_center = (z_rot * bbox_center).eval();
 	}
 
-    // Center of the transformed mesh (without translation).
+    // 变换后网格的中心（无平移）。
     m_center_offset = Point::new_scale(bbox_center.x(), bbox_center.y());
-    // Size of the transformed mesh. This bounding may not be snug in XY plane, but it is snug in Z.
+    // 变换后网格的大小。此边界在 XY 平面中可能不贴合，但在 Z 方向上是贴合的。
     m_size = (bbox.size() * (1. / SCALING_FACTOR)).cast<coord_t>();
     m_max_z = scaled(model_object->instance_bounding_box(0).max(2));
 
@@ -319,7 +319,7 @@ void PrintObject::make_perimeters()
     // hollow objects
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
         const PrintRegion &region = this->printing_region(region_id);
-        //BBS: remove extra_perimeters, always false
+        //BBS: 移除 extra_perimeters，始终为 false
         //if (! region.config().extra_perimeters || region.config().wall_loops == 0 || region.config().sparse_infill_density == 0 || this->layer_count() < 2)
             continue;
 
@@ -450,11 +450,11 @@ void PrintObject::prepare_infill()
     // Detect, which fill surfaces are near external layers.
     // They will be split in internal and internal-solid surfaces.
     // The purpose is to add a configurable number of solid layers to support the TOP surfaces
-    // and to add a configurable number of solid layers above the BOTTOM / BOTTOMBRIDGE surfaces
-    // to close these surfaces reliably.
-    //FIXME Vojtech: Is this a good place to add supporting infills below sloping perimeters?
-    // Orca: Brought this function call before the process_external_surfaces, to allow bridges over holes to expand more than
-    // one perimeter. Example of this is the bridge over the benchy lettering.
+    // 并在 BOTTOM / BOTTOMBRIDGE 表面之上添加可配置数量的实体层，
+    // 以可靠地封闭这些表面。
+    //FIXME Vojtech: 这是在倾斜周长下方添加支撑填充的好地方吗？
+    // Orca: 将此函数调用移到 process_external_surfaces 之前，以允许孔洞上的桥接扩展超过
+    // 一个周长。例如 benchy 字样上的桥接。
     this->discover_horizontal_shells();
     m_print->throw_if_canceled();
 
@@ -468,19 +468,19 @@ void PrintObject::prepare_infill()
     } // for each region
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
-    // this will detect bridges and reverse bridges
-    // and rearrange top/bottom/internal surfaces
-    // It produces enlarged overlapping bridging areas.
+    // 这将检测桥接和反向桥接，
+    // 并重新排列顶部/底部/内部表面。
+    // 它会产生放大的重叠桥接区域。
     //
-    // 1) stBottomBridge / stBottom infill is grown by 3mm and clipped by the total infill area. Bridges are detected. The areas may overlap.
-    // 2) stTop is grown by 3mm and clipped by the grown bottom areas. The areas may overlap.
-    // 3) Clip the internal surfaces by the grown top/bottom surfaces.
-    // 4) Merge surfaces with the same style. This will mostly get rid of the overlaps.
-    //FIXME This does not likely merge surfaces, which are supported by a material with different colors, but same properties.
+    // 1) stBottomBridge / stBottom 填充向外扩展 3mm 并由总填充区域裁剪。检测桥接。区域可能重叠。
+    // 2) stTop 向外扩展 3mm 并由扩展后的底部区域裁剪。区域可能重叠。
+    // 3) 通过扩展后的顶部/底部表面裁剪内部表面。
+    // 4) 合并具有相同样式的表面。这将基本消除重叠。
+    //FIXME 这不太可能合并由不同颜色但相同属性的材料支持的表面。
     this->process_external_surfaces();
     m_print->throw_if_canceled();
 
-    // Debugging output.
+    // 调试输出。
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
         for (const Layer *layer : m_layers) {
@@ -491,12 +491,12 @@ void PrintObject::prepare_infill()
     } // for each region
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
-    // Only active if config->infill_only_where_needed. This step trims the sparse infill,
-    // so it acts as an internal support. It maintains all other infill types intact.
-    // Here the internal surfaces and perimeters have to be supported by the sparse infill.
-    //FIXME The surfaces are supported by a sparse infill, but the sparse infill is only as large as the area to support.
-    // Likely the sparse infill will not be anchored correctly, so it will not work as intended.
-    // Also one wishes the perimeters to be supported by a full infill.
+    // 仅在 config->infill_only_where_needed 时激活。此步骤修剪稀疏填充，
+    // 使其充当内部支撑。它保持所有其他填充类型不变。
+    // 这里内部表面和周长必须由稀疏填充支撑。
+    //FIXME 表面由稀疏填充支撑，但稀疏填充只与要支撑的区域一样大。
+    // 可能稀疏填充无法正确锚定，因此无法按预期工作。
+    // 同时也希望周长由完全填充支撑。
     this->clip_fill_surfaces();
     m_print->throw_if_canceled();
 
@@ -699,7 +699,7 @@ void PrintObject::simplify_extrusion_path()
     if (this->set_started(posSimplifyPath)) {
         m_print->set_status(75, L("Optimizing toolpath"));
         BOOST_LOG_TRIVIAL(debug) << "Simplify extrusion path of object in parallel - start";
-        //BBS: infill and walls
+        //BBS: 填充和墙壁
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, m_layers.size()),
             [this](const tbb::blocked_range<size_t>& range) {
@@ -717,7 +717,7 @@ void PrintObject::simplify_extrusion_path()
     if (this->set_started(posSimplifyInfill)) {
         m_print->set_status(75, L("Optimizing toolpath"));
         BOOST_LOG_TRIVIAL(debug) << "Simplify infill extrusion path of object in parallel - start";
-        //BBS: infills
+        //BBS: 填充
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, m_layers.size()),
             [this](const tbb::blocked_range<size_t>& range) {
@@ -1135,12 +1135,11 @@ bool PrintObject::invalidate_state_by_config_options(
                    || opt_key == "skin_infill_depth") {
             steps.emplace_back(posPrepareInfill);
         } else if (opt_key == "sparse_infill_density") {
-            // One likely wants to reslice only when switching between zero infill to simulate boolean difference (subtracting volumes),
-            // normal infill and 100% (solid) infill.
+            // 通常只希望在零填充（模拟布尔差集，减去体积）、普通填充和 100%（实体）填充之间切换时重新切片。
             const auto *old_density = old_config.option<ConfigOptionPercent>(opt_key);
             const auto *new_density = new_config.option<ConfigOptionPercent>(opt_key);
             assert(old_density && new_density);
-            //FIXME Vojtech is not quite sure about the 100% here, maybe it is not needed.
+            //FIXME Vojtech 不太确定这里的 100%，可能不需要。
             if (is_approx(old_density->value, 0.) || is_approx(old_density->value, 100.) ||
                 is_approx(new_density->value, 0.) || is_approx(new_density->value, 100.))
                 steps.emplace_back(posPerimeters);
@@ -1379,7 +1378,7 @@ void PrintObject::detect_surfaces_type()
                     Surfaces bottom;
                     if (lower_layer) {
 #if 0
-                        //FIXME Why is this branch failing t\multi.t ?
+                        //FIXME 为什么这个分支会导致 t\multi.t 测试失败？
                         Polygons lower_slices = interface_shells ?
                             to_polygons(lower_layer->get_region(region_id)->slices.surfaces) :
                             to_polygons(lower_layer->slices);
@@ -1753,7 +1752,7 @@ void PrintObject::discover_vertical_shells()
             // The "ensure vertical wall thickness" feature is not applicable to any of the regions. Quit.
             return;
         BOOST_LOG_TRIVIAL(debug) << "Discovering vertical shells in parallel - start : cache top / bottom";
-        //FIXME Improve the heuristics for a grain size.
+        //FIXME 改进颗粒大小的启发式算法。
         size_t grain_size = std::max(num_layers / 16, size_t(1));
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, num_layers, grain_size),
@@ -1826,7 +1825,7 @@ void PrintObject::discover_vertical_shells()
             // This region will be handled by discover_horizontal_shells().
             continue;
 
-        //FIXME Improve the heuristics for a grain size.
+        //FIXME 改进颗粒大小的启发式算法。
         size_t grain_size = std::max(num_layers / 16, size_t(1));
 
         if (! top_bottom_surfaces_all_regions) {
@@ -3326,7 +3325,7 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
 						object_extruders);
 		}
     sort_remove_duplicates(object_extruders);
-    //FIXME add painting extruders
+    //FIXME 添加涂色挤出机
 
     if (object_max_z <= 0.f)
         object_max_z = (float)model_object.raw_bounding_box().size().z();
@@ -3962,14 +3961,14 @@ Points PrintObject::get_instances_shift_without_plate_offset()
     return out;
 }
 
-// Only active if config->infill_only_where_needed. This step trims the sparse infill,
-// so it acts as an internal support. It maintains all other infill types intact.
-// Here the internal surfaces and perimeters have to be supported by the sparse infill.
-//FIXME The surfaces are supported by a sparse infill, but the sparse infill is only as large as the area to support.
-// Likely the sparse infill will not be anchored correctly, so it will not work as intended.
-// Also one wishes the perimeters to be supported by a full infill.
-// Idempotence of this method is guaranteed by the fact that we don't remove things from
-// fill_surfaces but we only turn them into VOID surfaces, thus preserving the boundaries.
+// 仅在 config->infill_only_where_needed 时激活。此步骤修剪稀疏填充，
+// 使其充当内部支撑。它保持所有其他填充类型不变。
+// 这里内部表面和周长必须由稀疏填充支撑。
+//FIXME 表面由稀疏填充支撑，但稀疏填充只与要支撑的区域一样大。
+// 可能稀疏填充无法正确锚定，因此无法按预期工作。
+// 同时也希望周长由完全填充支撑。
+// 此方法的幂等性由我们不会从 fill_surfaces 中移除内容
+// 而只会将其变为 VOID 表面来保证，从而保留边界。
 void PrintObject::clip_fill_surfaces()
 {
     if (! PrintObject::infill_only_where_needed)
@@ -4017,8 +4016,8 @@ void PrintObject::clip_fill_surfaces()
             // Only consider the area that is not supported by lower perimeters
             Polygons perimeters = intersection(diff(layer->lslices, fill_surfaces), lower_layer_fill_surfaces);
             // Only consider perimeter areas that are at least one extrusion width thick.
-            //FIXME Offset2 eats out from both sides, while the perimeters are create outside in.
-            //Should the pw not be half of the current value?
+            //FIXME Offset2 从两侧都进行侵蚀，而周长是从外向内创建的。
+            //pw 不应该是当前值的一半吗？
             float pw = FLT_MAX;
             for (const LayerRegion *layerm : layer->m_regions)
                 pw = std::min(pw, (float)layerm->flow(frPerimeter).scaled_width());
@@ -4130,11 +4129,11 @@ void PrintObject::discover_horizontal_shells()
                     // we update $solid so that we limit the next neighbor layer to the areas that were
                     // found on this one - in other words, solid shells on one layer (for a given external surface)
                     // are always a subset of the shells found on the previous shell layer
-                    // this approach allows for DWIM in hollow sloping vases, where we want bottom
-                    // shells to be generated in the base but not in the walls (where there are many
-                    // narrow bottom surfaces): reassigning $solid will consider the 'shadow' of the
-                    // upper perimeter as an obstacle and shell will not be propagated to more upper layers
-                    //FIXME How does it work for stInternalBRIDGE? This is set for sparse infill. Likely this does not work.
+                    // 这种方法允许在中空倾斜花瓶中进行 DWIM（按我意图操作），
+                    // 我们希望底部外壳在基底中生成，而不是在墙壁中（那里有许多狭窄的底部表面）：
+                    // 重新分配 $solid 将考虑上部周长的"阴影"作为障碍物，
+                    // 外壳将不会传播到更多上层。
+                    //FIXME 这对 stInternalBRIDGE 如何工作？这是为稀疏填充设置的。可能这不起作用。
                     Polygons new_internal_solid;
                     {
                         Polygons internal;
@@ -4193,7 +4192,7 @@ void PrintObject::discover_horizontal_shells()
                     // make sure the new internal solid is wide enough, as it might get collapsed
                     // when spacing is added in Fill.pm
                     {
-                        //FIXME Vojtech: Disable this and you will be sorry.
+                        //FIXME Vojtech: 禁用此功能，你将会后悔。
                         float margin = (region_config.ensure_vertical_shell_thickness.value != evstNone ? 3.f : 1.0f) * layerm->flow(frSolidInfill).scaled_width(); // require at least this size
                         // we use a higher miterLimit here to handle areas with acute angles
                         // in those cases, the default miterLimit would cut the corner and we'd
@@ -4284,7 +4283,7 @@ void PrintObject::combine_infill()
                                                                   region.config().sparse_infill_pattern;
 
         // Limit the number of combined layers to the maximum height allowed by this regions' nozzle.
-        //FIXME limit the layer height to max_layer_height
+        //FIXME 将层高限制在 max_layer_height
         double nozzle_diameter = this->print()->config().nozzle_diameter.get_at(region.config().wall_filament.value - 1);
         nozzle_diameter = std::min(nozzle_diameter, this->print()->config().nozzle_diameter.get_at(region.config().sparse_infill_filament.value - 1));
         nozzle_diameter = std::min(nozzle_diameter, this->print()->config().nozzle_diameter.get_at(region.config().solid_infill_filament.value - 1));
@@ -4429,7 +4428,7 @@ void PrintObject::remove_bridges_from_contacts(
         Polygons bridges;
         // Surface supporting this layer, expanded by 0.5 * nozzle_diameter, as we consider this kind of overhang to be sufficiently supported.
         Polygons lower_grown_slices = offset(lower_layer_polygons,
-            //FIXME to mimic the decision in the perimeter generator, we should use half the external perimeter width.
+            //FIXME 为了模仿周长生成器中的决策，我们应该使用外部周长宽度的一半。
             0.5f * fw, SUPPORT_SURFACES_OFFSET_PARAMETERS);
         Polylines overhang_perimeters = diff_pl(layerm->perimeters.as_polylines(), lower_grown_slices);
         // only consider straight overhangs
@@ -4476,7 +4475,7 @@ void PrintObject::remove_bridges_from_contacts(
         bridges = union_(bridges);
 
         // remove the entire bridges and only support the unsupported edges
-        //FIXME the brided regions are already collected as layerm->bridged. Use it?
+        //FIXME 桥接区域已经作为 layerm->bridged 收集。使用它？
         for (const Surface& surface : layerm->fill_surfaces.surfaces)
             if (surface.surface_type == stBottomBridge && surface.bridge_angle != -1) {
                 auto bbox      = get_extents(surface.expolygon);
@@ -4515,9 +4514,9 @@ void PrintObject::remove_bridges_from_contacts(
                     }
                 }
             }
-        //FIXME add the gap filled areas. Extrude the gaps with a bridge flow?
+        //FIXME 添加间隙填充区域。使用桥接流量挤出间隙？
         // Remove the unsupported ends of the bridges from the bridged areas.
-        //FIXME add supports at regular intervals to support long bridges!
+        //FIXME 以固定间隔添加支撑以支撑长桥接！
         bridges = diff(bridges,
             // Offset unsupported edges into polygons.
             offset(layerm->unsupported_bridge_edges, scale_(SUPPORT_MATERIAL_MARGIN), SUPPORT_SURFACES_OFFSET_PARAMETERS));

@@ -51,13 +51,13 @@ public:
 		pl.points.reserve(points.size());
 		for (const Vec2d &pt : points)
 			pl.points.emplace_back(Point::new_scale(pt(0), pt(1)));
-        //BBS: new_scale doesn't support arc, so clean
+        //BBS: new_scale 不支持圆弧，所以清空
         pl.fitting_result.clear();
 		return pl;
     }
     
     void append(const Point &point) {
-        //BBS: don't need to append same point
+        //BBS: 不需要追加相同点
         if (!this->empty() && this->last_point() == point)
             return;
         MultiPoint::append(point);
@@ -65,7 +65,7 @@ public:
     }
 
     void append_before(const Point& point) {
-        //BBS: don't need to append same point
+        //BBS: 不需要追加相同点
         if (!this->empty() && this->first_point() == point)
             return;
         if (this->size() == 1) {
@@ -80,14 +80,14 @@ public:
     }
 
     void append(const Points &src) {
-        //BBS: don't need to append same point
+        //BBS: 不需要追加相同点
         if (!this->empty() && !src.empty() && this->last_point() == src[0])
             this->append(src.begin() + 1, src.end());
         else
             this->append(src.begin(), src.end());
     }
     void append(const Points::const_iterator &begin, const Points::const_iterator &end) {
-        //BBS: don't need to append same point
+        //BBS: 不需要追加相同点
         if (!this->empty() && begin != end && this->last_point() == *begin)
             MultiPoint::append(begin + 1, end);
         else
@@ -125,9 +125,9 @@ public:
     bool is_straight() const;
     bool is_closed() const { return this->points.front() == this->points.back(); }
 
-    //BBS: store arc fitting result
+    //BBS: 存储圆弧拟合结果
     std::vector<PathFittingData> fitting_result;
-    //BBS: simplify points by arc fitting
+    //BBS: 通过圆弧拟合简化点
     void simplify_by_fitting_arc(double tolerance);
     //BBS: 
     Polylines equally_spaced_lines(double distance) const;
@@ -143,7 +143,7 @@ private:
 inline bool operator==(const Polyline &lhs, const Polyline &rhs) { return lhs.points == rhs.points; }
 inline bool operator!=(const Polyline &lhs, const Polyline &rhs) { return lhs.points != rhs.points; }
 
-// Don't use this class in production code, it is used exclusively by the Perl binding for unit tests!
+// 不要在生产代码中使用此类，它仅由 Perl 绑定用于单元测试！
 #ifdef PERL_UCHAR_MIN
 class PolylineCollection
 {
@@ -155,7 +155,7 @@ public:
 extern BoundingBox get_extents(const Polyline &polyline);
 extern BoundingBox get_extents(const Polylines &polylines);
 
-// Return True when erase some otherwise False.
+// 擦除一些时返回 True，否则返回 False。
 bool remove_same_neighbor(Polyline &polyline);
 bool remove_same_neighbor(Polylines &polylines);
 
@@ -226,11 +226,10 @@ inline void polylines_append(Polylines &dst, Polylines &&src)
     }
 }
 
-// Merge polylines at their respective end points.
-// dst_first: the merge point is at dst.begin() or dst.end()?
-// src_first: the merge point is at src.begin() or src.end()?
-// The orientation of the resulting polyline is unknown, the output polyline may start
-// either with src piece or dst piece.
+// 在各自的端点处合并多段线。
+// dst_first: 合并点在 dst.begin() 还是 dst.end()？
+// src_first: 合并点在 src.begin() 还是 src.end()？
+// 结果多段线的方向未知，输出多段线可能以 src 段或 dst 段开始。
 template<typename PointsType>
 inline void polylines_merge(PointsType &dst, bool dst_first, PointsType &&src, bool src_first)
 {
@@ -249,7 +248,7 @@ const Point& leftmost_point(const Polylines &polylines);
 
 bool remove_degenerate(Polylines &polylines);
 
-// Returns index of a segment of a polyline and foot point of pt on polyline.
+// 返回多段线段的索引和 pt 在多段线上的垂足点。
 std::pair<int, Point> foot_pt(const Points &polyline, const Point &pt);
 
 class ThickPolyline : public Polyline {
@@ -266,9 +265,9 @@ public:
         width.clear();
     }
 
-    // Make this closed ThickPolyline starting in the specified index.
-    // Be aware that this method can be applicable just for closed ThickPolyline.
-    // On open ThickPolyline make no effect.
+    // 使此闭合的 ThickPolyline 从指定索引开始。
+    // 请注意，此方法仅适用于闭合的 ThickPolyline。
+    // 对开放的 ThickPolyline 无效。
     void start_at_index(int index);
 
     std::vector<coordf_t> width;

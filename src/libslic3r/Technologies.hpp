@@ -2,41 +2,41 @@
 #define _prusaslicer_technologies_h_
 
 //=============
-// debug techs
+// 调试技术
 //=============
-// Shows camera target in the 3D scene
+// 在3D场景中显示相机目标
 #define ENABLE_SHOW_CAMERA_TARGET 0
-// Log debug messages to console when changing selection
+// 在选择更改时将调试消息记录到控制台
 #define ENABLE_SELECTION_DEBUG_OUTPUT 0
-// Renders a small sphere in the center of the bounding box of the current selection when no gizmo is active
+// 当没有gizmo激活时，在当前选择边界框的中心渲染一个小球
 #define ENABLE_RENDER_SELECTION_CENTER 0
-// Shows an imgui dialog with camera related data
+// 显示与相机相关的imgui对话框
 #define ENABLE_CAMERA_STATISTICS 0
-// Enable extracting thumbnails from selected gcode and save them as png files
+// 启用从选定的gcode中提取缩略图并将其保存为png文件
 #define ENABLE_THUMBNAIL_GENERATOR_DEBUG 0
-// Disable synchronization of unselected instances
+// 禁用未选定实例的同步
 #define DISABLE_INSTANCES_SYNCH 0
-// Use wxDataViewRender instead of wxDataViewCustomRenderer
+// 使用wxDataViewRender代替wxDataViewCustomRenderer
 #define ENABLE_NONCUSTOM_DATA_VIEW_RENDERING 0
-// Enable G-Code viewer statistics imgui dialog
+// 启用G-Code查看器统计信息imgui对话框
 #define ENABLE_GCODE_VIEWER_STATISTICS 0
-// Enable G-Code viewer comparison between toolpaths height and width detected from gcode and calculated at gcode generation 
+// 启用G-Code查看器在从gcode检测到的刀具路径高度和宽度与gcode生成时计算的值之间进行比较 
 #define ENABLE_GCODE_VIEWER_DATA_CHECKING 0
-// Enable project dirty state manager debug window
+// 启用项目脏状态管理器调试窗口
 #define ENABLE_PROJECT_DIRTY_STATE_DEBUG_WINDOW 0
 
 
-// Enable rendering of objects using environment map
+// 启用使用环境贴图渲染对象
 #define ENABLE_ENVIRONMENT_MAP 0
-// Enable smoothing of objects normals
+// 启用对象法线平滑
 #define ENABLE_SMOOTH_NORMALS 0
-// Enable rendering markers for options in preview as fixed screen size points
+// 启用将预览中的选项标记渲染为固定屏幕大小的点
 #define ENABLE_FIXED_SCREEN_SIZE_POINT_MARKERS 1
 
-// Enable style editor in develop mode
+// 在开发模式下启用样式编辑器
 #define ENABLE_IMGUI_STYLE_EDITOR	0
 
-// Enable rework of Reload from disk command
+// 启用从磁盘重新加载命令的重构
 #define ENABLE_RELOAD_FROM_DISK_REWORK 1
 
 //====================
@@ -44,7 +44,7 @@
 //====================
 #define ENABLE_2_4_0_BETA1 1
 
-// Enable rendering modifiers and similar objects always as transparent
+// 启用始终将修改器和类似对象渲染为透明
 #define ENABLE_MODIFIERS_ALWAYS_TRANSPARENT (1 && ENABLE_2_4_0_BETA1)
 
 
@@ -53,13 +53,13 @@
 //====================
 #define ENABLE_2_4_0_BETA2 1
 
-// Enable modified ImGuiWrapper::slider_float() to create a compound widget where
-// an additional button can be used to set the keyboard focus into the slider
-// to allow the user to type in the desired value
+// 启用修改后的ImGuiWrapper::slider_float()来创建一个复合控件，其中
+// 可以使用额外的按钮将键盘焦点设置到滑块中
+// 以允许用户输入所需的值
 #define ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT (1 && ENABLE_2_4_0_BETA2)
-// Enable fit print volume command for circular printbeds
+// 启用为圆形打印床适配打印体积的命令
 #define ENABLE_ENHANCED_PRINT_VOLUME_FIT (1 && ENABLE_2_4_0_BETA2)
-// Enable picking using raytracing
+// 启用使用光线追踪进行拾取
 #define ENABLE_RAYCAST_PICKING_DEBUG 0
 
 

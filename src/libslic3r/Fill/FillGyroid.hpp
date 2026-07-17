@@ -13,18 +13,17 @@ public:
     FillGyroid() {}
     Fill* clone() const override { return new FillGyroid(*this); }
 
-    // require bridge flow since most of this pattern hangs in air
+    // 需要桥接流量，因为此图案大部分悬空
     bool use_bridge_flow() const override { return false; }
     bool is_self_crossing() override { return false; }
 
-    // Correction applied to regular infill angle to maximize printing
-    // speed in default configuration (degrees)
+    // 应用于常规填充角度的校正，以最大化默认配置下的打印速度（度）
     static constexpr float CorrectionAngle = -45.;
 
-    // Density adjustment to have a good %of weight.
+    // 密度调整以获得良好的重量百分比。
     static constexpr double DensityAdjust = 2.44;
 
-    // Gyroid upper resolution tolerance (mm^-2)
+    // 陀螺形上部分辨率容差 (mm^-2)
     static constexpr double PatternTolerance = 0.2;
 
 

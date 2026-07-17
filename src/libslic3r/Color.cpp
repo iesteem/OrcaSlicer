@@ -15,9 +15,9 @@ bool color_is_equal(const RGBA a, const RGBA& b)
     }
     return true;
 }
-// Conversion from RGB to HSV color space
-// The input RGB values are in the range [0, 1]
-// The output HSV values are in the ranges h = [0, 360], and s, v = [0, 1]
+// 从RGB到HSV色彩空间的转换
+// 输入的RGB值在[0, 1]范围内
+// 输出的HSV值范围：h = [0, 360], s, v = [0, 1]
 static void RGBtoHSV(float r, float g, float b, float& h, float& s, float& v)
 {
 	assert(0.0f <= r && r <= 1.0f);
@@ -52,9 +52,9 @@ static void RGBtoHSV(float r, float g, float b, float& h, float& s, float& v)
 	assert(0.0f <= h && h <= 360.0f);
 }
 
-// Conversion from HSV to RGB color space
-// The input HSV values are in the ranges h = [0, 360], and s, v = [0, 1]
-// The output RGB values are in the range [0, 1]
+// 从HSV到RGB色彩空间的转换
+// 输入的HSV值范围：h = [0, 360], s, v = [0, 1]
+// 输出的RGB值在[0, 1]范围内
 static void HSVtoRGB(float h, float s, float v, float& r, float& g, float& b)
 {
 	assert(0.0f <= s && s <= 1.0f);
@@ -275,7 +275,7 @@ ColorRGB opposite(const ColorRGB& color)
     float h = 0.0, s = 0.0, v = 0.0;
 	RGBtoHSV(color.r(), color.g(), color.b(), h, s, v);
 
-	h += 65.0f; // 65 instead 60 to avoid circle values
+	h += 65.0f; // 使用65而不是60，以避免循环值
 	if (h > 360.0f)
 		h -= 360.0f;
 
@@ -298,7 +298,7 @@ ColorRGB opposite(const ColorRGB& a, const ColorRGB& b)
 	float delta_h = std::abs(ha - hb);
 	float start_h = (delta_h > 180.0f) ? std::min(ha, hb) : std::max(ha, hb);
 
-	start_h += 5.0f; // to avoid circle change of colors for 120 deg
+	start_h += 5.0f; // 避免120度时的颜色循环变化
 	if (delta_h < 180.0f)
 		delta_h = 360.0f - delta_h;
 
@@ -402,10 +402,10 @@ ColorRGBA to_rgba(const ColorRGB& other_rgb, float alpha) { return { other_rgb.r
 ColorRGBA picking_decode(unsigned int id)
 {
 	return {
-			   float((id >> 0) & 0xff) * INV_255,  // red
-			   float((id >> 8) & 0xff) * INV_255,  // green
-			   float((id >> 16) & 0xff) * INV_255, // blue
-			   float(picking_checksum_alpha_channel(id & 0xff, (id >> 8) & 0xff, (id >> 16) & 0xff)) * INV_255 // checksum for validating against unwanted alpha blending and multi sampling
+			   float((id >> 0) & 0xff) * INV_255,  // 红色
+			   float((id >> 8) & 0xff) * INV_255,  // 绿色
+			   float((id >> 16) & 0xff) * INV_255, // 蓝色
+			   float(picking_checksum_alpha_channel(id & 0xff, (id >> 8) & 0xff, (id >> 16) & 0xff)) * INV_255 // 校验和，用于验证不受非预期的Alpha混合和多采样的影响
 		   };
 }
 
@@ -413,13 +413,13 @@ unsigned int picking_encode(unsigned char r, unsigned char g, unsigned char b) {
 
 unsigned char picking_checksum_alpha_channel(unsigned char red, unsigned char green, unsigned char blue)
 {
-	// 8 bit hash for the color
+	// 颜色的8位哈希
 	unsigned char b = ((((37 * red) + green) & 0x0ff) * 37 + blue) & 0x0ff;
-	// Increase enthropy by a bit reversal
+	// 通过位反转增加熵
 	b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
 	b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
 	b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
-	// Flip every second bit to increase the enthropy even more.
+	// 每隔一位翻转以进一步增加熵
 	b ^= 0x55;
 	return b;
 }

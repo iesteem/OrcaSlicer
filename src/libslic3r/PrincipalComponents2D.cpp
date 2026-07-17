@@ -5,27 +5,27 @@ namespace Slic3r {
 
 
 
-// returns triangle area, first_moment_of_area_xy, second_moment_of_area_xy, second_moment_of_area_covariance
-// none of the values is divided/normalized by area.
-// The function computes intgeral over the area of the triangle, with function f(x,y) = x for first moments of area (y is analogous)
-// f(x,y) = x^2 for second moment of area
-// and f(x,y) = x*y for second moment of area covariance
+// 返回三角形面积、面积一阶矩_xy、面积二阶矩_xy、面积二阶矩_协方差
+// 所有值均未除以/归一化面积。
+// 函数计算三角形面积上的积分，其中函数 f(x,y) = x 用于面积一阶矩（y 类似）
+// f(x,y) = x^2 用于面积二阶矩
+// f(x,y) = x*y 用于面积二阶矩协方差
 std::tuple<float, Vec2f, Vec2f, float> compute_moments_of_area_of_triangle(const Vec2f &a, const Vec2f &b, const Vec2f &c)
 {
-    // based on the following guide:
+    // 基于以下指南：
     // Denote the vertices of S by a, b, c. Then the map
     //  g:(u,v)↦a+u(b−a)+v(c−a) ,
-    //  which in coordinates appears as
+    //  在坐标系中表现为
     //  g:(u,v)↦{x(u,v)y(u,v)=a1+u(b1−a1)+v(c1−a1)=a2+u(b2−a2)+v(c2−a2) ,(1)
-    //  obviously maps S′ bijectively onto S. Therefore the transformation formula for multiple integrals steps into action, and we obtain
+    //  显然将 S' 双射映射到 S。因此应用多重积分的变换公式，我们得到
     //  ∫Sf(x,y)d(x,y)=∫S′f(x(u,v),y(u,v))∣∣Jg(u,v)∣∣ d(u,v) .
-    //  In the case at hand the Jacobian determinant is a constant: From (1) we obtain
+    //  在当前情况下，雅可比行列式是一个常数：从(1)我们得到
     //  Jg(u,v)=det[xuyuxvyv]=(b1−a1)(c2−a2)−(c1−a1)(b2−a2) .
     //  Therefore we can write
     //  ∫Sf(x,y)d(x,y)=∣∣Jg∣∣∫10∫1−u0f~(u,v) dv du ,
     //  where f~ denotes the pullback of f to S′:
     //  f~(u,v):=f(x(u,v),y(u,v)) .
-    //  Don't forget taking the absolute value of Jg!
+    //  不要忘记取 Jg 的绝对值！
 
     float jacobian_determinant_abs = std::abs((b.x() - a.x()) * (c.y() - a.y()) - (c.x() - a.x()) * (b.y() - a.y()));
 
@@ -41,8 +41,8 @@ std::tuple<float, Vec2f, Vec2f, float> compute_moments_of_area_of_triangle(const
                                      (a.cwiseProduct(a) + b.cwiseProduct(b) + b.cwiseProduct(c) + c.cwiseProduct(c) +
                                       a.cwiseProduct(b + c)) /
                                      12.0f;
-    // second moment of area covariance : f(x, y) = x*y;
-    //              f(gx(u,v), gy(u,v)) = gx(u,v)*gy(u,v) = ... (long expanded form)
+    // 面积二阶矩协方差：f(x, y) = x*y;
+    //              f(gx(u,v), gy(u,v)) = gx(u,v)*gy(u,v) = ...（长展开形式）
     //(a_1 + u * (b_1 - a_1) + v * (c_1 - a_1)) * (a_2 + u * (b_2 - a_2) + v * (c_2 - a_2))
     // ==    (a_1 + u (b_1 - a_1) + v (c_1 - a_1)) (a_2 + u (b_2 - a_2) + v (c_2 - a_2))
 
@@ -63,7 +63,7 @@ std::tuple<float, Vec2f, Vec2f, float> compute_moments_of_area_of_triangle(const
     return {area, first_moment_of_area_xy, second_moment_of_area_xy, second_moment_of_area_covariance};
 };
 
-// returns two eigenvectors of the area covered by given polygons. The vectors are sorted by their corresponding eigenvalue, largest first
+// 返回给定多边形覆盖面积的两个特征向量。向量按其对应的特征值排序，最大的在前
 std::tuple<Vec2f, Vec2f> compute_principal_components(const Polygons &polys)
 {
     Vec2f centroid_accumulator                         = Vec2f::Zero();

@@ -1,39 +1,39 @@
 #ifndef slic3r_format_hpp_
 #define slic3r_format_hpp_
 
-// Functional wrapper around boost::format.
-// One day we may replace this wrapper with C++20 format
+// 围绕boost::format的功能性包装。
+// 有一天我们可能用C++20的format替换这个包装器
 // https://en.cppreference.com/w/cpp/utility/format/format
-// though C++20 format uses a different template pattern for position independent parameters.
-// 
-// Boost::format works around the missing variadic templates by an ugly % chaining operator. The usage of boost::format looks like this:
+// 尽管C++20的format对于位置无关参数使用了不同的模板模式。
+//
+// Boost::format通过丑陋的%链式操作符绕过了缺失的可变参数模板。boost::format的使用如下：
 // (boost::format("template") % arg1 %arg2).str()
-// This wrapper allows for a nicer syntax:
+// 这个包装器允许更简洁的语法：
 // Slic3r::format("template", arg1, arg2)
-// One can also override Slic3r::internal::format::cook() function to convert a Slic3r::format() argument to something that
-// boost::format may convert to string, see slic3r/GUI/I18N.hpp for a "cook" function to convert wxString to UTF8.
+// 也可以重写Slic3r::internal::format::cook()函数，将Slic3r::format()参数转换为
+// boost::format可以转换为字符串的内容，参见slic3r/GUI/I18N.hpp中用于将wxString转换为UTF8的"cook"函数。
 
 #include <boost/format.hpp>
 
 namespace Slic3r {
 
-// https://gist.github.com/gchudnov/6a90d51af004d97337ec
+// 参考: https://gist.github.com/gchudnov/6a90d51af004d97337ec
 namespace internal {
 	namespace format {
-		// Default "cook" function - just forward.
+		// 默认"cook"函数 - 直接转发。
 		template<typename T>
 		inline T&& cook(T&& arg) {
 		  	return std::forward<T>(arg);
 		}
 
-		// End of the recursive chain.
+		// 递归链的终点。
 		inline std::string format_recursive(boost::format& message) {
 		  	return message.str();
 		}
 
 		template<typename TValue, typename... TArgs>
 		std::string format_recursive(boost::format& message, TValue&& arg, TArgs&&... args) {
-			// Format, possibly convert the argument by the "cook" function.
+			// 格式化，可能通过"cook"函数转换参数。
 		  	message % cook(std::forward<TValue>(arg));
 		  	return format_recursive(message, std::forward<TArgs>(args)...);
 		}

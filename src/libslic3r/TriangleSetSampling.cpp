@@ -29,7 +29,7 @@ TriangleSetSamples sample_its_uniform_parallel(size_t samples_count, const index
     }
 
     std::mt19937_64 mersenne_engine { 27644437 };
-    // random numbers on interval [0, 1)
+    // 区间 [0, 1) 上的随机数
     std::uniform_real_distribution<double> fdistribution;
 
     auto get_random = [&fdistribution, &mersenne_engine]() {

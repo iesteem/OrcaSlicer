@@ -1,4 +1,4 @@
-#ifndef slic3r_ExPolygonSerialize_hpp_
+﻿#ifndef slic3r_ExPolygonSerialize_hpp_
 #define slic3r_ExPolygonSerialize_hpp_
 
 #include "ExPolygon.hpp"
@@ -10,7 +10,7 @@
 /// External Cereal serialization of ExPolygons
 /// </summary>
 
-// Serialization through the Cereal library
+// 通过 Cereal 库进行序列化
 #include <cereal/access.hpp>
 namespace cereal {
 

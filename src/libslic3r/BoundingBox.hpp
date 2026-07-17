@@ -1,4 +1,4 @@
-#ifndef slic3r_BoundingBox_hpp_
+﻿#ifndef slic3r_BoundingBox_hpp_
 #define slic3r_BoundingBox_hpp_
 
 #include "libslic3r.h"
@@ -163,7 +163,7 @@ public:
         return contains(other.min) && contains(other.max);
     }
 
-    // Intersects without boundaries.
+    // 无边界相交。
     bool intersects(const BoundingBox3Base<PointType>& other) const {
         return this->min.x() < other.max.x() && this->max.x() > other.min.x() && this->min.y() < other.max.y() && this->max.y() > other.min.y() && 
             this->min.z() < other.max.z() && this->max.z() > other.min.z();
@@ -297,7 +297,7 @@ auto cast(const BoundingBox3Base<Tin> &b)
 
 } // namespace Slic3r
 
-// Serialization through the Cereal library
+// 通过 Cereal 库进行序列化
 namespace cereal {
 	template<class Archive> void serialize(Archive& archive, Slic3r::BoundingBox   &bb) { archive(bb.min, bb.max, bb.defined); }
 	template<class Archive> void serialize(Archive& archive, Slic3r::BoundingBox3  &bb) { archive(bb.min, bb.max, bb.defined); }

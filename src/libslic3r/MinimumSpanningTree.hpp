@@ -11,17 +11,16 @@ namespace Slic3r
 {
 
 /*!
- * \brief Implements Prim's algorithm to compute Minimum Spanning Trees (MST).
+ * \brief 实现 Prim 算法以计算最小生成树（MST）。
  *
- * The minimum spanning tree is always computed from a clique of vertices.
+ * 最小生成树始终从顶点的团计算得出。
  */
 class MinimumSpanningTree
 {
     /*!
-     * \brief Represents an edge of the tree.
+     * \brief 表示树的一条边。
      *
-     * While edges are meant to be undirected, these do have a start and end
-     * point.
+     * 虽然边应该是无向的，但它们确实有起点和终点。
      */
     struct Edge {
         /**
@@ -37,25 +36,25 @@ class MinimumSpanningTree
 public:
     MinimumSpanningTree() = default;
     /*!
-     * \brief Constructs a minimum spanning tree that spans all given vertices.
+     * \brief 构造覆盖所有给定顶点的最小生成树。
      */
     MinimumSpanningTree(std::vector<Point> vertices);
 
     /*!
-     * \brief Gets the nodes that are adjacent to the specified node.
-     * \return A list of nodes that are adjacent.
+     * \brief 获取与指定节点相邻的节点。
+     * \return 相邻节点的列表。
      */
     std::vector<Point> adjacent_nodes(Point node) const;
 
     /*!
-     * \brief Gets the leaves of the tree.
-     * \return A list of nodes that are all leaves of the tree.
+     * \brief 获取树的叶子节点。
+     * \return 树的所有叶子节点列表。
      */
     std::vector<Point> leaves() const;
 
     /*!
-     * \brief Gets all vertices of the tree.
-     * \return A list of vertices of the tree.
+     * \brief 获取树的所有顶点。
+     * \return 树的顶点列表。
      */
     std::vector<Point> vertices() const;
 
@@ -64,11 +63,10 @@ private:
     AdjacencyGraph_t adjacency_graph;
 
     /*!
-     * \brief Computes the edges of a minimum spanning tree using Prim's
-     * algorithm.
+     * \brief 使用 Prim 算法计算最小生成树的边。
      *
-     * \param vertices The vertices to span.
-     * \return An adjacency graph with for each point one or more edges.
+     * \param vertices 要覆盖的顶点。
+     * \return 每个点对应一条或多条边的邻接图。
      */
     AdjacencyGraph_t prim(std::vector<Point> vertices) const;
 };

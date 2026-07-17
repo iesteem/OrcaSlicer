@@ -1,4 +1,4 @@
-#ifndef slic3r_CustomGCode_hpp_
+﻿#ifndef slic3r_CustomGCode_hpp_
 #define slic3r_CustomGCode_hpp_
 
 #include <string>
@@ -36,14 +36,14 @@ struct Item
     
     double      print_z;
     Type        type;
-    int         extruder;   // Informative value for ColorChangeCode and ToolChangeCode
-                            // "gcode" == ColorChangeCode   => M600 will be applied for "extruder" extruder
-                            // "gcode" == ToolChangeCode    => for whole print tool will be switched to "extruder" extruder
-    std::string color;      // if gcode is equal to PausePrintCode, 
-                            // this field is used for save a short message shown on Printer display 
-    std::string extra;      // this field is used for the extra data like :
-                            // - G-code text for the Type::Custom 
-                            // - message text for the Type::PausePrint
+    int         extruder;   // ColorChangeCode 和 ToolChangeCode 的参考值
+                            // "gcode" == ColorChangeCode   => M600 将应用于 "extruder" 挤出机
+                            // "gcode" == ToolChangeCode    => 整个打印工具将切换到 "extruder" 挤出机
+    std::string color;      // 如果 gcode 等于 PausePrintCode，
+                            // 此字段用于保存在打印机显示屏上显示的短消息
+    std::string extra;      // 此字段用于额外数据，例如：
+                            // - Type::Custom 的 G-code 文本
+                            // - Type::PausePrint 的消息文本
     void from_json(const nlohmann::json& j) {
         std::string type_str;
         j.at("type").get_to(type_str);
@@ -67,14 +67,14 @@ struct Item
 enum Mode
 {
     Undef,
-    SingleExtruder,   // Single extruder printer preset is selected
-    MultiAsSingle,    // Multiple extruder printer preset is selected, but 
-                      // this mode works just for Single extruder print 
-                      // (The same extruder is assigned to all ModelObjects and ModelVolumes).
-    MultiExtruder     // Multiple extruder printer preset is selected
+    SingleExtruder,   // 选择了单挤出机打印机预设
+    MultiAsSingle,    // 选择了多挤出机打印机预设，但
+                      // 此模式仅适用于单挤出机打印
+                      //（所有 ModelObject 和 ModelVolume 分配相同的挤出机）。
+    MultiExtruder     // 选择了多挤出机打印机预设
 };
 
-// string anlogue of custom_code_per_height mode
+// custom_code_per_height 模式的字符串模拟
 static constexpr char SingleExtruderMode[] = "SingleExtruder";
 static constexpr char MultiAsSingleMode [] = "MultiAsSingle";
 static constexpr char MultiExtruderMode [] = "MultiExtruder";
@@ -110,19 +110,19 @@ struct Info
     }
 };
 
-// If loaded configuration has a "colorprint_heights" option (if it was imported from older Slicer), 
-// and if CustomGCode::Info.gcodes is empty (there is no color print data available in a new format
-// then CustomGCode::Info.gcodes should be updated considering this option.
+// 如果加载的配置具有 "colorprint_heights" 选项（如果是从旧版 Slicer 导入的），
+// 并且 CustomGCode::Info.gcodes 为空（没有新格式的颜色打印数据），
+// 那么 CustomGCode::Info.gcodes 应根据此选项进行更新。
 //BBS
 //extern void update_custom_gcode_per_print_z_from_config(Info& info, DynamicPrintConfig* config);
 
-// If information for custom Gcode per print Z was imported from older Slicer, mode will be undefined.
-// So, we should set CustomGCode::Info.mode should be updated considering code values from items.
+// 如果每个打印Z的自定义Gcode信息是从旧版Slicer导入的，模式将是未定义的。
+// 因此，我们应该根据项目的代码值更新 CustomGCode::Info.mode。
 extern void check_mode_for_custom_gcode_per_print_z(Info& info);
 
-// Return pairs of <print_z, 1-based filament ID> sorted by increasing print_z
-// from custom_gcode_per_print_z. The filament count may include mixed virtual
-// filaments in addition to physical ones.
+// 返回按 print_z 递增排序的 <print_z, 基于1的耗材ID> 对
+// 来自 custom_gcode_per_print_z。耗材数量可能包括混合虚拟
+// 耗材以及物理耗材。
 std::vector<std::pair<double, unsigned int>> custom_tool_changes(const Info& custom_gcode_per_print_z, size_t num_filaments);
 
 } // namespace CustomGCode

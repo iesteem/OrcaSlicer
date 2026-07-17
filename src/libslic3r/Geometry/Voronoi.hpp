@@ -12,7 +12,7 @@
 #include "libslic3r/libslic3r.h"
 
 #ifdef _MSC_VER
-// Suppress warning C4146 in OpenVDB: unary minus operator applied to unsigned type, result still unsigned
+// 抑制OpenVDB中的警告C4146：对无符号类型应用一元负号运算符，结果仍为无符号
 #pragma warning(push)
 #pragma warning(disable : 4146)
 #endif // _MSC_VER
@@ -62,10 +62,10 @@ public:
     };
 
     enum class State {
-        REPAIR_NOT_NEEDED,   // The original Voronoi diagram doesn't have any issue.
-        REPAIR_SUCCESSFUL,   // The original Voronoi diagram has some issues, but it was repaired.
-        REPAIR_UNSUCCESSFUL, // The original Voronoi diagram has some issues, but it wasn't repaired.
-        UNKNOWN              // Repairs are disabled in the constructor.
+        REPAIR_NOT_NEEDED,   // 原始Voronoi图没有任何问题。
+        REPAIR_SUCCESSFUL,   // 原始Voronoi图有一些问题，但已修复。
+        REPAIR_UNSUCCESSFUL, // 原始Voronoi图有一些问题，但无法修复。
+        UNKNOWN              // 构造函数中禁用了修复。
     };
 
     VoronoiDiagram() = default;
@@ -126,8 +126,7 @@ public:
         m_issue_type = IssueType::UNKNOWN;
     }
 
-    // Try to detect cases when some Voronoi vertex is missing, when the Voronoi diagram
-    // is not planar or some Voronoi edge is intersecting input segment.
+    // 尝试检测Voronoi顶点缺失、Voronoi图不平坦或Voronoi边与输入线段相交的情况。
     template<typename SegmentIterator>
     static typename boost::polygon::enable_if<
         typename boost::polygon::gtl_if<typename boost::polygon::is_segment_concept<
@@ -161,10 +160,9 @@ private:
 
     void copy_to_local(voronoi_diagram_type &voronoi_diagram);
 
-    // Detect issues related to Voronoi cells, or that can be detected by iterating over Voronoi cells.
-    // The first type of issue that can be detected is a missing Voronoi vertex, especially when it is
-    // missing at one of the endpoints of the input segment.
-    // The second type of issue that can be detected is a Voronoi edge that intersects the input segment.
+    // 检测与Voronoi单元相关的问题，或通过遍历Voronoi单元可以检测到的问题。
+    // 第一种可检测的问题是缺少Voronoi顶点，特别是在输入线段的某个端点处缺失。
+    // 第二种可检测的问题是Voronoi边与输入线段相交。
     template<typename SegmentIterator>
     static typename boost::polygon::enable_if<
         typename boost::polygon::gtl_if<typename boost::polygon::is_segment_concept<
@@ -172,9 +170,9 @@ private:
         IssueType>::type
     detect_known_voronoi_cell_issues(const VoronoiDiagram &voronoi_diagram, SegmentIterator segment_begin, SegmentIterator segment_end);
 
-    // Detect issues related to Voronoi edges, or that can be detected by iterating over Voronoi edges.
-    // The first type of issue that can be detected is a finite Voronoi edge with a non-finite vertex.
-    // The second type of issue that can be detected is a parabolic Voronoi edge without a focus point (produced by two segments).
+    // 检测与Voronoi边相关的问题，或通过遍历Voronoi边可以检测到的问题。
+    // 第一种可检测的问题是有限Voronoi边具有非有限顶点。
+    // 第二种可检测的问题是没有焦点（由两个线段产生的）的抛物线Voronoi边。
     static IssueType detect_known_voronoi_edge_issues(const VoronoiDiagram &voronoi_diagram);
 
     voronoi_diagram_type  m_voronoi_diagram;

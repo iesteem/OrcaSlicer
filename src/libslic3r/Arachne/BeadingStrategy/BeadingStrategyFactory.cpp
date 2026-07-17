@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿//Copyright (c) 2022 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #include "BeadingStrategyFactory.hpp"
 
@@ -30,8 +30,8 @@ BeadingStrategyPtr BeadingStrategyFactory::makeStrategy(const coord_t preferred_
                                                         const int     inward_distributed_center_wall_count,
                                                         const double  minimum_variable_line_ratio)
 {
-    // Handle a special case when there is just one external perimeter.
-    // Because big differences in bead width for inner and other perimeters cause issues with current beading strategies.
+    // 处理只有一个外部周长时的特殊情况。
+    // 因为内部和其他周长的 bead 宽度差异较大会导致当前 beading 策略出现问题。
     const coord_t      optimal_width = max_bead_count <= 2 ? preferred_bead_width_outer : preferred_bead_width_inner;
     BeadingStrategyPtr ret = std::make_unique<DistributedBeadingStrategy>(optimal_width, preferred_transition_length, transitioning_angle,
                                                                           wall_split_middle_threshold, wall_add_middle_threshold,
@@ -44,13 +44,13 @@ BeadingStrategyPtr BeadingStrategyFactory::makeStrategy(const coord_t preferred_
         BOOST_LOG_TRIVIAL(trace) << "Applying the Widening Beading meta-strategy with minimum input width " << min_feature_size << " and minimum output width " << min_bead_width << ".";
         ret = std::make_unique<WideningBeadingStrategy>(std::move(ret), min_feature_size, min_bead_width);
     }
-    // Orca: we allow negative outer_wall_offset here
+    // Orca: 我们在此允许负的 outer_wall_offset
     if (outer_wall_offset != 0) {
         BOOST_LOG_TRIVIAL(trace) << "Applying the OuterWallOffset meta-strategy with offset = " << outer_wall_offset << ".";
         ret = std::make_unique<OuterWallInsetBeadingStrategy>(outer_wall_offset, std::move(ret));
     }
 
-    // Apply the LimitedBeadingStrategy last, since that adds a 0-width marker wall which other beading strategies shouldn't touch.
+    // 最后应用 LimitedBeadingStrategy，因为它添加了一个 0 宽度标记壁，其他 beading 策略不应触碰。
     BOOST_LOG_TRIVIAL(trace) << "Applying the Limited Beading meta-strategy with maximum bead count = " << max_bead_count << ".";
     ret = std::make_unique<LimitedBeadingStrategy>(max_bead_count, std::move(ret));
     return ret;

@@ -32,9 +32,8 @@ bool is_png(const ReadBuf &rb)
     static const constexpr int PNG_SIG_BYTES = 8;
 
 #if PNG_LIBPNG_VER_MINOR <= 2
-    // Earlier libpng versions had png_sig_cmp(png_bytep, ...) which is not
-    // a const pointer. It is not possible to cast away the const qualifier from
-    // the input buffer so... yes... life is challenging...
+    // 早期 libpng 版本中的 png_sig_cmp(png_bytep, ...) 不接受 const 指针。
+    // 无法从输入缓冲区中去除 const 限定符，所以...是的...生活充满挑战...
     png_byte buf[PNG_SIG_BYTES];
     auto inbuf = static_cast<const std::uint8_t *>(rb.buf);
     std::copy(inbuf, inbuf + PNG_SIG_BYTES, buf);
@@ -45,13 +44,13 @@ bool is_png(const ReadBuf &rb)
     return rb.sz >= PNG_SIG_BYTES && !png_sig_cmp(buf, 0, PNG_SIG_BYTES);
 }
 
-// Buffer read callback for libpng. It provides an allocated output buffer and
-// the amount of data it desires to read from the input.
+// libpng 的缓冲区读取回调。它提供一个已分配的输出缓冲区和
+// 期望从输入中读取的数据量。
 static void png_read_callback(png_struct *png_ptr,
                               png_bytep   outBytes,
                               png_size_t  byteCountToRead)
 {
-    // Retrieve our input buffer through the png_ptr
+    // 通过 png_ptr 获取我们的输入缓冲区
     auto reader = static_cast<IStream *>(png_get_io_ptr(png_ptr));
 
     if (!reader || !reader->is_ok()) return;
@@ -79,7 +78,7 @@ bool decode_png(IStream &in_buf, ImageGreyscale &out_img)
 
     png_set_read_fn(dsc.png, static_cast<void *>(&in_buf), png_read_callback);
 
-    // Tell that we have already read the first bytes to check the signature
+    // 告知我们已经读取了前几个字节用于检查签名
     png_set_sig_bytes(dsc.png, PNG_SIG_BYTES);
 
     png_read_info(dsc.png, dsc.info);
@@ -130,7 +129,7 @@ bool decode_colored_png(IStream &in_buf, ImageColorscale &out_img)
 
     png_set_read_fn(dsc.png, static_cast<void *>(&in_buf), png_read_callback);
 
-    // Tell that we have already read the first bytes to check the signature
+    // 告知我们已经读取了前几个字节用于检查签名
     png_set_sig_bytes(dsc.png, PNG_SIG_BYTES);
 
     png_read_info(dsc.png, dsc.info);
@@ -182,15 +181,15 @@ bool decode_colored_png(const ReadBuf &in_buf, ImageColorscale &out_img)
 }
 
 
-// Down to earth function to store a packed RGB image to file. Mostly useful for debugging purposes.
-// Based on https://www.lemoda.net/c/write-png/
-// png_color_type is PNG_COLOR_TYPE_RGB or PNG_COLOR_TYPE_GRAY
-//FIXME maybe better to use tdefl_write_image_to_png_file_in_memory() instead?
+// 实用的函数，将打包的 RGB 图像存储到文件。主要用于调试目的。
+// 基于 https://www.lemoda.net/c/write-png/
+// png_color_type 为 PNG_COLOR_TYPE_RGB 或 PNG_COLOR_TYPE_GRAY
+//FIXME 也许最好改用 tdefl_write_image_to_png_file_in_memory() ?
 static bool write_rgb_or_gray_to_file(const char *file_name_utf8, size_t width, size_t height, int png_color_type, const uint8_t *data)
 {
     bool         result       = false;
 
-    // Forward declaration due to the gotos.
+    // 由于 goto 语句而需要前向声明。
     png_structp  png_ptr      = nullptr;
     png_infop    info_ptr     = nullptr;
     png_byte   **row_pointers = nullptr;
@@ -213,13 +212,13 @@ static bool write_rgb_or_gray_to_file(const char *file_name_utf8, size_t width, 
         goto png_create_info_struct_failed;
     }
 
-    // Set up error handling.
+    // 设置错误处理。
     if (setjmp(png_jmpbuf(png_ptr))) {
         BOOST_LOG_TRIVIAL(error) << "write_png_file: setjmp() failed";
         goto png_failure;
     }
 
-    // Set image attributes.
+    // 设置图像属性。
     png_set_IHDR(png_ptr,
         info_ptr,
         png_uint_32(width),
@@ -230,7 +229,7 @@ static bool write_rgb_or_gray_to_file(const char *file_name_utf8, size_t width, 
         PNG_COMPRESSION_TYPE_DEFAULT,
         PNG_FILTER_TYPE_DEFAULT);
 
-    // Initialize rows of PNG.
+    // 初始化 PNG 的行。
     row_pointers = reinterpret_cast<png_byte**>(::png_malloc(png_ptr, height * sizeof(png_byte*)));
     {
         int line_width = width;
@@ -243,7 +242,7 @@ static bool write_rgb_or_gray_to_file(const char *file_name_utf8, size_t width, 
         }
     }
 
-    // Write the image data to "fp".
+    // 将图像数据写入 "fp"。
     png_init_io(png_ptr, fp);
     png_set_rows(png_ptr, info_ptr, row_pointers);
     png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, nullptr);
@@ -295,9 +294,9 @@ bool write_gray_to_file(const std::string &file_name_utf8, size_t width, size_t 
     return write_gray_to_file(file_name_utf8.c_str(), width, height, data_gray.data());
 }
 
-// Scaled variants are mostly useful for debugging purposes, for example to export images of low resolution distance fileds.
-// Scaling is done by multiplying rows and columns without any smoothing to emphasise the original pixels.
-// png_color_type is PNG_COLOR_TYPE_RGB or PNG_COLOR_TYPE_GRAY
+// 缩放变体主要用于调试目的，例如导出低分辨率距离场的图像。
+// 通过复制行和列来实现缩放，没有任何平滑处理，以突出原始像素。
+// png_color_type 为 PNG_COLOR_TYPE_RGB 或 PNG_COLOR_TYPE_GRAY
 static bool write_rgb_or_gray_to_file_scaled(const char *file_name_utf8, size_t width, size_t height, int png_color_type, const uint8_t *data, size_t scale)
 {
     if (scale <= 1)

@@ -25,14 +25,14 @@ class MultiPoint;
 class Point;
 using Vector = Point;
 
-// Base template for eigen derived vectors
+// Eigen 派生向量的基础模板
 template<int N, int M, class T>
 using Mat = Eigen::Matrix<T, N, M, Eigen::DontAlign, N, M>;
 
 template<int N, class T> using Vec = Mat<N, 1, T>;
 
-// Eigen types, to replace the Slic3r's own types in the future.
-// Vector types with a fixed point coordinate base type.
+// Eigen 类型，将来替换 Slic3r 自己的类型。
+// 使用固定点坐标基础类型的向量类型。
 using Vec2crd = Eigen::Matrix<coord_t,  2, 1, Eigen::DontAlign>;
 using Vec3crd = Eigen::Matrix<coord_t,  3, 1, Eigen::DontAlign>;
 // using Vec2i   = Eigen::Matrix<int,      2, 1, Eigen::DontAlign>;
@@ -44,7 +44,7 @@ using Vec3i32 = Eigen::Matrix<int32_t,  3, 1, Eigen::DontAlign>;
 using Vec3i64 = Eigen::Matrix<int64_t,  3, 1, Eigen::DontAlign>;
 using Vec4i32 = Eigen::Matrix<int32_t,  4, 1, Eigen::DontAlign>;
 
-// Vector types with a double coordinate base type.
+// 使用双精度坐标基础类型的向量类型。
 using Vec2f   = Eigen::Matrix<float,    2, 1, Eigen::DontAlign>;
 using Vec3f   = Eigen::Matrix<float,    3, 1, Eigen::DontAlign>;
 using Vec4f   = Eigen::Matrix<float,    4, 1, Eigen::DontAlign>;
@@ -103,7 +103,7 @@ inline typename Derived::Scalar cross2(const Eigen::MatrixBase<Derived> &v1, con
     return v1.x() * v2.y() - v1.y() * v2.x();
 }
 
-// 2D vector perpendicular to the argument.
+// 垂直于参数的二维向量。
 template<typename Derived>
 inline Eigen::Matrix<typename Derived::Scalar, 2, 1, Eigen::DontAlign> perp(const Eigen::MatrixBase<Derived> &v)
 { 
@@ -111,7 +111,7 @@ inline Eigen::Matrix<typename Derived::Scalar, 2, 1, Eigen::DontAlign> perp(cons
     return { - v.y(), v.x() };
 }
 
-// Angle from v1 to v2, returning double atan2(y, x) normalized to <-PI, PI>.
+// 从 v1 到 v2 的角度，返回归一化到 <-PI, PI> 的双精度 atan2(y, x)。
 template<typename Derived, typename Derived2>
 inline double angle(const Eigen::MatrixBase<Derived> &v1, const Eigen::MatrixBase<Derived2> &v2) {
     static_assert(Derived::IsVectorAtCompileTime && int(Derived::SizeAtCompileTime) == 2, "angle(): first parameter is not a 2D vector");
@@ -149,19 +149,19 @@ std::vector<Vec3f> transform(const std::vector<Vec3f>& points, const Transform3f
 Pointf3s transform(const Pointf3s& points, const Transform3d& t);
 
 /// <summary>
-/// Check whether transformation matrix contains odd number of mirroring.
-/// NOTE: In code is sometime function named is_left_handed
+/// 检查变换矩阵是否包含奇数次镜像。
+/// 注意：代码中有时函数名为 is_left_handed
 /// </summary>
-/// <param name="transform">Transformation to check</param>
-/// <returns>Is positive determinant</returns>
+/// <param name="transform">要检查的变换</param>
+/// <returns>是否为正行列式</returns>
 inline bool has_reflection(const Transform3d &transform) { return transform.matrix().determinant() < 0; }
 
 /// <summary>
-/// Getter on base of transformation matrix
+/// 获取变换矩阵的基向量
 /// </summary>
-/// <param name="index">column index</param>
-/// <param name="transform">source transformation</param>
-/// <returns>Base of transformation matrix</returns>
+/// <param name="index">列索引</param>
+/// <param name="transform">源变换</param>
+/// <returns>变换矩阵的基向量</returns>
 inline const Vec3d get_base(unsigned index, const Transform3d &transform) { return transform.linear().col(index); }
 inline const Vec3d get_x_base(const Transform3d &transform) { return get_base(0, transform); }
 inline const Vec3d get_y_base(const Transform3d &transform) { return get_base(1, transform); }
@@ -187,14 +187,14 @@ public:
     Point(const Point &rhs) { *this = rhs; }
 	explicit Point(const Vec2d& rhs) : Vec2crd(coord_t(std::round(rhs.x())), coord_t(std::round(rhs.y()))) {}
 	// This constructor allows you to construct Point from Eigen expressions
-    // This constructor has to be implicit (non-explicit) to allow implicit conversion from Eigen expressions.
+    // 此构造函数必须为隐式（非显式）以允许从 Eigen 表达式进行隐式转换。
     template<typename OtherDerived>
     Point(const Eigen::MatrixBase<OtherDerived> &other) : Vec2crd(other) {}
     static Point new_scale(coordf_t x, coordf_t y) { return Point(coord_t(scale_(x)), coord_t(scale_(y))); }
     template<typename OtherDerived>
     static Point new_scale(const Eigen::MatrixBase<OtherDerived> &v) { return Point(coord_t(scale_(v.x())), coord_t(scale_(v.y()))); }
 
-    // This method allows you to assign Eigen expressions to MyVectorType
+    // 此方法允许您将 Eigen 表达式赋值给 MyVectorType
     template<typename OtherDerived>
     Point& operator=(const Eigen::MatrixBase<OtherDerived> &other)
     {
@@ -300,15 +300,15 @@ inline Point lerp(const Point &a, const Point &b, double t)
     return ((1. - t) * a.cast<double>() + t * b.cast<double>()).cast<coord_t>();
 }
 
-// if IncludeBoundary, then a bounding box is defined even for a single point.
-// otherwise a bounding box is only defined if it has a positive area.
+// 如果 IncludeBoundary，则即使对于单个点也定义边界框。
+// 否则，仅当边界框具有正面积时才定义。
 template<bool IncludeBoundary = false>
 BoundingBox get_extents(const Points &pts);
 extern template BoundingBox get_extents<false>(const Points &pts);
 extern template BoundingBox get_extents<true>(const Points &pts);
 
-// if IncludeBoundary, then a bounding box is defined even for a single point.
-// otherwise a bounding box is only defined if it has a positive area.
+// 如果 IncludeBoundary，则即使对于单个点也定义边界框。
+// 否则，仅当边界框具有正面积时才定义。
 template<bool IncludeBoundary = false>
 BoundingBox get_extents(const VecOfPoints &pts);
 extern template BoundingBox get_extents<false>(const VecOfPoints &pts);
@@ -316,8 +316,8 @@ extern template BoundingBox get_extents<true>(const VecOfPoints &pts);
 
 BoundingBoxf get_extents(const std::vector<Vec2d> &pts);
 
-// Test for duplicate points in a vector of points.
-// The points are copied, sorted and checked for duplicates globally.
+// 测试点向量中的重复点。
+// 点被复制、排序并全局检查重复项。
 bool        has_duplicate_points(Points &&pts);
 inline bool has_duplicate_points(const Points &pts)
 {
@@ -325,8 +325,8 @@ inline bool has_duplicate_points(const Points &pts)
     return has_duplicate_points(std::move(cpy));
 }
 
-// Test for duplicate points in a vector of points.
-// Only successive points are checked for equality.
+// 测试点向量中的重复点。
+// 仅检查连续的点是否相等。
 inline bool has_duplicate_successive_points(const Points &pts)
 {
     for (size_t i = 1; i < pts.size(); ++ i)
@@ -335,14 +335,14 @@ inline bool has_duplicate_successive_points(const Points &pts)
     return false;
 }
 
-// Test for duplicate points in a vector of points.
-// Only successive points are checked for equality. Additionally, first and last points are compared for equality.
+// 测试点向量中的重复点。
+// 仅检查连续的点是否相等。另外，比较首尾点是否相等。
 inline bool has_duplicate_successive_points_closed(const Points &pts)
 {
     return has_duplicate_successive_points(pts) || (pts.size() >= 2 && pts.front() == pts.back());
 }
 
-// Collect adjecent(duplicit points)
+// 收集相邻（重复点）
 Points collect_duplicates(Points pts /* Copy */);
 
 inline bool shorter_then(const Point& p0, const coord_t len)
@@ -355,32 +355,32 @@ inline bool shorter_then(const Point& p0, const coord_t len)
 }
 
 namespace int128 {
-    // Exact orientation predicate,
-    // returns +1: CCW, 0: collinear, -1: CW.
+    // 精确方向谓词，
+    // 返回 +1: CCW, 0: 共线, -1: CW。
     int orient(const Vec2crd &p1, const Vec2crd &p2, const Vec2crd &p3);
-    // Exact orientation predicate,
-    // returns +1: CCW, 0: collinear, -1: CW.
+    // 精确方向谓词，
+    // 返回 +1: CCW, 0: 共线, -1: CW。
     int cross(const Vec2crd &v1, const Vec2crd &v2);
 }
 
-// To be used by std::unordered_map, std::unordered_multimap and friends.
+// 供 std::unordered_map、std::unordered_multimap 等使用。
 struct PointHash {
     size_t operator()(const Vec2crd &pt) const noexcept {
         return coord_t((89 * 31 + int64_t(pt.x())) * 31 + pt.y());
     }
 };
 
-// A generic class to search for a closest Point in a given radius.
-// It uses std::unordered_multimap to implement an efficient 2D spatial hashing.
-// The PointAccessor has to return const Point*.
-// If a nullptr is returned, it is ignored by the query.
+// 在给定半径内搜索最近点的通用类。
+// 使用 std::unordered_multimap 实现高效的二维空间哈希。
+// PointAccessor 必须返回 const Point*。
+// 如果返回 nullptr，则查询忽略它。
 template<typename ValueType, typename PointAccessor> class ClosestPointInRadiusLookup
 {
 public:
     ClosestPointInRadiusLookup(coord_t search_radius, PointAccessor point_accessor = PointAccessor()) : 
 		m_search_radius(search_radius), m_point_accessor(point_accessor), m_grid_log2(0)
     {
-        // Resolution of a grid, twice the search radius + some epsilon.
+        // 网格分辨率，两倍搜索半径加一些 epsilon。
 		coord_t gridres = 2 * m_search_radius + 4;
         m_grid_resolution = gridres;
         assert(m_grid_resolution > 0);
@@ -421,14 +421,14 @@ public:
             m_map.emplace(std::make_pair(Vec2crd(pt->x()>>m_grid_log2, pt->y()>>m_grid_log2), std::move(value)));
     }
 
-    // Erase a data point equal to value. (ValueType has to declare the operator==).
-    // Returns true if the data point equal to value was found and removed.
+    // 擦除与 value 相等的数据点。（ValueType 必须声明 operator==）。
+    // 如果找到并移除了与 value 相等的数据点，则返回 true。
     bool erase(const ValueType &value) {
         const Point *pt = m_point_accessor(value);
         if (pt != nullptr) {
-            // Range of fragment starts around grid_corner, close to pt.
+            // 片段范围从 grid_corner 附近开始，靠近 pt。
             auto range = m_map.equal_range(Point((*pt).x()>>m_grid_log2, (*pt).y()>>m_grid_log2));
-            // Remove the first item.
+            // 移除第一个项目。
             for (auto it = range.first; it != range.second; ++ it) {
                 if (it->second == value) {
                     m_map.erase(it);
@@ -439,20 +439,20 @@ public:
         return false;
     }
 
-    // Return a pair of <ValueType*, distance_squared>
+    // 返回一对 <ValueType*, distance_squared>
     std::pair<const ValueType*, double> find(const Vec2crd &pt) {
-        // Iterate over 4 closest grid cells around pt,
-        // find the closest start point inside these cells to pt.
+        // 遍历 pt 周围的 4 个最近网格单元，
+        // 在这些单元中找到离 pt 最近的起点。
         const ValueType *value_min = nullptr;
         double           dist_min = std::numeric_limits<double>::max();
-        // Round pt to a closest grid_cell corner.
+        // 将 pt 四舍五入到最近的网格单元角点。
         Vec2crd            grid_corner((pt.x()+(m_grid_resolution>>1))>>m_grid_log2, (pt.y()+(m_grid_resolution>>1))>>m_grid_log2);
-        // For four neighbors of grid_corner:
+        // 对于 grid_corner 的四个邻居：
         for (coord_t neighbor_y = -1; neighbor_y < 1; ++ neighbor_y) {
             for (coord_t neighbor_x = -1; neighbor_x < 1; ++ neighbor_x) {
-                // Range of fragment starts around grid_corner, close to pt.
+                // 片段范围从 grid_corner 附近开始，靠近 pt。
                 auto range = m_map.equal_range(Vec2crd(grid_corner.x() + neighbor_x, grid_corner.y() + neighbor_y));
-                // Find the map entry closest to pt.
+                // 查找最接近 pt 的地图条目。
                 for (auto it = range.first; it != range.second; ++it) {
                     const ValueType &value = it->second;
                     const Vec2crd *pt2 = m_point_accessor(value);
@@ -471,19 +471,19 @@ public:
             std::make_pair(nullptr, std::numeric_limits<double>::max());
     }
 
-    // Returns all pairs of values and squared distances.
+    // 返回所有值对和平方距离。
     std::vector<std::pair<const ValueType*, double>> find_all(const Vec2crd &pt) {
         // Iterate over 4 closest grid cells around pt,
-        // Round pt to a closest grid_cell corner.
+        // 将 pt 四舍五入到最近的网格单元角点。
         Vec2crd      grid_corner((pt.x()+(m_grid_resolution>>1))>>m_grid_log2, (pt.y()+(m_grid_resolution>>1))>>m_grid_log2);
-        // For four neighbors of grid_corner:
+        // 对于 grid_corner 的四个邻居：
         std::vector<std::pair<const ValueType*, double>> out;
         const double r2 = double(m_search_radius) * m_search_radius;
         for (coord_t neighbor_y = -1; neighbor_y < 1; ++ neighbor_y) {
             for (coord_t neighbor_x = -1; neighbor_x < 1; ++ neighbor_x) {
-                // Range of fragment starts around grid_corner, close to pt.
+                // 片段范围从 grid_corner 附近开始，靠近 pt。
                 auto range = m_map.equal_range(Vec2crd(grid_corner.x() + neighbor_x, grid_corner.y() + neighbor_y));
-                // Find the map entry closest to pt.
+                // 查找最接近 pt 的地图条目。
                 for (auto it = range.first; it != range.second; ++it) {
                     const ValueType &value = it->second;
                     const Vec2crd *pt2 = m_point_accessor(value);

@@ -1,13 +1,13 @@
-#ifndef CSGMESHCOPY_HPP
+﻿#ifndef CSGMESHCOPY_HPP
 #define CSGMESHCOPY_HPP
 
 #include "CSGMesh.hpp"
 
 namespace Slic3r { namespace csg {
 
-// Copy a csg range but for the meshes, only copy the pointers. If the copy
-// is made from a CSGPart compatible object, and the pointer is a shared one,
-// it will be copied with reference counting.
+//// 复制一个 csg 范围但不复制网格，仅复制指针。如果复制
+//// 来自一个 CSGPart 兼容的对象，并且指针是共享的，
+// 它将以引用计数方式复制。
 template<class It, class OutIt>
 void copy_csgrange_shallow(const Range<It> &csgrange, OutIt out)
 {
@@ -32,7 +32,7 @@ void copy_csgrange_shallow(const Range<It> &csgrange, OutIt out)
     }
 }
 
-// Copy the csg range, allocating new meshes
+//// 复制 csg 范围，分配新的网格
 template<class It, class OutIt>
 void copy_csgrange_deep(const Range<It> &csgrange, OutIt out)
 {

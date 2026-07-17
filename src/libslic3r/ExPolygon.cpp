@@ -51,7 +51,7 @@ double ExPolygon::area() const
 {
     double a = this->contour.area();
     for (const Polygon &hole : holes)
-        a -= - hole.area();  // holes have negative area
+        a -= - hole.area();  // 孔洞的面积为负值
     return a;
 }
 
@@ -107,11 +107,11 @@ bool ExPolygon::contains(const Polylines &polylines) const
 bool ExPolygon::contains(const Point &point, bool border_result /* = true */) const
 {
     if (! Slic3r::contains(contour, point, border_result))
-        // Outside the outer contour, not on the contour boundary.
+        // 在外轮廓外部，不在轮廓边界上。
         return false;
     for (const Polygon &hole : this->holes)
         if (Slic3r::contains(hole, point, ! border_result))
-            // Inside a hole, not on the hole boundary.
+            // 在孔洞内部，不在孔洞边界上。
             return false;
     return true;
 }
@@ -126,7 +126,7 @@ bool ExPolygon::on_boundary(const Point &point, double eps) const
     return false;
 }
 
-// Projection of a point onto the polygon.
+// 点到多边形的投影。
 Point ExPolygon::point_projection(const Point &point) const
 {
     if (this->holes.empty()) {
@@ -174,10 +174,10 @@ bool ExPolygon::overlaps(const ExPolygon &other) const
     svg.draw(pl_out, "red");
     #endif
 
-    // See unit test SCENARIO("Clipper diff with polyline", "[Clipper]")
-    // for in which case the intersection_pl produces any intersection.
+    // 参见单元测试 SCENARIO("Clipper diff with polyline", "[Clipper]")
+    // 以了解 intersection_pl 产生交集的情况。
     return ! pl_out.empty() ||
-           // If *this is completely inside other, then pl_out is empty, but the expolygons overlap. Test for that situation.
+           // 如果 *this 完全在 other 内部，则 pl_out 为空，但 expolygons 会重叠。测试这种情况。
            other.contains(this->contour.points.front());
 }
 
@@ -230,7 +230,7 @@ Polygons ExPolygon::simplify_p(double tolerance) const
 {
     Polygons pp;
     pp.reserve(this->holes.size() + 1);
-    // contour
+    // 外轮廓
     {
         Polygon p = this->contour;
         p.points.push_back(p.points.front());
@@ -238,7 +238,7 @@ Polygons ExPolygon::simplify_p(double tolerance) const
         p.points.pop_back();
         pp.emplace_back(std::move(p));
     }
-    // holes
+    // 孔洞
     for (Polygon p : this->holes) {
         p.points.push_back(p.points.front());
         p.points = MultiPoint::_douglas_peucker(p.points, tolerance);
@@ -260,10 +260,10 @@ void ExPolygon::simplify(double tolerance, ExPolygons* expolygons) const
 
 void ExPolygon::medial_axis(double min_width, double max_width, ThickPolylines* polylines) const
 {
-    // init helper object
+    // 初始化辅助对象
     Slic3r::Geometry::MedialAxis ma(min_width, max_width, *this);
     
-    // compute the Voronoi diagram and extract medial axis polylines
+    // 计算Voronoi图并提取中轴多段线
     ThickPolylines pp;
     ma.build(&pp);
     
@@ -274,51 +274,47 @@ void ExPolygon::medial_axis(double min_width, double max_width, ThickPolylines* 
     svg.Close();
     */
     
-    /* Find the maximum width returned; we're going to use this for validating and 
-       filtering the output segments. */
+    /* 查找返回的最大宽度；我们将使用它来验证和过滤输出线段。 */
     double max_w = 0;
     for (ThickPolylines::const_iterator it = pp.begin(); it != pp.end(); ++it)
         max_w = fmaxf(max_w, *std::max_element(it->width.begin(), it->width.end()));
     
-    /* Loop through all returned polylines in order to extend their endpoints to the 
-       expolygon boundaries */
+    /* 遍历所有返回的多段线，将其端点延伸到expolygon边界 */
     bool removed = false;
     for (size_t i = 0; i < pp.size(); ++i) {
         ThickPolyline& polyline = pp[i];
         
-        // extend initial and final segments of each polyline if they're actual endpoints
-        /* We assign new endpoints to temporary variables because in case of a single-line
-           polyline, after we extend the start point it will be caught by the intersection()
-           call, so we keep the inner point until we perform the second intersection() as well */
+        // 如果多段线的端点确实是端点，则扩展其起始和结束线段
+        /* 我们将新端点分配给临时变量，因为在单段多段线的情况下，
+           扩展起点后它会被 intersection() 调用捕获，因此我们保留内部点直到执行第二次 intersection() */
         Point new_front = polyline.points.front();
         Point new_back  = polyline.points.back();
         if (polyline.endpoints.first && !this->on_boundary(new_front, SCALED_EPSILON)) {
             Vec2d p1 = polyline.points.front().cast<double>();
             Vec2d p2 = polyline.points[1].cast<double>();
-            // prevent the line from touching on the other side, otherwise intersection() might return that solution
+            // 防止线段触及另一侧，否则 intersection() 可能返回该解
             if (polyline.points.size() == 2)
                 p2 = (p1 + p2) * 0.5;
-            // Extend the start of the segment.
+            // 扩展线段的起点。
             p1 -= (p2 - p1).normalized() * max_width;
             this->contour.intersection(Line(p1.cast<coord_t>(), p2.cast<coord_t>()), &new_front);
         }
         if (polyline.endpoints.second && !this->on_boundary(new_back, SCALED_EPSILON)) {
             Vec2d p1 = (polyline.points.end() - 2)->cast<double>();
             Vec2d p2 = polyline.points.back().cast<double>();
-            // prevent the line from touching on the other side, otherwise intersection() might return that solution
+            // 防止线段触及另一侧，否则 intersection() 可能返回该解
             if (polyline.points.size() == 2)
                 p1 = (p1 + p2) * 0.5;
-            // Extend the start of the segment.
+            // 扩展线段的起点。
             p2 += (p2 - p1).normalized() * max_width;
             this->contour.intersection(Line(p1.cast<coord_t>(), p2.cast<coord_t>()), &new_back);
         }
         polyline.points.front() = new_front;
         polyline.points.back()  = new_back;
         
-        /*  remove too short polylines
-            (we can't do this check before endpoints extension and clipping because we don't
-            know how long will the endpoints be extended since it depends on polygon thickness
-            which is variable - extension will be <= max_width/2 on each side)  */
+        /*  移除过短的多段线
+            （我们不能在端点扩展和裁剪之前进行此检查，因为我们不知道端点将扩展多长，
+            因为它取决于可变的厚度 - 每侧的扩展将 <= max_width/2） */
         if ((polyline.endpoints.first || polyline.endpoints.second)
             && polyline.length() < max_w*2) {
             pp.erase(pp.begin() + i);
@@ -328,19 +324,17 @@ void ExPolygon::medial_axis(double min_width, double max_width, ThickPolylines* 
         }
     }
     
-    /*  If we removed any short polylines we now try to connect consecutive polylines
-        in order to allow loop detection. Note that this algorithm is greedier than 
-        MedialAxis::process_edge_neighbors() as it will connect random pairs of 
-        polylines even when more than two start from the same point. This has no 
-        drawbacks since we optimize later using nearest-neighbor which would do the 
-        same, but should we use a more sophisticated optimization algorithm we should
-        not connect polylines when more than two meet.  */
+    /*  如果我们移除了任何短多段线，现在尝试连接连续的多段线以允许循环检测。
+        注意此算法比 MedialAxis::process_edge_neighbors() 更贪婪，
+        因为它会连接随机配对的多段线，即使超过两条从同一点开始。
+        这没有缺点，因为我们之后使用最近邻优化会做同样的事情，
+        但如果使用更复杂的优化算法，当超过两条会合时不应连接多段线。 */
     if (removed) {
         for (size_t i = 0; i < pp.size(); ++i) {
             ThickPolyline& polyline = pp[i];
-            if (polyline.endpoints.first && polyline.endpoints.second) continue; // optimization
+            if (polyline.endpoints.first && polyline.endpoints.second) continue; // 优化
             
-            // find another polyline starting here
+            // 查找从此处开始的另一条多段线
             for (size_t j = i+1; j < pp.size(); ++j) {
                 ThickPolyline& other = pp[j];
                 if (polyline.last_point() == other.last_point()) {
@@ -360,7 +354,7 @@ void ExPolygon::medial_axis(double min_width, double max_width, ThickPolylines* 
                 assert(polyline.width.size() == polyline.points.size()*2 - 2);
                 
                 pp.erase(pp.begin() + j);
-                j = i;  // restart search from i+1
+                j = i;  // 从 i+1 重新开始搜索
             }
         }
     }
@@ -387,8 +381,7 @@ Lines ExPolygon::lines() const
     return lines;
 }
 
-// Do expolygons match? If they match, they must have the same topology,
-// however their contours may be rotated.
+// ExPolygons是否匹配？如果匹配，它们必须具有相同的拓扑结构，但其外轮廓可能已旋转。
 bool expolygons_match(const ExPolygon &l, const ExPolygon &r)
 {
     if (l.holes.size() != r.holes.size() || ! polygons_match(l.contour, r.contour))
@@ -443,7 +436,7 @@ extern std::vector<BoundingBox> get_extents_vector(const ExPolygons &polygons)
 bool has_duplicate_points(const ExPolygon &expoly)
 {
 #if 1
-    // Check globally.
+    // 全局检查。
     size_t cnt = expoly.contour.points.size();
     for (const Polygon &hole : expoly.holes)
         cnt += hole.points.size();
@@ -454,7 +447,7 @@ bool has_duplicate_points(const ExPolygon &expoly)
         allpts.insert(allpts.end(), hole.points.begin(), hole.points.end());
     return has_duplicate_points(std::move(allpts));
 #else
-    // Check per contour.
+    // 按轮廓检查。
     if (has_duplicate_points(expoly.contour))
         return true;
     for (const Polygon &hole : expoly.holes)
@@ -477,7 +470,7 @@ bool has_duplicate_points(const ExPolygons &expolys)
     }
     return has_duplicate_points(std::move(allpts));
 #else
-    // Check per contour.
+    // 按轮廓检查。
     for (const ExPolygon &expoly : expolys)
         if (has_duplicate_points(expoly))
             return true;
@@ -495,7 +488,7 @@ bool remove_same_neighbor(ExPolygons &expolygons)
         remove_from_contour |= remove_same_neighbor(expoly.contour);
         remove_from_holes |= remove_same_neighbor(expoly.holes);
     }
-    // Removing of expolygons without contour
+    // 移除没有轮廓的expolygons
     if (remove_from_contour)
         expolygons.erase(std::remove_if(expolygons.begin(), expolygons.end(),
                                         [](const ExPolygon &p) { return p.contour.points.size() <= 2; }),
@@ -514,7 +507,7 @@ bool remove_small_and_small_holes(ExPolygons &expolygons, double min_area)
     size_t free_idx = 0;
     for (size_t expoly_idx = 0; expoly_idx < expolygons.size(); ++expoly_idx) {
         if (std::abs(expolygons[expoly_idx].area()) >= min_area) {
-            // Expolygon is big enough, so also check all its holes
+            // Expolygon足够大，因此也检查其所有孔洞
             modified |= remove_small(expolygons[expoly_idx].holes, min_area);
             if (free_idx < expoly_idx) {
                 std::swap(expolygons[expoly_idx].contour, expolygons[free_idx].contour);

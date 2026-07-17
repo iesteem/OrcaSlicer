@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿//Copyright (c) 2021 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #include "SkeletalTrapezoidation.hpp"
 
@@ -113,7 +113,7 @@ SkeletalTrapezoidation::node_t &SkeletalTrapezoidation::makeNode(const VD::verte
 void SkeletalTrapezoidation::transferEdge(const Point &from, const Point &to, const VD::edge_type &vd_edge, edge_t *&prev_edge, const Point &start_source_point, const Point &end_source_point, const std::vector<Segment> &segments) {
     auto he_edge_it = vd_edge_to_he_edge.find(vd_edge.twin());
     if (he_edge_it != vd_edge_to_he_edge.end())
-    { // Twin segment(s) have already been made
+    { // 孪生段已创建
         edge_t* source_twin = he_edge_it->second;
         assert(source_twin);
         auto end_node_it = vd_node_to_he_node.find(vd_edge.vertex1());
@@ -154,9 +154,9 @@ void SkeletalTrapezoidation::transferEdge(const Point &from, const Point &to, co
                 return;
             }
             
-            assert(twin->prev); // Forth rib
-            assert(twin->prev->twin); // Back rib
-            assert(twin->prev->twin->prev); // Prev segment along parabola
+            assert(twin->prev); // 第四肋
+            assert(twin->prev->twin); // 背肋
+            assert(twin->prev->twin->prev); // 沿抛物线的上一段
             
             graph.makeRib(prev_edge, start_source_point, end_source_point);
         }
@@ -176,7 +176,7 @@ void SkeletalTrapezoidation::transferEdge(const Point &from, const Point &to, co
         {
             BOOST_LOG_TRIVIAL(warning) << "Previous edge doesn't go anywhere.";
         }
-        node_t* v0 = (prev_edge)? prev_edge->to : &makeNode(*vd_edge.vertex0(), from); // TODO: investigate whether boost:voronoi can produce multiple verts and violates consistency
+        node_t* v0 = (prev_edge)? prev_edge->to : &makeNode(*vd_edge.vertex0(), from); // TODO: 研究 boost::voronoi 是否会生成多个顶点并违反一致性
         Point p0 = discretized.front();
         for (size_t p1_idx = 1; p1_idx < discretized.size(); p1_idx++)
         {
@@ -208,7 +208,7 @@ void SkeletalTrapezoidation::transferEdge(const Point &from, const Point &to, co
             p0 = p1;
             v0 = v1;
             
-            if (p1_idx < discretized.size() - 1) { // Rib for last segment gets introduced outside this function!
+            if (p1_idx < discretized.size() - 1) { // 最后一段的肋在此函数外部引入！
                 graph.makeRib(prev_edge, start_source_point, end_source_point);
             }
         }
@@ -233,17 +233,17 @@ Points SkeletalTrapezoidation::discretize(const VD::edge_type& vd_edge, const st
 
     bool point_left = left_cell->contains_point();
     bool point_right = right_cell->contains_point();
-    if ((!point_left && !point_right) || vd_edge.is_secondary()) // Source vert is directly connected to source segment
+    if ((!point_left && !point_right) || vd_edge.is_secondary()) // 源顶点直接连接到源段
     {
         return Points({ start, end });
     }
-    else if (point_left != point_right) //This is a parabolic edge between a point and a line.
+    else if (point_left != point_right) // 这是点与线之间的抛物线边。
     {
         Point          p = Geometry::VoronoiUtils::get_source_point(*(point_left ? left_cell : right_cell), segments.begin(), segments.end());
         const Segment& s = Geometry::VoronoiUtils::get_source_segment(*(point_left ? right_cell : left_cell), segments.begin(), segments.end());
         return Geometry::VoronoiUtils::discretize_parabola(p, s, start, end, discretization_step_size, transitioning_angle);
     }
-    else //This is a straight edge between two points.
+    else // 这是两点之间的直边。
     {
         /*While the edge is straight, it is still discretized since the part
         becomes narrower between the two points. As such it may need different
@@ -255,7 +255,7 @@ Points SkeletalTrapezoidation::discretize(const VD::edge_type& vd_edge, const st
         Point   x_axis_dir    = perp(Point(right_point - left_point));
         coord_t x_axis_length = x_axis_dir.cast<int64_t>().norm();
 
-        const auto projected_x = [x_axis_dir, x_axis_length, middle](Point from) //Project a point on the edge.
+        const auto projected_x = [x_axis_dir, x_axis_length, middle](Point from) // 将点投影到边上。
         {
             Point vec = from - middle;
             assert(( vec.cast<int64_t>().dot(x_axis_dir.cast<int64_t>())/ int64_t(x_axis_length)) <= std::numeric_limits<coord_t>::max());
@@ -266,7 +266,7 @@ Points SkeletalTrapezoidation::discretize(const VD::edge_type& vd_edge, const st
         coord_t start_x = projected_x(start);
         coord_t end_x = projected_x(end);
 
-        //Part of the edge will be bound to the markings on the endpoints of the edge. Calculate how far that is.
+        // 边的一部分将绑定到边端点上的标记。计算其距离。
         float bound = 0.5 / tan((M_PI - transitioning_angle) * 0.5);
         int64_t marking_start_x = - int64_t(d) * bound;
         int64_t marking_end_x = int64_t(d) * bound;
@@ -279,35 +279,35 @@ Points SkeletalTrapezoidation::discretize(const VD::edge_type& vd_edge, const st
         Point marking_end = middle + (x_axis_dir.cast<int64_t>() * marking_end_x / int64_t(x_axis_length)).cast<coord_t>();
         int64_t direction = 1;
         
-        if (start_x > end_x) //Oops, the Voronoi edge is the other way around.
+        if (start_x > end_x) // 糟糕，Voronoi 边的方向反了。
         {
             direction = -1;
             std::swap(marking_start, marking_end);
             std::swap(marking_start_x, marking_end_x);
         }
 
-        //Start generating points along the edge.
+        // 开始沿边生成点。
         Point a = start;
         Point b = end;
         Points ret;
         ret.emplace_back(a);
 
-        //Introduce an extra edge at the borders of the markings?
+        // 在标记边界处引入额外边？
         bool add_marking_start = marking_start_x * direction > int64_t(start_x) * direction;
         bool add_marking_end = marking_end_x * direction > int64_t(start_x) * direction;
 
-        //The edge's length may not be divisible by the step size, so calculate an integer step count and evenly distribute the vertices among those.
+        // 边的长度可能无法被步长整除，因此计算整数步数并在其间均匀分布顶点。
         Point ab = b - a;
         coord_t ab_size = ab.cast<int64_t>().norm();
         coord_t step_count = (ab_size + discretization_step_size / 2) / discretization_step_size;
         if (step_count % 2 == 1)
         {
-            step_count++; // enforce a discretization point being added in the middle
+            step_count++; // 强制在中间添加离散化点
         }
         for (coord_t step = 1; step < step_count; step++)
         {
-            Point here = a + (ab.cast<int64_t>() * int64_t(step) / int64_t(step_count)).cast<coord_t>(); //Now simply interpolate the coordinates to get the new vertices!
-            coord_t x_here = projected_x(here); //If we've surpassed the position of the extra markings, we may need to insert them first.
+            Point here = a + (ab.cast<int64_t>() * int64_t(step) / int64_t(step_count)).cast<coord_t>(); // 现在只需插值坐标以获得新顶点！
+            coord_t x_here = projected_x(here); // 如果已超过额外标记的位置，可能需要先插入它们。
             if (add_marking_start && marking_start_x * direction < int64_t(x_here) * direction)
             {
                 ret.emplace_back(marking_start);
@@ -349,7 +349,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     this->outline = polys;
 #endif
 
-    // Check self intersections.
+    // 检查自交。
     assert([&polys]() -> bool {
         EdgeGrid::Grid grid;
         grid.set_bbox(get_extents(polys));
@@ -387,13 +387,13 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     assert(this->graph.edges.empty() && this->graph.nodes.empty() && this->vd_edge_to_he_edge.empty() && this->vd_node_to_he_node.empty());
     for (const VD::cell_type &cell : voronoi_diagram.cells()) {
         if (!cell.incident_edge())
-            continue; // There is no spoon
+            continue; // 没有勺子
 
         Point                start_source_point;
         Point                end_source_point;
         const VD::edge_type *starting_voronoi_edge = nullptr;
         const VD::edge_type *ending_voronoi_edge   = nullptr;
-        // Compute and store result in above variables
+        // 计算结果并存储到上述变量中
 
         if (cell.contains_point()) {
             Geometry::PointCellRange<Point> cell_range = Geometry::VoronoiUtils::compute_point_cell_range(cell, segments.cbegin(), segments.cend());
@@ -419,7 +419,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
             continue;
         }
 
-        // Copy start to end edge to graph
+        // 将起始到结束的边复制到图中
         assert(Geometry::VoronoiUtils::is_in_range<coord_t>(*starting_voronoi_edge));
         edge_t *prev_edge = nullptr;
         transferEdge(start_source_point, Geometry::VoronoiUtils::to_point(starting_voronoi_edge->vertex1()).cast<coord_t>(), *starting_voronoi_edge, prev_edge, start_source_point, end_source_point, segments);
@@ -449,8 +449,8 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 
     graph.collapseSmallEdges();
 
-    // Set [incident_edge] the first possible edge that way we can iterate over all reachable edges from node.incident_edge,
-    // without needing to iterate backward
+    // 将 [incident_edge] 设置为第一个可能的边，这样我们就可以从 node.incident_edge 迭代所有可达的边，
+    // 而无需向后迭代
     for (edge_t& edge : graph.edges)
         if (!edge.prev)
             edge.from->incident_edge = &edge;
@@ -473,7 +473,7 @@ void SkeletalTrapezoidation::separatePointyQuadEndNodes()
             visited_nodes.emplace(quad_start->from);
         }
         else
-        { // Needs to be duplicated
+        { // 需要被复制
             graph.nodes.emplace_back(*quad_start->from);
             node_t* new_node = &graph.nodes.back();
             new_node->incident_edge = quad_start;
@@ -485,11 +485,11 @@ void SkeletalTrapezoidation::separatePointyQuadEndNodes()
 
 //
 // ^^^^^^^^^^^^^^^^^^^^^
-//    INITIALIZATION
+//    初始化
 // =====================
 //
 // =====================
-//    TRANSTISIONING
+//    过渡处理
 // vvvvvvvvvvvvvvvvvvvvv
 //
 
@@ -568,7 +568,7 @@ void SkeletalTrapezoidation::updateIsCentral()
 
     coord_t outer_edge_filter_length = beading_strategy.getTransitionThickness(0) / 2;
 
-    float cap = sin(beading_strategy.getTransitioningAngle() * 0.5); // = cos(bisector_angle / 2)
+    float cap = sin(beading_strategy.getTransitioningAngle() * 0.5); // = cos(角平分线角度 / 2)
     for (edge_t& edge: graph.edges)
     {
         assert(edge.twin);
@@ -620,7 +620,7 @@ bool SkeletalTrapezoidation::filterCentral(edge_t* starting_edge, coord_t travel
         return false;
     }
     
-    bool should_dissolve = true; //Should we unmark this as central and propagate that?
+    bool should_dissolve = true; // 是否取消标记为 central 并传播该信息？
     for (edge_t* next_edge = starting_edge->next; next_edge && next_edge != starting_edge->twin; next_edge = next_edge->twin->next)
     {
         if (next_edge->data.isCentral())
@@ -629,7 +629,7 @@ bool SkeletalTrapezoidation::filterCentral(edge_t* starting_edge, coord_t travel
         }
     }
 
-    should_dissolve &= !starting_edge->to->isLocalMaximum(); // Don't filter central regions with a local maximum!
+    should_dissolve &= !starting_edge->to->isLocalMaximum(); // 不要过滤具有局部最大值的 central 区域！
     if (should_dissolve)
     {
         starting_edge->data.setIsCentral(false);
@@ -660,7 +660,7 @@ void SkeletalTrapezoidation::updateBeadCount()
         }
     }
 
-    // Fix bead count at locally maximal R, also for central regions!! See TODO s in generateTransitionEnd(.)
+    // 在局部最大 R 处修复 bead 计数，也适用于 central 区域！！参见 generateTransitionEnd(.) 中的 TODO
     for (node_t& node : graph.nodes)
     {
         if (node.isLocalMaximum())
@@ -708,7 +708,7 @@ bool SkeletalTrapezoidation::filterNoncentralRegions(edge_t* to_edge, coord_t be
     {
         if (next_edge->to->data.distance_to_boundary >= r || shorter_then(next_edge->to->p - next_edge->from->p, scaled<coord_t>(0.01)))
         {
-            break; // Only walk upward
+            break; // 仅向上遍历
         }
     }
     if (next_edge == to_edge->twin || ! next_edge)
@@ -727,9 +727,9 @@ bool SkeletalTrapezoidation::filterNoncentralRegions(edge_t* to_edge, coord_t be
     {
         dissolve = filterNoncentralRegions(next_edge, bead_count, traveled_dist + length, max_dist);
     }
-    else // Upward bead count is different
+    else // 向上的 bead 计数不同
     {
-        // Dissolve if two central regions with different bead count are closer together than the max_dist (= transition distance)
+        // 如果两个具有不同 bead 计数的 central 区域比 max_dist（= 过渡距离）更近，则溶解
         dissolve = (traveled_dist + length < max_dist) && std::abs(next_edge->to->data.bead_count - bead_count) == 1;
     }
 
@@ -740,18 +740,18 @@ bool SkeletalTrapezoidation::filterNoncentralRegions(edge_t* to_edge, coord_t be
         next_edge->to->data.bead_count = beading_strategy.getOptimalBeadCount(next_edge->to->data.distance_to_boundary * 2);
         next_edge->to->data.transition_ratio = 0;
     }
-    return dissolve; // Dissolving only depend on the one edge going upward. There cannot be multiple edges going upward.
+    return dissolve; // 溶解仅取决于向上的一条边。不能有多条边向上。
 }
 
 void SkeletalTrapezoidation::generateTransitioningRibs()
 {
-    // Store the upward edges to the transitions.
-    // We only store the halfedge for which the distance_to_boundary is higher at the end than at the beginning.
+    // 将向上的边存储到过渡中。
+    // 我们只存储距离边界在末端比起点更高的半边。
     ptr_vector_t<std::list<TransitionMiddle>> edge_transitions;
     generateTransitionMids(edge_transitions);
 
     for (edge_t& edge : graph.edges)
-    { // Check if there is a transition in between nodes with different bead counts
+    { // 检查在具有不同 bead 计数的节点之间是否存在过渡
         if (edge.data.isCentral() && edge.from->data.bead_count != edge.to->data.bead_count)
         {
             assert(edge.data.hasTransitions() || edge.twin->data.hasTransitions());
@@ -765,7 +765,7 @@ void SkeletalTrapezoidation::generateTransitioningRibs()
     export_graph_to_svg(debug_out_path("ST-generateTransitioningRibs-mids-%d.svg", iRun++), this->graph, this->outline);
 #endif
 
-    ptr_vector_t<std::list<TransitionEnd>> edge_transition_ends; // We only map the half edge in the upward direction. mapped items are not sorted
+    ptr_vector_t<std::list<TransitionEnd>> edge_transition_ends; // 我们只映射向上方向的半边。映射项未排序
     generateAllTransitionEnds(edge_transition_ends);
 
 #ifdef ARACHNE_DEBUG
@@ -773,7 +773,7 @@ void SkeletalTrapezoidation::generateTransitioningRibs()
 #endif
 
     applyTransitions(edge_transition_ends);
-    // Note that the shared pointer lists will be out of scope and thus destroyed here, since the remaining refs are weak_ptr.
+    // 注意，共享指针列表将超出作用域并在此销毁，因为剩余的引用是 weak_ptr。
 
 #ifdef ARACHNE_DEBUG
     ++iRun;
@@ -787,7 +787,7 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
     {
         assert(edge.data.centralIsSet());
         if (!edge.data.isCentral())
-        { // Only central regions introduce transitions
+        { // 只有 central 区域引入过渡
             continue;
         }
         coord_t start_R = edge.from->data.distance_to_boundary;
@@ -796,7 +796,7 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
         int end_bead_count = edge.to->data.bead_count;
 
         if (start_R == end_R)
-        { // No transitions occur when both end points have the same distance_to_boundary
+        { // 当两端点具有相同的 distance_to_boundary 时，不会发生过渡
             assert(edge.from->data.bead_count == edge.to->data.bead_count);
             if(edge.from->data.bead_count != edge.to->data.bead_count)
             {
@@ -805,18 +805,18 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
             continue;
         }
         else if (start_R > end_R)
-        { // Only consider those half-edges which are going from a lower to a higher distance_to_boundary
+        { // 只考虑那些从较低 distance_to_boundary 到较高 distance_to_boundary 的半边
             continue;
         }
 
         if (edge.from->data.bead_count == edge.to->data.bead_count)
-        { // No transitions should occur according to the enforced bead counts
+        { // 根据强制 bead 计数，不应发生过渡
             continue;
         }
 
         if (start_bead_count > beading_strategy.getOptimalBeadCount(start_R * 2)
             || end_bead_count > beading_strategy.getOptimalBeadCount(end_R * 2))
-        { // Wasn't the case earlier in this function because of already introduced transitions
+        { // 此函数中之前并非如此，因为已经引入了过渡
             BOOST_LOG_TRIVIAL(error) << "transitioning segment overlap! (?)";
         }
         assert(start_R < end_R);
@@ -852,7 +852,7 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
             if (! edge.data.hasTransitions(ignore_empty))
             {
                 edge_transitions.emplace_back(std::make_shared<std::list<TransitionMiddle>>());
-                edge.data.setTransitions(edge_transitions.back());  // initialization
+                edge.data.setTransitions(edge_transitions.back());  // 初始化
                 transitions = edge.data.getTransitions();
             }
             transitions->emplace_back(mid_pos, transition_lower_bead_count, mid_R);
@@ -871,7 +871,7 @@ void SkeletalTrapezoidation::filterTransitionMids()
         }
         auto& transitions = *edge.data.getTransitions();
 
-        // This is how stuff should be stored in transitions
+        // 这是内容在过渡中的存储方式
         assert(transitions.front().lower_bead_count <= transitions.back().lower_bead_count);
         assert(edge.from->data.distance_to_boundary <= edge.to->data.distance_to_boundary);
         
@@ -900,7 +900,7 @@ void SkeletalTrapezoidation::filterTransitionMids()
             transitions.pop_back();
         }
         if (transitions.empty())
-        { // FilterEndOfCentralTransition gives inconsistent new bead count when executing for the same transition in two directions.
+        { // FilterEndOfCentralTransition 在为同一过渡在双向执行时给出不一致的新 bead 计数。
             continue;
         }
 
@@ -924,7 +924,7 @@ void SkeletalTrapezoidation::filterTransitionMids()
             transitions.pop_front();
         }
         if (transitions.empty())
-        { // FilterEndOfCentralTransition gives inconsistent new bead count when executing for the same transition in two directions.
+        { // FilterEndOfCentralTransition 在为同一过渡在双向执行时给出不一致的新 bead 计数。
             continue;
         }
     }
@@ -952,19 +952,19 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
         const coord_t origin_radius          = origin_transition.feature_radius;
         const coord_t radius_here            = edge->from->data.distance_to_boundary;
         const bool    dissolve_result_is_odd = bool(origin_transition.lower_bead_count % 2) == going_up;
-        const coord_t width_deviation        = std::abs(origin_radius - radius_here) * 2; // times by two because the deviation happens at both sides of the significant edge
-        const coord_t line_width_deviation = dissolve_result_is_odd ? width_deviation : width_deviation / 2; // assume the deviation will be split over either 1 or 2 lines, i.e. assume wall_distribution_count = 1
+        const coord_t width_deviation        = std::abs(origin_radius - radius_here) * 2; // 乘以二因为偏差发生在显著边的两侧
+        const coord_t line_width_deviation = dissolve_result_is_odd ? width_deviation : width_deviation / 2; // 假设偏差将分配到 1 或 2 条线上，即假设 wall_distribution_count = 1
         if (line_width_deviation > allowed_filter_deviation)
             should_dissolve = false;
 
         if (should_dissolve && aligned_edge->data.hasTransitions()) {
             auto& transitions = *aligned_edge->data.getTransitions();
-            for (auto transition_it = transitions.begin(); transition_it != transitions.end(); ++ transition_it) { // Note: this is not necessarily iterating in the traveling direction!
-                // Check whether we should dissolve
+            for (auto transition_it = transitions.begin(); transition_it != transitions.end(); ++ transition_it) { // 注意：这不一定是沿行进方向迭代！
+                // 检查是否应溶解
                 coord_t pos = is_aligned? transition_it->pos : ab_size - transition_it->pos;
-                if (traveled_dist + pos < max_dist && transition_it->lower_bead_count == origin_transition.lower_bead_count) { // Only dissolve local optima
+                if (traveled_dist + pos < max_dist && transition_it->lower_bead_count == origin_transition.lower_bead_count) { // 仅溶解局部最优
                     if (traveled_dist + pos < beading_strategy.getTransitioningLength(transition_it->lower_bead_count)) {
-                        // Consecutive transitions both in/decreasing in bead count should never be closer together than the transition distance
+                        // 连续过渡（bead 计数同时增加或减少）绝不应比过渡距离更接近
                         assert(going_up != is_aligned || transition_it->lower_bead_count == 0); 
                     }
                     to_be_dissolved.emplace_back(aligned_edge, transition_it);
@@ -974,11 +974,11 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
         }
         if (should_dissolve && !seen_transition_on_this_edge) {
             std::list<SkeletalTrapezoidation::TransitionMidRef> to_be_dissolved_here = dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up);
-            if (to_be_dissolved_here.empty()) { // The region is too long to be dissolved in this direction, so it cannot be dissolved in any direction.
+            if (to_be_dissolved_here.empty()) { // 该区域太长，无法在此方向上溶解，因此无法在任何方向上溶解。
                 to_be_dissolved.clear();
                 return to_be_dissolved;
             }
-            to_be_dissolved.splice(to_be_dissolved.end(), to_be_dissolved_here); // Transfer to_be_dissolved_here into to_be_dissolved
+            to_be_dissolved.splice(to_be_dissolved.end(), to_be_dissolved_here); // 将 to_be_dissolved_here 转移到 to_be_dissolved
             should_dissolve = should_dissolve && !to_be_dissolved.empty();
         }
     }
@@ -1142,8 +1142,8 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
             }
             if (central_edge_count > 1 && going_up && isGoingDown(outgoing, 0, end_pos - ab_size + transition_half_length, lower_bead_count))
             { // We're after a 3-way_all-central_junction-node and going in the direction of lower bead count
-                // don't introduce a transition end along this central direction, because this direction is the downward direction
-                // while we are supposed to be [going_up]
+                //// don't introduce a 过渡 结束 along 此 central 方向, because 此 方向 是 the 向下 方向
+                //// 同时 we 是 supposed to 为 [going_up]
                 outgoing = next;
                 continue;
             }
@@ -1178,13 +1178,13 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
 
         if(!upward_edge->data.hasTransitionEnds())
         {
-            //This edge doesn't have a data structure yet for the transition ends. Make one.
+            //// 用于 the 的 此 边 doesn't 有 a 数据 结构 尚 过渡 ends. Make one.
             edge_transition_ends.emplace_back(std::make_shared<std::list<TransitionEnd>>());
             upward_edge->data.setTransitionEnds(edge_transition_ends.back());
         }
         auto transitions = upward_edge->data.getTransitionEnds();
 
-        //Add a transition to it (on the correct side).
+        //// 添加 a 过渡 to it (on the 正确 side).
         assert(ab_size == (edge.twin->from->p - edge.twin->to->p).cast<int64_t>().norm());
         assert(pos <= ab_size);
         if (transitions->empty() || pos < transitions->front().pos)
@@ -1202,8 +1202,8 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
 
 bool SkeletalTrapezoidation::isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t max_dist, coord_t lower_bead_count) const
 {
-    // NOTE: the logic below is not fully thought through.
-    // TODO: take transition mids into account
+    //// NOTE: the logic below 是 不 fully thought 通过.
+    //// TODO: take 过渡 mids into account
     if (outgoing->to->data.distance_to_boundary == 0)
     {
         return true;
@@ -1373,7 +1373,7 @@ void SkeletalTrapezoidation::generateExtraRibs()
 
         if (rib_thicknesses.empty()) continue;
 
-        // Preload some variables before [edge] gets changed
+        //// Preload 某些 variables 之前 [边] gets changed
         node_t* from = edge.from;
         node_t* to = edge.to;
         Point a = from->p;
@@ -1421,9 +1421,9 @@ void SkeletalTrapezoidation::generateExtraRibs()
 
 //
 // ^^^^^^^^^^^^^^^^^^^^^
-//    TRANSTISIONING
+//    过渡处理
 // =====================
-//  TOOLPATH GENERATION
+//  刀具路径生成
 // vvvvvvvvvvvvvvvvvvvvv
 //
 
@@ -1460,7 +1460,7 @@ void SkeletalTrapezoidation::generateSegments()
             }
             else
             {
-                // Ordering is not important
+                //// Ordering 是 不 important
             }
         }
         return a->to->data.distance_to_boundary > b->to->data.distance_to_boundary;
@@ -1592,10 +1592,10 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(std::vector<edge_t*>& upw
 {
     for (edge_t* upward_quad_mid : upward_quad_mids)
     {
-        // Transfer beading information to lower nodes
+        //// Transfer beading information to 下部 节点
         if (!upward_quad_mid->data.isCentral())
         {
-            // for equidistant edge: propagate from known beading to node with unknown beading
+            //// for equidistant 边: 传播 from known beading to 节点 with 未知 beading
             if (upward_quad_mid->from->data.distance_to_boundary == upward_quad_mid->to->data.distance_to_boundary
                 && upward_quad_mid->from->data.hasBeading()
                 && ! upward_quad_mid->to->data.hasBeading()
@@ -1665,8 +1665,8 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
     assert(ratio_left_to_whole >= 0.0 && ratio_left_to_whole <= 1.0);
     Beading ret = interpolate(left, ratio_left_to_whole, right);
 
-    // TODO: don't use toolpath locations past the middle!
-    // TODO: stretch bead widths and locations of the higher bead count beading to fit in the left over space
+    //// TODO: don't 使用 刀具路径 locations past the 中间!
+    //// TODO: stretch bead widths and locations of the higher bead 计数 beading to fit in the 左侧 over space
     coord_t next_inset_idx;
     for (next_inset_idx = left.toolpath_locations.size() - 1; next_inset_idx >= 0; next_inset_idx--)
     {
@@ -1689,7 +1689,7 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
     assert(left.toolpath_locations[next_inset_idx + 1] >= switching_radius);
     if (ret.toolpath_locations[next_inset_idx] > switching_radius)
     { // One inset disappeared between left and the merged one
-        // solve for ratio f:
+        //// 用于 ratio 的 solve f:
         // f*l + (1-f)*r = s
         // f*l + r - f*r = s
         // f*(l-r) + r = s
@@ -1713,7 +1713,7 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
     {
         if(left.bead_widths[inset_idx] == 0 || right.bead_widths[inset_idx] == 0)
         {
-            ret.bead_widths[inset_idx] = 0; //0-width wall markers stay 0-width.
+            ret.bead_widths[inset_idx] = 0; //0宽度壁标记保持0宽度。
         }
         else
         {
@@ -1745,7 +1745,7 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
 
         Beading* beading = &getOrCreateBeading(edge->to, node_beadings)->beading;
         edge_junctions.emplace_back(std::make_shared<LineJunctions>());
-        edge_.data.setExtrusionJunctions(edge_junctions.back());  // initialization
+        edge_.data.setExtrusionJunctions(edge_junctions.back());  // 初始化
         LineJunctions& ret = *edge_junctions.back();
 
         assert(beading->total_thickness >= edge->to->data.distance_to_boundary * 2);
@@ -1760,21 +1760,21 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
 
         const size_t num_junctions = beading->toolpath_locations.size();
         size_t junction_idx;
-        // Compute starting junction_idx for this segment
+        //// 用于 此 的 计算 starting junction_idx 段
         for (junction_idx = (std::max(size_t(1), beading->toolpath_locations.size()) - 1) / 2; junction_idx < num_junctions; junction_idx--)
         {
             coord_t bead_R = beading->toolpath_locations[junction_idx];
-            // toolpath_locations computed inside DistributedBeadingStrategy could be off by 1 because of rounding errors.
-            // In GH issue #8472, these roundings errors caused missing the middle extrusion.
-            // Adding small epsilon should help resolve those cases.
+            //// toolpath_locations computed 内部 DistributedBeadingStrategy 可能 为 off by 1 because of 舍入 errors.
+            //// In GH issue #8472, 这些 roundings errors caused missing the 中间 挤出.
+            //// 添加中 small epsilon 应 help resolve 那些 cases.
             if (bead_R <= start_R + 1)
             { // Junction coinciding with start node is used in this function call
                 break;
             }
         }
 
-        // Robustness against odd segments which might lie just slightly outside of the range due to rounding errors
-        // not sure if this is really needed (TODO)
+        //// Robustness against odd 段 其 可能 lie 仅 slightly 外部 of the 范围 due to 舍入 errors
+        //// 不 sure 如果 此 是 really needed (TODO)
         if (junction_idx + 1 < num_junctions
             && beading->toolpath_locations[junction_idx + 1] <= start_R + scaled<coord_t>(0.005)
             && beading->total_thickness < start_R + scaled<coord_t>(0.005)
@@ -1814,7 +1814,7 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
                 return nearest_beading;
             }
             
-            // Else make a new beading:
+            //// 否则 make a new beading:
             bool has_central_edge = false;
             bool first = true;
             coord_t dist = std::numeric_limits<coord_t>::max();
@@ -1970,14 +1970,14 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
                 edge_junctions.emplace_back(std::make_shared<LineJunctions>());
                 edge_to_peak->data.setExtrusionJunctions(edge_junctions.back());
             }
-            // The junctions on the edge(s) from the start of the quad to the node with highest R
+            //// the 的 连接点 on the 边(s) from the 开始 quad to the 节点 with highest R
             LineJunctions from_junctions = *edge_to_peak->data.getExtrusionJunctions();
             if (! edge_from_peak->twin->data.hasExtrusionJunctions())
             {
                 edge_junctions.emplace_back(std::make_shared<LineJunctions>());
                 edge_from_peak->twin->data.setExtrusionJunctions(edge_junctions.back());
             }
-            // The junctions on the edge(s) from the end of the quad to the node with highest R
+            //// the 的 连接点 on the 边(s) from the 结束 quad to the 节点 with highest R
             LineJunctions to_junctions = *edge_from_peak->twin->data.getExtrusionJunctions();
             if (edge_to_peak->prev)
             {
@@ -2076,9 +2076,9 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             ExtrusionLine& line = generated_toolpaths[inset_index].back();
             const coord_t width = beading.bead_widths[inset_index];
             // total area to be extruded is pi*(w/2)^2 = pi*w*w/4
-            // Width a constant extrusion width w, that would be a length of pi*w/4
-            // If we make a small circle to fill up the hole, then that circle would have a circumference of 2*pi*r
-            // So our circle needs to be such that r=w/8
+            //// 宽度 a 常量 挤出 宽度 w, 该 会 为 a 长度 of pi*w/4
+            //// 如果 we make a small circle to fill up the 孔, 则 该 circle 会 有 a circumference of 2*pi*r
+            //// So our circle needs to 为 such 该 r=w/8
             const coord_t     r          = width / 8;
             constexpr coord_t n_segments = 6;
             for (coord_t segment = 0; segment < n_segments; segment++) {
@@ -2091,7 +2091,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
 
 //
 // ^^^^^^^^^^^^^^^^^^^^^
-//  TOOLPATH GENERATION
+//  刀具路径生成
 // =====================
 //
 

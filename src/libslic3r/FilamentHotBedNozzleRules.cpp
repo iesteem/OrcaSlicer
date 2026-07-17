@@ -20,7 +20,7 @@ namespace Slic3r {
 namespace pt = boost::property_tree;
 namespace {
 
-// Prefer user data dir (installed system profile) so rules can be patched without reinstalling the app.
+// 优先使用用户数据目录（已安装的系统配置），以便在不重新安装应用的情况下修补规则。
 static std::string filament_hot_bed_nozzles_json_path()
 {
     namespace fs = boost::filesystem;
@@ -61,8 +61,8 @@ bool match_any_rule_token_ci(const std::unordered_set<std::string>& tokens, cons
     return false;
 }
 
-// Presets use optional " @Vendor / machine" suffixes (e.g. "Generic PLA @U1 0.2 nozzle"). Rules list the
-// canonical name only; compare to the base name so "Generic PLA" does not match "Generic PLA Silk".
+// 预设使用可选的 " @Vendor / machine" 后缀（例如 "Generic PLA @U1 0.2 nozzle"）。规则仅列出规范名称；
+// 与基础名称进行比较，这样"Generic PLA"就不会匹配"Generic PLA Silk"。
 static std::string filament_preset_base_name_for_nozzle_rule(std::string preset_name)
 {
     boost::algorithm::trim(preset_name);
@@ -84,7 +84,7 @@ static bool nozzle_warning_rule_matches_filament_preset_ci(const std::string& to
     return to_upper_ascii(base) == to_upper_ascii(token);
 }
 
-// Resolve filament_settings_id entry: may store preset display name or cloud setting_id / base_id.
+// 解析 filament_settings_id 条目：可能存储预设显示名称或云端 setting_id / base_id。
 static std::string resolve_filament_preset_full_name(const std::string& stored, const PresetCollection* filaments)
 {
     if (stored.empty() || filaments == nullptr)
@@ -119,14 +119,14 @@ static bool ptree_key_is_array_index(const std::string& key)
     return !key.empty() && std::all_of(key.begin(), key.end(), [](unsigned char c) { return std::isdigit(c); });
 }
 
-// JSON array elements are usually keyed "0","1",…; some ptree representations use an empty key per element.
+// JSON 数组元素通常以 "0","1",…; 某些 ptree 表示为每个元素使用空键。
 static bool ptree_key_is_array_element(const std::string& key)
 {
     return key.empty() || ptree_key_is_array_index(key);
 }
 
-// type: "all" | "undefine" | "hardened_steel" | "stainless_steel" | "brass" | ["brass","hardened_steel",...]
-// Note: boost::ptree JSON leaves have no children, so node.empty() is true even when data() holds the string.
+// 类型: "all" | "undefine" | "hardened_steel" | "stainless_steel" | "brass" | ["brass","hardened_steel",...]
+// 注意：boost::ptree JSON 叶子节点没有子节点，因此即使 data() 持有字符串，node.empty() 也为 true。
 static void parse_nozzle_rule_type_field(const pt::ptree& rule_obj, FilamentHotBedNozzleRules::NozzleForbiddenBand& band)
 {
     auto it = rule_obj.find("type");
@@ -146,7 +146,7 @@ static void parse_nozzle_rule_type_field(const pt::ptree& rule_obj, FilamentHotB
         band.nozzle_types.insert(std::move(scalar));
         return;
     }
-    // JSON array: children keyed "0", "1", …; values live in leaf .data() (same empty() quirk per element).
+    // JSON 数组：子节点以 "0", "1", …; 值位于叶子节点的 .data() 中（每个元素有相同的 empty() 特性）。
     band.applies_to_all_nozzle_types = false;
     for (const auto& ch : tn) {
         if (!ptree_key_is_array_element(ch.first))
@@ -235,7 +235,7 @@ static bool rule_obj_has_typed_nozzle_map(const pt::ptree& rule_obj)
     return false;
 }
 
-// Per-nozzle-diameter object: { "brass": [...], "undefine": { "forbidden": [...] }, "all": [...] }
+// 按喷嘴直径的对象：{ "brass": [...], "undefine": { "forbidden": [...] }, "all": [...] }
 static void append_bands_from_typed_nozzle_map(const std::string& rule_key, const pt::ptree& rule_obj,
     std::unordered_map<std::string, std::vector<FilamentHotBedNozzleRules::NozzleForbiddenBand>>& out_map)
 {
@@ -340,7 +340,7 @@ void FilamentHotBedNozzleRules::ensure_loaded()
     std::scoped_lock<std::recursive_mutex> lock(m_mutex);
     if (m_loaded)
         return;
-    // std::scoped_lock has no unlock(); load() takes the same recursive_mutex (nested lock is OK).
+    // std::scoped_lock 没有 unlock()；load() 使用同一个 recursive_mutex（嵌套锁是允许的）。
     load();
 }
 
@@ -420,7 +420,7 @@ bool FilamentHotBedNozzleRules::is_bed_filament_supported(const std::string& bed
         return true;
     if (match_any_rule_token_ci(it->second, filament_type))
         return true;
-    // Warning-tier materials are still "supported" (separate API reports warning).
+    // 警告级别的材料仍然"支持"（单独的 API 报告警告）。
     auto itw = m_bed_warning_filament_types.find(bed_key);
     bool res = false;
     res = itw != m_bed_warning_filament_types.end() && match_any_rule_token_ci(itw->second, filament_type);
@@ -442,7 +442,7 @@ bool FilamentHotBedNozzleRules::is_nozzle_filament_forbidden(const std::string& 
     (void)nozzle_key;
     (void)filament_preset_name;
     (void)nozzle_type;
-    // JSON "forbidden" for nozzle+filament is intentionally not applied; use warning lists only.
+    // JSON 中喷嘴+耗材的 "forbidden" 故意不应用；仅使用警告列表。
     return false;
 }
 
@@ -584,12 +584,12 @@ bool FilamentHotBedNozzleRules::evaluate_pei_bed_filament_mismatch_not_pla(const
         return false;
 
     const std::string bed_key = kBedKey_PEI;
-    bool res = false;//default not pla and need to show tips
+    bool res = false;//默认为非 PLA 类型，需要显示提示
     for (unsigned int fid : used_filament_indices) {
         const std::string ftype = cfg.filament_type.get_at(fid);
         if (ftype.empty())
             continue;
-        // not_pla means every non-PLA type should be checked, including TPU.
+        // not_pla 意味着应检查所有非 PLA 类型，包括 TPU。
         bool checkRes = is_pla_type(ftype);
         if (!checkRes)
         {
@@ -619,7 +619,7 @@ bool FilamentHotBedNozzleRules::evaluate_pei_bed_filament_mismatch_tpu(const Pri
 
         if (!is_tpu_type(ftype))
             continue;
-        // TPU on PEI: dedicated warning channel.
+        // PEI 上的 TPU：专有警告通道。
         if (is_bed_filament_tips(bed_key, ftype))
             return true;
     }

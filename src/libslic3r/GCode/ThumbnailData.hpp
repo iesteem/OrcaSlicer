@@ -7,7 +7,7 @@
 
 namespace Slic3r {
 
-//BBS: thumbnail_size in gcode file
+//BBS: gcode文件中的thumbnail_size
 static std::vector<Vec2d> THUMBNAIL_SIZE = { Vec2d(50, 50) };
 
 struct ThumbnailData
@@ -27,16 +27,16 @@ struct ThumbnailData
     }
 };
 
-//BBS: add plate id into thumbnail render logic
+//BBS: 将plate id添加到缩略图渲染逻辑中
 using ThumbnailsList = std::vector<ThumbnailData>;
 
 struct ThumbnailsParams
 {
-	const Vec2ds 	sizes;
-	bool 			printable_only;
-	bool 			parts_only;
-	bool 			show_bed;
-	bool 			transparent_background;
+    const Vec2ds     sizes;
+    bool             printable_only;
+    bool             parts_only;
+    bool             show_bed;
+    bool             transparent_background;
     int             plate_id;
 };
 
@@ -44,9 +44,9 @@ typedef std::function<ThumbnailsList(const ThumbnailsParams&)> ThumbnailsGenerat
 
 struct BBoxData
 {
-    int id;  // object id
-    std::vector<coordf_t> bbox; // first layer bounding box: min.{x,y}, max.{x,y}
-    float area;  // first layer area
+    int id;  // 对象id
+    std::vector<coordf_t> bbox; // 第一层边界框：min.{x,y}, max.{x,y}
+    float area;  // 第一层面积
     float layer_height;
     std::string name;
     void to_json(nlohmann::json& j) const{
@@ -69,16 +69,16 @@ struct BBoxData
 
 struct PlateBBoxData
 {
-    std::vector<coordf_t> bbox_all;  // total bounding box of all objects including brim
-    std::vector<BBoxData> bbox_objs; // BBoxData of seperate object
-    std::vector<int>      filament_ids; // filament id used in curr plate
+    std::vector<coordf_t> bbox_all;  // 所有对象的总边界框，包括brim
+    std::vector<BBoxData> bbox_objs; // 各个对象的BBoxData
+    std::vector<int>      filament_ids; // 当前plate中使用的filament id
     std::vector<std::string> filament_colors;
     bool is_seq_print = false;
     int first_extruder = 0;
     float nozzle_diameter = 0.4;
     std::string bed_type;
-    // version 1: use view type ColorPrint (filament color)
-    // version 2: use view type FilamentId (filament id)
+    // version 1: 使用视图类型ColorPrint（filament color）
+    // version 2: 使用视图类型FilamentId（filament id）
     int version = 2;
 
     void to_json(nlohmann::json& j) const{

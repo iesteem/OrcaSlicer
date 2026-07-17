@@ -114,8 +114,7 @@ Polygons Polygon::simplify(double tolerance) const
     // Works on CCW polygons only, CW contour will be reoriented to CCW by Clipper's simplify_polygons()!
     assert(this->is_counter_clockwise());
 
-    // repeat first point at the end in order to apply Douglas-Peucker
-    // on the whole polygon
+    // 重复第一个点在末尾，以便对整个多边形应用 Douglas-Peucker
     Points points = this->points;
     points.push_back(points.front());
     Polygon p(MultiPoint::_douglas_peucker(points, tolerance));
@@ -126,7 +125,7 @@ Polygons Polygon::simplify(double tolerance) const
     return simplify_polygons(pp);
 }
 
-// Only call this on convex polygons or it will return invalid results
+// 仅在凸多边形上调用此函数，否则将返回无效结果
 void Polygon::triangulate_convex(Polygons* polygons) const
 {
     for (Points::const_iterator it = this->points.begin() + 2; it != this->points.end(); ++it) {
@@ -136,13 +135,13 @@ void Polygon::triangulate_convex(Polygons* polygons) const
         p.points.push_back(*(it-1));
         p.points.push_back(*it);
         
-        // this should be replaced with a more efficient call to a merge_collinear_segments() method
+        // 这应该被替换为对 merge_collinear_segments() 方法的更高效调用
         if (p.area() > 0) polygons->push_back(p);
     }
 }
 
-// center of mass
-// source: https://en.wikipedia.org/wiki/Centroid
+// 质心
+// 来源：https://en.wikipedia.org/wiki/Centroid
 Point Polygon::centroid() const
 {
     double area_sum = 0.;
@@ -223,28 +222,28 @@ bool Polygon::overlaps(const Polygons& other) const
         return false;
     Polylines pl_out = intersection_pl(to_polylines(other), *this);
 
-    // See unit test SCENARIO("Clipper diff with polyline", "[Clipper]")
-    // for in which case the intersection_pl produces any intersection.
+    // 参见单元测试 SCENARIO("Clipper diff with polyline", "[Clipper]")
+    // 了解 intersection_pl 产生交集的情况。
     return !pl_out.empty() ||
-        // If *this is completely inside other, then pl_out is empty, but the expolygons overlap. Test for that situation.
+        // 如果 *this 完全在 other 内部，则 pl_out 为空，但 expolygons 重叠。测试这种情况。
         std::any_of(other.begin(), other.end(), [this](auto& poly) {return poly.contains(this->points.front()); });
 }
-// Filter points from poly to the output with the help of FilterFn.
-// filter function receives two vectors:
-// v1: this_point - previous_point
-// v2: next_point - this_point
-// and returns true if the point is to be copied to the output.
+// 借助 FilterFn 从 poly 中筛选点到输出。
+// 筛选函数接收两个向量：
+// v1: 当前点 - 前一个点
+// v2: 下一个点 - 当前点
+// 如果该点要被复制到输出，则返回 true。
 template<typename FilterFn>
 Points filter_points_by_vectors(const Points &poly, FilterFn filter)
 {
-    // Last point is the first point visited.
+    // 最后一点是第一个访问的点。
     Point p1 = poly.back();
-    // Previous vector to p1.
+    // p1 的前一个向量。
     Vec2d v1 = (p1 - *(poly.end() - 2)).cast<double>();
 
     Points out;
     for (Point p2 : poly) {
-        // p2 is next point to the currently visited point p1.
+        // p2 是当前访问点 p1 的下一个点。
         Vec2d v2 = (p2 - p1).cast<double>();
         if (filter(v1, v2))
             out.emplace_back(p1);
@@ -281,7 +280,7 @@ Points Polygon::concave_points(double angle_threshold) const
     return filter_convex_concave_points_by_angle_threshold(this->points, angle_threshold, [](const Vec2d &v1, const Vec2d &v2){ return cross2(v1, v2) < 0.; });
 }
 
-// Projection of a point onto the polygon.
+// 点到多边形的投影。
 Point Polygon::point_projection(const Point &point) const
 {
     Point proj = point;
@@ -321,7 +320,7 @@ Point Polygon::point_projection(const Point &point) const
 
 std::vector<float> Polygon::parameter_by_length() const
 {
-    // Parametrize the polygon by its length.
+    // 根据长度参数化多边形。
     std::vector<float> lengths(points.size()+1, 0.);
     for (size_t i = 1; i < points.size(); ++ i)
         lengths[i] = lengths[i-1] + (points[i] - points[i-1]).cast<float>().norm();
@@ -335,7 +334,7 @@ void Polygon::densify(float min_length, std::vector<float>* lengths_ptr)
     std::vector<float>& lengths = lengths_ptr ? *lengths_ptr : lengths_local;
 
     if (! lengths_ptr) {
-        // Length parametrization has not been provided. Calculate our own.
+        // 未提供长度参数化。自行计算。
         lengths = this->parameter_by_length();
     }
 
@@ -424,7 +423,7 @@ extern std::vector<BoundingBox> get_extents_vector(const Polygons &polygons)
     return out;
 }
 
-// Polygon must be valid (at least three points), collinear points and duplicate points removed.
+// 多边形必须有效（至少三个点），共线点和重复点已被移除。
 bool polygon_is_convex(const Points &poly)
 {
     if (poly.size() < 3)
@@ -446,14 +445,14 @@ bool polygon_is_convex(const Points &poly)
 bool has_duplicate_points(const Polygons &polys)
 {
 #if 1
-    // Check globally.
+    // 全局检查。
     Points allpts;
     allpts.reserve(count_points(polys));
     for (const Polygon &poly : polys)
         allpts.insert(allpts.end(), poly.points.begin(), poly.points.end());
     return has_duplicate_points(std::move(allpts));
 #else
-    // Check per contour.
+    // 按轮廓检查。
     for (const Polygon &poly : polys)
         if (has_duplicate_points(poly))
             return true;
@@ -468,12 +467,12 @@ bool remove_same_neighbor(Polygon &polygon)
         return false;
     auto last = std::unique(points.begin(), points.end());
 
-    // remove first and last neighbor duplication
+    // 移除首尾相邻重复
     if (const Point &last_point = *(last - 1); last_point == points.front()) {
         --last;
     }
 
-    // no duplicits
+    // 无重复
     if (last == points.end())
         return false;
 
@@ -488,7 +487,7 @@ bool remove_same_neighbor(Polygons &polygons)
     bool exist = false;
     for (Polygon &polygon : polygons)
         exist |= remove_same_neighbor(polygon);
-    // remove empty polygons
+    // 移除空多边形
     polygons.erase(std::remove_if(polygons.begin(), polygons.end(), [](const Polygon &p) { return p.points.size() <= 2; }), polygons.end());
     return exist;
 }
@@ -499,17 +498,17 @@ static inline bool is_stick(const Point &p1, const Point &p2, const Point &p3)
     Point v2 = p3 - p2;
     int64_t dir = int64_t(v1(0)) * int64_t(v2(0)) + int64_t(v1(1)) * int64_t(v2(1));
     if (dir > 0)
-        // p3 does not turn back to p1. Do not remove p2.
+        // p3 没有折回 p1。不移除 p2。
         return false;
     double l2_1 = double(v1(0)) * double(v1(0)) + double(v1(1)) * double(v1(1));
     double l2_2 = double(v2(0)) * double(v2(0)) + double(v2(1)) * double(v2(1));
     if (dir == 0)
-        // p1, p2, p3 may make a perpendicular corner, or there is a zero edge length.
-        // Remove p2 if it is coincident with p1 or p2.
+        // p1, p2, p3 可能形成一个垂直角，或者存在零边长度。
+        // 如果 p2 与 p1 或 p2 重合，则移除 p2。
         return l2_1 == 0 || l2_2 == 0;
-    // p3 turns back to p1 after p2. Are p1, p2, p3 collinear?
-    // Calculate distance from p3 to a segment (p1, p2) or from p1 to a segment(p2, p3),
-    // whichever segment is longer
+    // p3 在 p2 之后折回 p1。p1, p2, p3 是否共线？
+    // 计算从 p3 到线段 (p1, p2) 或从 p1 到线段 (p2, p3) 的距离，
+    // 取较长的线段
     double cross = double(v1(0)) * double(v2(1)) - double(v2(0)) * double(v1(1));
     double dist2 = cross * cross / std::max(l2_1, l2_2);
     return dist2 < EPSILON * EPSILON;
@@ -521,7 +520,7 @@ bool remove_sticks(Polygon &poly)
     size_t j = 1;
     for (size_t i = 1; i + 1 < poly.points.size(); ++ i) {
         if (! is_stick(poly[j-1], poly[i], poly[i+1])) {
-            // Keep the point.
+            // 保留该点。
             if (j < i)
                 poly.points[j] = poly.points[i];
             ++ j;
@@ -595,13 +594,13 @@ bool remove_small(Polygons &polys, double min_area)
 void remove_collinear(Polygon &poly)
 {
     if (poly.points.size() > 2) {
-        // copy points and append both 1 and last point in place to cover the boundaries
+        // 复制点并在适当位置追加第 1 个和最后一个点以覆盖边界
         Points pp;
         pp.reserve(poly.points.size()+2);
         pp.push_back(poly.points.back());
         pp.insert(pp.begin()+1, poly.points.begin(), poly.points.end());
         pp.push_back(poly.points.front());
-        // delete old points vector. Will be re-filled in the loop
+        // 删除旧的点向量。将在循环中重新填充
         poly.points.clear();
 
         size_t i = 0;
@@ -638,15 +637,15 @@ Polygons polygons_simplify(const Polygons &source_polygons, double tolerance, bo
     Polygons out;
     out.reserve(source_polygons.size());
     for (const Polygon &source_polygon : source_polygons) {
-        // Run Douglas / Peucker simplification algorithm on an open polyline (by repeating the first point at the end of the polyline),
+        // 在开放多段线上运行 Douglas/Peucker 简化算法（通过在多段线末尾重复第一个点），
         Points simplified = MultiPoint::_douglas_peucker(to_polyline(source_polygon).points, tolerance);
-        // then remove the last (repeated) point.
+        // 然后移除最后一个（重复的）点。
         simplified.pop_back();
-        // Simplify the decimated contour by ClipperLib.
+        // 通过 ClipperLib 简化抽取后的轮廓。
         bool ccw = ClipperLib::Area(simplified) > 0.;
         for (Points &path : ClipperLib::SimplifyPolygons(ClipperUtils::SinglePathProvider(simplified), ClipperLib::pftNonZero, strictly_simple)) {
             if (! ccw)
-                // ClipperLib likely reoriented negative area contours to become positive. Reverse holes back to CW.
+                // ClipperLib 可能将负面积轮廓重新定向为正面积。将孔反转回 CW。
                 std::reverse(path.begin(), path.end());
             out.emplace_back(std::move(path));
         }
@@ -654,8 +653,8 @@ Polygons polygons_simplify(const Polygons &source_polygons, double tolerance, bo
     return out;
 }
 
-// Do polygons match? If they match, they must have the same topology,
-// however their contours may be rotated.
+// 多边形是否匹配？如果匹配，它们必须具有相同的拓扑结构，
+// 但它们的轮廓可能已旋转。
 bool polygons_match(const Polygon &l, const Polygon &r)
 {
     if (l.size() != r.size())

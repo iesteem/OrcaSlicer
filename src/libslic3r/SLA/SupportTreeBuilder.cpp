@@ -169,15 +169,14 @@ const indexed_triangle_set &SupportTreeBuilder::merged_mesh(size_t steps) const
     }
 
     if (ctl().stopcondition()) {
-        // In case of failure we have to return an empty mesh
+        // 如果失败，我们必须返回空网格
         m_meshcache = {};
         return m_meshcache;
     }
     
     m_meshcache = merged;
     
-    // The mesh will be passed by const-pointer to TriangleMeshSlicer,
-    // which will need this.
+    // 网格将通过常量指针传递给 TriangleMeshSlicer，后者将需要此信息。
     its_merge_vertices(m_meshcache);
     
     BoundingBoxf3 bb = bounding_box(m_meshcache);
@@ -199,10 +198,10 @@ double SupportTreeBuilder::full_height() const
 
 const indexed_triangle_set &SupportTreeBuilder::merge_and_cleanup()
 {
-    // in case the mesh is not generated, it should be...
-    auto &ret = merged_mesh(); 
-    
-    // Doing clear() does not garantee to release the memory.
+    // 如果网格尚未生成，则应先生成...
+    auto &ret = merged_mesh();
+
+    // 执行 clear() 不能保证释放内存。
     m_heads = {};
     m_head_indices = {};
     m_pillars = {};

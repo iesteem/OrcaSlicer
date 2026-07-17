@@ -29,11 +29,9 @@
 #include <boost/nowide/convert.hpp>
 #include <boost/nowide/cstdlib.hpp>
 
-// Spirit v2.5 allows you to suppress automatic generation
-// of predefined terminals to speed up complation. With
-// BOOST_SPIRIT_NO_PREDEFINED_TERMINALS defined, you are
-// responsible in creating instances of the terminals that
-// you need (e.g. see qi::uint_type uint_ below).
+// Spirit v2.5 允许您抑制预定义终端的自动生成以加快编译速度。
+// 定义了 BOOST_SPIRIT_NO_PREDEFINED_TERMINALS 后，您需要
+// 自行创建所需的终端实例（例如，参见下面的 qi::uint_type uint_）。
 //#define BOOST_SPIRIT_NO_PREDEFINED_TERMINALS
 
 #define BOOST_RESULT_OF_USE_DECLTYPE
@@ -123,12 +121,12 @@ std::vector<std::string> PlaceholderParser::config_diff(const DynamicPrintConfig
     return diff_keys;
 }
 
-// Scalar configuration values are stored into m_single,
-// vector configuration values are stored into m_multiple.
-// All vector configuration values stored into the PlaceholderParser
-// are expected to be addressed by the extruder ID, therefore
-// if a vector configuration value is addressed without an index,
-// a current extruder ID is used.
+// 标量配置值存储到m_single中，
+// 向量配置值存储到m_multiple中。
+// 存储到PlaceholderParser中的所有向量配置值
+// 预期通过挤出机ID寻址，因此
+// 如果向量配置值在没有索引的情况下被寻址，
+// 则使用当前挤出机ID。
 bool PlaceholderParser::apply_config(const DynamicPrintConfig &rhs)
 {
     bool modified = false;
@@ -166,8 +164,8 @@ void PlaceholderParser::apply_env_variables()
 }
 
 namespace spirit = boost::spirit;
-// Using an encoding, which accepts unsigned chars.
-// Don't use boost::spirit::ascii, as it crashes internally due to indexing with negative char values for UTF8 characters into some 7bit character classification tables.
+// 使用接受无符号字符的编码。
+// 不要使用boost::spirit::ascii，因为它会因对UTF8字符的负char值进行索引到某些7位字符分类表而内部崩溃。
 //namespace spirit_encoding = boost::spirit::ascii;
 //FIXME iso8859_1 is just a workaround for the problem above. Replace it with UTF8 support!
 namespace spirit_encoding = boost::spirit::iso8859_1;
@@ -184,7 +182,7 @@ namespace client
         OptWithPos(ConfigOptionConstPtr opt, IteratorRange it_range, bool writable = false) : opt(opt), it_range(it_range), writable(writable) {}
         ConfigOptionConstPtr             opt { nullptr };
         bool                             writable { false };
-        // -1 means it is a scalar variable, or it is a vector variable and index was not assigned yet or the whole vector is considered.
+        // -1 表示这是一个标量变量，或者它是一个向量变量且索引尚未分配，或考虑整个向量。
         int                              index { -1 };
         IteratorRange                    it_range;
 
@@ -304,7 +302,7 @@ namespace client
             std::string out;
             switch (this->type()) {
             case TYPE_EMPTY:
-                // Inside an if / else block to be skipped.
+                // 在要跳过的if/else块内部。
                 break;
 			case TYPE_BOOL:   out = this->b() ? "true" : "false"; break;
             case TYPE_INT:    out = std::to_string(this->i()); break;
@@ -328,15 +326,15 @@ namespace client
             return out;
         }
 
-        // Range of input iterators covering this expression.
-        // Used for throwing parse exceptions.
+        // 覆盖此表达式的输入迭代器范围。
+        // 用于抛出解析异常。
         IteratorRange  it_range;
 
         expr unary_minus(const Iterator start_pos) const
         { 
             switch (this->type()) {
             case TYPE_EMPTY:
-                // Inside an if / else block to be skipped.
+                // 在要跳过的if/else块内部。
                 return expr();
             case TYPE_INT :
                 return expr(- this->i(), start_pos, this->it_range.end());
@@ -346,7 +344,7 @@ namespace client
                 this->throw_exception("Cannot apply unary minus operator.");
             }
             assert(false);
-            // Suppress compiler warnings.
+            // 抑制编译器警告。
             return expr();
         }
 
@@ -354,7 +352,7 @@ namespace client
         { 
             switch (this->type()) {
             case TYPE_EMPTY:
-                // Inside an if / else block to be skipped.
+                // 在要跳过的if/else块内部。
                 return expr();
             case TYPE_INT:
                 return expr(this->i(), start_pos, this->it_range.end());
@@ -364,7 +362,7 @@ namespace client
                 this->throw_exception("Cannot convert to integer.");
             }
             assert(false);
-            // Suppress compiler warnings.
+            // 抑制编译器警告。
             return expr();
         }
 
@@ -372,7 +370,7 @@ namespace client
         { 
             switch (this->type()) {
             case TYPE_EMPTY:
-                // Inside an if / else block to be skipped.
+                // 在要跳过的if/else块内部。
                 return expr();
             case TYPE_INT:
                 return expr(this->i(), start_pos, this->it_range.end());
@@ -382,7 +380,7 @@ namespace client
                 this->throw_exception("Cannot round a non-numeric value.");
             }
             assert(false);
-            // Suppress compiler warnings.
+            // 抑制编译器警告。
             return expr();
         }
 
@@ -390,7 +388,7 @@ namespace client
         { 
             switch (this->type()) {
             case TYPE_EMPTY:
-                // Inside an if / else block to be skipped.
+                // 在要跳过的if/else块内部。
                 return expr();
             case TYPE_BOOL:
                 return expr(! this->b(), start_pos, this->it_range.end());
@@ -398,14 +396,14 @@ namespace client
                 this->throw_exception("Cannot apply a not operator.");
             }
             assert(false);
-            // Suppress compiler warnings.
+            // 抑制编译器警告。
             return expr();
         }
 
         expr &operator+=(const expr &rhs)
         { 
             if (this->type() == TYPE_EMPTY) {
-                // Inside an if / else block to be skipped.
+                // 在要跳过的if/else块内部。
             } else if (this->type() == TYPE_STRING) {
                 // Convert the right hand side to string and append.
                 *m_data.s += rhs.to_string();
@@ -428,7 +426,7 @@ namespace client
         expr &operator-=(const expr &rhs)
         { 
             if (this->type() == TYPE_EMPTY) {
-                // Inside an if / else block to be skipped.
+                // 在要跳过的if/else块内部。
                 this->reset();
             } else {
                 const char *err_msg = "Cannot subtract non-numeric types.";
@@ -446,7 +444,7 @@ namespace client
         expr &operator*=(const expr &rhs)
         { 
             if (this->type() == TYPE_EMPTY) {
-                // Inside an if / else block to be skipped.
+                // 在要跳过的if/else块内部。
                 this->reset();
             } else {
                 const char *err_msg = "Cannot multiply with non-numeric type.";
@@ -464,7 +462,7 @@ namespace client
         expr &operator/=(const expr &rhs)
         {
             if (this->type() == TYPE_EMPTY) {
-                // Inside an if / else block to be skipped.
+                // 在要跳过的if/else块内部。
                 this->reset();
             } else {
                 this->throw_if_not_numeric("Cannot divide a non-numeric type.");
@@ -483,7 +481,7 @@ namespace client
         expr &operator%=(const expr &rhs)
         {
             if (this->type() == TYPE_EMPTY) {
-                // Inside an if / else block to be skipped.
+                // 在要跳过的if/else块内部。
                 this->reset();
             } else {
                 this->throw_if_not_numeric("Cannot divide a non-numeric type.");

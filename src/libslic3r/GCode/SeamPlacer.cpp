@@ -39,8 +39,8 @@ template<typename T> int sgn(T val) {
   return int(T(0) < val) - int(val < T(0));
 }
 
-// base function: ((e^(((1)/(x^(2)+1)))-1)/(e-1))
-// checkout e.g. here: https://www.geogebra.org/calculator
+// 基础函数：((e^(((1)/(x^(2)+1)))-1)/(e-1))
+// 例如在此处查看：https://www.geogebra.org/calculator
 float gauss(float value, float mean_x_coord, float mean_value, float falloff_speed) {
   float shifted = value - mean_x_coord;
   float denominator = falloff_speed * shifted * shifted + 1.0f;
@@ -49,16 +49,16 @@ float gauss(float value, float mean_x_coord, float mean_value, float falloff_spe
 }
 
 float compute_angle_penalty(float ccw_angle) {
-  // This function is used:
+  // 使用此函数：
   // ((ℯ^(((1)/(x^(2)*3+1)))-1)/(ℯ-1))*1+((1)/(2+ℯ^(-x)))
-  // looks scary, but it is gaussian combined with sigmoid,
-  // so that concave points have much smaller penalty over convex ones
+  // 看起来很吓人，但它是高斯函数与Sigmoid函数的组合，
+  // 因此凹点相比凸点具有更小的惩罚
   // https://github.com/prusa3d/PrusaSlicer/tree/master/doc/seam_placement/corner_penalty_function.png
   return gauss(ccw_angle, 0.0f, 1.0f, 3.0f) +
          1.0f / (2 + std::exp(-ccw_angle));
 }
 
-/// Coordinate frame
+/// 坐标系
 class Frame {
 public:
   Frame() {
@@ -131,10 +131,10 @@ std::vector<float> raycast_visibility(const AABBTreeIndirect::Tree<3, float> &ra
                                       size_t negative_volumes_start_index,
                                       SeamPosition seam_position = spAligned) {
   BOOST_LOG_TRIVIAL(debug)
-      << "SeamPlacer: raycast visibility of " << samples.positions.size() << " samples over " << triangles.indices.size()
-      << " triangles: end";
+      << "SeamPlacer: 射线投射可见性 " << samples.positions.size() << " 个样本 over " << triangles.indices.size()
+      << " 个三角形: 结束";
 
-  //prepare uniform samples of a hemisphere
+  //准备半球的均匀样本
   float step_size = 1.0f / SeamPlacer::sqr_rays_per_sample_point;
   std::vector<Vec3f> precomputed_sample_directions(
       SeamPlacer::sqr_rays_per_sample_point * SeamPlacer::sqr_rays_per_sample_point);
@@ -153,7 +153,7 @@ std::vector<float> raycast_visibility(const AABBTreeIndirect::Tree<3, float> &ra
   tbb::parallel_for(tbb::blocked_range<size_t>(0, result.size()),
                     [&triangles, &precomputed_sample_directions, model_contains_negative_parts, negative_volumes_start_index,
                      &raycasting_tree, &result, &samples, seam_position](tbb::blocked_range<size_t> r) {
-                      // Maintaining hits memory outside of the loop, so it does not have to be reallocated for each query.
+                      // 在循环外部维护hits内存，以便不必为每个查询重新分配。
                       std::vector<igl::Hit> hits;
                       for (size_t s_idx = r.begin(); s_idx < r.end(); ++s_idx) {
                         result[s_idx] = 1.0f;
@@ -167,7 +167,7 @@ std::vector<float> raycast_visibility(const AABBTreeIndirect::Tree<3, float> &ra
                             result[s_idx] += front_adjustment;
                         }
 
-                        // apply the local direction via Frame struct - the local_dir is with respect to +Z being forward
+                        // 通过Frame结构应用局部方向 - local_dir相对于+Z为正向
                         Frame f;
                         f.set_from_z(normal);
 
@@ -175,21 +175,20 @@ std::vector<float> raycast_visibility(const AABBTreeIndirect::Tree<3, float> &ra
                           Vec3f final_ray_dir = (f.to_world(dir));
                           if (!model_contains_negative_parts) {
                             igl::Hit hitpoint;
-                            // FIXME: This AABBTTreeIndirect query will not compile for float ray origin and
-                            // direction.
+                            // FIXME: 此AABBTTreeIndirect查询不会编译float射线原点和方向。
                             Vec3d final_ray_dir_d = final_ray_dir.cast<double>();
-                            Vec3d ray_origin_d = (center + normal * 0.01f).cast<double>(); // start above surface.
+                            Vec3d ray_origin_d = (center + normal * 0.01f).cast<double>(); // 从表面上方开始。
                             bool hit = AABBTreeIndirect::intersect_ray_first_hit(triangles.vertices,
                                                                                  triangles.indices, raycasting_tree, ray_origin_d, final_ray_dir_d, hitpoint);
                             if (hit && its_face_normal(triangles, hitpoint.id).dot(final_ray_dir) <= 0) {
                               result[s_idx] -= decrease_step;
                             }
-                          } else { //TODO improve logic for order based boolean operations - consider order of volumes
+                          } else { //TODO 改进基于顺序的布尔运算逻辑 - 考虑体积顺序
                             bool casting_from_negative_volume = samples.triangle_indices[s_idx]
                                                                 >= negative_volumes_start_index;
 
-                            Vec3d ray_origin_d = (center + normal * 0.01f).cast<double>(); // start above surface.
-                            if (casting_from_negative_volume) { // if casting from negative volume face, invert direction, change start pos
+                            Vec3d ray_origin_d = (center + normal * 0.01f).cast<double>(); // 从表面上方开始。
+                            if (casting_from_negative_volume) { // 如果从负体积面投射，反转方向，更改起始位置
                               final_ray_dir = -1.0 * final_ray_dir;
                               ray_origin_d = (center - normal * 0.01f).cast<double>();
                             }
@@ -199,13 +198,13 @@ std::vector<float> raycast_visibility(const AABBTreeIndirect::Tree<3, float> &ra
                                                                                      ray_origin_d, final_ray_dir_d, hits);
                             if (some_hit) {
                               int counter = 0;
-                              // NOTE: iterating in reverse, from the last hit for one simple reason: We know the state of the ray at that point;
-                              //  It cannot be inside model, and it cannot be inside negative volume
+                              // 注意：反向迭代，从最后一次命中开始，原因很简单：我们知道该点射线的状态；
+                              // 它不能在模型内部，也不能在负体积内部
                               for (int hit_index = int(hits.size()) - 1; hit_index >= 0; --hit_index) {
                                 Vec3f face_normal = its_face_normal(triangles, hits[hit_index].id);
-                                if (hits[hit_index].id >= int(negative_volumes_start_index)) { //negative volume hit
-                                  counter -= sgn(face_normal.dot(final_ray_dir)); // if volume face aligns with ray dir, we are leaving negative space
-                                                                                               // which in reverse hit analysis means, that we are entering negative space :) and vice versa
+                                if (hits[hit_index].id >= int(negative_volumes_start_index)) { //负体积命中
+                                  counter -= sgn(face_normal.dot(final_ray_dir)); // 如果体积面与射线方向对齐，我们正在离开负空间
+                                                                                               // 在反向命中分析中，这意味着我们正在进入负空间 :) 反之亦然
                                 } else {
                                   counter += sgn(face_normal.dot(final_ray_dir));
                                 }
@@ -220,8 +219,8 @@ std::vector<float> raycast_visibility(const AABBTreeIndirect::Tree<3, float> &ra
                     });
 
   BOOST_LOG_TRIVIAL(debug)
-      << "SeamPlacer: raycast visibility of " << samples.positions.size() << " samples over " << triangles.indices.size()
-      << " triangles: end";
+      << "SeamPlacer: 射线投射可见性 " << samples.positions.size() << " 个样本 over " << triangles.indices.size()
+      << " 个三角形: 结束";
 
   return result;
 }
@@ -241,32 +240,32 @@ std::vector<float> calculate_polygon_angles_at_vertices(const Polygon &polygon, 
   float distance_to_prev = 0;
   float distance_to_next = 0;
 
-  //push idx_prev far enough back as initialization
+  //将idx_prev初始化为足够靠后
   while (distance_to_prev < min_arm_length) {
     idx_prev = Slic3r::prev_idx_modulo(idx_prev, polygon.size());
     distance_to_prev += lengths[idx_prev];
   }
 
   for (size_t _i = 0; _i < polygon.size(); ++_i) {
-    // pull idx_prev to current as much as possible, while respecting the min_arm_length
+    // 尽可能将idx_prev拉近当前点，同时尊重min_arm_length
     while (distance_to_prev - lengths[idx_prev] > min_arm_length) {
       distance_to_prev -= lengths[idx_prev];
       idx_prev = Slic3r::next_idx_modulo(idx_prev, polygon.size());
     }
 
-    //push idx_next forward as far as needed
+    //根据需要将idx_next向前推
     while (distance_to_next < min_arm_length) {
       distance_to_next += lengths[idx_next];
       idx_next = Slic3r::next_idx_modulo(idx_next, polygon.size());
     }
 
-    // Calculate angle between idx_prev, idx_curr, idx_next.
+    // 计算idx_prev、idx_curr、idx_next之间的角度。
     const Point &p0 = polygon.points[idx_prev];
     const Point &p1 = polygon.points[idx_curr];
     const Point &p2 = polygon.points[idx_next];
     result[idx_curr] = float(angle(p1 - p0, p2 - p1));
 
-    // increase idx_curr by one
+    // 将idx_curr增加1
     float curr_distance = lengths[idx_curr];
     idx_curr++;
     distance_to_prev += curr_distance;
@@ -290,7 +289,7 @@ struct CoordinateFunctor {
   }
 };
 
-// structure to store global information about the model - occlusion hits, enforcers, blockers
+// 存储关于模型的全局信息 - 遮挡命中、强制器、阻止器
 struct GlobalModelInfo {
   TriangleSetSamples mesh_samples;
   std::vector<float> mesh_samples_visibility;
@@ -361,7 +360,7 @@ struct GlobalModelInfo {
       FILE *fp = boost::nowide::fopen(filename.c_str(), "w");
       if (fp == nullptr) {
         BOOST_LOG_TRIVIAL(error)
-            << "stl_write_obj: Couldn't open " << filename << " for writing";
+            << "stl_write_obj: 无法打开 " << filename << " 进行写入";
         return;
       }
 
@@ -383,7 +382,7 @@ struct GlobalModelInfo {
       FILE *fp = boost::nowide::fopen(filename.c_str(), "w");
       if (fp == nullptr) {
         BOOST_LOG_TRIVIAL(error)
-            << "stl_write_obj: Couldn't open " << filename << " for writing";
+            << "stl_write_obj: 无法打开 " << filename << " 进行写入";
         return;
       }
 
@@ -402,12 +401,12 @@ struct GlobalModelInfo {
 }
 ;
 
-//Extract perimeter polygons of the given layer
+//提取给定层的周长多边形
 Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerRegion*> &corresponding_regions_out) {
   Polygons polygons;
   for (const LayerRegion *layer_region : layer->regions()) {
     for (const ExtrusionEntity *ex_entity : layer_region->perimeters.entities) {
-      if (ex_entity->is_collection()) { //collection of inner, outer, and overhang perimeters
+      if (ex_entity->is_collection()) { //内部、外部和悬垂周长的集合
         for (const ExtrusionEntity *perimeter : static_cast<const ExtrusionEntityCollection*>(ex_entity)->entities) {
           ExtrusionRole role = perimeter->role();
           if (perimeter->is_loop()) {
@@ -440,8 +439,8 @@ Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerR
     }
   }
 
-  if (polygons.empty()) { // If there are no perimeter polygons for whatever reason (disabled perimeters .. ) insert dummy point
-    // it is easier than checking everywhere if the layer is not emtpy, no seam will be placed to this layer anyway
+  if (polygons.empty()) { // 如果由于某种原因没有周长多边形（禁用的周长等），插入虚拟点
+    // 这比在每处检查层是否为空更容易，不会在层上放置接缝
     polygons.emplace_back(Points{ { 0, 0 } });
     corresponding_regions_out.push_back(nullptr);
   }
@@ -449,10 +448,10 @@ Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerR
   return polygons;
 }
 
-// Insert SeamCandidates created from perimeter polygons in to the result vector.
-// Compute its type (Enfrocer,Blocker), angle, and position
-//each SeamCandidate also contains pointer to shared Perimeter structure representing the polygon
-// if Custom Seam modifiers are present, oversamples the polygon if necessary to better fit user intentions
+// 将从周长多边形创建的SeamCandidate插入到结果向量中。
+// 计算其类型（强制器、阻止器）、角度和位置
+//每个SeamCandidate还包含指向表示多边形的共享Perimeter结构的指针
+// 如果存在自定义接缝修改器，则根据需要过采样多边形以更好地适应用户意图
 void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const LayerRegion *region,
                                const GlobalModelInfo &global_model_info, PrintObjectSeamData::LayerSeams &result) {
   if (orig_polygon.size() == 0) {
@@ -529,9 +528,9 @@ void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const
   perimeter.end_index = result.points.size();
 
   if (some_point_enforced) {
-    // We will patches of enforced points (patch: continuous section of enforced points), choose
-    // the longest patch, and select the middle point or sharp point (depending on the angle)
-    // this point will have high priority on this perimeter
+    // 我们将找到强制点的连续段（patch：强制点的连续部分），选择
+    // 最长的段，并选择中点或锐角点（取决于角度）
+    // 此点在此周长上将具有高优先级
     size_t perimeter_size = perimeter.end_index - perimeter.start_index;
     const auto next_index = [&](size_t idx) {
       return perimeter.start_index + Slic3r::next_idx_modulo(idx - perimeter.start_index, perimeter_size);
@@ -548,17 +547,17 @@ void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const
         patches_starts_ends.push_back(next_index(i));
       }
     }
-    //if patches_starts_ends are empty, it means that the whole perimeter is enforced.. don't do anything in that case
+    //如果patches_starts_ends为空，则整个周长都是强制的..在这种情况下不做任何操作
     if (!patches_starts_ends.empty()) {
-      //if the first point in the patches is not enforced, it marks a patch end. in that case, put it to the end and start on next
-      // to simplify the processing
+      //如果patches中的第一个点不是强制点，它标记段结束。在这种情况下，将其放到末尾并从下一个开始
+      //以简化处理
       assert(patches_starts_ends.size() % 2 == 0);
       bool start_on_second = false;
       if (result.points[patches_starts_ends[0]].type != EnforcedBlockedSeamPoint::Enforced) {
         start_on_second = true;
         patches_starts_ends.push_back(patches_starts_ends[0]);
       }
-      //now pick the longest patch
+      //现在选择最长的段
       std::pair<size_t, size_t> longest_patch { 0, 0 };
       auto patch_len = [perimeter_size](const std::pair<size_t, size_t> &start_end) {
         if (start_end.second < start_end.first) {
@@ -597,22 +596,22 @@ void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const
 
 }
 
-// Get index of previous and next perimeter point of the layer. Because SeamCandidates of all polygons of the given layer
-// are sequentially stored in the vector, each perimeter contains info about start and end index. These vales are used to
-// deduce index of previous and next neigbour in the corresponding perimeter.
+// 获取层中上一个和下一个周长点的索引。由于给定层的所有多边形的SeamCandidate
+// 顺序存储在向量中，每个周长包含关于起始和结束索引的信息。这些值用于
+// 推断相应周长中上一个和下一个邻居的索引。
 std::pair<size_t, size_t> find_previous_and_next_perimeter_point(const std::vector<SeamCandidate> &perimeter_points,
                                                                  size_t point_index) {
   const SeamCandidate &current = perimeter_points[point_index];
-  int prev = point_index - 1; //for majority of points, it is true that neighbours lie behind and in front of them in the vector
+  int prev = point_index - 1; //对于大多数点，邻居在向量中位于其前后位置
   int next = point_index + 1;
 
   if (point_index == current.perimeter.start_index) {
-    // if point_index is equal to start, it means that the previous neighbour is at the end
+    // 如果point_index等于start，则上一个邻居在末尾
     prev = current.perimeter.end_index;
   }
 
   if (point_index == current.perimeter.end_index - 1) {
-    // if point_index is equal to end, than next neighbour is at the start
+    // 如果point_index等于end，则下一个邻居在开头
     next = current.perimeter.start_index;
   }
 
@@ -621,16 +620,16 @@ std::pair<size_t, size_t> find_previous_and_next_perimeter_point(const std::vect
   return {size_t(prev),size_t(next)};
 }
 
-// Computes all global model info - transforms object, performs raycasting
+// 计算所有全局模型信息 - 变换对象，执行射线投射
 void compute_global_occlusion(GlobalModelInfo &result, const PrintObject *po,
                               std::function<void(void)> throw_if_canceled,
                               SeamPosition seam_position = spAligned) {
   BOOST_LOG_TRIVIAL(debug)
-      << "SeamPlacer: gather occlusion meshes: start";
+      << "SeamPlacer: 收集遮挡网格: 开始";
   auto obj_transform = po->trafo_centered();
   indexed_triangle_set triangle_set;
   indexed_triangle_set negative_volumes_set;
-  //add all parts
+  //添加所有部件
   for (const ModelVolume *model_volume : po->model_object()->volumes) {
     if (model_volume->type() == ModelVolumeType::MODEL_PART
         || model_volume->type() == ModelVolumeType::NEGATIVE_VOLUME) {
@@ -647,10 +646,10 @@ void compute_global_occlusion(GlobalModelInfo &result, const PrintObject *po,
   throw_if_canceled();
 
   BOOST_LOG_TRIVIAL(debug)
-      << "SeamPlacer: gather occlusion meshes: end";
+      << "SeamPlacer: 收集遮挡网格: 结束";
 
   BOOST_LOG_TRIVIAL(debug)
-      << "SeamPlacer: decimate: start";
+      << "SeamPlacer: 简化: 开始";
   its_short_edge_collpase(triangle_set, SeamPlacer::fast_decimation_triangle_count_target);
   its_short_edge_collpase(negative_volumes_set, SeamPlacer::fast_decimation_triangle_count_target);
 
@@ -658,10 +657,10 @@ void compute_global_occlusion(GlobalModelInfo &result, const PrintObject *po,
   its_merge(triangle_set, negative_volumes_set);
   its_transform(triangle_set, obj_transform);
   BOOST_LOG_TRIVIAL(debug)
-      << "SeamPlacer: decimate: end";
+      << "SeamPlacer: 简化: 结束";
 
   BOOST_LOG_TRIVIAL(debug)
-      << "SeamPlacer: Compute visibility sample points: start";
+      << "SeamPlacer: 计算可见性采样点: 开始";
 
   result.mesh_samples = sample_its_uniform_parallel(SeamPlacer::raycasting_visibility_samples_count,
                                                     triangle_set);
@@ -669,35 +668,35 @@ void compute_global_occlusion(GlobalModelInfo &result, const PrintObject *po,
   result.mesh_samples_tree = KDTreeIndirect<3, float, CoordinateFunctor>(result.mesh_samples_coordinate_functor,
                                                                          result.mesh_samples.positions.size());
 
-  // The following code determines search area for random visibility samples on the mesh when calculating visibility of each perimeter point
-  // number of random samples in the given radius (area) is approximately poisson distribution
-  // to compute ideal search radius (area), we use exponential distribution (complementary distr to poisson)
-  // parameters of exponential distribution to compute area that will have with probability="probability" more than given number of samples="samples"
+  // 以下代码确定计算每个周长点可见性时在网格上搜索随机可见性样本的区域
+  // 给定半径（面积）中的随机样本数近似为泊松分布
+  // 为了计算理想搜索半径（面积），我们使用指数分布（泊松的互补分布）
+  // 指数分布参数计算在给定半径（面积）内以概率="probability"有超过给定样本数="samples"的面积
   float probability = 0.9f;
   float samples = 4;
   float density = SeamPlacer::raycasting_visibility_samples_count / result.mesh_samples.total_area;
-  // exponential probability distrubtion function is : f(x) = P(X > x) = e^(l*x) where l is the rate parameter (computed as 1/u where u is mean value)
-  // probability that sampled area A with S samples contains more than samples count:
-  //  P(S > samples in A) = e^-(samples/(density*A));   express A:
+  // 指数概率分布函数为：f(x) = P(X > x) = e^(l*x) 其中l是速率参数（计算为1/u，其中u是均值）
+  // 采样面积A包含S个样本，超过样本数的概率：
+  //  P(S > samples in A) = e^-(samples/(density*A));   表达A：
   float search_area = samples / (-logf(probability) * density);
   float search_radius = sqrt(search_area / PI);
   result.mesh_samples_radius = search_radius;
 
   BOOST_LOG_TRIVIAL(debug)
-      << "SeamPlacer: Compute visiblity sample points: end";
+      << "SeamPlacer: 计算可见性采样点: 结束";
   throw_if_canceled();
 
   BOOST_LOG_TRIVIAL(debug)
-      << "SeamPlacer: Mesh sample raidus: " << result.mesh_samples_radius;
+      << "SeamPlacer: 网格采样半径: " << result.mesh_samples_radius;
 
   BOOST_LOG_TRIVIAL(debug)
-      << "SeamPlacer: build AABB tree: start";
+      << "SeamPlacer: 构建AABB树: 开始";
   auto raycasting_tree = AABBTreeIndirect::build_aabb_tree_over_indexed_triangle_set(triangle_set.vertices,
                                                                                      triangle_set.indices);
 
   throw_if_canceled();
   BOOST_LOG_TRIVIAL(debug)
-      << "SeamPlacer: build AABB tree: end";
+      << "SeamPlacer: 构建AABB树: 结束";
   result.mesh_samples_visibility = raycast_visibility(raycasting_tree, triangle_set, result.mesh_samples,
                                                       negative_volumes_start_index, seam_position);
   throw_if_canceled();
@@ -708,7 +707,7 @@ void compute_global_occlusion(GlobalModelInfo &result, const PrintObject *po,
 
 void gather_enforcers_blockers(GlobalModelInfo &result, const PrintObject *po) {
   BOOST_LOG_TRIVIAL(debug)
-      << "SeamPlacer: build AABB trees for raycasting enforcers/blockers: start";
+      << "SeamPlacer: 为射线投射构建强制器/阻止器的AABB树: 开始";
 
   auto obj_transform = po->trafo_centered();
 
@@ -732,7 +731,7 @@ void gather_enforcers_blockers(GlobalModelInfo &result, const PrintObject *po) {
                                                                                      result.blockers.indices);
 
   BOOST_LOG_TRIVIAL(debug)
-      << "SeamPlacer: build AABB trees for raycasting enforcers/blockers: end";
+      << "SeamPlacer: 为射线投射构建强制器/阻止器的AABB树: 结束";
 }
 
 struct SeamComparator {
@@ -744,25 +743,25 @@ struct SeamComparator {
         setup == spNearest ? SeamPlacer::angle_importance_nearest : SeamPlacer::angle_importance_aligned;
   }
 
-  // Standard comparator, must respect the requirements of comparators (e.g. give same result on same inputs) for sorting usage
-  // should return if a is better seamCandidate than b
+  // 标准比较器，必须尊重比较器的要求（例如在相同输入上给出相同结果）以便排序使用
+  // 应返回a是否比b更好的接缝候选
   bool is_first_better(const SeamCandidate &a, const SeamCandidate &b, const Vec2f &preffered_location = Vec2f { 0.0f,
                                                                                                                0.0f }) const {
     if ((setup == SeamPosition::spAligned || setup == SeamPosition::spAlignedBack) && a.central_enforcer != b.central_enforcer) {
       return a.central_enforcer;
     }
 
-    // Blockers/Enforcers discrimination, top priority
+    // 阻止器/强制器区分，最高优先级
     if (a.type != b.type) {
       return a.type > b.type;
     }
 
-    //avoid overhangs
+    //避免悬垂
     if (a.overhang > 0.0f || b.overhang > 0.0f) {
       return a.overhang < b.overhang;
     }
 
-    // prefer hidden points (more than 0.5 mm inside)
+    // 优先选择隐藏点（超过0.5mm内部）
     if (a.embedded_distance < -0.5f && b.embedded_distance > -0.5f) {
       return true;
     }
@@ -781,7 +780,7 @@ struct SeamComparator {
       distance_penalty_b = 1.0f - gauss((b.position.head<2>() - preffered_location).norm(), 0.0f, 1.0f, 0.005f);
     }
 
-    // the penalites are kept close to range [0-1.x] however, it should not be relied upon
+    // 惩罚保持在[0-1.x]范围内，但不应依赖于此
     float penalty_a = a.overhang + a.visibility +
                       angle_importance * compute_angle_penalty(a.local_ccw_angle)
                       + distance_penalty_a;
@@ -792,13 +791,13 @@ struct SeamComparator {
     return penalty_a < penalty_b;
   }
 
-  // Comparator used during alignment. If there is close potential aligned point, it is compared to the current
-  // seam point of the perimeter, to find out if the aligned point is not much worse than the current seam
-  // Also used by the random seam generator.
+  // 对齐期间使用的比较器。如果附近有潜在的对齐点，将其与当前
+  // 周长的接缝点进行比较，以确定对齐点是否不比当前接缝差太多。
+  // 也由随机接缝生成器使用。
   bool is_first_not_much_worse(const SeamCandidate &a, const SeamCandidate &b) const {
-    // Blockers/Enforcers discrimination, top priority
+    // 阻止器/强制器区分，最高优先级
     if ((setup == SeamPosition::spAligned || setup == SeamPosition::spAlignedBack) && a.central_enforcer != b.central_enforcer) {
-      // Prefer centers of enforcers.
+      // 优先选择强制器的中心。
       return a.central_enforcer;
     }
 
@@ -814,13 +813,13 @@ struct SeamComparator {
       return a.type > b.type;
     }
 
-    //avoid overhangs
+    //避免悬垂
     if ((a.overhang > 0.0f || b.overhang > 0.0f)
         && abs(a.overhang - b.overhang) > (0.1f * a.perimeter.flow_width)) {
       return a.overhang < b.overhang;
     }
 
-    // prefer hidden points (more than 0.5 mm inside)
+    // 优先选择隐藏点（超过0.5mm内部）
     if (a.embedded_distance < -0.5f && b.embedded_distance > -0.5f) {
       return true;
     }
@@ -909,7 +908,7 @@ void debug_export_points(const std::vector<PrintObjectSeamData::LayerSeams> &lay
 }
 #endif
 
-// Pick best seam point based on the given comparator
+// 根据给定的比较器选择最佳接缝点
 void pick_seam_point(std::vector<SeamCandidate> &perimeter_points, size_t start_index,
                      const SeamComparator &comparator) {
   size_t end_index = perimeter_points[start_index].perimeter.end_index;
@@ -937,19 +936,18 @@ size_t pick_nearest_seam_point_index(const std::vector<SeamCandidate> &perimeter
   return seam_index;
 }
 
-// picks random seam point uniformly, respecting enforcers blockers and overhang avoidance.
+// 均匀选择随机接缝点，尊重强制器、阻止器和悬垂避免。
 void pick_random_seam_point(const std::vector<SeamCandidate> &perimeter_points, size_t start_index) {
   SeamComparator comparator { spRandom };
 
-  // algorithm keeps a list of viable points and their lengths. If it finds a point
-  // that is much better than the viable_example_index (e.g. better type, no overhang; see is_first_not_much_worse)
-  // then it throws away stored lists and starts from start
-  // in the end, the list should contain points with same type (Enforced > Neutral > Blocked) and also only those which are not
-  // big overhang.
+  // 算法维护一个可行点及其长度的列表。如果找到一个点
+  // 比viable_example_index好得多（例如更好的类型，没有悬垂；参见is_first_not_much_worse）
+  // 则丢弃存储的列表并从该点重新开始
+  // 最终，列表应包含具有相同类型（强制 > 中性 > 阻止）且没有大悬垂的点
   size_t viable_example_index = start_index;
   size_t end_index = perimeter_points[start_index].perimeter.end_index;
   struct Viable {
-    // Candidate seam point index.
+    // 候选接缝点索引。
     size_t index;
     float edge_length;
     Vec3f edge;
@@ -962,17 +960,17 @@ void pick_random_seam_point(const std::vector<SeamCandidate> &perimeter_points, 
 
   for (size_t index = start_index; index < end_index; ++index) {
     if (comparator.are_similar(perimeter_points[index], perimeter_points[viable_example_index])) {
-      // index ok, push info into viables
+      // 索引ok，将信息推入viables
       Vec3f edge_to_next { perimeter_points[index == end_index - 1 ? start_index : index + 1].position
                          - perimeter_points[index].position };
       float dist_to_next = edge_to_next.norm();
       viables.push_back( { index, dist_to_next, edge_to_next });
     } else if (comparator.is_first_not_much_worse(perimeter_points[viable_example_index],
                                                   perimeter_points[index])) {
-      // index is worse then viable_example_index, skip this point
+      // 索引比viable_example_index差，跳过此点
     } else {
-      // index is better than viable example index, update example, clear gathered info, start again
-      // clear up all gathered info, start from scratch, update example index
+      // 索引比viable example index好，更新示例，清除收集的信息，重新开始
+      // 清除所有收集的信息，从头开始，更新示例索引
       viable_example_index = index;
       viables.clear();
 
@@ -983,7 +981,7 @@ void pick_random_seam_point(const std::vector<SeamCandidate> &perimeter_points, 
     }
   }
 
-  // now pick random point from the stored options
+  // 现在从存储的选项中随机选择一个点
   float len_sum = std::accumulate(viables.begin(), viables.end(), 0.0f, [](const float acc, const Viable &v) {
     return acc + v.edge_length;
   });
@@ -1004,9 +1002,9 @@ void pick_random_seam_point(const std::vector<SeamCandidate> &perimeter_points, 
 
 } // namespace SeamPlacerImpl
 
-// Parallel process and extract each perimeter polygon of the given print object.
-// Gather SeamCandidates of each layer into vector and build KDtree over them
-// Store results in the SeamPlacer variables m_seam_per_object
+// 并行处理并提取给定打印对象的每个周长多边形。
+// 将每层的SeamCandidate收集到向量中并构建KDtree
+// 将结果存储在SeamPlacer变量m_seam_per_object中
 void SeamPlacer::gather_seam_candidates(const PrintObject *po, const SeamPlacerImpl::GlobalModelInfo &global_model_info) {
   using namespace SeamPlacerImpl;
   PrintObjectSeamData &seam_data = m_seam_per_object.emplace(po, PrintObjectSeamData { }).first->second;
@@ -1020,7 +1018,7 @@ void SeamPlacer::gather_seam_candidates(const PrintObject *po, const SeamPlacerI
                         const Layer *layer = po->get_layer(layer_idx);
                         auto unscaled_z = layer->slice_z;
                         std::vector<const LayerRegion*> regions;
-                        //NOTE corresponding region ptr may be null, if the layer has zero perimeters
+                        //NOTE 对应的区域ptr可能为null，如果层有零周长
                         Polygons polygons = extract_perimeter_polygons(layer, regions);
                         for (size_t poly_index = 0; poly_index < polygons.size(); ++poly_index) {
                           process_perimeter_polygon(polygons[poly_index], unscaled_z,
@@ -1059,7 +1057,7 @@ void SeamPlacer::calculate_overhangs_and_layer_embedding(const PrintObject *po) 
   tbb::parallel_for(tbb::blocked_range<size_t>(0, layers.size()),
                     [po, &layers](tbb::blocked_range<size_t> r) {
                       std::unique_ptr<PerimeterDistancer> prev_layer_distancer;
-                      if (r.begin() > 0) { // previous layer exists
+                      if (r.begin() > 0) { // 前一层存在
                         prev_layer_distancer = std::make_unique<PerimeterDistancer>(to_unscaled_linesf(po->layers()[r.begin() - 1]->lslices));
                       }
 
@@ -1088,7 +1086,7 @@ void SeamPlacer::calculate_overhangs_and_layer_embedding(const PrintObject *po) 
                             perimeter_point.unsupported_dist = _dist + 0.4f * perimeter_point.perimeter.flow_width;
                           }
 
-                          if (should_compute_layer_embedding) { // search for embedded perimeter points (points hidden inside the print ,e.g. multimaterial join, best position for seam)
+                          if (should_compute_layer_embedding) { // 搜索嵌入的周长点（隐藏在打印内部的点，例如多材料连接，接缝的最佳位置）
                             perimeter_point.embedded_distance = current_layer_distancer->distance_from_lines<true>(point.cast<double>())
                                                                 + 0.65f * perimeter_point.perimeter.flow_width;
                           }
@@ -1100,13 +1098,13 @@ void SeamPlacer::calculate_overhangs_and_layer_embedding(const PrintObject *po) 
   );
 }
 
-// Estimates, if there is good seam point in the layer_idx which is close to last_point_pos
-// uses comparator.is_first_not_much_worse method to compare current seam with the closest point
-// (if current seam is too far away )
-// If the current chosen stream is close enough, it is stored in seam_string. returns true and updates last_point_pos
-// If the closest point is good enough to replace current chosen seam, it is stored in potential_string_seams, returns true and updates last_point_pos
-// Otherwise does nothing, returns false
-// Used by align_seam_points().
+// 估计layer_idx中是否有好的接缝点靠近last_point_pos
+// 使用comparator.is_first_not_much_worse方法比较当前接缝与最近点
+// （如果当前接缝太远）
+// 如果当前选择的流足够近，则存储在seam_string中。返回true并更新last_point_pos
+// 如果最近点足够好以替换当前选择的接缝，则存储在potential_string_seams中，返回true并更新last_point_pos
+// 否则不做任何操作，返回false
+// 由align_seam_points()使用。
 std::optional<std::pair<size_t, size_t>> SeamPlacer::find_next_seam_in_layer(
     const std::vector<PrintObjectSeamData::LayerSeams> &layers,
     const Vec3f &projected_position,
@@ -1123,11 +1121,11 @@ std::optional<std::pair<size_t, size_t>> SeamPlacer::find_next_seam_in_layer(
   size_t best_nearby_point_index = nearby_points_indices[0];
   size_t nearest_point_index = nearby_points_indices[0];
 
-  // Now find best nearby point, nearest point, and corresponding indices
+  // 现在找到最佳附近点、最近点及其对应索引
   for (const size_t &nearby_point_index : nearby_points_indices) {
     const SeamCandidate &point = layers[layer_idx].points[nearby_point_index];
     if (point.perimeter.finalized) {
-      continue; // skip over finalized perimeters, try to find some that is not finalized
+      continue; // 跳过已最终确定的周长，尝试找到未最终确定的
     }
     if (comparator.is_first_better(point, layers[layer_idx].points[best_nearby_point_index],
                                    projected_position.head<2>())
@@ -1145,25 +1143,25 @@ std::optional<std::pair<size_t, size_t>> SeamPlacer::find_next_seam_in_layer(
   const SeamCandidate &nearest_point = layers[layer_idx].points[nearest_point_index];
 
   if (nearest_point.perimeter.finalized) {
-    //all points are from already finalized perimeter, skip
+    //所有点都来自已最终确定的周长，跳过
     return {};
   }
 
-  //from the nearest_point, deduce index of seam in the next layer
+  //从nearest_point推导下一层中接缝的索引
   const SeamCandidate &next_layer_seam = layers[layer_idx].points[nearest_point.perimeter.seam_index];
 
-  // First try to pick central enforcer if any present
+  // 首先尝试选择存在的中央强制器
   if (next_layer_seam.central_enforcer
       && (next_layer_seam.position - projected_position).squaredNorm()
              < sqr(3 * max_distance)) {
     return {std::pair<size_t, size_t> {layer_idx, nearest_point.perimeter.seam_index}};
   }
 
-  // First try to align the nearest, then try the best nearby
+  // 首先尝试对齐最近的，然后尝试最佳附近点
   if (comparator.is_first_not_much_worse(nearest_point, next_layer_seam)) {
     return {std::pair<size_t, size_t> {layer_idx, nearest_point_index}};
   }
-  // If nearest point is not good enough, try it with the best nearby point.
+  // 如果最近点不够好，尝试最佳附近点。
   if (comparator.is_first_not_much_worse(best_nearby_point, next_layer_seam)) {
     return {std::pair<size_t, size_t> {layer_idx, best_nearby_point_index}};
   }
@@ -1176,7 +1174,7 @@ std::vector<std::pair<size_t, size_t>> SeamPlacer::find_seam_string(const PrintO
   const std::vector<PrintObjectSeamData::LayerSeams> &layers = m_seam_per_object.find(po)->second.layers;
   int layer_idx = start_seam.first;
 
-  //initialize searching for seam string - cluster of nearby seams on previous and next layers
+  //初始化搜索接缝字符串 - 前几层和后几层上附近接缝的簇
   int next_layer = layer_idx + 1;
   int step = 1;
   std::pair<size_t, size_t> prev_point_index = start_seam;
@@ -1206,10 +1204,10 @@ std::vector<std::pair<size_t, size_t>> SeamPlacer::find_seam_string(const PrintO
                                                                                        max_distance, comparator);
 
     if (maybe_next_seam.has_value()) {
-      // For old macOS (pre 10.14), std::optional does not have .value() method, so the code is using operator*() instead.
+      // 对于旧macOS（pre 10.14），std::optional没有.value()方法，所以代码使用operator*()代替。
       seam_string.push_back(maybe_next_seam.operator*());
       prev_point_index = seam_string.back();
-      //String added, prev_point_index updated
+      //字符串已添加，prev_point_index已更新
     } else {
       if (step == 1) {
         reverse_lookup_direction();
@@ -1225,34 +1223,34 @@ std::vector<std::pair<size_t, size_t>> SeamPlacer::find_seam_string(const PrintO
   return seam_string;
 }
 
-// clusters already chosen seam points into strings across multiple layers, and then
-// aligns the strings via polynomial fit
-// Does not change the positions of the SeamCandidates themselves, instead stores
-// the new aligned position into the shared Perimeter structure of each perimeter
-// Note that this position does not necesarilly lay on the perimeter.
+// 将已选择的接缝点聚合成跨多层的字符串，然后
+// 通过多项式拟合对齐字符串
+// 不更改SeamCandidate本身的位置，而是将
+// 新的对齐位置存储到每个周长的共享Perimeter结构中
+// 注意此位置不必在周长上。
 void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::SeamComparator &comparator) {
   using namespace SeamPlacerImpl;
 
-  // Prepares Debug files for writing.
+  // 准备写入调试文件。
 #ifdef DEBUG_FILES
   Slic3r::CNumericLocalesSetter locales_setter;
   auto clusters_f = debug_out_path("seam_clusters.obj");
   FILE *clusters = boost::nowide::fopen(clusters_f.c_str(), "w");
   if (clusters == nullptr) {
     BOOST_LOG_TRIVIAL(error)
-        << "stl_write_obj: Couldn't open " << clusters_f << " for writing";
+        << "stl_write_obj: 无法打开 " << clusters_f << " 进行写入";
     return;
   }
   auto aligned_f = debug_out_path("aligned_clusters.obj");
   FILE *aligns = boost::nowide::fopen(aligned_f.c_str(), "w");
   if (aligns == nullptr) {
     BOOST_LOG_TRIVIAL(error)
-        << "stl_write_obj: Couldn't open " << clusters_f << " for writing";
+        << "stl_write_obj: 无法打开 " << clusters_f << " 进行写入";
     return;
   }
 #endif
 
-  //gather vector of all seams on the print_object - pair of layer_index and seam__index within that layer
+  //收集print_object上所有接缝的向量 - layer_index和该层中seam_index的对
   const std::vector<PrintObjectSeamData::LayerSeams> &layers = m_seam_per_object[po].layers;
   std::vector<std::pair<size_t, size_t>> seams;
   for (size_t layer_idx = 0; layer_idx < layers.size(); ++layer_idx) {
@@ -1264,7 +1262,7 @@ void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::
     }
   }
 
-  //sort them before alignment. Alignment is sensitive to initializaion, this gives it better chance to choose something nice
+  //在对齐前排序。对齐对初始化敏感，这给它更好的机会选择好的东西
   std::stable_sort(seams.begin(), seams.end(),
                    [&comparator, &layers](const std::pair<size_t, size_t> &left,
                                           const std::pair<size_t, size_t> &right) {
@@ -1273,8 +1271,8 @@ void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::
                    }
   );
 
-  //align the seam points - start with the best, and check if they are aligned, if yes, skip, else start alignment
-  // Keeping the vectors outside, so with a bit of luck they will not get reallocated after couple of for loop iterations.
+  //对齐接缝点 - 从最好的开始，检查它们是否已对齐，如果已对齐则跳过，否则开始对齐
+  // 在外部保留向量，这样经过几次循环迭代后它们不会被重新分配。
   std::vector<std::pair<size_t, size_t>> seam_string;
   std::vector<std::pair<size_t, size_t>> alternative_seam_string;
   std::vector<Vec2f> observations;
@@ -1288,7 +1286,7 @@ void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::
     global_index++;
     const std::vector<SeamCandidate> &layer_perimeter_points = layers[layer_idx].points;
     if (layer_perimeter_points[seam_index].perimeter.finalized) {
-      // This perimeter is already aligned, skip seam
+      // 此周长已对齐，跳过接缝
       continue;
     } else {
       seam_string = this->find_seam_string(po, { layer_idx, seam_index }, comparator);
@@ -1304,21 +1302,21 @@ void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::
         }
       }
       if (seam_string.size() < seam_align_minimum_string_seams) {
-        //string NOT long enough to be worth aligning, skip
+        //字符串不够长，不值得对齐，跳过
         continue;
       }
 
-      // String is long enough, all string seams and potential string seams gathered, now do the alignment
-      //sort by layer index
+      // 字符串足够长，已收集所有字符串接缝和潜在字符串接缝，现在进行对齐
+      //按层索引排序
       std::sort(seam_string.begin(), seam_string.end(),
                 [](const std::pair<size_t, size_t> &left, const std::pair<size_t, size_t> &right) {
                   return left.first < right.first;
                 });
 
-      //repeat the alignment for the current seam, since it could be skipped due to alternative path being aligned.
+      //对于当前接缝重复对齐，因为它可能由于对齐了替代路径而被跳过。
       global_index--;
 
-      // gather all positions of seams and their weights
+      // 收集所有接缝位置及其权重
       observations.resize(seam_string.size());
       observation_points.resize(seam_string.size());
       weights.resize(seam_string.size());
@@ -1331,7 +1329,7 @@ void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::
         return 1.0f / (0.1f + compute_angle_penalty(angle));
       };
 
-      //gather points positions and weights
+      //收集点位置和权重
       float total_length = 0.0f;
       Vec3f last_point_pos = layers[seam_string[0].first].points[seam_string[0].second].position;
       for (size_t index = 0; index < seam_string.size(); ++index) {
@@ -1361,13 +1359,13 @@ void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::
         total_length *= 0.3f;
       }
 
-      // Curve Fitting
+      // 曲线拟合
       size_t number_of_segments = std::max(size_t(1),
                                            size_t(std::max(0.0f,total_length) / SeamPlacer::seam_align_mm_per_segment));
       auto curve = Geometry::fit_cubic_bspline(observations, observation_points, weights, number_of_segments);
 
-      // Do alignment - compute fitted point for each point in the string from its Z coord, and store the position into
-      // Perimeter structure of the point; also set flag aligned to true
+      // 执行对齐 - 对于字符串中的每个点，从其Z坐标计算拟合点，并将位置存储到
+      // 该点的Perimeter结构中；同时将aligned标志设置为true
       for (size_t index = 0; index < seam_string.size(); ++index) {
         const auto &pair = seam_string[index];
         float t = std::min(1.0f, std::pow(std::abs(layers[pair.first].points[pair.second].local_ccw_angle)
@@ -1379,7 +1377,7 @@ void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::
         Vec3f current_pos = layers[pair.first].points[pair.second].position;
         Vec2f fitted_pos = curve.get_fitted_value(current_pos.z());
 
-        //interpolate between current and fitted position, prefer current pos for large weights.
+        //在当前和拟合位置之间插值，对于大权重更偏好当前位置。
         Vec3f final_position = t * current_pos + (1.0f - t) * to_3d(fitted_pos, current_pos.z());
 
         Perimeter &perimeter = layers[pair.first].points[pair.second].perimeter;
@@ -1438,30 +1436,30 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
       }
       throw_if_canceled_func();
       BOOST_LOG_TRIVIAL(debug)
-          << "SeamPlacer: gather_seam_candidates: start";
+          << "SeamPlacer: gather_seam_candidates: 开始";
       gather_seam_candidates(po, global_model_info);
       BOOST_LOG_TRIVIAL(debug)
-          << "SeamPlacer: gather_seam_candidates: end";
+          << "SeamPlacer: gather_seam_candidates: 结束";
       throw_if_canceled_func();
       if (configured_seam_preference == spAligned || configured_seam_preference == spNearest || configured_seam_preference == spAlignedBack) {
         BOOST_LOG_TRIVIAL(debug)
-            << "SeamPlacer: calculate_candidates_visibility : start";
+            << "SeamPlacer: calculate_candidates_visibility : 开始";
         calculate_candidates_visibility(po, global_model_info);
         BOOST_LOG_TRIVIAL(debug)
-            << "SeamPlacer: calculate_candidates_visibility : end";
+            << "SeamPlacer: calculate_candidates_visibility : 结束";
       }
-    } // destruction of global_model_info (large structure, no longer needed)
+    } // 销毁global_model_info（大型结构，不再需要）
     throw_if_canceled_func();
     BOOST_LOG_TRIVIAL(debug)
-        << "SeamPlacer: calculate_overhangs and layer embdedding : start";
+        << "SeamPlacer: calculate_overhangs and layer embdedding : 开始";
     calculate_overhangs_and_layer_embedding(po);
     BOOST_LOG_TRIVIAL(debug)
-        << "SeamPlacer: calculate_overhangs and layer embdedding: end";
+        << "SeamPlacer: calculate_overhangs and layer embdedding: 结束";
     throw_if_canceled_func();
-    if (configured_seam_preference != spNearest) { // For spNearest, the seam is picked in the place_seam method with actual nozzle position information
+    if (configured_seam_preference != spNearest) { // 对于spNearest，在place_seam方法中使用实际喷嘴位置信息选择接缝
       BOOST_LOG_TRIVIAL(debug)
-          << "SeamPlacer: pick_seam_point : start";
-      //pick seam point
+          << "SeamPlacer: pick_seam_point : 开始";
+      //选择接缝点
       std::vector<PrintObjectSeamData::LayerSeams> &layers = m_seam_per_object[po].layers;
       tbb::parallel_for(tbb::blocked_range<size_t>(0, layers.size()),
                         [&layers, configured_seam_preference, comparator](tbb::blocked_range<size_t> r) {
@@ -1476,15 +1474,15 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
                           }
                         });
       BOOST_LOG_TRIVIAL(debug)
-          << "SeamPlacer: pick_seam_point : end";
+          << "SeamPlacer: pick_seam_point : 结束";
     }
     throw_if_canceled_func();
     if (configured_seam_preference == spAligned || configured_seam_preference == spRear || configured_seam_preference == spAlignedBack) {
       BOOST_LOG_TRIVIAL(debug)
-          << "SeamPlacer: align_seam_points : start";
+          << "SeamPlacer: align_seam_points : 开始";
       align_seam_points(po, comparator);
       BOOST_LOG_TRIVIAL(debug)
-          << "SeamPlacer: align_seam_points : end";
+          << "SeamPlacer: align_seam_points : 结束";
     }
 
 #ifdef DEBUG_FILES
@@ -1497,9 +1495,9 @@ void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
                             const Point &last_pos, float& overhang) const {
   using namespace SeamPlacerImpl;
   const PrintObject *po = layer->object();
-  // Must not be called with supprot layer.
+  // 不得使用支撑层调用。
   assert(dynamic_cast<const SupportLayer*>(layer) == nullptr);
-  // Object layer IDs are incremented by the number of raft layers.
+  // 对象层ID随支撑层数量增加而递增。
   assert(layer->id() >= po->slicing_parameters().raft_layers());
   const size_t layer_index = layer->id() - po->slicing_parameters().raft_layers();
   const double unscaled_z = layer->slice_z;
@@ -1517,11 +1515,11 @@ void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
   const PrintObjectSeamData::LayerSeams &layer_perimeters =
       m_seam_per_object.find(layer->object())->second.layers[layer_index];
 
-  // Find the closest perimeter in the SeamPlacer to this loop.
-  // Repeat search until two consecutive points of the loop are found, that result in the same closest_perimeter
-  // This is beacuse with arachne, T-Junctions may exist and sometimes the wrong perimeter was chosen
+  // 在SeamPlacer中找到最接近此环的周长。
+  // 重复搜索直到找到环的两个连续点，结果对应相同的closest_perimeter
+  // 这是因为使用arachne时，可能存在T型接头，有时选择了错误的周长
   size_t closest_perimeter_point_index = 0;
-  { // local space for the closest_perimeter_point_index
+  { // 为closest_perimeter_point_index的局部空间
     Perimeter *closest_perimeter = nullptr;
     ExtrusionLoop::ClosestPathPoint closest_point{0,0,loop.paths[0].polyline.points[0]};
     size_t points_count = std::accumulate(loop.paths.begin(), loop.paths.end(), 0, [](size_t acc,const ExtrusionPath& p) {
@@ -1558,10 +1556,10 @@ void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
   Point seam_point = Point::new_scale(seam_position.x(), seam_position.y());
   overhang = layer_perimeters.points[seam_index].unsupported_dist;
 
-  if (loop.role() == ExtrusionRole::erPerimeter) { //Hopefully inner perimeter
+  if (loop.role() == ExtrusionRole::erPerimeter) { //希望是内部周长
     const SeamCandidate &perimeter_point = layer_perimeters.points[seam_index];
     ExtrusionLoop::ClosestPathPoint projected_point = loop.get_closest_path_and_point(seam_point, false);
-    // determine depth of the seam point.
+    // 确定接缝点的深度。
     float depth = (float) unscale(Point(seam_point - projected_point.foot_pt)).norm();
     float beta_angle = cos(perimeter_point.local_ccw_angle / 2.0f);
     size_t index_of_prev =
@@ -1573,30 +1571,29 @@ void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
                                                               perimeter_point.perimeter.start_index :
                                                               seam_index + 1;
 
-    if ((seam_position - perimeter_point.position).squaredNorm() < depth && // seam is on perimeter point
-        perimeter_point.local_ccw_angle < -EPSILON // In concave angles
-    ) { // In this case, we are at internal perimeter, where the external perimeter has seam in concave angle. We want to align
-                                                                            // the internal seam into the concave corner, and not on the perpendicular projection on the closest edge (which is what the split_at function does)
+    if ((seam_position - perimeter_point.position).squaredNorm() < depth && // 接缝在周长点上
+        perimeter_point.local_ccw_angle < -EPSILON // 在凹角处
+    ) { // 在这种情况下，我们在内部周长上，外部周长在凹角处有接缝。我们希望将内部接缝对齐到凹角，而不是在最近边的垂直投影上（这是split_at函数所做的）
       Vec2f dir_to_middle =
           ((perimeter_point.position - layer_perimeters.points[index_of_prev].position).head<2>().normalized()
            + (perimeter_point.position - layer_perimeters.points[index_of_next].position).head<2>().normalized())
           * 0.5;
       depth = 1.4142 * depth / beta_angle;
-      // There are some nice geometric identities in determination of the correct depth of new seam point.
-      //overshoot the target depth, in concave angles it will correctly snap to the corner; TODO: find out why such big overshoot is needed.
+      // 确定新接缝点正确深度的几何恒等式。
+      //超出目标深度，在凹角处它会正确捕捉到角落；TODO：找出为什么需要这么大的超出量。
       Vec2f final_pos = perimeter_point.position.head<2>() + depth * dir_to_middle;
       projected_point = loop.get_closest_path_and_point(Point::new_scale(final_pos.x(), final_pos.y()), false);
-    } else { // not concave angle, in that case the nearest point is the good candidate
-      // but for staggering, we also need to recompute depth of the inner perimter, because in convex corners, the distance is larger than layer width
-      // we want the perpendicular depth, not distance to nearest point
+    } else { // 不是凹角，在这种情况下最近点是好候选
+      // 但对于交错，我们还需要重新计算内部周长的深度，因为在凸角处距离大于层宽
+      // 我们想要垂直深度，而不是到最近点的距离
       depth = depth * beta_angle / 1.4142;
     }
 
     seam_point = projected_point.foot_pt;
 
-    //lastly, for internal perimeters, do the staggering if requested
+    //最后，对于内部周长，根据请求执行交错
     if (po->config().staggered_inner_seams && loop.length() > 0.0) {
-      //fix depth, it is sometimes strongly underestimated
+      //修正深度，有时被严重低估
       depth = std::max(loop.paths[projected_point.path_idx].width, depth);
 
       while (depth > 0.0f) {
@@ -1615,11 +1612,11 @@ void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
     }
   }
 
-  // Because the G-code export has 1um resolution, don't generate segments shorter than 1.5 microns,
-  // thus empty path segments will not be produced by G-code export.
+  // 由于G-code导出具有1um分辨率，不要生成短于1.5微米的段，
+  // 因此G-code导出不会产生空路径段。
   if (!loop.split_at_vertex(seam_point, scaled<double>(0.0015))) {
-    // The point is not in the original loop.
-    // Insert it.
+    // 点不在原始环中。
+    // 插入它。
     loop.split_at(seam_point, true);
   }
 

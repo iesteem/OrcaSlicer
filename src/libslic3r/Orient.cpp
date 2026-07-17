@@ -31,12 +31,12 @@ namespace orientation {
         float bottom;
         float bottom_hull;
         float contour;
-        float area_laf;  // area_of_low_angle_faces
-        float area_projected; // area of projected 2D profile
+        float area_laf;  // 低角度面面积
+        float area_projected; // 投影 2D 轮廓面积
         float volume;
-        float area_total;  // total area of all faces
-        float radius;    // radius of bounding box
-        float height_to_bottom_hull_ratio;  // affects stability, the lower the better
+        float area_total;  // 所有面的总面积
+        float radius;    // 包围盒半径
+        float height_to_bottom_hull_ratio;  // 影响稳定性，越低越好
         float unprintability;
         CostItems(CostItems const & other) = default;
         CostItems() { memset(this, 0, sizeof(*this)); }
@@ -53,8 +53,7 @@ namespace orientation {
 
 
 
-// A class encapsulating the libnest2d Nester class and extending it with other
-// management and spatial index structures for acceleration.
+// 封装 libnest2d Nester 类的类，并用其他管理和空间索引结构扩展它以加速。
 class AutoOrienter {
 public:
     int face_count_hull;
@@ -63,18 +62,18 @@ public:
     TriangleMesh mesh_convex_hull;
     Eigen::MatrixXf normals, normals_quantize, normals_hull, normals_hull_quantize;
     Eigen::VectorXf areas, areas_hull;
-    Eigen::VectorXf is_apperance; // whether a facet is outer apperance
+    Eigen::VectorXf is_apperance; // 面是否为外观面
     Eigen::MatrixXf z_projected;
-    Eigen::VectorXf z_max, z_max_hull;  // max of projected z
-    Eigen::VectorXf z_median;  // median of projected z
-    Eigen::VectorXf z_mean;  // mean of projected z
+    Eigen::VectorXf z_max, z_max_hull;  // 投影 z 的最大值
+    Eigen::VectorXf z_median;  // 投影 z 的中位数
+    Eigen::VectorXf z_mean;  // 投影 z 的平均值
     std::vector<Vec3f> face_normals;
     std::vector<Vec3f> face_normals_hull;
     OrientParams params;
 
 
-    std::vector< Vec3f> orientations;  // Vec3f == stl_normal
-    std::function<void(unsigned)> progressind = { };  // default empty indicator function
+    std::vector< Vec3f> orientations;  // 候选定向
+    std::function<void(unsigned)> progressind = {};  // 默认空指示器函数
 
 public:
     AutoOrienter(OrientMesh* orient_mesh_,
@@ -112,7 +111,7 @@ public:
 
     Vec3d process()
     {
-        orientations = { { 0,0,-1 } }; // original orientation
+        orientations = { { 0,0,-1 } }; // 原始定向
 
         area_cumulation_accurate(face_normals, normals_quantize, areas, 10);
 

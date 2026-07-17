@@ -43,7 +43,7 @@
 
 using namespace nlohmann;
 
-// Mark string for localization and translate.
+// 标记字符串用于本地化和翻译。
 #define L(s) Slic3r::I18N::translate(s)
 
 namespace Slic3r {
@@ -508,7 +508,7 @@ static std::vector<LocalZWipeTowerToolchange> collect_local_z_wipe_tower_toolcha
 void Print::clear()
 {
 	std::scoped_lock<std::mutex> lock(this->state_mutex());
-    // The following call should stop background processing if it is running.
+    // 以下调用应在后台处理运行时停止它。
     this->invalidate_all_steps();
 	for (PrintObject *object : m_objects)
 		delete object;
@@ -518,7 +518,7 @@ void Print::clear()
 }
 
 // Called by Print::apply().
-// This method only accepts PrintConfig option keys.
+// 此方法仅接受 PrintConfig 选项键。
 bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* new_config */, const std::vector<t_config_option_key> &opt_keys)
 {
     if (opt_keys.empty())
@@ -795,7 +795,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             steps.emplace_back(psWipeTower);
             // Soluble support interface / non-soluble base interface produces non-soluble interface layers below soluble interface layers.
             // Thus switching between soluble / non-soluble interface layer material may require recalculation of supports.
-            //FIXME Killing supports on any change of "filament_soluble" is rough. We should check for each object whether that is necessary.
+            //FIXME 对 "filament_soluble" 的任何更改都直接干掉支撑是粗糙的。我们应该检查每个物体是否有必要这样做。
             osteps.emplace_back(posSupportMaterial);
             osteps.emplace_back(posSimplifySupportPath);
         } else if (
@@ -820,7 +820,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             osteps.emplace_back(posDetectOverhangsForLift);
         } else {
             // for legacy, if we can't handle this option let's invalidate all steps
-            //FIXME invalidate all steps of all objects as well?
+            //FIXME 同时使所有物体的所有步骤失效？
             invalidated |= this->invalidate_all_steps();
             // Continue with the other opt_keys to possibly invalidate any object specific steps.
         }
@@ -851,7 +851,7 @@ bool Print::invalidate_step(PrintStep step)
     return invalidated;
 }
 
-// returns true if an object step is done on all objects
+// 如果所有物体上的物体步骤都已完成，则返回 true
 // and there's at least one object
 bool Print::is_step_done(PrintObjectStep step) const
 {
@@ -864,7 +864,7 @@ bool Print::is_step_done(PrintObjectStep step) const
     return true;
 }
 
-// returns 0-based indices of used extruders
+// 返回使用的挤出机的基于 0 的索引
 std::vector<unsigned int> Print::object_extruders() const
 {
     std::vector<unsigned int> extruders;
@@ -888,9 +888,9 @@ std::vector<unsigned int> Print::object_extruders() const
         // layer range
         for (auto layer_range : mo->layer_config_ranges) {
             if (layer_range.second.has("extruder")) {
-                //BBS: actually when user doesn't change filament by height range(value is default 0), height range should not save key "extruder".
-                //Don't know why height range always save key "extruder" because of no change(should only save difference)...
-                //Add protection here to avoid overflow
+                //BBS: 实际上当用户没有通过高度范围更改耗材时（值为默认 0），高度范围不应保存键 "extruder"。
+                //不知道为什么高度范围总是保存键 "extruder"，尽管没有更改（应该只保存差异）...
+                //在此添加保护以避免溢出
                 auto value = layer_range.second.option("extruder")->getInt();
                 if (value > 0)
                     extruders.push_back(value - 1);
@@ -901,7 +901,7 @@ std::vector<unsigned int> Print::object_extruders() const
     return extruders;
 }
 
-// returns 0-based indices of used extruders
+// 返回使用的挤出机的基于 0 的索引
 std::vector<unsigned int> Print::support_material_extruders() const
 {
     std::vector<unsigned int> extruders;
@@ -936,7 +936,7 @@ std::vector<unsigned int> Print::support_material_extruders() const
     return extruders;
 }
 
-// returns 0-based indices of used extruders
+// 返回使用的挤出机的基于 0 的索引
 std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
 {
     std::vector<unsigned int> extruders = this->object_extruders();
@@ -1106,7 +1106,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                             print_object->model_object()->convex_hull_2d(Geometry::assemble_transform(
                             { 0.0, 0.0, model_instance0->get_offset().z() }, model_instance0->get_rotation(), model_instance0->get_scaling_factor(), model_instance0->get_mirror())));
             }
-            // Make a copy, so it may be rotated for instances.
+            // 制作副本，以便可以为实例旋转。
             Polygon convex_hull0 = it_convex_hull->second;
             const double z_diff = Geometry::rotation_diff_z(model_instance0->get_rotation(), print_object->instances().front().model_instance->get_rotation());
             if (std::abs(z_diff) > EPSILON)
@@ -1431,7 +1431,7 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
         convex_hulls_other.emplace_back(convex_hull);
     }
 
-    //BBS: add the wipe tower check logic
+    //BBS: 添加擦洗塔检查逻辑
     const PrintConfig &       config   = print.config();
     int                 filaments_count = print.extruders().size();
     int                 plate_index = print.get_plate_index();
@@ -1526,7 +1526,7 @@ int Print::get_compatible_filament_type(const std::set<int>& filament_types)
     return HighLowCompatible;
 }
 
-//BBS: this function is used to check whether multi filament can be printed
+//BBS: 此函数用于检查是否可以打印多种耗材
 StringObjectException Print::check_multi_filament_valid(const Print& print)
 {
     auto print_config = print.config();
@@ -1548,7 +1548,7 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
 boost::regex regex_g92e0 { "^[ \\t]*[gG]92[ \\t]*[eE](0(\\.0*)?|\\.0+)[ \\t]*(;.*)?$" };
 
 // Precondition: Print::validate() requires the Print::apply() to be called its invocation.
-//BBS: refine seq-print validation logic
+//BBS: 优化顺序打印验证逻辑
 StringObjectException Print::validate(StringObjectException *warning, Polygons* collison_polygons, std::vector<std::pair<Polygon, float>>* height_polygons) const
 {
     std::vector<unsigned int> extruders = this->extruders();
@@ -1564,7 +1564,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         if (m_config.timelapse_type == TimelapseType::tlSmooth)
             return {L("Smooth mode of timelapse is not supported when \"by object\" sequence is enabled.")};
 
-        //BBS: refine seq-print validation logic
+        //BBS: 优化顺序打印验证逻辑
         auto ret = sequential_print_clearance_valid(*this, collison_polygons, height_polygons);
         if (!ret.string.empty()) {
             ret.type = STRING_EXCEPT_OBJECT_COLLISION_IN_SEQ_PRINT;
@@ -1617,7 +1617,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
     // Checks that the print does not exceed the max print height
     for (size_t print_object_idx = 0; print_object_idx < m_objects.size(); ++ print_object_idx) {
         const PrintObject &print_object = *m_objects[print_object_idx];
-        //FIXME It is quite expensive to generate object layers just to get the print height!
+        //FIXME 仅为了获取打印高度而生成物体层的代价相当高！
         if (auto layers = generate_object_layers(print_object.slicing_parameters(), layer_height_profile(print_object_idx), print_object.config().precise_z_height.value);
             !layers.empty()) {
 
@@ -1663,7 +1663,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         }
 
     if (this->has_wipe_tower() && ! m_objects.empty()) {
-        // Make sure all extruders use same diameter filament and have the same nozzle diameter
+        // 确保所有挤出机使用相同直径的耗材并具有相同的喷嘴直径
         // EPSILON comparison is used for nozzles and 10 % tolerance is used for filaments
         double first_nozzle_diam = m_config.nozzle_diameter.get_at(extruders.front());
         double first_filament_diam = m_config.filament_diameter.get_at(extruders.front());
@@ -1893,7 +1893,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
     }
 
     // Orca: G92 E0 is not supported when using absolute extruder addressing
-    // This check is copied from PrusaSlicer, the original author is Vojtech Bubnik
+    // 此检查从 PrusaSlicer 复制而来，原作者是 Vojtech Bubnik
     if(!is_BBL_printer()) {
         bool before_layer_gcode_resets_extruder =
             boost::regex_search(m_config.before_layer_change_gcode.value, regex_g92e0);
@@ -2108,7 +2108,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
 }
 
 #if 0
-// the bounding box of objects placed in copies position
+// 放置在副本位置中的物体的边界框
 // (without taking skirt/brim/support material into account)
 BoundingBox Print::bounding_box() const
 {
@@ -2122,7 +2122,7 @@ BoundingBox Print::bounding_box() const
     return bb;
 }
 
-// the total bounding box of extrusions, including skirt/brim/support material
+// 挤出的总边界框，包括裙边/裙板/支撑材料
 // this methods needs to be called even when no steps were processed, so it should
 // only use configuration values
 BoundingBox Print::total_bounding_box() const
@@ -2228,7 +2228,7 @@ void Print::auto_assign_extruders(ModelObject* model_object) const
 //    size_t extruders = m_config.nozzle_diameter.values.size();
     for (size_t volume_id = 0; volume_id < model_object->volumes.size(); ++ volume_id) {
         ModelVolume *volume = model_object->volumes[volume_id];
-        //FIXME Vojtech: This assigns an extruder ID even to a modifier volume, if it has a material assigned.
+        //FIXME Vojtech: 即使修改器体积分配了材料，此代码也会为其分配挤出机 ID。
         if ((volume->is_model_part() || volume->is_modifier()) && ! volume->material_id().empty() && ! volume->config.has("extruder"))
             volume->config.set("extruder", int(volume_id + 1));
     }
@@ -2581,7 +2581,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             _make_skirt();
         }
 
-        //BBS: get the objects' indices when GCodes are generated
+        //BBS: 在生成 GCode 时获取物体的索引
         ToolOrdering tool_ordering;
         unsigned int initial_extruder_id = (unsigned int)-1;
         bool         has_wipe_tower = false;
@@ -2700,17 +2700,17 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 }
 
 // G-code export process, running at a background thread.
-// The export_gcode may die for various reasons (fails to process filename_format,
+// export_gcode 可能因各种原因失败（无法处理 filename_format、
 // write error into the G-code, cannot execute post-processing scripts).
 // It is up to the caller to show an error message.
 std::string Print::export_gcode(const std::string& path_template, GCodeProcessorResult* result, ThumbnailsGeneratorCallback thumbnail_cb)
 {
     // output everything to a G-code file
-    // The following call may die if the filename_format template substitution fails.
+    // 如果 filename_format 模板替换失败，以下调用可能会失败。
     std::string path = this->output_filepath(path_template);
     std::string message;
     if (!path.empty() && result == nullptr) {
-        // Only show the path if preview_data is not set -> running from command line.
+        // 仅在未设置 preview_data 时显示路径 -> 从命令行运行。
         message = L("Exporting G-code");
         message += " to ";
         message += path;
@@ -2718,9 +2718,9 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
         message = L("Generating G-code");
     this->set_status(80, message);
 
-    // The following line may die for multiple reasons.
+    // 以下行可能因多种原因失败。
     GCode gcode;
-    //BBS: compute plate offset for gcode-generator
+    //BBS: 为 gcode 生成器计算平台偏移
     const Vec3d origin = this->get_plate_origin();
     gcode.set_gcode_offset(origin(0), origin(1));
     gcode.do_export(this, path.c_str(), result, thumbnail_cb);
@@ -2732,16 +2732,14 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
 
 void Print::_make_skirt()
 {
-    // First off we need to decide how tall the skirt must be.
-    // The skirt_height option from config is expressed in layers, but our
-    // object might have different layer heights, so we need to find the print_z
-    // of the highest layer involved.
-    // Note that unless has_infinite_skirt() == true
-    // the actual skirt might not reach this $skirt_height_z value since the print
-    // order of objects on each layer is not guaranteed and will not generally
-    // include the thickest object first. It is just guaranteed that a skirt is
-    // prepended to the first 'n' layers (with 'n' = skirt_height).
-    // $skirt_height_z in this case is the highest possible skirt height for safety.
+    // 首先我们需要决定裙边必须有多高。
+    // 配置中的 skirt_height 选项以层数表示，但我们的物体可能有不同的层高，
+    // 因此我们需要找到涉及的最高层的 print_z。
+    // 注意除非 has_infinite_skirt() == true，
+    // 实际的裙边可能无法达到此 $skirt_height_z 值，
+    // 因为每层物体的打印顺序无法保证，且通常不会首先包含最厚的物体。
+    // 只能保证裙边被附加到前 'n' 层（其中 'n' = skirt_height）。
+    // 此情况下的 $skirt_height_z 是为了安全而设的最高可能裙边高度。
     coordf_t skirt_height_z = 0.;
     for (const PrintObject *object : m_objects) {
         size_t skirt_layers = this->has_infinite_skirt() ?
@@ -2818,7 +2816,7 @@ void Print::_make_skirt()
     }
 
     // Initial offset of the brim inner edge from the object (possible with a support & raft).
-    // The skirt will touch the brim if the brim is extruded.
+    // 如果裙板被挤出，裙边将与裙板接触。
     auto   distance = float(scale_(m_config.skirt_distance.value - spacing/2.));
     // Draw outlines from outside to inside.
     // Loop while we have less skirts than required or any extruder hasn't reached the min length if any.
@@ -2850,7 +2848,7 @@ void Print::_make_skirt()
             eloop.paths.back().polyline = loop.split_at_first_point();
             m_skirt.append(eloop);
             if (m_config.min_skirt_length.value > 0) {
-                // The skirt length is limited. Sum the total amount of filament length extruded, in mm.
+                // 裙边长度有限。累加挤出的耗材总长度，单位为毫米。
                 extruded_length[extruder_idx] += unscale<double>(loop.length()) * extruders_e_per_mm[extruder_idx];
                 if (extruded_length[extruder_idx] < m_config.min_skirt_length.value) {
                     // Not extruded enough yet with the current extruder. Add another loop.
@@ -2864,7 +2862,7 @@ void Print::_make_skirt()
                         ++ extruder_idx;
                 }
             } else {
-                // The skirt lenght is not limited, extrude the skirt with the 1st extruder only.
+                // 裙边长度不受限制，仅用第一个挤出机挤出裙边。
             }
         }
     } else {
@@ -2908,7 +2906,7 @@ void Print::_make_skirt()
                 eloop.paths.back().polyline = loop.split_at_first_point();
                 object->m_skirt.append(std::move(eloop));
                 if (m_config.min_skirt_length.value > 0) {
-                    // The skirt length is limited. Sum the total amount of filament length extruded, in mm.
+                    // 裙边长度有限。累加挤出的耗材总长度，单位为毫米。
                     extruded_length[extruder_idx] += unscale<double>(loop.length()) * extruders_e_per_mm[extruder_idx];
                     if (extruded_length[extruder_idx] < m_config.min_skirt_length.value) {
                         // Not extruded enough yet with the current extruder. Add another loop.
@@ -2922,7 +2920,7 @@ void Print::_make_skirt()
                             ++ extruder_idx;
                     }
                 } else {
-                    // The skirt lenght is not limited, extrude the skirt with the 1st extruder only.
+                    // 裙边长度不受限制，仅用第一个挤出机挤出裙边。
                 }
 
             }
@@ -3196,7 +3194,7 @@ void Print::_make_wipe_tower()
                 lt.has_support = true;
                 // Insert the new support layer.
                 double height    = lt.print_z - (i == 0 ? 0. : m_wipe_tower_data.tool_ordering.layer_tools()[i-1].print_z);
-                //FIXME the support layer ID is set to -1, as Vojtech hopes it is not being used anyway.
+                //FIXME 支撑层 ID 设置为 -1，因为 Vojtech 希望它无论如何都不会被使用。
                 it_layer = m_objects.front()->insert_support_layer(it_layer, -1, 0, height, lt.print_z, lt.print_z - 0.5 * height);
                 ++ it_layer;
             }
@@ -3278,9 +3276,9 @@ void Print::_make_wipe_tower()
         // Unload the current filament over the purge tower.
         coordf_t layer_height = m_objects.front()->config().layer_height.value;
         if (m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions > 0) {
-            // The wipe tower goes up to the last layer of the print.
+            // 擦洗塔上升到打印的最后一层。
             if (wipe_tower.layer_finished()) {
-                // The wipe tower is printed to the top of the print and it has no space left for the final extruder purge.
+                // 擦洗塔打印到打印顶部，没有剩余空间进行最终挤出机清洗。
                 // Lift Z to the next layer.
                 wipe_tower.set_layer(float(m_wipe_tower_data.tool_ordering.back().print_z + layer_height), float(layer_height), 0, false,
                                      true);
@@ -3288,7 +3286,7 @@ void Print::_make_wipe_tower()
                 // There is yet enough space at this layer of the wipe tower for the final purge.
             }
         } else {
-            // The wipe tower does not reach the last print layer, perform the pruge at the last print layer.
+            // 擦洗塔未到达最后一个打印层，在最后一个打印层执行清洗。
             assert(m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions == 0);
             wipe_tower.set_layer(float(m_wipe_tower_data.tool_ordering.back().print_z), float(layer_height), 0, false, true);
         }
@@ -3416,9 +3414,9 @@ void Print::_make_wipe_tower()
         // Unload the current filament over the purge tower.
         coordf_t layer_height = m_objects.front()->config().layer_height.value;
         if (m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions > 0) {
-            // The wipe tower goes up to the last layer of the print.
+            // 擦洗塔上升到打印的最后一层。
             if (wipe_tower.layer_finished()) {
-                // The wipe tower is printed to the top of the print and it has no space left for the final extruder purge.
+                // 擦洗塔打印到打印顶部，没有剩余空间进行最终挤出机清洗。
                 // Lift Z to the next layer.
                 wipe_tower.set_layer(float(m_wipe_tower_data.tool_ordering.back().print_z + layer_height), float(layer_height), 0, false,
                                      true);
@@ -3426,7 +3424,7 @@ void Print::_make_wipe_tower()
                 // There is yet enough space at this layer of the wipe tower for the final purge.
             }
         } else {
-            // The wipe tower does not reach the last print layer, perform the pruge at the last print layer.
+            // 擦洗塔未到达最后一个打印层，在最后一个打印层执行清洗。
             assert(m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions == 0);
             wipe_tower.set_layer(float(m_wipe_tower_data.tool_ordering.back().print_z), float(layer_height), 0, false, true);
         }
@@ -3479,21 +3477,21 @@ std::string Print::get_plate_number_formatted() const
     return std::string(n_zero - std::min(n_zero, plate_number.length()), '0') + plate_number;
 }
 
-//BBS: add gcode file preload logic
+//BBS: 添加 gcode 文件预加载逻辑
 void Print::set_gcode_file_ready()
 {
     this->set_started(psGCodeExport);
 	this->set_done(psGCodeExport);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ <<  boost::format(": done");
 }
-//BBS: add gcode file preload logic
+//BBS: 添加 gcode 文件预加载逻辑
 void Print::set_gcode_file_invalidated()
 {
     this->invalidate_step(psGCodeExport);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ <<  boost::format(": done");
 }
 
-//BBS: add gcode file preload logic
+//BBS: 添加 gcode 文件预加载逻辑
 void Print::export_gcode_from_previous_file(const std::string& file, GCodeProcessorResult* result, ThumbnailsGeneratorCallback thumbnail_cb)
 {
     try {
@@ -4585,7 +4583,7 @@ int Print::export_cached_data(const std::string& directory, bool with_space)
                 for (ObjectID& obj_id : group.volume_ids)
                 {
                     const ModelVolume* currentModelVolumePtr = nullptr;
-                    //BBS: support shared object logic
+                    //BBS: 支持共享对象逻辑
                     const PrintObject* shared_object = obj->get_shared_object();
                     if (!shared_object)
                         shared_object = obj;
@@ -4882,7 +4880,7 @@ Polygon PrintInstance::get_convex_hull_2d() {
     return poly;
 }
 
-//BBS: instance_shift is too large because of multi-plate, apply without plate offset.
+//BBS: instance_shift 因为多板太大，应用时不带板偏移。
 Point PrintInstance::shift_without_plate_offset() const
 {
     const Print* print = print_object->print();

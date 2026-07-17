@@ -22,11 +22,10 @@ static Polylines make_waves(double gridZ, double density_adjusted, double line_s
 {
     const double scaleFactor = scale_(line_spacing) / density_adjusted;
 
-    // tolerance in scaled units. clamp the maximum tolerance as there's
-    // no processing-speed benefit to do so beyond a certain point
+    // 缩放单位下的容差。限制最大容差，因为超过某一点后这样做没有处理速度上的好处
     const double tolerance = std::min(line_spacing / 2, FillTpmsD::PatternTolerance) / unscale<double>(scaleFactor);
 
-    //scale factor for 5% : 8 712 388
+    // 5% 的比例因子：8 712 388
     // 1z = 10^-6 mm ?
     const double z = gridZ / scaleFactor;
     Polylines result;
@@ -53,14 +52,14 @@ static Polylines make_waves(double gridZ, double density_adjusted, double line_s
 		std::swap(maxU,maxV);
 	}
 	std::vector<std::pair<double,double>> wave;
-	{//fill one wave
+	{//填充一个波
 		const auto v=[&](double u){return acos(a/b*cos(u));};
 		const int initialSegments=16;
 		for(int c=0;c<=initialSegments;++c){
 			const double u=minU+2*M_PI*c/initialSegments;
 			wave.emplace_back(u,v(u));
 		}
-		{//refine
+		{//细化
 			int current=0;
 			while(current+1<int(wave.size())){
 				const double u1=wave[current].first;
@@ -75,7 +74,7 @@ static Polylines make_waves(double gridZ, double density_adjusted, double line_s
 					++current;
 			}
 		}
-		for(int c=1;c<int(wave.size()) && wave.back().first<maxU;++c)//we start from 1 because the 0-th one is already duplicated as the last one in a period
+		for(int c=1;c<int(wave.size()) && wave.back().first<maxU;++c)//我们从 1 开始，因为第 0 个已经作为周期中的最后一个被复制了
 			wave.emplace_back(wave[c].first+2*M_PI,wave[c].second);
 	}
 	for(double vShift=scaled_floor(minV,2*M_PI);vShift<maxV+2*M_PI;vShift+=2*M_PI) {
@@ -91,11 +90,11 @@ static Polylines make_waves(double gridZ, double density_adjusted, double line_s
 			}
 		}
 	}
-	//todo: select the step better
+	//todo: 更好地选择步长
     return result;
 }
 
-// FIXME: needed to fix build on Mac on buildserver
+// FIXME: 需要修复 Mac 构建服务器上的构建
 constexpr double FillTpmsD::PatternTolerance;
 
 void FillTpmsD::_fill_surface_single(
@@ -110,15 +109,15 @@ void FillTpmsD::_fill_surface_single(
         expolygon.rotate(-infill_angle);
 
     BoundingBox bb = expolygon.contour.bounding_box();
-    // Density adjusted to have a good %of weight.
+    // 密度调整以获得良好的重量百分比。
     double      density_adjusted = std::max(0., params.density * DensityAdjust / params.multiline);
-    // Distance between the gyroid waves in scaled coordinates.
+    // 陀螺形波之间在缩放坐标中的距离。
     coord_t     distance = coord_t(scale_(this->spacing)  / density_adjusted);
 
-    // align bounding box to a multiple of our grid module
+    // 将边界框对齐到网格模块的倍数
     bb.merge(align_to_grid(bb.min, Point(2*M_PI*distance, 2*M_PI*distance)));
 
-    // generate pattern
+    // 生成图案
     Polylines polylines = make_waves(
         scale_(this->z),
         density_adjusted,
@@ -126,18 +125,18 @@ void FillTpmsD::_fill_surface_single(
         ceil(bb.size()(0) / distance) + 1.,
         ceil(bb.size()(1) / distance) + 1.);
 
-	// shift the polyline to the grid origin
+	// 将多段线平移到网格原点
 	for (Polyline &pl : polylines)
 		pl.translate(bb.min);
 	
-	    // Apply multiline offset if needed
+	    // 如果需要，应用多线偏移
     multiline_fill(polylines, params, spacing);
 
 	polylines = intersection_pl(polylines, expolygon);
 
     if (! polylines.empty()) {
-		// Remove very small bits, but be careful to not remove infill lines connecting thin walls!
-        // The infill perimeter lines should be separated by around a single infill line width.
+		// 移除非常小的片段，但注意不要移除连接薄壁的填充线！
+        // 填充周长线应间隔大约一个填充线宽。
         const double minlength = scale_(0.8 * this->spacing);
 		polylines.erase(
 			std::remove_if(polylines.begin(), polylines.end(), [minlength](const Polyline &pl) { return pl.length() < minlength; }),
@@ -145,14 +144,14 @@ void FillTpmsD::_fill_surface_single(
     }
 
 	if (! polylines.empty()) {
-		// connect lines
+		// 连接线
 		size_t polylines_out_first_idx = polylines_out.size();
 		if (params.dont_connect())
         	append(polylines_out, chain_polylines(polylines));
         else
             this->connect_infill(std::move(polylines), expolygon, polylines_out, this->spacing, params);
 
-	    // new paths must be rotated back
+	    // 新路径必须旋转回来
         if (std::abs(infill_angle) >= EPSILON) {
 	        for (auto it = polylines_out.begin() + polylines_out_first_idx; it != polylines_out.end(); ++ it)
 	        	it->rotate(infill_angle);

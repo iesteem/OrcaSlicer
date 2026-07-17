@@ -1,5 +1,5 @@
-// Copyright (c) 2023 UltiMaker
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿// Copyright (c) 2023 UltiMaker
+// CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #include "InterlockingGenerator.hpp"
 
@@ -95,7 +95,7 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
         std::min(print_object.printing_region(region_a_index).flow(print_object, frExternalPerimeter, 0.1).scaled_width(),
                  print_object.printing_region(region_b_index).flow(print_object, frExternalPerimeter, 0.1).scaled_width()) / 4;
 
-    // Make an inclusionary polygon, to only actually handle thin areas near actual microstructures (so not in skin for example).
+    //// 制作包含多边形，以便仅实际处理靠近实际微结构的薄区域（因此不在蒙皮中）。
     std::vector<Polygons> near_interlock_per_layer;
     near_interlock_per_layer.assign(print_object.layer_count(), Polygons());
     for (const auto& cell : has_all_meshes) {
@@ -110,7 +110,7 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
         polygons_rotate(near_interlock, rotation);
     }
 
-    // Only alter layers when they are present in both meshes, zip should take care if that.
+    //// 仅当两个网格中都存在时更改层，zip 应处理此情况。
     for (size_t layer_nr = 0; layer_nr < print_object.layer_count(); layer_nr++){
         auto       layer   = print_object.get_layer(layer_nr);
         ExPolygons polys_a = to_expolygons(layer->get_region(region_a_index)->slices.surfaces);
@@ -118,11 +118,11 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
 
         const auto [from_border_a, from_border_b] = growBorderAreasPerpendicular(polys_a, polys_b, detect);
 
-        // Get the areas of each mesh that are _not_ thin (large), by performing a morphological open.
+        //// 通过执行形态学开运算，获取每个网格中非薄（大）的区域。
         const ExPolygons large_a = opening_ex(polys_a, detect);
         const ExPolygons large_b = opening_ex(polys_b, detect);
 
-        // Derive the area that the thin areas need to expand into (so the added areas to the thin strips) from the information we already have.
+        //// 从已有的信息中推导出薄区域需要扩展到的区域（所以添加到薄条带的区域）。
         const ExPolygons thin_expansion_a =
             offset_ex(intersection_ex(intersection_ex(intersection_ex(large_b, offset_ex(diff_ex(polys_a, large_a), expand)),
                                                       near_interlock_per_layer[layer_nr]),
@@ -134,8 +134,8 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
                                       from_border_b),
                       rounding_errors);
 
-        // Expanded thin areas of the opposing polygon should 'eat into' the larger areas of the polygon,
-        // and conversely, add the expansions to their own thin areas.
+        //// 对面多边形的扩展薄区域应"侵入"该多边形的较大区域，
+        // 反之亦然，将扩展添加到它们自己的薄区域。
         layer->get_region(region_a_index)->slices.set(closing_ex(diff_ex(union_ex(polys_a, thin_expansion_a), thin_expansion_b), close_gaps), stInternal);
         layer->get_region(region_b_index)->slices.set(closing_ex(diff_ex(union_ex(polys_b, thin_expansion_b), thin_expansion_a), close_gaps), stInternal);
     }
@@ -147,7 +147,7 @@ void InterlockingGenerator::generateInterlockingStructure() const
 
     std::unordered_set<GridPoint3>& has_any_mesh   = voxels_per_mesh[0];
     std::unordered_set<GridPoint3>& has_all_meshes = voxels_per_mesh[1];
-    has_any_mesh.merge(has_all_meshes); // perform union and intersection simultaneously. Cannibalizes voxels_per_mesh
+    has_any_mesh.merge(has_all_meshes); // 执行并集和交集同时进行。消耗 voxels_per_mesh
 
     if (has_all_meshes.empty()) {
         return;
@@ -173,7 +173,7 @@ std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxel
 {
     std::vector<std::unordered_set<GridPoint3>> voxels_per_mesh(2);
 
-    // mark all cells which contain some boundary
+    // 标记包含某些边界的所有单元格
     for (size_t region_idx = 0; region_idx < 2; region_idx++)
     {
         const size_t region = (region_idx == 0) ? region_a_index : region_b_index;
@@ -212,7 +212,7 @@ void InterlockingGenerator::addBoundaryCells(const std::vector<ExPolygons>&  lay
         if (layer_nr > 0) {
             skin = xor_ex(skin, layers[layer_nr - 1]);
         }
-        skin = opening_ex(skin, cell_size.x() / 2.f); // remove superfluous small areas, which would anyway be included because of walkPolygons
+        skin = opening_ex(skin, cell_size.x() / 2.f); // 去除多余的小区域，这些区域也会因为 walkPolygons 而被包含
         vu.walkDilatedAreas(skin, z, kernel, voxel_emplacer);
     }
 }
@@ -220,7 +220,7 @@ void InterlockingGenerator::addBoundaryCells(const std::vector<ExPolygons>&  lay
 std::vector<ExPolygons> InterlockingGenerator::computeUnionedVolumeRegions() const
 {
     const size_t max_layer_count = print_object.layer_count() +
-                                   1; // introduce ghost layer on top for correct skin computation of topmost layer.
+                                   1; // 引入顶部幻影层以正确计算最顶层的蒙皮。
     std::vector<ExPolygons> layer_regions(max_layer_count);
 
     for (size_t layer_nr = 0; layer_nr < max_layer_count - 1; layer_nr++) {
@@ -229,7 +229,7 @@ std::vector<ExPolygons> InterlockingGenerator::computeUnionedVolumeRegions() con
             auto layer = print_object.get_layer(layer_nr);
             expolygons_append(layer_region, to_expolygons(layer->get_region(region_idx)->slices.surfaces));
         }
-        layer_region = closing_ex(layer_region, ignored_gap_); // Morphological close to merge meshes into single volume
+        layer_region = closing_ex(layer_region, ignored_gap_); // 形态学闭合以将网格合并为单个体积
         expolygons_rotate(layer_region, rotation);
     }
     return layer_regions;
@@ -273,18 +273,18 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
     const float  unapply_rotation = -rotation;
     const size_t max_layer_count  = print_object.layer_count();
 
-    std::vector<ExPolygons> structure_per_layer[2]; // for each mesh the structure on each layer
+    std::vector<ExPolygons> structure_per_layer[2]; // 每个网格在每个层上的结构
 
-    // Every `beam_layer_count` number of layers are combined to an interlocking beam layer
-    // to store these we need ceil(max_layer_count / beam_layer_count) of these layers
-    // the formula is rewritten as (max_layer_count + beam_layer_count - 1) / beam_layer_count, so it works for integer division
+    //// 每 `beam_layer_count` 层组合为一个互锁梁层
+    //// 为存储这些我们需要 ceil(max_layer_count / beam_layer_count) 层
+    //// 整数公式重写为 (max_layer_count + beam_layer_count - 1) / beam_layer_count，以进行整除
     size_t num_interlocking_layers = (max_layer_count + static_cast<size_t>(beam_layer_count) - 1ul) /
                                      static_cast<size_t>(beam_layer_count);
     structure_per_layer[0].resize(num_interlocking_layers);
     structure_per_layer[1].resize(num_interlocking_layers);
 
-    // Only compute cell structure for half the layers, because since our beams are two layers high, every odd layer of the structure will
-    // be the same as the layer below.
+    //// 仅计算一半层的单元结构，因为我们的梁有两层高，结构的每个奇数层
+    // 将与下一层相同。
     for (const GridPoint3& grid_loc : cells) {
         Vec3crd bottom_corner = vu.toLowerCorner(grid_loc);
         for (size_t mesh_idx = 0; mesh_idx < 2; mesh_idx++) {
@@ -320,8 +320,8 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
             auto       layer  = print_object.get_layer(layer_nr);
             auto&      slices = layer->get_region(region)->slices;
             ExPolygons polys  = to_expolygons(slices.surfaces);
-            slices.set(union_ex(diff_ex(polys, areas_other), // reduce layer areas inward with beams from other mesh
-                                areas_here)                  // extend layer areas outward with newly added beams
+            slices.set(union_ex(diff_ex(polys, areas_other), // 用其他网格的梁向内减少层区域
+                                areas_here)                  // 用新添加的梁向外扩展层区域
                        , stInternal);
         }
     }

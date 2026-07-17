@@ -19,7 +19,7 @@
 
 namespace Slic3r {
 
-// Used as compute type.
+// 用作计算类型。
 using Unit = int64_t;
 
 #if !defined(HAS_INTRINSIC_128_TYPE) || defined(__APPLE__)

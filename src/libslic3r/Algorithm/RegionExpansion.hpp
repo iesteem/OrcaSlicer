@@ -1,4 +1,4 @@
-#ifndef SRC_LIBSLIC3R_ALGORITHM_REGION_EXPANSION_HPP_
+﻿﻿#ifndef SRC_LIBSLIC3R_ALGORITHM_REGION_EXPANSION_HPP_
 #define SRC_LIBSLIC3R_ALGORITHM_REGION_EXPANSION_HPP_
 
 #include <cstdint>
@@ -11,28 +11,27 @@ namespace Algorithm {
 
 struct RegionExpansionParameters
 {
-    // Initial expansion of src to make the source regions intersect with boundary regions just a bit.
+    // 初始扩展源区域，使其与边界区域有少量交集。
     float                  tiny_expansion;
-    // How much to inflate the seed lines to produce the first wave area.
+    // 种子线膨胀多少以生成第一个波区域。
     float                  initial_step;
-    // How much to inflate the first wave area and the successive wave areas in each step.
+    // 每一步中膨胀第一个波区域及其后续波区域的量。
     float                  other_step;
-    // Number of inflate steps after the initial step.
+    // 初始步骤之后的膨胀步数。
     size_t                 num_other_steps;
-    // Maximum inflation of seed contours over the boundary. Used to trim boundary to speed up
-    // clipping during wave propagation.
+    // 种子轮廓在边界上的最大膨胀量。用于裁剪边界以加速波浪传播期间的裁剪。
     float                  max_inflation;
 
-    // Accuracy of the offsetter for wave propagation.
+    // 波浪传播的偏移精度。
     double                 arc_tolerance;
     double                 shortest_edge_length;
 
     static RegionExpansionParameters build(
-        // Scaled expansion value
+        // 缩放的扩展值
         float                full_expansion,
-        // Expand by waves of expansion_step size (expansion_step is scaled).
+        // 按 expansion_step 大小的波浪进行扩展（expansion_step 是缩放后的值）。
         float                expansion_step,
-        // Don't take more than max_nr_steps for small expansion_step.
+        // 对于小的 expansion_step，不要超过 max_nr_steps。
         size_t               max_nr_expansion_steps);
 };
 
@@ -53,14 +52,14 @@ inline bool lower_by_src_and_boundary(const WaveSeed &l, const WaveSeed &r)
     return l.src < r.src || (l.src == r.src && l.boundary < r.boundary);
 }
 
-// Expand src slightly outwards to intersect boundaries, trim the offsetted src polylines by the boundaries.
-// Return the trimmed paths annotated with their origin (source of the path, index of the boundary region).
+// 将源区域稍微向外扩展以与边界相交，用边界裁剪偏移后的源折线。
+// 返回带有其来源注释的裁剪路径（路径的来源、边界区域的索引）。
 WaveSeeds wave_seeds(
-    // Source regions that are supposed to touch the boundary.
+    // 应该接触边界的源区域。
     const ExPolygons      &src,
-    // Boundaries of source regions touching the "boundary" regions will be expanded into the "boundary" region.
+    // 接触"边界"区域的源区域将被扩展到该"边界"区域中。
     const ExPolygons      &boundary,
-    // Initial expansion of src to make the source regions intersect with boundary regions just a bit.
+    // 初始扩展源区域，使其与边界区域有少量交集。
     float                  tiny_expansion,
     bool                   sorted);
 
@@ -75,11 +74,11 @@ std::vector<RegionExpansion> propagate_waves(const WaveSeeds &seeds, const ExPol
 std::vector<RegionExpansion> propagate_waves(const ExPolygons &src, const ExPolygons &boundary, const RegionExpansionParameters &params);
 
 std::vector<RegionExpansion> propagate_waves(const ExPolygons &src, const ExPolygons &boundary,
-    // Scaled expansion value
-    float expansion, 
-    // Expand by waves of expansion_step size (expansion_step is scaled).
+    // 缩放的扩展值
+    float expansion,
+    // 按 expansion_step 大小的波浪进行扩展（expansion_step 是缩放后的值）。
     float expansion_step,
-    // Don't take more than max_nr_steps for small expansion_step.
+    // 对于小的 expansion_step，不要超过 max_nr_steps。
     size_t max_nr_steps);
 
 struct RegionExpansionEx
@@ -92,22 +91,22 @@ struct RegionExpansionEx
 std::vector<RegionExpansionEx> propagate_waves_ex(const WaveSeeds &seeds, const ExPolygons &boundary, const RegionExpansionParameters &params);
 
 std::vector<RegionExpansionEx> propagate_waves_ex(const ExPolygons &src, const ExPolygons &boundary,
-    // Scaled expansion value
-    float expansion, 
-    // Expand by waves of expansion_step size (expansion_step is scaled).
+    // 缩放的扩展值
+    float expansion,
+    // 按 expansion_step 大小的波浪进行扩展（expansion_step 是缩放后的值）。
     float expansion_step,
-    // Don't take more than max_nr_steps for small expansion_step.
+    // 对于小的 expansion_step，不要超过 max_nr_steps。
     size_t max_nr_steps);
 
 std::vector<Polygons> expand_expolygons(const ExPolygons &src, const ExPolygons &boundary,
-    // Scaled expansion value
-    float expansion, 
-    // Expand by waves of expansion_step size (expansion_step is scaled).
+    // 缩放的扩展值
+    float expansion,
+    // 按 expansion_step 大小的波浪进行扩展（expansion_step 是缩放后的值）。
     float expansion_step,
-    // Don't take more than max_nr_steps for small expansion_step.
+    // 对于小的 expansion_step，不要超过 max_nr_steps。
     size_t max_nr_steps);
 
-// Merge src with expansions, return the merged expolygons.
+// 将源区域与扩展区域合并，返回合并后的扩展多边形。
 std::vector<ExPolygon> merge_expansions_into_expolygons(ExPolygons &&src, std::vector<RegionExpansion> &&expanded);
 
 std::vector<ExPolygon> expand_merge_expolygons(ExPolygons &&src, const ExPolygons &boundary, const RegionExpansionParameters &params);

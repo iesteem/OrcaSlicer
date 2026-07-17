@@ -1,4 +1,4 @@
-#include "Config.hpp"
+﻿#include "Config.hpp"
 #include "format.hpp"
 #include "Utils.hpp"
 #include "LocalesUtils.hpp"
@@ -45,11 +45,11 @@ namespace Slic3r {
 //static const std::string CONFIG_INHERITS_KEY = "inherits";
 //static const std::string CONFIG_INSTANT_KEY = "instantiation";
 
-// Escape double quotes, \n, \r and backslash
+// 转义双引号、\n、\r 和反斜杠
 std::string escape_string_cstyle(const std::string &str)
 {
-    // Allocate a buffer twice the input string length,
-    // so the output will fit even if all input characters get escaped.
+    // 分配输入字符串长度两倍的缓冲区，
+    // 以便即使所有输入字符都被转义，输出也能容纳。
     std::vector<char> out(str.size() * 2, 0);
     char *outptr = out.data();
     for (size_t i = 0; i < str.size(); ++ i) {
@@ -71,21 +71,21 @@ std::string escape_string_cstyle(const std::string &str)
 
 std::string escape_strings_cstyle(const std::vector<std::string> &strs)
 {
-    // 1) Estimate the output buffer size to avoid buffer reallocation.
+    // 1) 估计输出缓冲区大小以避免缓冲区重新分配。
     size_t outbuflen = 0;
     for (size_t i = 0; i < strs.size(); ++ i)
-        // Reserve space for every character escaped + quotes + semicolon.
+        // 为每个转义字符 + 引号 + 分号预留空间。
         outbuflen += strs[i].size() * 2 + 3;
-    // 2) Fill in the buffer.
+    // 2) 填充缓冲区。
     std::vector<char> out(outbuflen, 0);
     char *outptr = out.data();
     for (size_t j = 0; j < strs.size(); ++ j) {
         if (j > 0)
-            // Separate the strings.
+            // 分隔字符串。
             (*outptr ++) = ';';
         const std::string &str = strs[j];
-        // Is the string simple or complex? Complex string contains spaces, tabs, new lines and other
-        // escapable characters. Empty string shall be quoted as well, if it is the only string in strs.
+        // 字符串是简单还是复杂？复杂字符串包含空格、制表符、换行符和其他可转义字符。
+        // 如果 strs 中只有这一个空字符串，也应当用引号括起来。
         bool should_quote = strs.size() == 1 && str.empty();
         for (size_t i = 0; i < str.size(); ++ i) {
             char c = str[i];

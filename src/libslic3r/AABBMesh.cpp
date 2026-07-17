@@ -1,4 +1,4 @@
-#include "AABBMesh.hpp"
+﻿#include "AABBMesh.hpp"
 #include <Execution/ExecutionTBB.hpp>
 
 #include <libslic3r/AABBTreeIndirect.hpp>
@@ -22,7 +22,7 @@ public:
     {
         m_triangle_ray_epsilon = 0.000001;
         if (calculate_epsilon) {
-            // Calculate epsilon from average triangle edge length.
+            // 根据平均三角形边长计算 epsilon。
             double l = its_average_edge_length(its);
             if (l > 0)
                 m_triangle_ray_epsilon = 0.000001 * l * l;
@@ -68,7 +68,7 @@ public:
 
 template<class M> void AABBMesh::init(const M &mesh, bool calculate_epsilon)
 {
-    // Build the AABB accelaration tree
+    // 构建 AABB 加速树
     m_aabb->init(*m_tm, calculate_epsilon);
 }
 
@@ -184,18 +184,18 @@ AABBMesh::query_ray_hits(const Vec3d &s, const Vec3d &dir) const
     std::vector<igl::Hit> hits;
     m_aabb->intersect_ray(*m_tm, s, dir, hits);
 
-    // The sort is necessary, the hits are not always sorted.
+    // 排序是必要的，命中点并不总是已排序的。
     std::sort(hits.begin(), hits.end(),
               [](const igl::Hit& a, const igl::Hit& b) { return a.t < b.t; });
 
-    // Remove duplicates. They sometimes appear, for example when the ray is cast
-    // along an axis of a cube due to floating-point approximations in igl (?)
+    // 移除重复项。重复项有时会出现，例如当光线沿立方体的轴投射时，
+    // 由于 igl 中的浮点近似导致。
     hits.erase(std::unique(hits.begin(), hits.end(),
                            [](const igl::Hit& a, const igl::Hit& b)
                            { return a.t == b.t; }),
                hits.end());
 
-    //  Convert the igl::Hit into hit_result
+    //  将 igl::Hit 转换为 hit_result
     outs.reserve(hits.size());
     for (const igl::Hit& hit : hits) {
         outs.emplace_back(AABBMesh::hit_result(*this));
@@ -225,7 +225,7 @@ AABBMesh::hit_result IndexedMesh::filter_hits(
     const Vec3d& s = object_hits.front().source();
     const Vec3d& dir = object_hits.front().direction();
 
-    // A helper struct to save an intersetion with a hole
+    // 一个辅助结构体，用于保存与孔洞的交点
     struct HoleHit {
         HoleHit(float t_p, const Vec3d& normal_p, bool entry_p) :
             t(t_p), normal(normal_p), entry(entry_p) {}
@@ -239,17 +239,17 @@ AABBMesh::hit_result IndexedMesh::filter_hits(
     auto sf = s.cast<float>();
     auto dirf = dir.cast<float>();
 
-    // Collect hits on all holes, preserve information about entry/exit
+    // 收集所有孔洞上的命中点，保留进入/退出的信息
     for (const sla::DrainHole& hole : m_holes) {
         std::array<std::pair<float, Vec3d>, 2> isects;
         if (hole.get_intersections(sf, dirf, isects)) {
-            // Ignore hole hits behind the source
+            // 忽略源点后面的孔洞命中点
             if (isects[0].first > 0.f) hole_isects.emplace_back(isects[0].first, isects[0].second, true);
             if (isects[1].first > 0.f) hole_isects.emplace_back(isects[1].first, isects[1].second, false);
         }
     }
 
-    // Holes can intersect each other, sort the hits by t
+    // 孔洞可能相互交叉，按 t 对命中点排序
     std::sort(hole_isects.begin(), hole_isects.end(),
               [](const HoleHit& a, const HoleHit& b) { return a.t < b.t; });
 
@@ -275,16 +275,16 @@ AABBMesh::hit_result IndexedMesh::filter_hits(
             else
                 is_hole = next_hole_hit; // one or the other ran out
 
-            // Is this entry or exit hit?
+            // 这是进入还是退出命中点？
             is_entry = is_hole ? next_hole_hit->entry : ! next_mesh_hit->is_inside();
 
             if (! dry_run) {
                 if (! is_hole && hole_nested == 0) {
-                    // This is a valid object hit
+                    // 这是一个有效的对象命中点
                     return *next_mesh_hit;
                 }
                 if (is_hole && ! is_entry && object_nested != 0) {
-                    // This holehit is the one we seek
+                    // 这是我们寻找的孔洞命中点
                     out.m_t = next_hole_hit->t;
                     out.m_normal = next_hole_hit->normal;
                     out.m_source = s;
@@ -293,10 +293,10 @@ AABBMesh::hit_result IndexedMesh::filter_hits(
                 }
             }
 
-            // Increase/decrease the counter
+            // 增加/减少计数器
             (is_hole ? hole_nested : object_nested) += (is_entry ? 1 : -1);
 
-            // Advance the respective pointer
+            // 前进相应的指针
             if (is_hole && next_hole_hit++ == &hole_isects.back())
                 next_hole_hit = nullptr;
             if (! is_hole && next_mesh_hit++ == &object_hits.back())
@@ -304,7 +304,7 @@ AABBMesh::hit_result IndexedMesh::filter_hits(
         }
     }
 
-    // if we got here, the ray ended up in infinity
+    // 如果执行到这里，光线在无穷远处结束
     return out;
 }
 #endif

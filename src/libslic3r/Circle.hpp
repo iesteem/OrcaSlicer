@@ -1,4 +1,4 @@
-#ifndef slic3r_Circle_hpp_
+﻿#ifndef slic3r_Circle_hpp_
 #define slic3r_Circle_hpp_
 
 #include "Point.hpp"
@@ -32,7 +32,7 @@ public:
     bool is_over_deviation(const Points& points, const double tolerance);
     bool get_deviation_sum_squared(const Points& points, const double tolerance, double& sum_deviation);
 
-    //BBS: only support calculate on X-Y plane, Z is useless
+    //BBS: 仅支持在 X-Y 平面计算，Z 无用
     static Vec3f calc_tangential_vector(const Vec3f& pos, const Vec3f& center_pos, const bool is_ccw);
     static bool get_closest_perpendicular_point(const Point& p1, const Point& p2, const Point& c, Point& out);
     static bool is_equal(double x, double y, double tolerance = ZERO_TOLERANCE) {
@@ -113,9 +113,9 @@ public:
         double path_tolerance_percent = DEFAULT_ARC_LENGTH_PERCENT_TOLERANCE);
 
     static bool are_points_within_slice(const ArcSegment& test_arc, const Points &points);
-    // BBS: this function is used to detect whether a ray cross the segment
+    // BBS: 此函数用于检测光线是否穿过线段
     static bool ray_intersects_segment(const Point& rayOrigin, const Vec2d& rayDirection, const Line& segment);
-    // BBS: these three functions are used to calculate related arguments of arc in unscale_field.
+    // BBS: 这三个函数用于计算 unscale_field 中圆弧的相关参数。
     static float calc_arc_radian(Vec3f start_pos, Vec3f end_pos, Vec3f center_pos, bool is_ccw);
     static float calc_arc_radius(Vec3f start_pos, Vec3f center_pos);
     static float calc_arc_length(Vec3f start_pos, Vec3f end_pos, Vec3f center_pos, bool is_ccw);

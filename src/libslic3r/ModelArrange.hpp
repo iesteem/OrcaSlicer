@@ -14,7 +14,7 @@ using arrangement::ArrangeParams;
 using arrangement::InfiniteBed;
 using arrangement::CircleBed;
 
-// Do something with ArrangePolygons in virtual beds
+// 在虚拟床上对ArrangePolygons执行操作
 using VirtualBedFn = std::function<void(arrangement::ArrangePolygon&)>;
 
 [[noreturn]] inline void throw_if_out_of_bed(arrangement::ArrangePolygon&) 

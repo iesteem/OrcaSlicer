@@ -8,7 +8,7 @@ class TriangleMesh;
 class Model;
 class ModelObject;
 typedef std::function<void(std::vector<RGBA> &input_colors, bool is_single_color, std::vector<unsigned char> &filament_ids, unsigned char &first_extruder_id)> ObjImportColorFn;
-// Load an OBJ file into a provided model.
+// 将OBJ文件加载到提供的模型中。
 struct ObjInfo {
     std::vector<RGBA> vertex_colors;
     std::vector<RGBA> face_colors;

@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 
 #ifndef UTILS_EXTRUSION_JUNCTION_H
@@ -53,7 +53,7 @@ inline Point operator-(const ExtrusionJunction& a, const ExtrusionJunction& b)
     return a.p - b.p;
 }
 
-// Identity function, used to be able to make templated algorithms that do their operations on 'point-like' input.
+// 恒等函数，用于使模板化算法能够对'类点'输入进行操作。
 inline const Point& make_point(const ExtrusionJunction& ej)
 {
     return ej.p;

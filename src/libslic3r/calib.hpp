@@ -64,7 +64,7 @@ public:
         std::string filament_id;
         std::string setting_id;
         float       max_volumetric_speed;
-        float       flow_rate = 0.98f; // for flow ratio
+        float       flow_rate = 0.98f; // 流量比例
     };
 
     std::vector<X1CCalibInfo> calib_datas;
@@ -119,7 +119,7 @@ public:
     std::string name;
     float       k_value    = 0.0;
     float       n_coef     = 0.0;
-    int         confidence = -1; // 0: success  1: uncertain  2: failed
+    int         confidence = -1; // 0: 成功  1: 不确定  2: 失败
 };
 
 struct PACalibIndexInfo
@@ -159,7 +159,7 @@ public:
     std::string filament_id;
     std::string setting_id;
     float       flow_ratio;
-    int         confidence; // 0: success  1: uncertain  2: failed
+    int         confidence; // 0: 成功  1: 不确定  2: 失败
 };
 
 struct DrawBoxOptArgs
@@ -308,13 +308,13 @@ protected:
     double accel_perimeter() const { return m_config.option<ConfigOptionFloat>("outer_wall_acceleration")->value; }
     double line_width_first_layer() const
     {
-        // TODO: FIXME: find out current filament/extruder?
+        // TODO: FIXME: 找出当前耗材/挤出机？
         const double nozzle_diameter = m_config.opt_float("nozzle_diameter", 0);
         return m_config.get_abs_value("initial_layer_line_width", nozzle_diameter);
     };
     double line_width() const
     {
-        // TODO: FIXME: find out current filament/extruder?
+        // TODO: FIXME: 找出当前耗材/挤出机？
         const double nozzle_diameter = m_config.opt_float("nozzle_diameter", 0);
         const double width = m_config.get_abs_value("line_width", nozzle_diameter);
         if (width <= 0.) return Flow::auto_extrusion_width(frExternalPerimeter, nozzle_diameter);

@@ -56,7 +56,7 @@ Zipper::Zipper(const std::string &zipfname, e_compression compression)
 Zipper::~Zipper()
 {
     if(m_impl->is_alive()) {
-        // Flush the current entry if not finished yet.
+        // 如果当前条目尚未完成，则刷新。
         try { finish_entry(); } catch(...) {
             BOOST_LOG_TRIVIAL(error) << m_impl->formatted_errorstr();
         }
@@ -65,7 +65,7 @@ Zipper::~Zipper()
             BOOST_LOG_TRIVIAL(error) << m_impl->formatted_errorstr();
     }
 
-    // The file should be closed no matter what...
+    // 无论如何文件都应该被关闭...
     if(!close_zip_writer(&m_impl->arch))
         BOOST_LOG_TRIVIAL(error) << m_impl->formatted_errorstr();
 }
@@ -88,7 +88,7 @@ void Zipper::add_entry(const std::string &name)
 {
     if(!m_impl->is_alive()) return;
 
-    finish_entry(); // finish previous business
+    finish_entry(); // 完成之前的任务
     m_entry = name;
 }
 

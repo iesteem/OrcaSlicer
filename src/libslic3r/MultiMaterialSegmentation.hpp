@@ -30,13 +30,13 @@ enum class IncludeTopAndBottomLayers {
 
 struct ModelVolumeFacetsInfo {
     const FacetsAnnotation &facets_annotation;
-    // Indicate if model volume is painted.
+    // 指示模型体积是否被绘制。
     const bool              is_painted;
-    // Indicate if the default extruder (TriangleStateType::NONE) should be replaced with the volume extruder.
+    // 指示默认挤出机（TriangleStateType::NONE）是否应被体积挤出机替换。
     const bool              replace_default_extruder;
 };
 
-// Returns segmentation based on painting in segmentation gizmos.
+// 返回基于在分割小工具中绘制的分割结果。
 std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject                                               &print_object,
                                                               const std::function<ModelVolumeFacetsInfo(const ModelVolume &)> &extract_facets_info,
                                                               size_t                                                           num_facets_states,
@@ -46,10 +46,10 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
                                                               IncludeTopAndBottomLayers                                        include_top_and_bottom_layers,
                                                               const std::function<void()>                                     &throw_on_cancel_callback);
 
-// Returns multi-material segmentation based on painting in multi-material segmentation gizmo
+// 返回基于在多材料分割小工具中绘制的多材料分割结果
 std::vector<std::vector<ExPolygons>> multi_material_segmentation_by_painting(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback);
 
-// Returns fuzzy skin segmentation based on painting in fuzzy skin segmentation gizmo
+// 返回基于在蒙皮分割小工具中绘制的蒙皮分割结果
 std::vector<std::vector<ExPolygons>> fuzzy_skin_segmentation_by_painting(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback);
 
 } // namespace Slic3r

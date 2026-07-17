@@ -33,7 +33,7 @@ struct Params
         }
     }
 
-    // the algorithm should use the following units for all computations: distance [mm], mass [g], time [s], force [g*mm/s^2]
+    // 算法应对所有计算使用以下单位：距离[mm]，质量[g]，时间[s]，力[g*mm/s^2]
     const float bridge_distance = 16.0f; // mm
     const float max_acceleration; // mm/s^2 ; max acceleration of object in XY -- should be applicable only to printers with bed slinger, 
                                   // however we do not have such info yet. The force is usually small anyway, so not such a big deal to include it everytime
@@ -83,13 +83,13 @@ struct Params
 void estimate_malformations(std::vector<Layer *> &layers, const Params &params);
 
 
-enum class SupportPointCause { 
-    LongBridge, // point generated on bridge and straight perimeter extrusion longer than the allowed length 
-    FloatingBridgeAnchor, // point generated on unsupported bridge endpoint
-    FloatingExtrusion, // point generated on extrusion that does not hold on its own
-    SeparationFromBed, // point generated for object parts that are connected to the bed, but the area is too small and there is a risk of separation (brim may help)
-    UnstableFloatingPart, // point generated for object parts not connected to the bed, holded only by the other support points (brim will not help here)
-    WeakObjectPart // point generated when some part of the object is too weak to hold the upper part and may break (imagine hourglass)
+enum class SupportPointCause {
+    LongBridge, // 在桥接和超过允许长度的直线轮廓挤出上生成的点
+    FloatingBridgeAnchor, // 在无支撑的桥接端点上生成的点
+    FloatingExtrusion, // 在无法自身支撑的挤出上生成的点
+    SeparationFromBed, // 在连接到打印板但面积太小且有分离风险的对象部分上生成的点（裙边可能有帮助）
+    UnstableFloatingPart, // 在未连接到打印板、仅由其他支撑点支撑的对象部分上生成的点（裙边无帮助）
+    WeakObjectPart // 在对象某部分太弱无法支撑上部并可能断裂时生成的点（如沙漏形状）
     };
 
 // The support points can be sorted into two groups

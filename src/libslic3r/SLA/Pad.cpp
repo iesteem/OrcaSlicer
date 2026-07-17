@@ -13,7 +13,7 @@
 
 #include "TriangulateWall.hpp"
 
-// For debugging:
+// 用于调试：
 // #include <fstream>
 // #include <libnest2d/tools/benchmark.h>
 #include "SVG.hpp"
@@ -42,7 +42,7 @@ indexed_triangle_set walls(
     return w;
 }
 
-// Same as walls() but with identical higher and lower polygons.
+// 与 walls() 相同，但上下多边形相同。
 inline indexed_triangle_set straight_walls(const Polygon &plate,
                                            double         lo_z,
                                            double         hi_z)
@@ -50,11 +50,10 @@ inline indexed_triangle_set straight_walls(const Polygon &plate,
     return walls(plate, plate, lo_z, hi_z);
 }
 
-// Function to cut tiny connector cavities for a given polygon. The input poly
-// will be offsetted by "padding" and small rectangle shaped cavities will be
-// inserted along the perimeter in every "stride" distance. The stick rectangles
-// will have a with about "stick_width". The input dimensions are in world
-// measure, not the scaled clipper units.
+// 为给定多边形切割微小的连接器凹槽。输入多边形将按"padding"偏移，
+// 并沿周长每隔"stride"距离插入小矩形凹槽。
+// 杆状矩形的宽度约为"stick_width"。输入尺寸为世界坐标测量值，
+// 而非缩放后的 clipper 单位。
 void breakstick_holes(Points& pts,
                       double padding,
                       double stride,
@@ -67,41 +66,39 @@ void breakstick_holes(Points& pts,
     // SVG svg("bridgestick_plate.svg");
     // svg.draw(poly);
 
-    // The connector stick will be a small rectangle with dimensions
-    // stick_width x (penetration + padding) to have some penetration
-    // into the input polygon.
+    // 连接杆将是一个小矩形，尺寸为 stick_width x (penetration + padding)，
+    // 以便对输入多边形有一定的穿透。
 
     Points out;
-    out.reserve(2 * pts.size()); // output polygon points
+    out.reserve(2 * pts.size()); // 输出多边形点
 
-    // stick bottom and right edge dimensions
+    // 杆底部和右侧边缘尺寸
     double sbottom = scaled(stick_width);
     double sright  = scaled(penetration + padding);
 
-    // scaled stride distance
+    // 缩放后的步幅距离
     double sstride = scaled(stride);
     double t       = 0;
 
-    // process pairs of vertices as an edge, start with the last and
-    // first point
+    // 将顶点对作为边处理，从最后一个和第一个点开始
     for (size_t i = pts.size() - 1, j = 0; j < pts.size(); i = j, ++j) {
-        // Get vertices and the direction vectors
+        // 获取顶点和方向向量
         const Point &a = pts[i], &b = pts[j];
         Vec2d        dir = b.cast<double>() - a.cast<double>();
         double       nrm = dir.norm();
         dir /= nrm;
         Vec2d dirp(-dir(Y), dir(X));
 
-        // Insert start point
+        // 插入起始点
         out.emplace_back(a);
 
-        // dodge the start point, do not make sticks on the joins
+        // 避开起始点，不要在连接处制作杆
         while (t < sbottom) t += sbottom;
         double tend = nrm - sbottom;
 
-        while (t < tend) { // insert the stick on the polygon perimeter
+        while (t < tend) { // 在多边形周长上插入杆
 
-            // calculate the stick rectangle vertices and insert them
+            // 计算杆矩形顶点并插入它们
             // into the output.
             Point p1 = a + (t * dir).cast<coord_t>();
             Point p2 = p1 + (sright * dirp).cast<coord_t>();
@@ -109,13 +106,13 @@ void breakstick_holes(Points& pts,
             Point p4 = p3 + (sright * -dirp).cast<coord_t>();
             out.insert(out.end(), {p1, p2, p3, p4});
 
-            // continue along the perimeter
+            // 沿周长继续
             t += sstride;
         }
 
         t = t - nrm;
 
-        // Insert edge endpoint
+        // 插入边端点
         out.emplace_back(b);
     }
 
@@ -146,7 +143,7 @@ static inline double get_merge_distance(const PadConfig &c)
     return 2. * (1.8 * c.wall_thickness_mm) + c.max_merge_dist_mm;
 }
 
-// Part of the pad configuration that is used for 3D geometry generation
+// 用于 3D 几何体生成的垫配置部分
 struct PadConfig3D {
     double thickness, height, wing_height, slope;
 
@@ -163,10 +160,9 @@ struct PadConfig3D {
     }
 };
 
-// Outer part of the skeleton is used to generate the waffled edges of the pad.
-// Inner parts will not be waffled or offsetted. Inner parts are only used if
-// pad is generated around the object and correspond to holes and inner polygons
-// in the model blueprint.
+// 骨架的外部部分用于生成垫的华夫格边。
+// 内部部分不会被华夫格化或偏移。内部部分仅在垫围绕对象生成时使用，
+// 对应于模型蓝图中的孔和内多边形。
 struct PadSkeleton { ExPolygons inner, outer; };
 
 PadSkeleton divide_blueprint(const ExPolygons &bp)
@@ -192,30 +188,29 @@ PadSkeleton divide_blueprint(const ExPolygons &bp)
     return ret;
 }
 
-// A helper class for storing polygons and maintaining a spatial index of their
-// bounding boxes.
+// 用于存储多边形并维护其边界框空间索引的辅助类。
 class Intersector {
     BoxIndex       m_index;
     ExPolygons     m_polys;
 
 public:
 
-    // Add a new polygon to the index
+    // 向索引添加新多边形
     void add(const ExPolygon &ep)
     {
         m_polys.emplace_back(ep);
         m_index.insert(get_extents(ep), unsigned(m_index.size()));
     }
 
-    // Check an arbitrary polygon for intersection with the indexed polygons
+    // 检查任意多边形与索引多边形的相交情况
     bool intersects(const ExPolygon &poly)
     {
-        // Create a suitable query bounding box.
+        // 创建合适的查询边界框。
         auto bb = poly.contour.bounding_box();
 
         std::vector<BoxIndexEl> qres = m_index.query(bb, BoxIndex::qtIntersects);
 
-        // Now check intersections on the actual polygons (not just the boxes)
+        // 现在检查实际多边形上的相交（不仅仅是边界框）
         bool is_overlap = false;
         auto qit        = qres.begin();
         while (!is_overlap && qit != qres.end())
@@ -225,7 +220,7 @@ public:
     }
 };
 
-// This dummy intersector to implement the "force pad everywhere" feature
+// 此虚拟交叉器用于实现"强制处处垫"功能
 struct DummyIntersector
 {
     inline void add(const ExPolygon &) {}
@@ -235,8 +230,7 @@ struct DummyIntersector
 template<class _Intersector>
 class _AroundPadSkeleton : public PadSkeleton
 {
-    // A spatial index used to be able to efficiently find intersections of
-    // support polygons with the model polygons.
+    // 一个空间索引，用于高效找到支撑多边形与模型多边形的相交。
     _Intersector m_intersector;
 
 public:
@@ -245,12 +239,10 @@ public:
                        const PadConfig & cfg,
                        ThrowOnCancel     thr)
     {
-        // We need to merge the support and the model contours in a special
-        // way in which the model contours have to be substracted from the
-        // support contours. The pad has to have a hole in which the model can
-        // fit perfectly (thus the substraction -- diff_ex). Also, the pad has
-        // to be eliminated from areas where there is no need for a pad, due
-        // to missing supports.
+        // 我们需要以特殊方式合并支撑和模型轮廓，
+        // 其中模型轮廓必须从支撑轮廓中减去。
+        // 垫必须有一个孔，使模型可以完美贴合（因此使用 diff_ex 进行相减）。
+        // 此外，由于缺少支撑，必须从不需要垫的区域中消除垫。
 
         add_supports_to_index(support_blueprint);
 
@@ -281,14 +273,13 @@ public:
 
 private:
 
-    // Add the support blueprint to the search index to be queried later
+    // 将支撑蓝图添加到搜索索引中，以便稍后查询
     void add_supports_to_index(const ExPolygons &supp_bp)
     {
         for (auto &ep : supp_bp) m_intersector.add(ep);
     }
 
-    // Create the wafflized pad around all object in the scene. This pad doesnt
-    // have any holes yet.
+    // 在场景中的所有对象周围创建华夫格垫。此垫还没有任何孔。
     ExPolygons wafflized_concave_hull(const ExPolygons &supp_bp,
                                        const ExPolygons &model_bp,
                                        const PadConfig  &cfg,
@@ -303,7 +294,7 @@ private:
         return offset_waffle_style_ex(cchull, get_waffle_offset(cfg));
     }
 
-    // To remove parts of the pad skeleton which do not host any supports
+    // 移除不承载任何支撑的垫骨架部分
     void remove_redundant_parts(ExPolygons &parts)
     {
         auto endit = std::remove_if(parts.begin(), parts.end(),
@@ -337,7 +328,7 @@ public:
     }
 };
 
-// Offset the contour only, leave the holes untouched
+// 仅偏移轮廓，保持孔洞不变
 template<class...Args>
 ExPolygon offset_contour_only(const ExPolygon &poly, coord_t delta, Args...args)
 {
@@ -485,7 +476,7 @@ void pad_blueprint(const indexed_triangle_set &mesh,
     size_t count = 0;
     for(auto& o : out) count += o.size();
 
-    // Unification is expensive, a simplify also speeds up the pad generation
+    // 合并操作代价高昂，简化操作也能加速垫的生成
     auto tmp = reserve_vector<ExPolygon>(count);
     for(ExPolygons& o : out)
         for(ExPolygon& e : o) {

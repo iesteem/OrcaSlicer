@@ -1,4 +1,4 @@
-// Optimize the extrusion simulator to the bones.
+﻿// 将挤出模拟器优化到极致。
 //#pragma GCC optimize ("O3")
 //#undef SLIC3R_DEBUG
 //#define NDEBUG
@@ -22,24 +22,24 @@
 
 namespace Slic3r {
 
-// Replacement for a template alias.
-// Shorthand for the point_xy.
+// 模板别名的替代。
+// point_xy 的简写。
 template<typename T>
 struct V2
 {
 	typedef boost::geometry::model::d2::point_xy<T> Type;
 };
 
-// Replacement for a template alias.
-// Shorthand for the point with a cartesian coordinate system.
+// 模板别名的替代。
+// 具有笛卡尔坐标系的点的简写。
 template<typename T>
 struct V3
 {
 	typedef boost::geometry::model::point<T, 3, boost::geometry::cs::cartesian> Type;
 };
 
-// Replacement for a template alias.
-// Shorthand for the point with a cartesian coordinate system.
+// 模板别名的替代。
+// 具有笛卡尔坐标系的点的简写。
 template<typename T>
 struct V4
 {
@@ -50,9 +50,9 @@ typedef V2<int   >::Type V2i;
 typedef V2<float >::Type V2f;
 typedef V2<double>::Type V2d;
 
-// Used for an RGB color.
+// 用于 RGB 颜色。
 typedef V3<unsigned char>::Type V3uc;
-// Used for an RGBA color.
+// 用于 RGBA 颜色。
 typedef V4<unsigned char>::Type V4uc;
 
 typedef boost::geometry::model::box<V2i> B2i;

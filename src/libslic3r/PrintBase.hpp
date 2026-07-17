@@ -32,8 +32,8 @@ struct StringObjectException
     std::string string;
     ObjectBase const *object = nullptr;
     std::string opt_key;
-    StringExceptionType         type;   // warning type for tips
-    std::vector<std::string>    params; // warning params for tips
+    StringExceptionType         type;   // 警告类型提示
+    std::vector<std::string>    params; // 警告参数提示
 };
 
 class CanceledException : public std::exception
@@ -66,7 +66,7 @@ public:
 
     typedef size_t TimeStamp;
 
-    // A new unique timestamp is being assigned to the step every time the step changes its state.
+    // 每次步骤更改状态时，都会分配一个新的唯一时间戳。
     struct StateWithTimeStamp
     {
         StateWithTimeStamp() : state(INVALID), timestamp(0) {}
@@ -76,17 +76,17 @@ public:
 
     struct Warning
     {
-    	// Critical warnings will be displayed on G-code export in a modal dialog, so that the user cannot miss them.
+    	// 关键警告将在G-code导出时以模态对话框显示，以便用户不会错过它们。
         WarningLevel    level;
-        // If the warning is not current, then it is in an unknown state. It may or may not be valid.
-        // A current warning will become non-current if its milestone gets invalidated.
-        // A non-current warning will either become current or it will be removed at the end of a milestone.
+        // 如果警告不是当前的，则它处于未知状态。它可能有效也可能无效。
+        // 当前警告在其里程碑失效时将变为非当前状态。
+        // 非当前警告要么变为当前状态，要么在里程碑结束时被移除。
         bool 			current;
-        // Message to be shown to the user, UTF8, localized.
+        // 要显示给用户的消息，UTF8编码，本地化。
         std::string     message;
-        // If message_id == 0, then the message is expected to identify the warning uniquely.
-        // Otherwise message_id identifies the message. For example, if the message contains a varying number, then
-        // it cannot itself identify the message type.
+        // 如果 message_id == 0，则期望消息能唯一标识警告。
+        // 否则 message_id 标识消息。例如，如果消息包含变化数字，则
+        // 它本身无法标识消息类型。
         int 			message_id;
     };
 
@@ -97,13 +97,13 @@ public:
     };
 
 protected:
-    //FIXME last timestamp is shared between Print & SLAPrint,
-    // and if multiple Print or SLAPrint instances are executed in parallel, modification of g_last_timestamp
-    // is not synchronized!
+    //FIXME 最后一个时间戳在Print和SLAPrint之间共享，
+    // 如果多个Print或SLAPrint实例并行执行，g_last_timestamp的修改
+    // 不会被同步！
     static size_t g_last_timestamp;
 };
 
-// To be instantiated over PrintStep or PrintObjectStep enums.
+// 将在PrintStep或PrintObjectStep枚举上实例化。
 template <class StepType, size_t COUNT>
 class PrintState : public PrintStateBase
 {
@@ -142,23 +142,23 @@ public:
         return this->state_with_timestamp_unguarded(step).state == DONE;
     }
 
-    // Set the step as started. Block on mutex while the Print / PrintObject / PrintRegion objects are being
-    // modified by the UI thread.
-    // This is necessary to block until the Print::apply() updates its state, which may
-    // influence the processing step being entered.
+    // 将步骤标记为已启动。在Print/PrintObject/PrintRegion对象被
+    // UI线程修改时，在互斥锁上阻塞。
+    // 这是必要的，以阻塞直到Print::apply()更新其状态，这可能会
+    // 影响正在进入的处理步骤。
     template<typename ThrowIfCanceled>
     bool set_started(StepType step, std::mutex &mtx, ThrowIfCanceled throw_if_canceled) {
         std::scoped_lock<std::mutex> lock(mtx);
-        // If canceled, throw before changing the step state.
+        // 如果已取消，在更改步骤状态之前抛出异常。
         throw_if_canceled();
 #ifndef NDEBUG
-// The following test is not necessarily valid after the background processing thread
-// is stopped with throw_if_canceled(), as the CanceledException is not being catched
-// by the Print or PrintObject to update m_step_active or m_state[...].state.
-// This should not be a problem as long as the caller calls set_started() / set_done() /
-// active_step_add_warning() consistently. From the robustness point of view it would be
-// be better to catch CanceledException and do the updates. From the performance point of view,
-// the current implementation is optimal.
+// 以下测试在后台处理线程被throw_if_canceled()停止后不一定有效，
+// 因为CanceledException没有被Print或PrintObject捕获
+// 来更新m_step_active或m_state[...].state。
+// 只要调用者一致地调用set_started()/set_done()/
+// active_step_add_warning()，这应该不是问题。从健壮性的角度来看，
+// 捕获CanceledException并进行更新会更好。从性能的角度来看，
+// 当前的实现是最优的。
 //
 //        assert(m_step_active == -1);
 //        for (int i = 0; i < int(COUNT); ++ i)
@@ -174,15 +174,15 @@ public:
         return true;
     }
 
-    // Set the step as done. Block on mutex while the Print / PrintObject / PrintRegion objects are being
-    // modified by the UI thread.
-    // Return value:
-    // 		Timestamp when this stepentered the DONE state.
-    // 		bool indicates whether the UI has to update the slicing warnings of this step or not.
+    // 将步骤标记为已完成。在Print/PrintObject/PrintRegion对象被
+    // UI线程修改时，在互斥锁上阻塞。
+    // 返回值：
+    // 		时间戳，表示此步骤进入DONE状态的时间。
+    // 		bool，表示UI是否必须更新此步骤的切片警告。
 	template<typename ThrowIfCanceled>
 	std::pair<TimeStamp, bool> set_done(StepType step, std::mutex &mtx, ThrowIfCanceled throw_if_canceled) {
         std::scoped_lock<std::mutex> lock(mtx);
-        // If canceled, throw before changing the step state.
+        // 如果已取消，在更改步骤状态之前抛出异常。
         throw_if_canceled();
         assert(m_state[step].state == STARTED);
         assert(m_step_active == static_cast<int>(step));
@@ -190,7 +190,7 @@ public:
         state.state = DONE;
         state.timestamp = ++ g_last_timestamp;
         m_step_active = -1;
-        // Remove all non-current warnings.
+        // 移除所有非当前警告。
     	auto it = std::remove_if(state.warnings.begin(), state.warnings.end(), [](const auto &w) { return ! w.current; });
     	bool update_warning_ui = false;
         if (it != state.warnings.end()) {
@@ -200,10 +200,9 @@ public:
         return std::make_pair(state.timestamp, update_warning_ui);
     }
 
-    // Make the step invalid.
-    // PrintBase::m_state_mutex should be locked at this point, guarding access to m_state.
-    // In case the step has already been entered or finished, cancel the background
-    // processing by calling the cancel callback.
+    // 使步骤无效。
+    // 此时应锁定PrintBase::m_state_mutex，保护对m_state的访问。
+    // 如果步骤已经进入或完成，通过调用取消回调来取消后台处理。
     template<typename CancelationCallback>
     bool invalidate(StepType step, CancelationCallback cancel) {
         bool invalidated = m_state[step].state != INVALID;
@@ -216,13 +215,13 @@ public:
             PrintStateBase::StateWithWarnings &state = m_state[step];
             state.state = INVALID;
             state.timestamp = ++ g_last_timestamp;
-            // Raise the mutex, so that the following cancel() callback could cancel
-            // the background processing.
-            // Internally the cancel() callback shall unlock the PrintBase::m_status_mutex to let
-            // the working thread proceed.
+            // 提升互斥锁，以便以下cancel()回调可以取消
+            // 后台处理。
+            // 内部地，cancel()回调应解锁PrintBase::m_status_mutex以让
+            // 工作线程继续执行。
             cancel();
-            // Now the worker thread should be stopped, therefore it cannot write into the warnings field.
-            // It is safe to modify it.
+            // 现在工作线程应已停止，因此它无法写入警告字段。
+            // 修改它是安全的。
             state.mark_warnings_non_current();
             m_step_active = -1;
         }
@@ -246,13 +245,13 @@ public:
                 printf("Not held!\n");
             }
 #endif
-            // Raise the mutex, so that the following cancel() callback could cancel
-            // the background processing.
-            // Internally the cancel() callback shall unlock the PrintBase::m_status_mutex to let
-            // the working thread to proceed.
+            // 提升互斥锁，以便以下cancel()回调可以取消
+            // 后台处理。
+            // 内部地，cancel()回调应解锁PrintBase::m_status_mutex以让
+            // 工作线程继续执行。
             cancel();
-            // Now the worker thread should be stopped, therefore it cannot write into the warnings field.
-            // It is safe to modify the warnings.
+            // 现在工作线程应已停止，因此它无法写入警告字段。
+            // 修改警告是安全的。
             for (StepTypeIterator it = step_begin; it != step_end; ++ it)
                 m_state[*it].mark_warnings_non_current();
             m_step_active = -1;
@@ -260,10 +259,9 @@ public:
         return invalidated;
     }
 
-    // Make all steps invalid.
-    // PrintBase::m_state_mutex should be locked at this point, guarding access to m_state.
-    // In case any step has already been entered or finished, cancel the background
-    // processing by calling the cancel callback.
+    // 使所有步骤无效。
+    // 此时应锁定PrintBase::m_state_mutex，保护对m_state的访问。
+    // 如果任何步骤已经进入或完成，通过调用取消回调来取消后台处理。
     template<typename CancelationCallback>
     bool invalidate_all(CancelationCallback cancel) {
         bool invalidated = false;
@@ -277,8 +275,8 @@ public:
         }
         if (invalidated) {
             cancel();
-            // Now the worker thread should be stopped, therefore it cannot write into the warnings field.
-            // It is safe to modify the warnings.
+            // 现在工作线程应已停止，因此它无法写入警告字段。
+            // 修改警告是安全的。
             for (size_t i = 0; i < COUNT; ++ i)
                 m_state[i].mark_warnings_non_current();
             m_step_active = -1;
@@ -286,12 +284,12 @@ public:
         return invalidated;
     }
 
-    // Update list of warnings of the current milestone with a new warning.
-    // The warning may already exist in the list, marked as current or not current.
-    // If it already exists, mark it as current.
-    // Return value:
-    // 		Current milestone (StepType).
-    // 		bool indicates whether the UI has to be updated or not.
+    // 使用当前里程碑的新警告更新警告列表。
+    // 该警告可能已存在于列表中，标记为当前或非当前。
+    // 如果已存在，将其标记为当前。
+    // 返回值：
+    // 		当前里程碑（StepType）。
+    // 		bool 表示UI是否需要更新。
     std::pair<StepType, bool> active_step_add_warning(PrintStateBase::WarningLevel warning_level, const std::string &message, int message_id, std::mutex &mtx)
     {
         std::scoped_lock<std::mutex> lock(mtx);
@@ -299,32 +297,32 @@ public:
         StateWithWarnings &state = m_state[m_step_active];
         assert(state.state == STARTED);
         std::pair<StepType, bool> retval(static_cast<StepType>(m_step_active), true);
-        // Does a warning of the same level and message or message_id exist already?
+        // 是否存在相同级别和消息或message_id的警告？
         auto it = (message_id == 0) ?
             std::find_if(state.warnings.begin(), state.warnings.end(), [&message](const auto &w) { return w.message_id == 0 && w.message == message; }) :
             std::find_if(state.warnings.begin(), state.warnings.end(), [message_id](const auto& w) { return w.message_id == message_id; });
         if (it == state.warnings.end())
-            // No, create a new warning and update UI.
+            // 否，创建新警告并更新UI。
             state.warnings.emplace_back(PrintStateBase::Warning{ warning_level, true, message, message_id });
         else if (it->message != message || it->level != warning_level) {
-            // Yes, however it needs an update.
+            // 是，但需要更新。
             it->message = message;
             it->level 	= warning_level;
             it->current = true;
         } else if (it->current)
-            // Yes, and it is current. Don't update UI.
+            // 是，且是当前的。不更新UI。
             retval.second = false;
         else
-            // Yes, but it is not current. Mark it as current.
+            // 是，但不是当前的。将其标记为当前。
             it->current = true;
         return retval;
     }
 
 private:
     StateWithWarnings   m_state[COUNT];
-    // Active class StepType or -1 if none is active.
-    // If the background processing is canceled, m_step_active may not be resetted
-    // to -1, see the comment in this->set_started().
+    // 活动的StepType类，如果无活动则为-1。
+    // 如果后台处理被取消，m_step_active可能不会重置
+    // 为-1，请参见this->set_started()中的注释。
     int                 m_step_active = -1;
 };
 
@@ -339,12 +337,12 @@ public:
 protected:
     PrintObjectBase(ModelObject *model_object) : m_model_object(model_object) {}
     virtual ~PrintObjectBase() {}
-    // Declared here to allow access from PrintBase through friendship.
+    // 在此声明以允许通过友元关系从PrintBase访问。
 	static std::mutex&                  state_mutex(PrintBase *print);
 	static std::function<void()>        cancel_callback(PrintBase *print);
-	// Notify UI about a new warning of a milestone "step" on this PrintObjectBase.
-	// The UI will be notified by calling a status callback registered on print.
-	// If no status callback is registered, the message is printed to console.
+	// 通知UI关于此PrintObjectBase上里程碑"step"的新警告。
+	// UI将通过调用在print上注册的状态回调来通知。
+	// 如果没有注册状态回调，消息将打印到控制台。
     void status_update_warnings(PrintBase *print, int step, PrintStateBase::WarningLevel warning_level,
         const std::string &message, PrintStateBase::SlicingNotificationType message_id = PrintStateBase::SlicingDefaultNotification);
     void emptylayer_update_msg(PrintBase* print, int type, const std::string& message, bool overwrite);
@@ -352,12 +350,12 @@ protected:
     ModelObject                  *m_model_object;
 };
 
-// Wrapper around the private PrintBase.throw_if_canceled(), so that a cancellation object could be passed
-// to a non-friend of PrintBase by a PrintBase derived object.
+// 围绕私有PrintBase.throw_if_canceled()的包装器，以便取消对象可以由
+// PrintBase派生对象传递给PrintBase的非友元。
 class PrintTryCancel
 {
 public:
-    // calls print.throw_if_canceled().
+    // 调用 print.throw_if_canceled()。
     void operator()();
 private:
     friend PrintBase;
@@ -367,14 +365,13 @@ private:
 };
 
 /**
- * @brief Printing involves slicing and export of device dependent instructions.
+ * @brief 打印涉及切片和导出设备相关指令。
  *
- * Every technology has a potentially different set of requirements for
- * slicing, support structures and output print instructions. The pipeline
- * however remains roughly the same:
- *      slice -> convert to instructions -> send to printer
+ * 每种技术对于切片、支撑结构和输出打印指令都可能有不同的要求。
+ * 然而，处理流程大致相同：
+ *      切片 -> 转换为指令 -> 发送到打印机
  *
- * The PrintBase class will abstract this flow for different technologies.
+ * PrintBase类将为不同的技术抽象此流程。
  *
  */
 class PrintBase : public ObjectBase
@@ -385,25 +382,24 @@ public:
 
     virtual PrinterTechnology technology() const noexcept = 0;
 
-    // Reset the print status including the copy of the Model / ModelObject hierarchy.
+    // 重置打印状态，包括Model/ModelObject层次结构的副本。
     virtual void            clear() = 0;
-    // The Print is empty either after clear() or after apply() over an empty model,
-    // or after apply() over a model, where no object is printable (all outside the print volume).
+    // 打印在clear()后、对空模型应用apply()后、或对没有可打印对象的模型应用apply()后（所有对象都在打印体积之外）为空。
     virtual bool            empty() const = 0;
-    // List of existing PrintObject IDs, to remove notifications for non-existent IDs.
+    // 现有PrintObject ID的列表，用于移除不存在的ID的通知。
     virtual std::vector<ObjectID> print_object_ids() const = 0;
 
-    // Validate the print, return empty string if valid, return error if process() cannot (or should not) be started.
+    // 验证打印，如果有效则返回空字符串，如果process()无法（或不应该）启动则返回错误。
     //BBS: add more paremeters to validate
     virtual StringObjectException validate(StringObjectException *warning = nullptr, Polygons* collison_polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr) const { return {}; }
 
     enum ApplyStatus {
-        // No change after the Print::apply() call.
+        // 在Print::apply()调用后无变化。
         APPLY_STATUS_UNCHANGED,
-        // Some of the Print / PrintObject / PrintObjectInstance data was changed,
-        // but no result was invalidated (only data influencing not yet calculated results were changed).
+        // 一些Print/PrintObject/PrintObjectInstance数据被更改，
+        // 但没有结果被失效（仅影响尚未计算的结果的数据被更改）。
         APPLY_STATUS_CHANGED,
-        // Some data was changed, which in turn invalidated already calculated steps.
+        // 一些数据被更改，这反过来使得已计算的步骤失效。
         APPLY_STATUS_INVALIDATED,
     };
     virtual ApplyStatus     apply(const Model &model, DynamicPrintConfig config) = 0;
@@ -411,23 +407,23 @@ public:
 
     struct TaskParams {
 		TaskParams() : single_model_object(0), single_model_instance_only(false), to_object_step(-1), to_print_step(-1) {}
-        // If non-empty, limit the processing to this ModelObject.
+        // 如果非空，将处理限制为此ModelObject。
         ObjectID                single_model_object;
 		// If set, only process single_model_object. Otherwise process everything, but single_model_object first.
 		bool					single_model_instance_only;
-        // If non-negative, stop processing at the successive object step.
+        // 如果非负，在后续对象步骤处停止处理。
         int                     to_object_step;
-        // If non-negative, stop processing at the successive print step.
+        // 如果非负，在后续打印步骤处停止处理。
         int                     to_print_step;
     };
-    // After calling the apply() function, call set_task() to limit the task to be processed by process().
+    // 在调用apply()函数后，调用set_task()来限制由process()处理的任务。
     virtual void            set_task(const TaskParams &params) {}
-    // Perform the calculation. This is the only method that is to be called at a worker thread.
+    // 执行计算。这是唯一在工作线程上调用的方法。
     virtual void            process(long long *time_cost_with_cache = nullptr, bool use_cache = false) = 0;
     virtual int             export_cached_data(const std::string& dir_path, bool with_space=false) { return 0;}
     virtual int            load_cached_data(const std::string& directory) { return 0;}
-    // Clean up after process() finished, either with success, error or if canceled.
-    // The adjustments on the Print / PrintObject data due to set_task() are to be reverted here.
+    // 在process()完成后清理，无论是成功、出错还是被取消。
+    // 由于set_task()对Print/PrintObject数据的调整将在此处恢复。
     virtual void            finalize() {}
 
     struct SlicingStatus {
@@ -448,45 +444,45 @@ public:
         }
         int             percent { -1 };
         std::string     text;
-        // Bitmap of flags.
+        // 标志位图。
         enum FlagBits {
             DEFAULT                             = 0,
             RELOAD_SCENE                        = 1 << 1,
             RELOAD_SLA_SUPPORT_POINTS           = 1 << 2,
             RELOAD_SLA_PREVIEW                  = 1 << 3,
-            // UPDATE_PRINT_STEP_WARNINGS is mutually exclusive with UPDATE_PRINT_OBJECT_STEP_WARNINGS.
+            // UPDATE_PRINT_STEP_WARNINGS 与 UPDATE_PRINT_OBJECT_STEP_WARNINGS 互斥。
             UPDATE_PRINT_STEP_WARNINGS          = 1 << 4,
             UPDATE_PRINT_OBJECT_STEP_WARNINGS   = 1 << 5
         };
-        // Bitmap of FlagBits
+        // FlagBits 的位图
         unsigned int    flags;
-        // set to an ObjectID of a Print or a PrintObject based on flags
-        // (whether UPDATE_PRINT_STEP_WARNINGS or UPDATE_PRINT_OBJECT_STEP_WARNINGS is set).
+        // 根据标志设置为Print或PrintObject的ObjectID
+        // （是设置了UPDATE_PRINT_STEP_WARNINGS还是UPDATE_PRINT_OBJECT_STEP_WARNINGS）。
         ObjectID        warning_object_id;
-        // For which Print or PrintObject step a new warning is being issued?
+        // 正在为哪个Print或PrintObject步骤发布新警告？
         int             warning_step { -1 };
 
         PrintStateBase::SlicingNotificationType  message_type {PrintStateBase::SlicingDefaultNotification};
         PrintStateBase::WarningLevel  warning_level {PrintStateBase::WarningLevel::NON_CRITICAL};
     };
     typedef std::function<void(const SlicingStatus&)>  status_callback_type;
-    // Default status console print out in the form of percent => message.
+    // 默认状态控制台输出，格式为百分比 => 消息。
     void                    set_status_default() { m_status_callback = nullptr; }
-    // No status output or callback whatsoever, useful mostly for automatic tests.
+    // 没有任何状态输出或回调，主要用于自动测试。
     void                    set_status_silent() { m_status_callback = [](const SlicingStatus&){}; }
-    // Register a custom status callback.
+    // 注册自定义状态回调。
     void                    set_status_callback(status_callback_type cb) { m_status_callback = cb; }
-    // Calls a registered callback to update the status, or print out the default message.
+    // 调用注册的回调来更新状态，或打印默认消息。
     void                    set_status(int percent, const std::string &message, unsigned int flags = SlicingStatus::DEFAULT, int warning_step = -1) const;
 
     typedef std::function<void()>  cancel_callback_type;
-    // Various methods will call this callback to stop the background processing (the Print::process() call)
-    // in case a successive change of the Print / PrintObject / PrintRegion instances changed
-    // the state of the finished or running calculations.
+    // 各种方法将调用此回调来停止后台处理（Print::process()调用）
+    // 如果Print/PrintObject/PrintRegion实例的连续更改改变了
+    // 已完成或正在运行的计算的状态。
     void                       set_cancel_callback(cancel_callback_type cancel_callback) { m_cancel_callback = cancel_callback; }
     // Has the calculation been canceled?
 	enum CancelStatus {
-		// No cancelation, background processing should run.
+		// 未取消，后台处理应运行。
 		NOT_CANCELED = 0,
 		// Canceled by user from the user interface (user pressed the "Cancel" button or user closed the application).
 		CANCELED_BY_USER = 1,
@@ -508,8 +504,8 @@ public:
     const DynamicPrintConfig&  full_print_config() const { return m_full_print_config; }
 
     virtual std::string        output_filename(const std::string &filename_base = std::string()) const = 0;
-    // If the filename_base is set, it is used as the input for the template processing. In that case the path is expected to be the directory (may be empty).
-    // If filename_set is empty, than the path may be a file or directory. If it is a file, then the macro will not be processed.
+    // 如果设置了filename_base，它将被用作模板处理的输入。在这种情况下，路径应为目录（可能为空）。
+    // 如果filename_set为空，则路径可以是文件或目录。如果是文件，则宏将不会被处理。
     std::string                output_filepath(const std::string &path, const std::string &filename_base = std::string()) const;
 
     //BBS: get/set plate id
@@ -528,24 +524,24 @@ protected:
     std::mutex&            state_mutex() const { return m_state_mutex; }
     std::function<void()>  cancel_callback() { return m_cancel_callback; }
 	void				   call_cancel_callback() { m_cancel_callback(); }
-	// Notify UI about a new warning of a milestone "step" on this PrintBase.
-	// The UI will be notified by calling a status callback.
-	// If no status callback is registered, the message is printed to console.
+	// 通知UI关于此PrintBase上里程碑"step"的新警告。
+	// UI将通过调用状态回调来通知。
+	// 如果没有注册状态回调，消息将打印到控制台。
     void 				   status_update_warnings(int step, PrintStateBase::WarningLevel warning_level,
         const std::string &message, const PrintObjectBase* print_object = nullptr, PrintStateBase::SlicingNotificationType message_id = PrintStateBase::SlicingDefaultNotification);
     //BBS: add api to update printobject's warnings
 	void                   status_update_warnings(int step, PrintStateBase::WarningLevel warning_level,
 	    const std::string& message, PrintObjectBase &object, PrintStateBase::SlicingNotificationType message_id = PrintStateBase::SlicingDefaultNotification);
 
-    // If the background processing stop was requested, throw CanceledException.
-    // To be called by the worker thread and its sub-threads (mostly launched on the TBB thread pool) regularly.
+    // 如果请求停止后台处理，则抛出CanceledException。
+    // 由工作线程及其子线程（主要在TBB线程池上启动）定期调用。
     void                   throw_if_canceled() const { if (m_cancel_status.load(std::memory_order_acquire)) throw CanceledException(); }
-    // Wrapper around this->throw_if_canceled(), so that throw_if_canceled() may be passed to a function without making throw_if_canceled() public.
+    // 围绕this->throw_if_canceled()的包装器，以便throw_if_canceled()可以传递给函数而无需公开throw_if_canceled()。
     PrintTryCancel         make_try_cancel() const { return PrintTryCancel(this); }
 
-    // To be called by this->output_filename() with the format string pulled from the configuration layer.
+    // 由this->output_filename()调用，格式字符串从配置层提取。
     std::string            output_filename(const std::string &format, const std::string &default_ext, const std::string &filename_base, const DynamicConfig *config_override = nullptr) const;
-    // Update "scale", "input_filename", "input_filename_base" placeholders from the current printable ModelObjects.
+    // 从当前可打印的ModelObjects更新"scale"、"input_filename"、"input_filename_base"占位符。
     void                   update_object_placeholders(DynamicConfig &config, const std::string &default_ext) const;
 
 	Model                                   m_model;
@@ -559,18 +555,17 @@ protected:
     // SoftFever: current plate name
     std::string m_plate_name;
 
-    // Callback to be evoked regularly to update state of the UI thread.
+    // 定期触发的回调，用于更新UI线程的状态。
     status_callback_type                    m_status_callback;
 
 private:
     std::atomic<CancelStatus>               m_cancel_status;
 
-    // Callback to be evoked to stop the background processing before a state is updated.
+    // 触发的回调，用于在状态更新前停止后台处理。
     cancel_callback_type                    m_cancel_callback = [](){};
 
-    // Mutex used for synchronization of the worker thread with the UI thread:
-    // The mutex will be used to guard the worker thread against entering a stage
-    // while the data influencing the stage is modified.
+    // 用于工作线程与UI线程同步的互斥锁：
+    // 互斥锁将用于保护工作线程，防止在影响阶段的数据被修改时进入该阶段。
     mutable std::mutex                      m_state_mutex;
 
     friend PrintTryCancel;
@@ -583,14 +578,14 @@ public:
     bool            is_step_done(PrintStepEnum step) const { return m_state.is_done(step, this->state_mutex()); }
 	PrintStateBase::StateWithTimeStamp step_state_with_timestamp(PrintStepEnum step) const { return m_state.state_with_timestamp(step, this->state_mutex()); }
     PrintStateBase::StateWithWarnings  step_state_with_warnings(PrintStepEnum step) const { return m_state.state_with_warnings(step, this->state_mutex()); }
-    // Add a slicing warning to the active Print step and send a status notification.
-    // This method could be called multiple times between this->set_started() and this->set_done().
+    // 向活动Print步骤添加切片警告并发送状态通知。
+    // 此方法可在this->set_started()和this->set_done()之间多次调用。
     void            active_step_add_warning(PrintStateBase::WarningLevel warning_level, const std::string &message,
                             PrintStateBase::SlicingNotificationType message_id = PrintStateBase::SlicingDefaultNotification)
     {
         std::pair<PrintStepEnum, bool> active_step = m_state.active_step_add_warning(warning_level, message, (int)message_id, this->state_mutex());
         if (active_step.second)
-            // Update UI.
+            // 更新UI。
             this->status_update_warnings(static_cast<int>(active_step.first), warning_level, message, nullptr, message_id);
     }
 protected:
@@ -658,8 +653,8 @@ protected:
     bool            is_step_started_unguarded(PrintObjectStepEnum step) const { return m_state.is_started_unguarded(step); }
     bool            is_step_done_unguarded(PrintObjectStepEnum step) const { return m_state.is_done_unguarded(step); }
 
-    // Add a slicing warning to the active PrintObject step and send a status notification.
-    // This method could be called multiple times between this->set_started() and this->set_done().
+    // 向活动PrintObject步骤添加切片警告并发送状态通知。
+    // 此方法可在this->set_started()和this->set_done()之间多次调用。
     void            active_step_add_warning(PrintStateBase::WarningLevel warning_level, const std::string &message,
                         PrintStateBase::SlicingNotificationType message_id = PrintStateBase::SlicingDefaultNotification) {
     	std::pair<PrintObjectStepEnum, bool> active_step = m_state.active_step_add_warning(warning_level, message,(int) message_id, PrintObjectBase::state_mutex(m_print));
@@ -668,8 +663,8 @@ protected:
     }
 
 protected:
-    // If the background processing stop was requested, throw CanceledException.
-    // To be called by the worker thread and its sub-threads (mostly launched on the TBB thread pool) regularly.
+    // 如果请求停止后台处理，则抛出CanceledException。
+    // 由工作线程及其子线程（主要在TBB线程池上启动）定期调用。
     void            throw_if_canceled() { if (m_print->canceled()) throw CanceledException(); }
 
     friend PrintType;

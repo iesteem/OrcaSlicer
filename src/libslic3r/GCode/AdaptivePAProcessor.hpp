@@ -1,7 +1,7 @@
 // AdaptivePAProcessor.hpp
 // Snapmaker_Orca
 //
-// Header file for the AdaptivePAProcessor class, responsible for processing G-code layers for the purposes of applying adaptive pressure advance.
+// AdaptivePAProcessor类的头文件，负责处理G-code层以应用自适应压力提前。
 
 #ifndef ADAPTIVEPAPROCESSOR_H
 #define ADAPTIVEPAPROCESSOR_H
@@ -16,66 +16,68 @@
 
 namespace Slic3r {
 
-// Forward declaration of GCode class
+// GCode类的前向声明
 class GCode;
 
 /**
- * @brief Class for processing G-code layers with adaptive pressure advance.
+ * @brief 用于处理带有自适应压力提前的G-code层的类。
  */
 class AdaptivePAProcessor {
 public:
     /**
-     * @brief Constructor for AdaptivePAProcessor.
+     * @brief AdaptivePAProcessor的构造函数。
      *
-     * This constructor initializes the AdaptivePAProcessor with a reference to a GCode object.
-     * It also initializes the configuration reference, pressure advance interpolation object,
-     * and regular expression patterns used for processing the G-code.
+     * 此构造函数使用GCode对象的引用初始化AdaptivePAProcessor。
+     * 它还初始化配置引用、压力提前插值对象
+     * 以及用于处理G-code的正则表达式模式。
      *
-     * @param gcodegen A reference to the GCode object that generates the G-code.
+     * @param gcodegen 生成G-code的GCode对象引用。
      */
     AdaptivePAProcessor(GCode &gcodegen, const std::vector<unsigned int> &tools_used);
-    
+
     /**
-     * @brief Processes a layer of G-code and applies adaptive pressure advance.
+     * @brief 处理一层G-code并应用自适应压力提前。
      *
-     * This method processes the G-code for a single layer, identifying the appropriate
-     * pressure advance settings and applying them based on the current state and configurations.
+     * 此方法处理单层的G-code，识别适当的
+     * 压力提前设置并基于当前状态和配置应用它们。
      *
-     * @param gcode A string containing the G-code for the layer.
-     * @return A string containing the processed G-code with adaptive pressure advance applied.
+     * @param gcode 包含该层G-code的字符串。
+     * @return 包含已应用自适应压力提前的处理后G-code的字符串。
      */
     std::string process_layer(std::string &&gcode);
-    
+
     /**
-     * @brief Manually sets adaptive PA internal value.
+     * @brief 手动设置自适应PA内部值。
      *
-     * This method manually sets the adaptive PA internally held value.
-     * Call this when changing tools or in any other case where the internally assumed last PA value may be incorrect
+     * 此方法手动设置自适应PA内部持有的值。
+     * 在更换工具或任何其他内部假设的上次PA值可能不正确的
+     * 情况下调用此方法。
      */
     void resetPreviousPA(double PA){ m_last_predicted_pa = PA; };
-    
-private:
-    GCode &m_gcodegen; ///< Reference to the GCode object.
-    std::unordered_map<unsigned int, std::unique_ptr<AdaptivePAInterpolator>> m_AdaptivePAInterpolators; ///< Map between Interpolator objects and tool ID's
-    const PrintConfig &m_config; ///< Reference to the print configuration.
-    double m_last_predicted_pa; ///< Last predicted pressure advance value.
-    double m_max_next_feedrate; ///< Maximum feed rate (speed) for the upcomming island. If no speed is found, the previous island speed is used.
-    double m_next_feedrate; ///< First feed rate (speed) for the upcomming island.
-    double m_current_feedrate; ///< Current, latest feedrate.
-    int m_last_extruder_id; ///< Last used extruder ID.
 
-    std::regex m_pa_change_pattern; ///< Regular expression to detect PA_CHANGE pattern.
-    std::regex m_g1_f_pattern; ///< Regular expression to detect G1 F pattern.
-    std::smatch m_match; ///< Match results for regular expressions.
+private:
+    GCode &m_gcodegen; ///< GCode对象的引用。
+    std::unordered_map<unsigned int, std::unique_ptr<AdaptivePAInterpolator>> m_AdaptivePAInterpolators; ///< 插值器对象与工具ID之间的映射
+    const PrintConfig &m_config; ///< 打印配置的引用。
+    double m_last_predicted_pa; ///< 上次预测的压力提前值。
+    double m_max_next_feedrate; ///< 即将到来岛的最大进给率(速度)。如果未找到速度，则使用上一个岛的速度。
+    double m_next_feedrate; ///< 即将到来岛的第一个进给率(速度)。
+    double m_current_feedrate; ///< 当前的最近进给率。
+    int m_last_extruder_id; ///< 上次使用的挤出机ID。
+
+    std::regex m_pa_change_pattern; ///< 检测PA_CHANGE模式的正则表达式。
+    std::regex m_g1_f_pattern; ///< 检测G1 F模式的正则表达式。
+    std::smatch m_match; ///< 正则表达式的匹配结果。
 
     /**
-     * @brief Get the PA interpolator attached to the specified tool ID.
+     * @brief 获取附加到指定工具ID的PA插值器。
      *
-     * This method manually sets the adaptive PA internally held value.
-     * Call this when changing tools or in any other case where the internally assumed last PA value may be incorrect
+     * 此方法手动设置自适应PA内部持有的值。
+     * 在更换工具或任何其他内部假设的上次PA值可能不正确的
+     * 情况下调用此方法。
      *
-     * @param An integer with the tool ID for which the PA interpolation model is to be returned.
-     * @return The Adaptive PA Interpolator object corresponding to that tool.
+     * @param 要返回其PA插值模型的工具ID的整数。
+     * @return 对应于该工具的Adaptive PA Interpolator对象。
      */
     AdaptivePAInterpolator* getInterpolator(unsigned int tool_id);
 };

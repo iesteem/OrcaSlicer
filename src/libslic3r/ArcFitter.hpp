@@ -1,11 +1,11 @@
-#ifndef slic3r_ArcFitter_hpp_
+﻿#ifndef slic3r_ArcFitter_hpp_
 #define slic3r_ArcFitter_hpp_
 
 #include "Circle.hpp"
 
 namespace Slic3r {
 
-//BBS: linear move(G0 and G1) or arc move(G2 and G3).
+//BBS: 直线移动(G0 和 G1)或圆弧移动(G2 和 G3)。
 enum class EMovePathType : unsigned char
 {
     Noop_move,
@@ -40,9 +40,9 @@ struct PathFittingData{
 
 class ArcFitter {
 public:
-    //BBS: this function is used to check the point list and return which part can fit as arc, which part should be line
+    //BBS: 此函数用于检查点列表并返回哪些部分可以拟合为圆弧，哪些部分应为直线
     static void do_arc_fitting(const Points& points, std::vector<PathFittingData> &result, double tolerance);
-    //BBS: this function is used to check the point list and return which part can fit as arc, which part should be line.
+    //BBS: 此函数用于检查点列表并返回哪些部分可以拟合为圆弧，哪些部分应为直线.
     //By the way, it also use DP simplify to reduce point of straight part and only keep the start and end point of arc.
     static void do_arc_fitting_and_simplify(Points& points, std::vector<PathFittingData>& result, double tolerance);
 };

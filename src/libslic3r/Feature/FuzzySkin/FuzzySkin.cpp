@@ -20,10 +20,10 @@ using namespace Slic3r;
 
 namespace Slic3r::Feature::FuzzySkin {
 
-// Produces a random value between 0 and 1. Thread-safe.
+//// 生成一个介于 0 和 1 之间的随机值。线程安全。
 static double random_value() {
     thread_local std::random_device rd;
-    // Hash thread ID for random number seed if no hardware rng seed is available
+    //// 如果没有硬件随机数种子可用，则使用线程 ID 的哈希值作为随机数种子
     thread_local std::mt19937 gen(rd.entropy() > 0 ? rd() : std::hash<std::thread::id>()(std::this_thread::get_id()));
     thread_local std::uniform_real_distribution<double> dist(0.0, 1.0);
     return dist(gen);
@@ -65,26 +65,26 @@ static std::unique_ptr<noise::module::Module> get_noise_module(const FuzzySkinCo
     }
 }
 
-// Thanks Cura developers for this function.
+//// 感谢 Cura 开发者的此函数。
 void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkinConfig& cfg)
 {
     std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg);
 
-    const double min_dist_between_points = cfg.point_distance * 3. / 4.; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
+    const double min_dist_between_points = cfg.point_distance * 3. / 4.; // 硬编码：点距离可在 3/4 到 5/4 的输入值之间变化
     const double range_random_point_dist = cfg.point_distance / 2.;
-    double dist_left_over = random_value() * (min_dist_between_points / 2.); // the distance to be traversed on the line before making the first new point
+    double dist_left_over = random_value() * (min_dist_between_points / 2.); // 在生成第一个新点之前需在线上移动的距离
     Point* p0 = &poly.back();
     Points out;
     out.reserve(poly.size());
     for (Point &p1 : poly)
     {
         if (!closed) {
-            // Skip the first point for open path
+            //// 对于开放路径，跳过第一个点
             closed = true;
             p0 = &p1;
             continue;
         }
-        // 'a' is the (next) new point between p0 and p1
+        //// 'a' 是 p0 和 p1 之间的（下一个）新点
         Vec2d  p0p1      = (p1 - *p0).cast<double>();
         double p0p1_size = p0p1.norm();
         double p0pa_dist = dist_left_over;
@@ -109,42 +109,42 @@ void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkin
         poly = std::move(out);
 }
 
-// Thanks Cura developers for this function.
+//// 感谢 Cura 开发者的此函数。
 void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, const FuzzySkinConfig& cfg)
 {
     std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg);
 
-    const double min_dist_between_points = cfg.point_distance * 3. / 4.; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
+    const double min_dist_between_points = cfg.point_distance * 3. / 4.; // 硬编码：点距离可在 3/4 到 5/4 的输入值之间变化
     const double range_random_point_dist = cfg.point_distance / 2.;
-    const double min_extrusion_width = 0.01; // workaround for many print options. Need overwrite formula with the layer height parameter. The width must more than >>> layer_height * (1 - 0.25 * PI) * 1.05 <<< (last num is the coeff of overlay error case)
-    double dist_left_over = random_value() * (min_dist_between_points / 2.); // the distance to be traversed on the line before making the first new point
+    const double min_extrusion_width = 0.01; // 许多打印选项的解决方法。需要使用层高参数重写公式。宽度必须大于 >>> layer_height * (1 - 0.25 * PI) * 1.05 <<<（最后一个数字是重叠误差情况的系数）
+    double dist_left_over = random_value() * (min_dist_between_points / 2.); // 在生成第一个新点之前需在线上移动的距离
 
     auto* p0 = &ext_lines.front();
     Arachne::ExtrusionJunctions out;
     out.reserve(ext_lines.size());
     for (auto& p1 : ext_lines) {
-        if (p0->p == p1.p) { // Connect endpoints.
+        if (p0->p == p1.p) { // 连接端点。
             out.emplace_back(p1.p, p1.w, p1.perimeter_index);
             continue;
         }
 
-        // 'a' is the (next) new point between p0 and p1
+        //// 'a' 是 p0 和 p1 之间的（下一个）新点
         Vec2d  p0p1 = (p1.p - p0->p).cast<double>();
         double p0p1_size = p0p1.norm();
         double p0pa_dist = dist_left_over;
         for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + random_value() * range_random_point_dist) {
             Point pa = p0->p + (p0p1 * (p0pa_dist / p0p1_size)).cast<coord_t>();
             double r = noise->GetValue(unscale_(pa.x()), unscale_(pa.y()), slice_z) * cfg.thickness;
-            switch (cfg.mode) { //the curly code for testing
+            switch (cfg.mode) { //用于测试的卷曲代码
                 case FuzzySkinMode::Displacement :
                     out.emplace_back(pa + (perp(p0p1).cast<double>().normalized() * r).cast<coord_t>(), p1.w, p1.perimeter_index);
                     break;
                 case FuzzySkinMode::Extrusion :
-                    out.emplace_back(pa, std::max(p1.w + r + min_extrusion_width,  min_extrusion_width), p1.perimeter_index); 
+                    out.emplace_back(pa, std::max(p1.w + r + min_extrusion_width,  min_extrusion_width), p1.perimeter_index);
                     break;
                 case FuzzySkinMode::Combined :
                     double rad = std::max(p1.w + r + min_extrusion_width,  min_extrusion_width);
-                    out.emplace_back(pa + (perp(p0p1).cast<double>().normalized() * ((rad  - p1.w) / 2)).cast<coord_t>(), rad, p1.perimeter_index); //0.05 - minimum width of extruded line
+                    out.emplace_back(pa + (perp(p0p1).cast<double>().normalized() * ((rad  - p1.w) / 2)).cast<coord_t>(), rad, p1.perimeter_index); //0.05 - 挤出线的最小宽度
                     break;
             }
         }
@@ -160,7 +160,7 @@ void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice
         --point_idx;
     }
 
-    if (ext_lines.back().p == ext_lines.front().p) { // Connect endpoints.
+    if (ext_lines.back().p == ext_lines.front().p) { // 连接端点。
         out.front().p = out.back().p;
         out.front().w = out.back().w;
     }
@@ -200,7 +200,7 @@ void group_region_by_fuzzify(PerimeterGenerator& g)
         }
     }
 
-    if (regions.size() == 1) { // optimization
+    if (regions.size() == 1) { // 优化
         g.regions_by_fuzzify[regions.begin()->first] = {};
         return;
     }
@@ -218,7 +218,7 @@ bool should_fuzzify(const FuzzySkinConfig& config, const int layer_id, const siz
         return false;
     }
     if (!config.fuzzy_first_layer && layer_id <= 0) {
-        // Do not fuzzy first layer unless told to
+        //// 除非指定，否则不要模糊第一层
         return false;
     }
 
@@ -234,7 +234,7 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
 
     const auto  slice_z = perimeter_generator.slice_z;
     const auto& regions = perimeter_generator.regions_by_fuzzify;
-    if (regions.size() == 1) { // optimization
+    if (regions.size() == 1) { // 优化
         const auto& config  = regions.begin()->first;
         const bool  fuzzify = should_fuzzify(config, perimeter_generator.layer_id, loop_idx, is_contour);
         if (!fuzzify) {
@@ -246,7 +246,7 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
         return fuzzified;
     }
 
-    // Find all affective regions
+    //// 查找所有受影响的 regions
     std::vector<std::pair<const FuzzySkinConfig&, const ExPolygons&>> fuzzified_regions;
     fuzzified_regions.reserve(regions.size());
     for (const auto& region : regions) {
@@ -278,18 +278,18 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
     }
 #endif
 
-    // Split the loops into lines with different config, and fuzzy them separately
+    //// 将循环分割为具有不同配置的线段，并分别进行模糊处理
     fuzzified = polygon;
     for (const auto& r : fuzzified_regions) {
         const auto splitted = Algorithm::split_line(fuzzified, r.second, true);
         if (splitted.empty()) {
-            // No intersection, skip
+            //// 无相交，跳过
             continue;
         }
 
-        // Fuzzy splitted polygon
+        //// 模糊分割后的多边形
         if (std::all_of(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; })) {
-            // The entire polygon is fuzzified
+            //// 整个多边形被模糊处理
             fuzzy_polyline(fuzzified.points, true, slice_z, r.first);
         } else {
             Points segment;
@@ -318,7 +318,7 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
                 }
             }
             if (!segment.empty()) {
-                // Close the loop
+                //// 闭合循环
                 segment.push_back(splitted.front().p);
                 fuzzy_current_segment();
             }
@@ -332,13 +332,13 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
 {
     const auto  slice_z = perimeter_generator.slice_z;
     const auto& regions = perimeter_generator.regions_by_fuzzify;
-    if (regions.size() == 1) { // optimization
+    if (regions.size() == 1) { // 优化
         const auto& config  = regions.begin()->first;
         const bool  fuzzify = should_fuzzify(config, perimeter_generator.layer_id, extrusion->inset_idx, is_contour);
         if (fuzzify)
             fuzzy_extrusion_line(extrusion->junctions, slice_z, config);
     } else {
-        // Find all affective regions
+        //// 查找所有受影响的 regions
         std::vector<std::pair<const FuzzySkinConfig&, const ExPolygons&>> fuzzified_regions;
         fuzzified_regions.reserve(regions.size());
         for (const auto& region : regions) {
@@ -347,17 +347,17 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
             }
         }
         if (!fuzzified_regions.empty()) {
-            // Split the loops into lines with different config, and fuzzy them separately
+            //// 将循环分割为具有不同配置的线段，并分别进行模糊处理
             for (const auto& r : fuzzified_regions) {
                 const auto splitted = Algorithm::split_line(*extrusion, r.second, false);
                 if (splitted.empty()) {
-                    // No intersection, skip
+                    //// 无相交，跳过
                     continue;
                 }
 
-                // Fuzzy splitted extrusion
+                //// 模糊分割后的挤出
                 if (std::all_of(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; })) {
-                    // The entire polygon is fuzzified
+                    //// 整个多边形被模糊处理
                     fuzzy_extrusion_line(extrusion->junctions, slice_z, r.first);
                 } else {
                     const auto                              current_ext = extrusion->junctions;

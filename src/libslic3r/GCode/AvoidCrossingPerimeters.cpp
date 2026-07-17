@@ -18,21 +18,21 @@ namespace Slic3r {
 struct TravelPoint
 {
     Point point;
-    // Index of the polygon containing this point. A negative value indicates that the point is not on any border.
+    // 包含此点的多边形索引。负值表示该点不在任何边界上。
     int   border_idx;
-    // simplify_travel() doesn't remove this point.
+    // simplify_travel()不移除此点。
     bool do_not_remove = false;
 };
 
 struct Intersection
 {
-    // Index of the polygon containing this point of intersection.
+    // 包含此交点的多边形索引。
     size_t border_idx;
-    // Index of the line on the polygon containing this point of intersection.
+    // 包含此交点的多边形上线段的索引。
     size_t line_idx;
-    // Point of intersection.
+    // 交点。
     Point  point;
-    // Distance from the first point in the corresponding boundary
+    // 距对应边界中第一个点的距离
     float  distance;
     // simplify_travel() doesn't remove this point.
     bool do_not_remove = false;
@@ -40,15 +40,15 @@ struct Intersection
 
 struct ClosestLine
 {
-    // Index of the polygon containing this line.
+    // 包含此线的多边形索引。
     size_t border_idx;
-    // Index of this line on the polygon containing it.
+    // 包含此线的多边形上的线段索引。
     size_t line_idx;
-    // Closest point on the line.
+    // 线上最近的点。
     Point  point;
 };
 
-// Finding all intersections of a set of contours with a line segment.
+// 查找一组轮廓与线段的所有交点。
 struct AllIntersectionsVisitor
 {
     AllIntersectionsVisitor(const EdgeGrid::Grid &grid, std::vector<Intersection> &intersections) : grid(grid), intersections(intersections)
@@ -88,7 +88,7 @@ struct AllIntersectionsVisitor
     std::unordered_set<std::pair<size_t, size_t>, boost::hash<std::pair<size_t, size_t>>> intersection_set;
 };
 
-// Visitor to check for any collision of a line segment with any contour stored inside the edge_grid.
+// 访问者，用于检查线段与存储在edge_grid中的任何轮廓的碰撞。
 struct FirstIntersectionVisitor
 {
     explicit FirstIntersectionVisitor(const EdgeGrid::Grid &grid) : grid(grid) {}
@@ -118,7 +118,7 @@ struct FirstIntersectionVisitor
     bool                  intersect  = false;
 };
 
-// Visitor to create a list of closet lines to a defined point.
+// 访问者，用于创建到指定点的最近线段列表。
 struct MinDistanceVisitor
 {
     explicit MinDistanceVisitor(const EdgeGrid::Grid &grid, const Point &center, double max_distance_squared)
@@ -156,7 +156,7 @@ struct MinDistanceVisitor
     double                                                                                max_distance_squared = std::numeric_limits<double>::max();
 };
 
-// Returns sorted list of closest lines to a passed point within a passed radius
+// 返回指定半径内到指定点的最近线段的排序列表
 static std::vector<ClosestLine> get_closest_lines_in_radius(const EdgeGrid::Grid &grid, const Point &center, float search_radius)
 {
     Point              radius_vector(search_radius, search_radius);
@@ -169,8 +169,8 @@ static std::vector<ClosestLine> get_closest_lines_in_radius(const EdgeGrid::Grid
     return visitor.closest_lines;
 }
 
-// When the offset is too big, then original travel doesn't have to cross created boundaries.
-// For these cases, this function adds another intersection with lines around the start and the end point of the original travel.
+// 当偏移太大时，原始移动不必穿过创建的边界。
+// 对于这些情况，此函数在原始移动的起点和终点周围添加与线的另一个交点。
 static std::vector<Intersection> extend_for_closest_lines(const std::vector<Intersection>         &intersections,
                                                           const AvoidCrossingPerimeters::Boundary &boundary,
                                                           const Point                             &start,
@@ -294,7 +294,7 @@ static std::vector<Intersection> extend_for_closest_lines(const std::vector<Inte
     return new_intersections;
 }
 
-// point_idx is the index from which is different vertex is searched.
+// point_idx是从其开始搜索不同顶点的索引。
 template<bool forward>
 static Point find_first_different_vertex(const Polygon &polygon, const size_t point_idx, const Point &point)
 {
@@ -320,7 +320,7 @@ static Vec2d three_points_inward_normal(const Point &left, const Point &middle, 
     return (perp(Point(middle - left)).cast<double>().normalized() + perp(Point(right - middle)).cast<double>().normalized()).normalized();
 }
 
-// Compute normal of the polygon's vertex in an inward direction
+// 计算多边形顶点的内向法线
 static Vec2d get_polygon_vertex_inward_normal(const Polygon &polygon, const size_t point_idx)
 {
     const size_t left_idx  = prev_idx_modulo(point_idx, polygon.points);
@@ -331,13 +331,13 @@ static Vec2d get_polygon_vertex_inward_normal(const Polygon &polygon, const size
     return three_points_inward_normal(left, middle, right);
 }
 
-// Compute offset of point_idx of the polygon in a direction of inward normal
+// 计算多边形point_idx沿内向法线方向的偏移
 static Point get_polygon_vertex_offset(const Polygon &polygon, const size_t point_idx, const int offset)
 {
     return polygon.points[point_idx] + (get_polygon_vertex_inward_normal(polygon, point_idx) * double(offset)).cast<coord_t>();
 }
 
-// Compute offset (in the direction of inward normal) of the point(passed on "middle") based on the nearest points laying on the polygon (left_idx and right_idx).
+// 基于多边形上最近的点（left_idx和right_idx）计算点（传入"middle"）的（内向法线方向）偏移。
 static Point get_middle_point_offset(const Polygon &polygon, const size_t left_idx, const size_t right_idx, const Point &middle, const coord_t offset)
 {
     const Point &left  = find_first_different_vertex<false>(polygon, left_idx, middle);
@@ -385,9 +385,9 @@ static void export_travel_to_svg(const Polygons                  &boundary,
 }
 #endif /* AVOID_CROSSING_PERIMETERS_DEBUG_OUTPUT */
 
-// Returns a direction of the shortest path along the polygon boundary
+// 返回沿多边形边界的最短路径方向
 enum class Direction { Forward, Backward };
-// Returns a direction of the shortest path along the polygon boundary
+// 返回沿多边形边界的最短路径方向
 static Direction get_shortest_direction(const AvoidCrossingPerimeters::Boundary &boundary,
                                         const Intersection                      &intersection_first,
                                         const Intersection                      &intersection_second,
@@ -431,7 +431,7 @@ Polyline ConvertBBoxToPolyline(const BoundingBoxf &bbox)
 }
 
 
-// Straighten the travel path as long as it does not collide with the contours stored in edge_grid.
+// 只要不与edge_grid中存储的轮廓碰撞，就拉直移动路径。
 static std::vector<TravelPoint> simplify_travel(const AvoidCrossingPerimeters::Boundary &boundary, const std::vector<TravelPoint> &travel)
 {
     FirstIntersectionVisitor visitor(boundary.grid);
@@ -476,7 +476,7 @@ static std::vector<TravelPoint> simplify_travel(const AvoidCrossingPerimeters::B
     return simplified_path;
 }
 
-// called by get_perimeter_spacing() / get_perimeter_spacing_external()
+// 由get_perimeter_spacing() / get_perimeter_spacing_external()调用
 static inline float get_default_perimeter_spacing(const PrintObject &print_object)
 {
     std::vector<unsigned int> printing_extruders = print_object.object_extruders();
@@ -488,7 +488,7 @@ static inline float get_default_perimeter_spacing(const PrintObject &print_objec
     return avg_extruder;
 }
 
-// called by get_boundary() / avoid_perimeters_inner()
+// 由get_boundary() / avoid_perimeters_inner()调用
 static float get_perimeter_spacing(const Layer &layer)
 {
     size_t regions_count     = 0;
@@ -507,7 +507,7 @@ static float get_perimeter_spacing(const Layer &layer)
     return perimeter_spacing;
 }
 
-// called by get_boundary_external()
+// 由get_boundary_external()调用
 static float get_perimeter_spacing_external(const Layer &layer)
 {
     size_t regions_count     = 0;
@@ -687,7 +687,7 @@ static size_t avoid_perimeters_inner(
     return intersections.size();
 }
 
-// Called by AvoidCrossingPerimeters::travel_to()
+// 由AvoidCrossingPerimeters::travel_to()调用
 static size_t avoid_perimeters(const AvoidCrossingPerimeters::Boundary &boundary,
                                const Point                             &start,
                                const Point                             &end,
@@ -710,9 +710,9 @@ static size_t avoid_perimeters(const AvoidCrossingPerimeters::Boundary &boundary
     return num_intersections;
 }
 
-// Check if anyone of ExPolygons contains whole travel.
-// called by need_wipe() and AvoidCrossingPerimeters::travel_to()
-// FIXME Lukas H.: Maybe similar approach could also be used for ExPolygon::contains()
+// 检查是否有ExPolygon包含整个移动。
+// 由need_wipe()和AvoidCrossingPerimeters::travel_to()调用
+// FIXME Lukas H.: 也许类似的方法也可用于ExPolygon::contains()
 static bool any_expolygon_contains(const ExPolygons               &ex_polygons,
                                    const std::vector<BoundingBox> &ex_polygons_bboxes,
                                    const EdgeGrid::Grid            &grid_lslice,
@@ -736,8 +736,8 @@ static bool any_expolygon_contains(const ExPolygons               &ex_polygons,
     return false;
 }
 
-// Check if anyone of ExPolygons contains whole travel.
-// called by need_wipe()
+// 检查是否有ExPolygon包含整个移动。
+// 由need_wipe()调用
 static bool any_expolygon_contains(const ExPolygons &ex_polygons, const std::vector<BoundingBox> &ex_polygons_bboxes, const EdgeGrid::Grid &grid_lslice, const Polyline &travel)
 {
     assert(ex_polygons.size() == ex_polygons_bboxes.size());
@@ -798,7 +798,7 @@ static bool need_wipe(const GCode                    &gcodegen,
     return wipe_needed;
 }
 
-// Adds points around all vertices so that the offset affects only small sections around these vertices.
+// 在所有顶点周围添加点，使偏移仅影响这些顶点周围的小部分。
 static void resample_polygon(Polygon &polygon, double dist_from_vertex, double max_allowed_distance)
 {
     Points resampled_poly;
@@ -861,7 +861,7 @@ static void precompute_expolygon_distances(const ExPolygon &ex_polygon, std::vec
         precompute_polygon_distances(ex_polygon.holes[hole_idx], expolygon_distances_out[hole_idx + 1]);
 }
 
-// It is highly based on the function contour_distance2 from the ElephantFootCompensation.cpp
+// 高度基于ElephantFootCompensation.cpp中的contour_distance2函数
 static std::vector<float> contour_distance(const EdgeGrid::Grid     &grid,
                                     const std::vector<float> &poly_distances,
                                     const size_t              contour_idx,
@@ -1009,8 +1009,8 @@ static std::vector<float> contour_distance(const EdgeGrid::Grid     &grid,
     return out;
 }
 
-// Polygon offset which ensures that if a polygon breaks up into several separate parts, the original polygon will be used in these places.
-// ExPolygons are handled one by one so returned ExPolygons could intersect.
+// 多边形偏移，确保如果多边形分裂成多个独立部分，则在那些位置使用原始多边形。
+// ExPolygon逐个处理，因此返回的ExPolygon可能相交。
 static ExPolygons inner_offset(const ExPolygons &ex_polygons, double offset_dis)
 {
     // try different offset_dis distances
@@ -1096,7 +1096,7 @@ static ExPolygons inner_offset(const ExPolygons &ex_polygons, double offset_dis)
 
 //#define INCLUDE_SUPPORTS_IN_BOUNDARY
 
-// called by AvoidCrossingPerimeters::travel_to()
+// 由AvoidCrossingPerimeters::travel_to()调用
 static ExPolygons get_boundary(const Layer &layer, float perimeter_spacing)
 {
     // const float perimeter_spacing = get_perimeter_spacing(layer);
@@ -1133,7 +1133,7 @@ static ExPolygons get_boundary(const Layer &layer, float perimeter_spacing)
     return boundary;
 }
 
-// called by AvoidCrossingPerimeters::travel_to()
+// 由AvoidCrossingPerimeters::travel_to()调用
 static Polygons get_boundary_external(const Layer &layer)
 {
     const float perimeter_spacing = get_perimeter_spacing_external(layer);
@@ -1517,7 +1517,7 @@ static std::vector<TravelPoint> simplify_travel_heuristics(const AvoidCrossingPe
     return simplified_path;
 }
 
-// Called by AvoidCrossingPerimeters::travel_to()
+// 由AvoidCrossingPerimeters::travel_to()调用
 static size_t avoid_perimeters(const AvoidCrossingPerimeters::Boundary &boundary,
                                const Point              &start,
                                const Point              &end,
@@ -1586,7 +1586,7 @@ Polyline AvoidCrossingPerimeters::travel_to(const GCode &gcodegen, const Point &
     return result_pl;
 }
 
-// called by AvoidCrossingPerimeters::init_layer()->get_boundary()/get_boundary_external()
+// 由AvoidCrossingPerimeters::init_layer()调用->get_boundary()/get_boundary_external()
 static std::pair<Polygons, Polygons> split_expolygon(const ExPolygons &ex_polygons)
 {
     Polygons contours, holes;
@@ -1600,7 +1600,7 @@ static std::pair<Polygons, Polygons> split_expolygon(const ExPolygons &ex_polygo
     return std::make_pair(std::move(contours), std::move(holes));
 }
 
-// called by AvoidCrossingPerimeters::init_layer()
+// 由AvoidCrossingPerimeters::init_layer()调用
 static ExPolygons get_boundary(const Layer &layer)
 {
     const float perimeter_spacing = get_perimeter_spacing(layer);
@@ -1661,7 +1661,7 @@ static ExPolygons get_boundary(const Layer &layer)
     return result_boundary;
 }
 
-// called by AvoidCrossingPerimeters::init_layer()
+// 由AvoidCrossingPerimeters::init_layer()调用
 static ExPolygons get_boundary_external(const Layer &layer)
 {
     const float perimeter_spacing = get_perimeter_spacing_external(layer);

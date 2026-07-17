@@ -7,17 +7,17 @@
 
 namespace marchsq {
 
-// Specialize this struct to register a raster type for the Marching squares alg
+// 特化此结构体以注册用于 Marching squares 算法的光栅类型
 template<> struct _RasterTraits<Slic3r::sla::RasterGrayscaleAA> {
     using Rst = Slic3r::sla::RasterGrayscaleAA;
     
-    // The type of pixel cell in the raster
+    // 光栅中像素单元的类型
     using ValueType = uint8_t;
     
-    // Value at a given position
+    // 给定位置的值
     static uint8_t get(const Rst &rst, size_t row, size_t col) { return rst.read_pixel(col, row); }
     
-    // Number of rows and cols of the raster
+    // 光栅的行数和列数
     static size_t rows(const Rst &rst) { return rst.resolution().height_px; }
     static size_t cols(const Rst &rst) { return rst.resolution().width_px; }
 };
@@ -62,7 +62,7 @@ ExPolygons raster_to_polygons(const RasterGrayscaleAA &rst, Vec2i32 windowsize)
         polys.emplace_back(poly);
     }
     
-    // reverse the raster transformations
+    // 反转光栅变换
     ExPolygons unioned = union_ex(polys);
     coord_t width = scaled(cols * pxd.h_mm), height = scaled(rows * pxd.w_mm);
     

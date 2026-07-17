@@ -10,8 +10,8 @@ namespace Slic3r {
 class ExPolygon;
 typedef std::vector<ExPolygon> ExPolygons;
 
-const bool constexpr NORMALS_UP = false;
-const bool constexpr NORMALS_DOWN = true;
+const bool constexpr NORMALS_UP = false; // 法线朝上
+const bool constexpr NORMALS_DOWN = true; // 法线朝下
 
 extern std::vector<Vec3d> triangulate_expolygon_3d (const ExPolygon  &poly,  coordf_t z = 0, bool flip = NORMALS_UP);
 extern std::vector<Vec3d> triangulate_expolygons_3d(const ExPolygons &polys, coordf_t z = 0, bool flip = NORMALS_UP);

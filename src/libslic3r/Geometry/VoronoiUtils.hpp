@@ -15,7 +15,7 @@ using VD = Slic3r::Geometry::VoronoiDiagram;
 
 namespace Slic3r::Geometry {
 
-// Represent trapezoid Voronoi cell around segment.
+// 表示围绕线段的梯形Voronoi单元。
 template<typename PT> struct SegmentCellRange
 {
     const PT             source_segment_start_point; // The start point of the source segment of this cell.
@@ -31,7 +31,7 @@ template<typename PT> struct SegmentCellRange
     bool is_valid() const { return edge_begin && edge_end && edge_begin != edge_end; }
 };
 
-// Represent trapezoid Voronoi cell around point.
+// 表示围绕点的梯形Voronoi单元。
 template<typename PT> struct PointCellRange
 {
     const PT             source_point;  // The source point of this cell.
@@ -77,11 +77,11 @@ public:
     get_source_point_index(const VD::cell_type &cell, SegmentIterator segment_begin, SegmentIterator segment_end);
 
     /**
-     * Discretize a parabola based on (approximate) step size.
+     * 基于（近似）步长离散化抛物线。
      *
-     * Adapted from CuraEngine VoronoiUtils::discretizeParabola by Tim Kuipers @BagelOrb and @Ghostkeeper.
+     * 改编自CuraEngine VoronoiUtils::discretizeParabola，作者为Tim Kuipers @BagelOrb 和 @Ghostkeeper。
      *
-     * @param approximate_step_size is measured parallel to the source_segment, not along the parabola.
+     * @param approximate_step_size 沿source_segment平行方向测量，而非沿抛物线方向。
      */
     template<typename Segment>
     static typename boost::polygon::enable_if<typename boost::polygon::gtl_if<typename boost::polygon::is_segment_concept<
@@ -90,23 +90,20 @@ public:
     discretize_parabola(const Point &source_point, const Segment &source_segment, const Point &start, const Point &end, coord_t approximate_step_size, float transitioning_angle);
 
     /**
-     * Compute the range of line segments that surround a cell of the skeletal
-     * graph that belongs to a line segment of the medial axis.
+     * 计算围绕骨架图中属于中轴线段的单元的线段范围。
      *
-     * This should only be used on cells that belong to a central line segment
-     * of the skeletal graph, e.g. trapezoid cells, not triangular cells.
+     * 这仅应用于属于骨架图中心线段的单元，例如梯形单元，而非三角形单元。
      *
-     * The resulting line segments is just the first and the last segment. They
-     * are linked to the neighboring segments, so you can iterate over the
-     * segments until you reach the last segment.
+     * 结果线段仅为第一个和最后一个线段。它们链接到相邻线段，
+     * 因此您可以迭代线段直到到达最后一个线段。
      *
-     * Adapted from CuraEngine VoronoiUtils::computeSegmentCellRange by Tim Kuipers @BagelOrb,
-     * Jaime van Kessel @nallath, Remco Burema @rburema and @Ghostkeeper.
+     * 改编自CuraEngine VoronoiUtils::computeSegmentCellRange，作者为Tim Kuipers @BagelOrb、
+     * Jaime van Kessel @nallath、Remco Burema @rburema 和 @Ghostkeeper。
      *
-     * @param cell The cell to compute the range of line segments for.
-     * @param segment_begin Begin iterator for all edges of the input Polygons.
-     * @param segment_end End iterator for all edges of the input Polygons.
-     * @return Range of line segments that surround the cell.
+     * @param cell 要计算线段范围的单元。
+     * @param segment_begin 输入多边形所有边的起始迭代器。
+     * @param segment_end 输入多边形所有边的结束迭代器。
+     * @return 围绕单元的线段范围。
      */
     template<typename SegmentIterator>
     static typename boost::polygon::enable_if<
@@ -117,23 +114,20 @@ public:
     compute_segment_cell_range(const VD::cell_type &cell, SegmentIterator segment_begin, SegmentIterator segment_end);
 
     /**
-     * Compute the range of line segments that surround a cell of the skeletal
-     * graph that belongs to a point on the medial axis.
+     * 计算围绕骨架图中属于中轴线上点的单元的线段范围。
      *
-     * This should only be used on cells that belong to a corner in the skeletal
-     * graph, e.g. triangular cells, not trapezoid cells.
+     * 这仅应用于属于骨架图拐角的单元，例如三角形单元，而非梯形单元。
      *
-     * The resulting line segments is just the first and the last segment. They
-     * are linked to the neighboring segments, so you can iterate over the
-     * segments until you reach the last segment.
+     * 结果线段仅为第一个和最后一个线段。它们链接到相邻线段，
+     * 因此您可以迭代线段直到到达最后一个线段。
      *
-     * Adapted from CuraEngine VoronoiUtils::computePointCellRange by Tim Kuipers @BagelOrb
-     * Jaime van Kessel @nallath, Remco Burema @rburema and @Ghostkeeper.
+     * 改编自CuraEngine VoronoiUtils::computePointCellRange，作者为Tim Kuipers @BagelOrb、
+     * Jaime van Kessel @nallath、Remco Burema @rburema 和 @Ghostkeeper。
      *
-     * @param cell The cell to compute the range of line segments for.
-     * @param segment_begin Begin iterator for all edges of the input Polygons.
-     * @param segment_end End iterator for all edges of the input Polygons.
-     * @return Range of line segments that surround the cell.
+     * @param cell 要计算线段范围的单元。
+     * @param segment_begin 输入多边形所有边的起始迭代器。
+     * @param segment_end 输入多边形所有边的结束迭代器。
+     * @return 围绕单元的线段范围。
      */
     template<typename SegmentIterator>
     static typename boost::polygon::enable_if<

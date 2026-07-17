@@ -61,7 +61,7 @@ Slic3r::arrangement::ArrangePolygon get_arrange_poly(const Model &model)
 void duplicate(Model &model, Slic3r::arrangement::ArrangePolygons &copies, VirtualBedFn vfn)
 {
     for (ModelObject *o : model.objects) {
-        // make a copy of the pointers in order to avoid recursion when appending their copies
+        // 复制指针以避免在追加副本时出现递归
         ModelInstancePtrs instances = o->instances;
         o->instances.clear();
         for (const ModelInstance *i : instances) {
@@ -79,7 +79,7 @@ void duplicate(Model &model, Slic3r::arrangement::ArrangePolygons &copies, Virtu
 void duplicate_objects(Model &model, size_t copies_num)
 {
     for (ModelObject *o : model.objects) {
-        // make a copy of the pointers in order to avoid recursion when appending their copies
+        // 复制指针以避免在追加副本时出现递归
         ModelInstancePtrs instances = o->instances;
         for (const ModelInstance *i : instances)
             for (size_t k = 2; k <= copies_num; ++ k)
@@ -87,19 +87,19 @@ void duplicate_objects(Model &model, size_t copies_num)
     }
 }
 
-// Set up arrange polygon for a ModelInstance and Wipe tower
+// 为 ModelInstance 和 Wipe tower 设置排列多边形
 template<class T>
 arrangement::ArrangePolygon get_arrange_poly(T obj, const Slic3r::DynamicPrintConfig& config)
 {
     ArrangePolygon ap = obj.get_arrange_polygon(config);
-    //BBS: always set bed_idx to 0 to use original transforms with no bed_idx
-    //if this object is not arranged, it can keep the original transforms
+    //BBS: 始终将bed_idx设置为0，以使用没有bed_idx的原始变换
+    //如果此对象未排列，它可以保留原始变换
     //ap.bed_idx        = ap.translation.x() / bed_stride_x(plater);
     ap.bed_idx = 0;
     ap.setter = [obj](const ArrangePolygon& p) {
         if (p.is_arranged()) {
             Vec2d t = p.translation.cast<double>();
-            //BBS: change to sudoku-style computation, do it in partplate list
+            //BBS: 更改为数独风格计算，在零件板列表中完成
             //t.x() += p.bed_idx * bed_stride(plater);
             //t.x() += col * bed_stride_x(plater);
             //t.y() -= row * bed_stride_y(plater);
@@ -120,7 +120,7 @@ ArrangePolygon get_instance_arrange_poly(ModelInstance* instance, const Slic3r::
 {
     ArrangePolygon ap = get_arrange_poly(PtrWrapper{ instance }, config);
 
-    //BBS: add temperature information
+    //BBS: 添加温度信息
     if (config.has("curr_bed_type")) {
         ap.bed_temp = 0;
         ap.first_bed_temp = 0;
@@ -135,16 +135,16 @@ ArrangePolygon get_instance_arrange_poly(ModelInstance* instance, const Slic3r::
             ap.first_bed_temp = bed_opt_1st_layer->get_at(ap.extrude_ids.front()-1);
     }
 
-    if (config.has("nozzle_temperature")) //get the print temperature
+    if (config.has("nozzle_temperature")) //获取打印温度
         ap.print_temp = config.opt_int("nozzle_temperature", ap.extrude_ids.front() - 1);
-    if (config.has("nozzle_temperature_initial_layer")) //get the nozzle_temperature_initial_layer
+    if (config.has("nozzle_temperature_initial_layer")) //获取初始层喷嘴温度
         ap.first_print_temp = config.opt_int("nozzle_temperature_initial_layer", ap.extrude_ids.front() - 1);
 
     if (config.has("temperature_vitrification")) {
         ap.vitrify_temp = config.opt_int("temperature_vitrification", ap.extrude_ids.front() - 1);
     }
 
-    // get filament temp types
+    // 获取耗材温度类型
     auto* filament_types_opt = dynamic_cast<const ConfigOptionStrings*>(config.option("filament_type"));
     if (filament_types_opt) {
         std::set<int> filament_temp_types;
@@ -156,13 +156,13 @@ ArrangePolygon get_instance_arrange_poly(ModelInstance* instance, const Slic3r::
         ap.filament_temp_type = Print::get_compatible_filament_type(filament_temp_types);
     }
 
-    // get brim width
+    // 获取 brim 宽度
     auto obj = instance->get_object();
 
     ap.brim_width = 1.0;
-    // For by-layer printing, need to shrink bed a little, so the support won't go outside bed.
-    // We set it to 5mm because that's how much a normal support will grow by default.
-    // normal support 5mm, other support 22mm, no support 0mm
+    // 对于逐层打印，需要稍微缩小热床，以使支撑不会超出热床范围。
+    // 我们将其设置为5mm，因为普通支撑默认会增长这么多。
+    // 正常支撑5mm，其他支撑22mm，无支撑0mm
     auto supp_type_ptr = obj->get_config_value<ConfigOptionBool>(config, "enable_support");
     auto support_type_ptr = obj->get_config_value<ConfigOptionEnum<SupportType>>(config, "support_type");
     auto support_type = support_type_ptr->value;
@@ -172,7 +172,7 @@ ArrangePolygon get_instance_arrange_poly(ModelInstance* instance, const Slic3r::
     if (enable_support && (support_type == stNormalAuto || support_type == stNormal))
         ap.brim_width = 6.0;
     else if (enable_support) {
-        ap.brim_width = 24.0; // 2*MAX_BRANCH_RADIUS_FIRST_LAYER
+        ap.brim_width = 24.0; // 2*最大树支撑第一层分支半径
         ap.has_tree_support = true;
     }
 

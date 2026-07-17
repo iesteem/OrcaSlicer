@@ -15,7 +15,7 @@ namespace Slic3r {
 class TriangleMesh;
 class ModelObject;
 
-// load step stage
+// 加载step的阶段
 const int LOAD_STEP_STAGE_READ_FILE          = 0;
 const int LOAD_STEP_STAGE_GET_SOLID          = 1;
 const int LOAD_STEP_STAGE_GET_MESH           = 2;
@@ -35,7 +35,7 @@ struct NamedSolid
     int tri_face_cout = 0;
 };
 
-//BBS: Load an step file into a provided model.
+//BBS: 将step文件加载到提供的模型中。
 extern bool load_step(const char *path, Model *model,
                       bool& is_cancel,
                       double linear_defletion = 0.003,
@@ -45,12 +45,11 @@ extern bool load_step(const char *path, Model *model,
                       StepIsUtf8Fn isUtf8Fn = nullptr,
                       long& mesh_face_num = *(new long(-1)));
 
-//BBS: Used to detect what kind of encoded type is used in name field of step
-// If is encoded in UTF8, the file don't need to be handled, then return the original path directly.
-// If is encoded in GBK, then translate to UTF8 and generate a new temporary step file.
-// If is encoded in Other type, we can't handled, then treat as UTF8. In this case, the name is garbage
-// characters.
-// By preprocessing, at least we can avoid garbage characters if the name field is encoded by GBK.
+//BBS: 用于检测step的name字段使用哪种编码类型
+// 如果是UTF8编码，文件无需处理，直接返回原始路径。
+// 如果是GBK编码，则转换为UTF8并生成新的临时step文件。
+// 如果是其他编码类型，无法处理，则视为UTF8。在这种情况下，名称将是乱码字符。
+// 通过预处理，至少可以在name字段为GBK编码时避免乱码字符。
 class StepPreProcessor {
     enum class EncodedType : unsigned char
     {
@@ -66,7 +65,7 @@ public:
 private:
     static bool isGBK(const std::string str);
     static int preNum(const unsigned char byte);
-    //BBS: default is UTF8 for most step file.
+    //BBS: 大多数step文件的默认编码是UTF8
     EncodedType m_encode_type = EncodedType::UTF8;
 };
 

@@ -7,7 +7,7 @@
 
 namespace Slic3r { namespace Geometry {
 
-// This implementation is based on Andrew's monotone chain 2D convex hull algorithm
+// 此实现基于Andrew的单调链二维凸包算法
 Polygon convex_hull(Points pts)
 {
     std::sort(pts.begin(), pts.end(), [](const Point& a, const Point& b) { return a.x() < b.x() || (a.x() == b.x() && a.y() < b.y()); });
@@ -18,13 +18,13 @@ Polygon convex_hull(Points pts)
     if (n >= 3) {
         int k = 0;
         hull.points.resize(2 * n);
-        // Build lower hull
+        // 构建下凸包
         for (int i = 0; i < n; ++ i) {
             while (k >= 2 && Geometry::orient(pts[i], hull[k-2], hull[k-1]) != Geometry::ORIENTATION_CCW)
                 -- k;
             hull[k ++] = pts[i];
         }
-        // Build upper hull
+        // 构建上凸包
         for (int i = n-2, t = k+1; i >= 0; i--) {
             while (k >= t && Geometry::orient(pts[i], hull[k-2], hull[k-1]) != Geometry::ORIENTATION_CCW)
                 -- k;
@@ -50,7 +50,7 @@ Pointf3s convex_hull(Pointf3s points)
     {
         hull.resize(2 * n);
 
-        // Build lower hull
+        // 构建下凸包
         for (int i = 0; i < n; ++i)
         {
             Point p = Point::new_scale(points[i](0), points[i](1));
@@ -68,7 +68,7 @@ Pointf3s convex_hull(Pointf3s points)
             hull[k++] = points[i];
         }
 
-        // Build upper hull
+        // 构建上凸包
         for (int i = n - 2, t = k + 1; i >= 0; --i)
         {
             Point p = Point::new_scale(points[i](0), points[i](1));
@@ -153,10 +153,10 @@ inline Scalar dotperp(const Point &a, const Point &b)
 
 using boost::multiprecision::abs;
 
-// Compares the angle enclosed by vectors dir and dirA (alpha) with the angle
-// enclosed by -dir and dirB (beta). Returns -1 if alpha is less than beta, 0
-// if they are equal and 1 if alpha is greater than beta. Note that dir is
-// reversed for beta, because it represents the opposite side of a caliper.
+// 比较向量dir和dirA所夹的角度（alpha）与
+// -dir和dirB所夹的角度（beta）。如果alpha小于beta则返回-1，
+// 相等则返回0，大于则返回1。注意dir对于beta是反向的，
+// 因为它代表卡尺的对侧。
 int cmp_angles(const Point &dir, const Point &dirA, const Point &dirB) {
     int128_t dotA = dot(dir, dirA);
     int128_t dotB = dot(-dir, dirB);
@@ -167,9 +167,9 @@ int cmp_angles(const Point &dir, const Point &dirA, const Point &dirB) {
     return diff > 0? -1 : (diff < 0 ? 1 : 0);
 }
 
-// A helper class to navigate on a polygon. Given a vertex index, one can
-// get the edge belonging to that vertex, the coordinates of the vertex, the
-// next and previous edges. Stuff that is needed in the rotating calipers algo.
+// 辅助类，用于在多边形上导航。给定顶点索引，可以
+// 获取该顶点的边、顶点坐标、下一个和上一个边。
+// 旋转卡尺算法中需要的内容。
 class Idx
 {
     size_t m_idx;
@@ -197,16 +197,15 @@ public:
 
 enum class AntipodalVisitMode { Full, EdgesOnly };
 
-// Visit all antipodal pairs starting from the initial ia, ib pair which
-// has to be a valid antipodal pair (not checked). fn is called for every
-// antipodal pair encountered including the initial one.
-// The callback Fn has a signiture of bool(size_t i, size_t j, const Point &dir)
-// where i,j are the vertex indices of the antipodal pair and dir is the
-// direction of the calipers touching the i vertex.
+// 从初始的ia, ib对开始访问所有对跖点对，该对
+// 必须是有效的对跖点对（不检查）。fn为遇到的每个
+// 对跖点对（包括初始对）调用。
+// 回调函数Fn的签名为bool(size_t i, size_t j, const Point &dir)
+// 其中i,j是对跖点对的顶点索引，dir是接触i顶点的卡尺方向。
 template<AntipodalVisitMode mode = AntipodalVisitMode::Full, class Fn>
 void visit_antipodals (Idx& ia, Idx &ib, Fn &&fn)
 {
-    // Set current caliper direction to be the lower edge angle from X axis
+    // 将当前卡尺方向设置为从X轴开始的较低边角度
     int cmp = cmp_angles(ia.prev_dir(), ia.dir(), ib.dir());
     Idx *current = cmp <= 0 ? &ia : &ib, *other = cmp <= 0 ? &ib : &ia;
     Idx *initial = current;
@@ -219,8 +218,7 @@ void visit_antipodals (Idx& ia, Idx &ib, Fn &&fn)
         Point current_dir_a = current == &ia ? current->dir() : -current->dir();
         visitor_continue = fn(ia.idx(), ib.idx(), current_dir_a);
 
-        // Parallel edges encountered. An additional pair of antipodals
-        // can be yielded.
+        // 遇到平行边。可能会产生额外的一对对跖点。
         if constexpr (mode == AntipodalVisitMode::Full)
             if (cmp == 0 && visitor_continue) {
                 visitor_continue = fn(current == &ia ? ia.idx() : ia.next(),
@@ -245,9 +243,9 @@ bool convex_polygons_intersect(const Polygon &A, const Polygon &B)
 {
     using namespace rotcalip;
 
-    // Establish starting antipodals as extremes in XY plane. Use the
-    // easily obtainable bounding boxes to check if A and B is disjoint
-    // and return false if the are.
+    // 将起始对跖点建立为XY平面中的极值点。使用
+    // 容易获取的边界框来检查A和B是否不相交，
+    // 如果不相交则返回false。
     struct BB
     {
         size_t         xmin = 0, xmax = 0, ymin = 0, ymax = 0;
@@ -275,9 +273,9 @@ bool convex_polygons_intersect(const Polygon &A, const Polygon &B)
 //    if (!bbA.overlap(bbB))
 //        return false;
 
-    // Establish starting antipodals as extreme vertex pairs in X or Y direction
-    // which reside on different polygons. If no such pair is found, the two
-    // polygons are certainly not disjoint.
+    // 将起始对跖点建立为X或Y方向上的极值顶点对，
+    // 这些顶点位于不同的多边形上。如果找不到这样的对，
+    // 则两个多边形肯定不相交。
     Idx imin{bA.xmin, A}, imax{bB.xmax, B};
     if (B[bB.xmin] < imin.pt())  imin = Idx{bB.xmin, B};
     if (imax.pt()  < A[bA.xmax]) imax = Idx{bA.xmax, A};
@@ -297,6 +295,7 @@ bool convex_polygons_intersect(const Polygon &A, const Polygon &B)
         [&imin, &imax, &found_divisor](size_t ia, size_t ib, const Point &dir) {
             //        std::cout << "A" << ia << " B" << ib << " dir " <<
             //        dir.x() << " " << dir.y() << std::endl;
+
             const Polygon &A = imin.poly(), &B = imax.poly();
 
             Point ref_a = A[(ia + 2) % A.size()], ref_b = B[(ib + 2) % B.size()];
@@ -304,45 +303,43 @@ bool convex_polygons_intersect(const Polygon &A, const Polygon &B)
             bool is_left_a = dotperp( dir, ref_a - A[ia]) > 0;
             bool is_left_b = dotperp(-dir, ref_b - B[ib]) > 0;
 
-            // If both reference points are on the left (or right) of their
-            // respective support lines and the opposite support line is to
-            // the right (or left), the divisor line is found. We only test
-            // the reference point, as by definition, if that is on one side,
-            // all the other points must be on the same side of a support
-            // line. If the support lines are collinear, the polygons must be
-            // on the same side of their respective support lines.
+            // 如果两个参考点都在各自支撑线的左侧（或右侧），
+            // 且对侧支撑线在右侧（或左侧），则找到分隔线。
+            // 我们只测试参考点，因为根据定义，如果参考点在一边，
+            // 所有其他点必须在支撑线的同一边。
+            // 如果支撑线共线，则多边形必须位于各自支撑线的同一侧。
 
             auto d = dotperp(dir, B[ib] - A[ia]);
             if (d == 0) {
-                // The caliper lines are collinear, not just parallel
+                // 卡尺线共线，不仅仅是平行
                 found_divisor = (is_left_a && is_left_b) || (!is_left_a && !is_left_b);
-            } else if (d > 0) { // B is to the left of (A, A+1)
+            } else if (d > 0) { // B在(A, A+1)的左侧
                 found_divisor = !is_left_a && !is_left_b;
-            } else { // B is to the right of (A, A+1)
+            } else { // B在(A, A+1)的右侧
                 found_divisor = is_left_a && is_left_b;
             }
 
             return !found_divisor;
         });
 
-    // Intersects if the divisor was not found
+    // 如果未找到分隔线则相交
     return !found_divisor;
 }
 
-// Decompose source convex hull points into a top / bottom chains with monotonically increasing x,
-// creating an implicit trapezoidal decomposition of the source convex polygon.
-// The source convex polygon has to be CCW oriented. O(n) time complexity.
+// 将源凸包点分解为x单调递增的上/下链，
+// 创建源凸多边形的隐式梯形分解。
+// 源凸多边形必须为CCW方向。O(n)时间复杂度。
 std::pair<std::vector<Vec2d>, std::vector<Vec2d>> decompose_convex_polygon_top_bottom(const std::vector<Vec2d> &src)
 {
     std::pair<std::vector<Vec2d>, std::vector<Vec2d>> out;
     std::vector<Vec2d> &bottom = out.first;
     std::vector<Vec2d> &top    = out.second;
 
-    // Find the minimum point.
+    // 找到最小点。
     auto left_bottom  = std::min_element(src.begin(), src.end(), [](const auto &l, const auto &r) { return l.x() < r.x() || (l.x() == r.x() && l.y() < r.y()); });
     auto right_top    = std::max_element(src.begin(), src.end(), [](const auto &l, const auto &r) { return l.x() < r.x() || (l.x() == r.x() && l.y() < r.y()); });
     if (left_bottom != src.end() && left_bottom != right_top) {
-        // Produce the bottom and bottom chains.
+        // 生成底部链和顶部链。
         if (left_bottom < right_top) {
             bottom.assign(left_bottom, right_top + 1);
             size_t cnt = (src.end() - right_top) + (left_bottom + 1 - src.begin());
@@ -356,7 +353,7 @@ std::pair<std::vector<Vec2d>, std::vector<Vec2d>> decompose_convex_polygon_top_b
             bottom.insert(bottom.end(), src.begin(), right_top + 1);
             top.assign(right_top, left_bottom + 1);
         }
-        // Remove strictly vertical segments at the end.
+        // 移除末尾的严格垂直线段。
         if (bottom.size() > 1) {
             auto it = bottom.end();
             for (-- it; it != bottom.begin() && (it - 1)->x() == bottom.back().x(); -- it) ;
@@ -371,38 +368,38 @@ std::pair<std::vector<Vec2d>, std::vector<Vec2d>> decompose_convex_polygon_top_b
     }
 
     if (top.size() < 2 || bottom.size() < 2) {
-        // invalid
+        // 无效
         top.clear();
         bottom.clear();
     }
     return out;
 }
 
-// Convex polygon check using a top / bottom chain decomposition with O(log n) time complexity.
+// 使用上下链分解的凸多边形检查，O(log n)时间复杂度。
 bool inside_convex_polygon(const std::pair<std::vector<Vec2d>, std::vector<Vec2d>> &top_bottom_decomposition, const Vec2d &pt)
 {
     auto it_bottom = std::lower_bound(top_bottom_decomposition.first.begin(),  top_bottom_decomposition.first.end(),  pt, [](const auto &l, const auto &r){ return l.x() < r.x(); });
     auto it_top    = std::lower_bound(top_bottom_decomposition.second.begin(), top_bottom_decomposition.second.end(), pt, [](const auto &l, const auto &r){ return l.x() < r.x(); });
     if (it_bottom == top_bottom_decomposition.first.end()) {
-        // Above max x.
+        // 大于最大x。
         assert(it_top == top_bottom_decomposition.second.end());
         return false;
     }
     if (it_bottom == top_bottom_decomposition.first.begin()) {
-        // Below or at min x.
+        // 小于或等于最小x。
         if (pt.x() < it_bottom->x()) {
-            // Below min x.
+            // 小于最小x。
             assert(pt.x() < it_top->x());
             return false;
         }
-        // At min x.
+        // 等于最小x。
         assert(pt.x() == it_bottom->x());
         assert(pt.x() == it_top->x());
         assert(it_bottom->y() <= pt.y() && pt.y() <= it_top->y());
         return pt.y() >= it_bottom->y() && pt.y() <= it_top->y();
     }
 
-    // Trapezoid or a triangle.
+    // 梯形或三角形。
     assert(it_bottom != top_bottom_decomposition.first .begin() && it_bottom != top_bottom_decomposition.first .end());
     assert(it_top    != top_bottom_decomposition.second.begin() && it_top    != top_bottom_decomposition.second.end());
     assert(pt.x() <= it_bottom->x());

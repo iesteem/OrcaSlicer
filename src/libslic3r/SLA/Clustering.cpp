@@ -23,8 +23,7 @@ ClusteredPoints cluster(Index3D &sindex,
 {
     using Elems = std::vector<PointIndexEl>;
 
-    // Recursive function for visiting all the points in a given distance to
-    // each other
+    // 递归函数，用于访问彼此给定距离内的所有点
     std::function<void(Elems&, Elems&)> group =
         [&sindex, &group, max_points, qfn](Elems& pts, Elems& cluster)
     {
@@ -89,17 +88,17 @@ std::vector<PointIndexEl> distance_queryfn(const Index3D& sindex,
 
 } // namespace
 
-// Clustering a set of points by the given criteria
+// 根据给定条件对一组点进行聚类
 ClusteredPoints cluster(
     const std::vector<unsigned>& indices,
     std::function<Vec3d(unsigned)> pointfn,
     double dist,
     unsigned max_points)
 {
-    // A spatial index for querying the nearest points
+    // 用于查询最近点的空间索引
     Index3D sindex;
 
-    // Build the index
+    // 构建索引
     for(auto idx : indices) sindex.insert( std::make_pair(pointfn(idx), idx));
 
     return cluster(sindex, max_points,
@@ -109,17 +108,17 @@ ClusteredPoints cluster(
                    });
 }
 
-// Clustering a set of points by the given criteria
+// 根据给定条件对一组点进行聚类
 ClusteredPoints cluster(
     const std::vector<unsigned>& indices,
     std::function<Vec3d(unsigned)> pointfn,
     std::function<bool(const PointIndexEl&, const PointIndexEl&)> predicate,
     unsigned max_points)
 {
-    // A spatial index for querying the nearest points
+    // 用于查询最近点的空间索引
     Index3D sindex;
 
-    // Build the index
+    // 构建索引
     for(auto idx : indices) sindex.insert( std::make_pair(pointfn(idx), idx));
 
     return cluster(sindex, max_points,
@@ -135,10 +134,10 @@ ClusteredPoints cluster(
 
 ClusteredPoints cluster(const Eigen::MatrixXd& pts, double dist, unsigned max_points)
 {
-    // A spatial index for querying the nearest points
+    // 用于查询最近点的空间索引
     Index3D sindex;
 
-    // Build the index
+    // 构建索引
     for(Eigen::Index i = 0; i < pts.rows(); i++)
         sindex.insert(std::make_pair(Vec3d(pts.row(i)), unsigned(i)));
 

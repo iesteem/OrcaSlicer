@@ -16,11 +16,11 @@ struct SupportParameters {
 
 	    this->soluble_interface = slicing_params.soluble_interface;
 	    this->soluble_interface_non_soluble_base =
-	        // Zero z-gap between the overhangs and the support interface.
+	        // 悬垂与支撑界面之间的零z间距。
 	        slicing_params.soluble_interface &&
-	        // Interface extruder soluble.
+	        // 界面挤出机可溶性。
 	        object_config.support_interface_filament.value > 0 && print_config.filament_soluble.get_at(object_config.support_interface_filament.value - 1) &&
-	        // Base extruder: Either "print with active extruder" not soluble.
+	        // 基础挤出机："使用活动挤出机打印"不可溶性。
 	        (object_config.support_filament.value == 0 || ! print_config.filament_soluble.get_at(object_config.support_filament.value - 1));
 
 	    {
@@ -30,13 +30,13 @@ struct SupportParameters {
 	        this->has_top_contacts              = num_top_interface_layers    > 0;
 	        this->has_bottom_contacts           = num_bottom_interface_layers > 0;
 	        if (this->soluble_interface_non_soluble_base) {
-	            // Try to support soluble dense interfaces with non-soluble dense interfaces.
+	            // 尝试用非可溶性致密界面层支撑可溶性致密界面层。
 	            this->num_top_base_interface_layers    = size_t(std::min(int(num_top_interface_layers) / 2, 2));
 	            this->num_bottom_base_interface_layers = size_t(std::min(int(num_bottom_interface_layers) / 2, 2));
 	        } else {
-                // BBS: if support interface and support base do not use the same filament, add a base layer to improve their adhesion
-                // Note: support materials (such as Supp.W) can't be used as support base now, so support interface and base are still using different filaments even if
-                // support_filament==0
+                // BBS: 如果支撑界面和支撑基础不使用相同的耗材，添加一个基础层以改善它们的附着力
+                // 注意：支撑材料（如Supp.W）现在不能用作支撑基础，因此即使support_filament==0，
+                // 支撑界面和基础仍然使用不同的耗材
                 bool differnt_support_interface_filament = object_config.support_interface_filament != 0 &&
                                                            object_config.support_interface_filament != object_config.support_filament;
                 this->num_top_base_interface_layers    = differnt_support_interface_filament ? 1 : 0;
@@ -53,7 +53,7 @@ struct SupportParameters {
         this->ironing_spacing = object_config.support_ironing_spacing;
         this->ironing_pattern = object_config.support_ironing_pattern;
 
-        // Calculate a minimum support layer height as a minimum over all extruders, but not smaller than 10um.
+        // 计算最小支撑层高为所有挤出机的最小值，但不小于10um。
         this->support_layer_height_min = scaled<coord_t>(0.01);
         for (auto lh : print_config.min_layer_height.values)
             this->support_layer_height_min = std::min(this->support_layer_height_min, std::max(0.01, lh));
@@ -61,12 +61,12 @@ struct SupportParameters {
             this->support_layer_height_min = std::min(this->support_layer_height_min, std::max(0.01, layer->height));
         
         if (object_config.support_interface_top_layers.value == 0) {
-            // No interface layers allowed, print everything with the base support pattern.
+            // 不允许界面层，全部使用基础支撑图案打印。
             this->support_material_interface_flow = this->support_material_flow;
         }
         
-        // Evaluate the XY gap between the object outer perimeters and the support structures.
-        // Evaluate the XY gap between the object outer perimeters and the support structures.
+        // 评估对象外部轮廓与支撑结构之间的XY间隙。
+        // 评估对象外部轮廓与支撑结构之间的XY间隙。
         coordf_t external_perimeter_width = 0.;
         coordf_t bridge_flow_ratio = 0;
         for (size_t region_id = 0; region_id < object.num_printing_regions(); ++ region_id) {
@@ -95,16 +95,16 @@ struct SupportParameters {
 
         this->base_angle = Geometry::deg2rad(float(object_config.support_angle.value));
         this->interface_angle = Geometry::deg2rad(float(object_config.support_angle.value + 90.));
-        // Orca: Force solid support interface when using support ironing
+        // Orca: 使用支撑熨烫时强制使用实心支撑界面
         this->interface_spacing = (this->ironing ? 0 : object_config.support_interface_spacing.value) + this->support_material_interface_flow.spacing();
         this->interface_density = std::min(1., this->support_material_interface_flow.spacing() / this->interface_spacing);
-        // Orca: Force solid support interface when using support ironing
+        // Orca: 使用支撑熨烫时强制使用实心支撑界面
         double raft_interface_spacing = (this->ironing ? 0 : object_config.support_interface_spacing.value) + this->raft_interface_flow.spacing();
         this->raft_interface_density = std::min(1., this->raft_interface_flow.spacing() / raft_interface_spacing);
         this->support_spacing = object_config.support_base_pattern_spacing.value + this->support_material_flow.spacing();
         this->support_density = std::min(1., this->support_material_flow.spacing() / this->support_spacing);
         if (object_config.support_interface_top_layers.value == 0) {
-            // No interface layers allowed, print everything with the base support pattern.
+            // 不允许界面层，全部使用基础支撑图案打印。
             this->interface_spacing = this->support_spacing;
             this->interface_density = this->support_density;
         }
@@ -132,27 +132,27 @@ struct SupportParameters {
         this->raft_angle_interface  = 0.f;
         if (slicing_params.base_raft_layers > 1) {
             assert(slicing_params.raft_layers() >= 4);
-            // There are all raft layer types (1st layer, base, interface & contact layers) available.
+            // 所有筏层类型（第一层、基础层、界面层和接触层）均可用。
             this->raft_angle_1st_layer  = this->interface_angle;
             this->raft_angle_base       = this->base_angle;
             this->raft_angle_interface  = this->interface_angle;
             if ((slicing_params.interface_raft_layers & 1) == 0)
-                // Allign the 1st raft interface layer so that the object 1st layer is hatched perpendicularly to the raft contact interface.
+                // 对齐第一筏界面层，使对象第一层与筏接触界面垂直交叉填充。
                 this->raft_angle_interface += float(0.5 * M_PI);
         } else if (slicing_params.base_raft_layers == 1 || slicing_params.interface_raft_layers > 1) {
             assert(slicing_params.raft_layers() == 2 || slicing_params.raft_layers() == 3);
-            // 1st layer, interface & contact layers available.
+            // 第一层、界面层和接触层可用。
             this->raft_angle_1st_layer  = this->base_angle;
             this->raft_angle_interface  = this->interface_angle + 0.5 * M_PI;
         } else if (slicing_params.interface_raft_layers == 1) {
-            // Only the contact raft layer is non-empty, which will be printed as the 1st layer.
+            // 仅接触筏层非空，将作为第一层打印。
             assert(slicing_params.base_raft_layers == 0);
             assert(slicing_params.interface_raft_layers == 1);
             assert(slicing_params.raft_layers() == 1);
             this->raft_angle_1st_layer = float(0.5 * M_PI);
             this->raft_angle_interface = this->raft_angle_1st_layer;
         } else {
-            // No raft.
+            // 无筏层。
             assert(slicing_params.base_raft_layers == 0);
             assert(slicing_params.interface_raft_layers == 0);
             assert(slicing_params.raft_layers() == 0);
@@ -179,29 +179,29 @@ struct SupportParameters {
         }
         if (support_style == smsDefault) {
             if (is_tree(object_config.support_type)) {
-                // Orca: use organic as default
+                // Orca: 默认使用有机支撑
                 support_style = smsTreeOrganic;
             } else {
                 support_style = smsGrid;
             }
         }
     }
-	// Both top / bottom contacts and interfaces are soluble.
+	// 顶部/底部接触和界面都是可溶的。
     bool                    soluble_interface;
-    // Support contact & interface are soluble, but support base is non-soluble.
+    // 支撑接触和界面是可溶的，但支撑基础是非可溶的。
     bool                    soluble_interface_non_soluble_base;
 
-    // Is there at least a top contact layer extruded above support base?
+    // 是否有至少一个顶部接触层在支撑基础之上挤出？
     bool                    has_top_contacts;
-    // Is there at least a bottom contact layer extruded below support base?
+    // 是否有至少一个底部接触层在支撑基础之下挤出？
     bool                    has_bottom_contacts;
-    // Number of top interface layers without counting the contact layer.
+    // 顶部界面层数（不计算接触层）。
     size_t                  num_top_interface_layers;
-    // Number of bottom interface layers without counting the contact layer.
+    // 底部界面层数（不计算接触层）。
     size_t                  num_bottom_interface_layers;
-    // Number of top base interface layers. Zero if not soluble_interface_non_soluble_base.
+    // 顶部基础界面层数。如果不是soluble_interface_non_soluble_base则为零。
     size_t                  num_top_base_interface_layers;
-    // Number of bottom base interface layers. Zero if not soluble_interface_non_soluble_base.
+    // 底部基础界面层数。如果不是soluble_interface_non_soluble_base则为零。
     size_t                  num_bottom_base_interface_layers;
 
     bool                    has_contacts() const { return this->has_top_contacts || this->has_bottom_contacts; }
@@ -210,19 +210,19 @@ struct SupportParameters {
     size_t                  num_top_interface_layers_only() const { return this->num_top_interface_layers - this->num_top_base_interface_layers; }
     size_t                  num_bottom_interface_layers_only() const { return this->num_bottom_interface_layers - this->num_bottom_base_interface_layers; }
 
-	// Flow at the 1st print layer.
+	// 第一打印层的流量。
 	Flow 					first_layer_flow;
-	// Flow at the support base (neither top, nor bottom interface).
-	// Also flow at the raft base with the exception of raft interface and contact layers.
+	// 支撑基础的流量（既非顶部也非底部界面）。
+	// 也是筏基础的流量（筏界面和接触层除外）。
 	Flow 					support_material_flow;
-	// Flow at the top interface and contact layers.
+	// 顶部界面和接触层的流量。
 	Flow 					support_material_interface_flow;
-	// Flow at the bottom interfaces and contacts.
+	// 底部界面和接触层的流量。
 	Flow 					support_material_bottom_interface_flow;
-	// Flow at raft inteface & contact layers.
+	// 筏界面和接触层的流量。
 	Flow    				raft_interface_flow;
     coordf_t support_extrusion_width;
-	// Is merging of regions allowed? Could the interface & base support regions be printed with the same extruder?
+	// 是否允许合并区域？界面和基础支撑区域能否使用同一挤出机打印？
 	bool 					can_merge_support_regions;
 
     coordf_t 				support_layer_height_min;
@@ -235,33 +235,33 @@ struct SupportParameters {
     float    				interface_angle;
     coordf_t 				interface_spacing;
     coordf_t				support_expansion=0;
-    // Density of the top / bottom interface and contact layers.
+    // 顶部/底部界面和接触层的密度。
     coordf_t 				interface_density;
-    // Density of the raft interface and contact layers.
+    // 筏界面和接触层的密度。
     coordf_t 				raft_interface_density;
     coordf_t 				support_spacing;
-    // Density of the base support layers.
+    // 基础支撑层的密度。
     coordf_t 				support_density;
     SupportMaterialStyle    support_style = smsDefault;
 
-    // Pattern of the sparse infill including sparse raft layers.
+    // 稀疏填充的图案，包括稀疏筏层。
     InfillPattern           base_fill_pattern;
-    // Pattern of the top / bottom interface and contact layers.
+    // 顶部/底部界面和接触层的图案。
     InfillPattern           interface_fill_pattern;
-    // Pattern of the raft interface and contact layers.
+    // 筏界面和接触层的图案。
     InfillPattern           raft_interface_fill_pattern;
-    // Pattern of the contact layers.
+    // 接触层的图案。
     InfillPattern 			contact_fill_pattern;
-    // Shall the sparse (base) layers be printed with a single perimeter line (sheath) for robustness?
+    // 稀疏（基础）层是否应使用单条轮廓线（sheath）以提高鲁棒性？
     bool                    with_sheath;
-    // Branches of organic supports with area larger than this threshold will be extruded with double lines.
+    // 面积大于此阈值的有机支撑分支将使用双线挤出。
     double                  tree_branch_diameter_double_wall_area_scaled = 0.25 * sqr(scaled<double>(5.0)) * M_PI;;
 
     float 					raft_angle_1st_layer;
     float 					raft_angle_base;
     float 					raft_angle_interface;
 
-    // Produce a raft interface angle for a given SupportLayer::interface_id()
+    // 为给定的SupportLayer::interface_id()生成筏界面角度
     float 					raft_interface_angle(size_t interface_id) const 
     	{ return this->raft_angle_interface + ((interface_id & 1) ? float(- M_PI / 4.) : float(+ M_PI / 4.)); }
 		

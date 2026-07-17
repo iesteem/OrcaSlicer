@@ -1,7 +1,7 @@
 #include "IntersectionPoints.hpp"
 #include <libslic3r/AABBTreeLines.hpp>
 
-//NOTE: using CGAL SweepLines is slower !!! (example in git history)
+//注意：使用 CGAL SweepLines 更慢！！！（示例在 git 历史中）
 
 namespace {    
 using namespace Slic3r;
@@ -23,10 +23,10 @@ IntersectionsLines compute_intersections(const Lines &lines)
                 l_.a == l.b ||
                 l_.b == l.a ||
                 l_.b == l.b )
-                // it is duplicit point not intersection
+                // 这是重复点，不是交点
                 continue; 
 
-            // NOTE: fix AABBTree to compute intersection with double preccission!!
+            // 注意：修复 AABBTree 以使用双精度计算交点！！
             Vec2d intersection_point = p.cast<double>();
 
             result.push_back(IntersectionLines{li, static_cast<uint32_t>(node_index), intersection_point});

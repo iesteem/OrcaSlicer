@@ -1,4 +1,4 @@
-#ifndef OPTIMIZER_HPP
+﻿#ifndef OPTIMIZER_HPP
 #define OPTIMIZER_HPP
 
 #include <utility>
@@ -12,14 +12,14 @@
 
 namespace Slic3r { namespace opt {
 
-// A type to hold the complete result of the optimization.
+//// 用于保存优化完成结果的类型。
 template<size_t N> struct Result {
-    int resultcode;     // Method dependent
+    int resultcode;     // 方法依赖
     std::array<double, N> optimum;
     double score;
 };
 
-// An interval of possible input values for optimization
+//// 优化的一个可能输入值区间（interval）
 class Bound {
     double m_min, m_max;
 
@@ -33,27 +33,27 @@ public:
     double max() const noexcept { return m_max; }
 };
 
-// Helper types for optimization function input and bounds
+//// 优化的辅助类型：函数输入和边界
 template<size_t N> using Input = std::array<double, N>;
 template<size_t N> using Bounds = std::array<Bound, N>;
 
-// A type for specifying the stop criteria. Setter methods can be concatenated
+//// 用于指定停止标准的类型。Setter 方法可以串联。
 class StopCriteria {
 
-    // If the absolute value difference between two scores.
+    //// 如果两个分数之间的绝对值差异。
     double m_abs_score_diff = std::nan("");
 
-    // If the relative value difference between two scores.
+    //// 如果两个分数之间的相对值差异。
     double m_rel_score_diff = std::nan("");
 
-    // Stop if this value or better is found.
+    //// 如果找到此值或更优值，则停止。
     double m_stop_score = std::nan("");
 
-    // A predicate that if evaluates to true, the optimization should terminate
-    // and the best result found prior to termination should be returned.
+    //// 一个谓词，如果评估为 true，则优化应终止
+    // 并返回终止前找到的最佳结果。
     std::function<bool()> m_stop_condition = [] { return false; };
 
-    // The max allowed number of iterations.
+    //// 允许的最大迭代次数。
     unsigned m_max_iterations = 0;
 
 public:
@@ -94,7 +94,7 @@ public:
     bool stop_condition() { return m_stop_condition(); }
 };
 
-// Helper class to use optimization methods involving gradient.
+//// 用于使用涉及梯度的优化方法的辅助类。
 template<size_t N> struct ScoreGradient {
     double score;
     std::optional<std::array<double, N>> gradient;
@@ -104,58 +104,54 @@ template<size_t N> struct ScoreGradient {
     {}
 };
 
-// Helper to be used in static_assert.
+//// 用于在 static_assert 中使用的辅助类。
 template<class T> struct always_false { enum { value = false }; };
 
-// Basic interface to optimizer object
+//// 优化器对象的基本接口
 template<class Method, class Enable = void> class Optimizer {
 public:
 
     Optimizer(const StopCriteria &)
     {
         static_assert (always_false<Method>::value,
-                       "Optimizer unimplemented for given method!");
+                       "给定方法的优化器未实现！");
     }
 
-    // Switch optimization towards function minimum
+    //// 切换优化为函数最小化
     Optimizer &to_min() { return *this; }
 
-    // Switch optimization towards function maximum
+    //// 切换优化为函数最大化
     Optimizer &to_max() { return *this; }
 
-    // Set criteria for successive optimizations
+    //// 为连续优化设置标准
     Optimizer &set_criteria(const StopCriteria &) { return *this; }
 
-    // Get current criteria
+    //// 获取当前标准
     StopCriteria get_criteria() const { return {}; };
 
-    // Find function minimum or maximum for Func which has has signature:
-    // double(const Input<N> &input) and input with dimension N
+    //// 找到函数 Func 的最小值或最大值，其具有签名：
+    //// double(const 输入<N> &输入) 且维度为 N
     //
-    // Initial starting point can be given as the second parameter.
+    //// 初始起始点可以作为第二个参数给出。
     //
-    // For each dimension an interval (Bound) has to be given marking the bounds
-    // for that dimension.
+    //// 对于每个维度，必须给定一个区间（边界），标记该维度的边界。
     //
-    // initvals have to be within the specified bounds, otherwise its undefined
-    // behavior.
+    // initvals 必须在指定的 bounds 内，否则行为未定义。
     //
-    // Func can return a score of type double or optionally a ScoreGradient
-    // class to indicate the function gradient for a optimization methods that
-    // make use of the gradient.
+    //// Func 可以返回 double 类型的分数，或者可选地返回 ScoreGradient
+    // 类以指示函数的梯度，适用于使用梯度的优化方法。
     template<class Func, size_t N>
     Result<N> optimize(Func&& /*func*/,
                        const Input<N> &/*initvals*/,
                        const Bounds<N>& /*bounds*/) { return {}; }
 
-    // optional for randomized methods:
+    //// 随机方法的可选接口：
     void seed(long /*s*/) {}
 };
 
 namespace detail {
 
-// Helper to convert C style array to std::array. The copy should be optimized
-// away with modern compilers.
+//// 辅助函数：将 C 风格数组转换为 std::array。在现代编译器中，此复制应被优化掉。
 template<size_t N, class T> auto to_arr(const T *a)
 {
     std::array<T, N> r;
@@ -170,7 +166,7 @@ template<size_t N, class T> auto to_arr(const T (&a) [N])
 
 } // namespace detail
 
-// Helper functions to create bounds, initial value
+//// 创建边界、初始值的辅助函数
 template<size_t N> Bounds<N> bounds(const Bound (&b) [N]) { return detail::to_arr(b); }
 template<size_t N> Input<N> initvals(const double (&a) [N]) { return detail::to_arr(a); }
 template<size_t N> auto score_gradient(double s, const double (&grad)[N])

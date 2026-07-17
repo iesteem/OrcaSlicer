@@ -16,7 +16,7 @@ void Filler::_fill_surface_single(
     const Layer &layer      = generator->getTreesForLayer(this->layer_id);
     Polylines    fill_lines = layer.convertToLines(to_polygons(expolygon), scaled<coord_t>(0.5 * this->spacing - this->overlap));
 
-    // Apply multiline offset if needed
+    // 如果需要，应用多线偏移
     multiline_fill(fill_lines, params, spacing);
 
 

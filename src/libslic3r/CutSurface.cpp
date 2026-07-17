@@ -1,4 +1,4 @@
-#include "CutSurface.hpp"
+﻿#include "CutSurface.hpp"
 
 /// models_input.obj - Check transormation of model to each others
 /// projection_center.obj - circle representing center of projection with correct distance
@@ -42,26 +42,25 @@ using Project = Emboss::IProjection;
 using Project3d = Emboss::IProject3d;
 
 /// <summary>
-/// Set true for indices out of area of interest
+/// 对感兴趣区域外的索引设置为true
 /// </summary>
-/// <param name="skip_indicies">Flag to convert triangle to cgal</param>
-/// <param name="its">model</param>
-/// <param name="projection">Convert 2d point to pair of 3d points</param>
-/// <param name="shapes_bb">2d bounding box define AOI</param>
+/// <param name="skip_indicies">将三角形转换为cgal的标志</param>
+/// <param name="its">模型</param>
+/// <param name="projection">将2D点转换为一对3D点</param>
+/// <param name="shapes_bb">定义AOI的2D边界框</param>
 void set_skip_for_out_of_aoi(std::vector<bool>          &skip_indicies,
                              const indexed_triangle_set &its,
                              const Project              &projection,
                              const BoundingBox          &shapes_bb);
 
 /// <summary>
-/// Set true for indicies outward and almost parallel together.
-/// Note: internally calculate normals
+/// 对朝外且几乎平行的索引设置为true。
+/// 注意：内部计算法线
 /// </summary>
-/// <param name="skip_indicies">Flag to convert triangle to cgal</param>
-/// <param name="its">model</param>
-/// <param name="projection">Direction to measure angle</param>
-/// <param name="max_angle">Maximal allowed angle between opposit normal and
-/// projection direction [in DEG]</param>
+/// <param name="skip_indicies">将三角形转换为cgal的标志</param>
+/// <param name="its">模型</param>
+/// <param name="projection">测量角度的方向</param>
+/// <param name="max_angle">相对法线与投影方向之间允许的最大角度[度]</param>
 void set_skip_by_angle(std::vector<bool>          &skip_indicies,
                        const indexed_triangle_set &its,
                        const Project3d            &projection,
@@ -81,27 +80,27 @@ using P3 = CGAL::Epick::Point_3;
 inline Vec3d to_vec3d(const P3 &p) { return Vec3d(p.x(),p.y(),p.z()); }
 
 /// <summary>
-/// Convert triangle mesh model to CGAL Surface_mesh
-/// Filtrate out opposite triangles
-/// Add property map for source face index
+/// 将三角形网格模型转换为CGAL Surface_mesh
+/// 过滤出相对的三角形
+/// 为源面索引添加属性映射
 /// </summary>
-/// <param name="its">Model</param>
-/// <param name="skip_indicies">Flags that triangle should be skiped</param>
-/// <param name="flip">When true triangle will flip normal</param>
-/// <returns>CGAL mesh - half edge mesh</returns>
+/// <param name="its">模型</param>
+/// <param name="skip_indicies">应跳过三角形的标志</param>
+/// <param name="flip">为true时三角形将翻转法线</param>
+/// <returns>CGAL网格 - 半边网格</returns>
 CutMesh to_cgal(const indexed_triangle_set &its,
                 const std::vector<bool>    &skip_indicies,
                 bool                        flip = false);
 
 /// <summary>
-/// Covert 2d shape (e.g. Glyph) to CGAL model
-/// NOTE: internaly create
-/// edge_shape_map .. Property map to store conversion from edge to contour
-/// face_shape_map .. Property map to store conversion from face to contour
+/// 将2D形状（例如字形）转换为CGAL模型
+/// 注意：内部创建
+/// edge_shape_map .. 存储从边到轮廓转换的属性映射
+/// face_shape_map .. 存储从面到轮廓转换的属性映射
 /// </summary>
-/// <param name="shapes">2d shapes to project</param>
-/// <param name="projection">Define transformation 2d point into 3d</param>
-/// <returns>CGAL model of extruded shape</returns>
+/// <param name="shapes">要投影的2D形状</param>
+/// <param name="projection">定义将2D点变换为3D</param>
+/// <returns>挤出形状的CGAL模型</returns>
 CutMesh to_cgal(const ExPolygons &shapes, const Project &projection);
 // function to check result of projection. 2d int32_t -> 3d double
 bool exist_duplicit_vertex(const CutMesh& mesh);
@@ -247,17 +246,16 @@ using CutAOIs = std::vector<CutAOI>;
 using VCutAOIs = std::vector<CutAOIs>;
 
 /// <summary>
-/// Create AOIs(area of interest) on model surface
+/// 在模型表面上创建感兴趣区域（AOI）
 /// </summary>
-/// <param name="cgal_model">Input model converted to CGAL
-/// NOTE: will be extended by corefine edge </param>
-/// <param name="shapes">2d contours</param>
-/// <param name="cgal_shape">[const]Model made by shapes
-/// NOTE: Can't be definde as const because of corefine function input definition,
-/// but it is.</param> 
-/// <param name="projection_ratio">Wanted projection distance</param>
-/// <param name="s2i">Convert index to shape point from ExPolygons</param>
-/// <returns>Patches from model surface</returns>
+/// <param name="cgal_model">转换为CGAL的输入模型
+/// 注意：将由corefine边扩展</param>
+/// <param name="shapes">2D轮廓</param>
+/// <param name="cgal_shape">[const]由形状创建的模型
+/// 注意：由于corefine函数输入定义不能定义为const</param>
+/// <param name="projection_ratio">期望的投影距离</param>
+/// <param name="s2i">从ExPolygons转换索引到形状点</param>
+/// <returns>来自模型表面的补丁</returns>
 CutAOIs cut_from_model(CutMesh                &cgal_model,
                        const ExPolygons       &shapes,
                        /*const*/ CutMesh      &cgal_shape,
@@ -268,11 +266,11 @@ using Loop  = std::vector<VI>;
 using Loops = std::vector<Loop>;
 
 /// <summary>
-/// Create closed loops of contour vertices created from open half edges
+/// 从开放半边创建的轮廓顶点创建闭合环
 /// </summary>
-/// <param name="outlines">Unsorted half edges</param>
-/// <param name="mesh">Source mesh for half edges</param>
-/// <returns>Closed loops</returns>
+/// <param name="outlines">未排序的半边</param>
+/// <param name="mesh">半边的源网格</param>
+/// <returns>闭合环</returns>
 Loops create_loops(const std::vector<HI> &outlines, const CutMesh &mesh);
 
 // To track during diff_models,
@@ -322,7 +320,7 @@ struct ModelCutId
 class ModelCut2index
 {
     std::vector<uint32_t> m_offsets;
-    // for check range of index
+    // 用于检查索引范围
     uint32_t m_count;
 
 public:
@@ -334,16 +332,16 @@ public:
 };
 
 /// <summary>
-/// Differenciate other models
+/// 区分其他模型
 /// </summary>
-/// <param name="cuts">Patches from meshes</param>
-/// <param name="cut_models">Source points for Cutted AOIs
-/// NOTE: Create Reduction map as mesh property - clean on end</param>
-/// <param name="models">Original models without cut modifications
-/// used for differenciation
-/// NOTE: Clip function modify Mesh</param> 
-/// <param name="projection">Define projection direction</param> 
-/// <returns>Cuts differenciate by models - Patch</returns>
+/// <param name="cuts">来自网格的补丁</param>
+/// <param name="cut_models">切割AOI的源点
+/// 注意：创建缩减映射作为网格属性 - 最后清理</param>
+/// <param name="models">没有切割修改的原始模型
+/// 用于区分
+/// 注意：裁剪函数会修改网格</param>
+/// <param name="projection">定义投影方向</param>
+/// <returns>按模型区分的切割 - 补丁</returns>
 SurfacePatches diff_models(VCutAOIs             &cuts,
                            /*const*/ CutMeshes  &cut_models,
                            /*const*/ CutMeshes  &models,
@@ -412,16 +410,16 @@ using ProjectionDistances =  std::vector<ProjectionDistance>;
 using VDistances = std::vector<ProjectionDistances>;
 
 /// <summary>
-/// Calculate distances for SurfacePatches outline points
-/// NOTE:
-/// each model has to have "vert_shape_map" .. Know source of new vertices
+/// 计算SurfacePatches轮廓点的距离
+/// 注意：
+/// 每个模型必须有"vert_shape_map"..知道新顶点的来源
 /// </summary>
-/// <param name="patches">Part of surface</param>
-/// <param name="models">Vertices position</param>
-/// <param name="shapes_mesh">Mesh created by shapes</param>
-/// <param name="count_shapes_points">Count of contour points in shapes</param>
-/// <param name="projection_ratio">Define best distnace</param>
-/// <returns>Projection distances of cutted shape points</returns>
+/// <param name="patches">表面的一部分</param>
+/// <param name="models">顶点位置</param>
+/// <param name="shapes_mesh">由形状创建的网格</param>
+/// <param name="count_shapes_points">形状中轮廓点的数量</param>
+/// <param name="projection_ratio">定义最佳距离</param>
+/// <returns>切割形状点的投影距离</returns>
 VDistances calc_distances(const SurfacePatches &patches,
                           const CutMeshes      &models,
                           const CutMesh        &shapes_mesh,
@@ -466,27 +464,27 @@ std::vector<bool> select_patches(const ProjectionDistances &best_distances,
                                  const Project             &projection);
 
 /// <summary>
-/// Merge two surface cuts together
-/// Added surface cut will be consumed
+/// 合并两个表面切割在一起
+/// 添加的表面切割将被消耗
 /// </summary>
-/// <param name="sc">Surface cut to extend</param>
-/// <param name="sc_add">Surface cut to consume</param>
+/// <param name="sc">要扩展的表面切割</param>
+/// <param name="sc_add">要消耗的表面切割</param>
 void append(SurfaceCut &sc, SurfaceCut &&sc_add);
 
 /// <summary>
-/// Convert patch to indexed_triangle_set
+/// 将补丁转换为indexed_triangle_set
 /// </summary>
-/// <param name="patch">Part of surface</param>
-/// <returns>Converted patch</returns>
+/// <param name="patch">表面的一部分</param>
+/// <returns>转换后的补丁</returns>
 SurfaceCut patch2cut(SurfacePatch &patch);
 
 /// <summary>
-/// Merge masked patches to one surface cut
+/// 将遮罩补丁合并为一个表面切割
 /// </summary>
-/// <param name="patches">All patches
-/// NOTE: Not const because One needs to add property for Convert indices</param>
-/// <param name="mask">Mash for using patch</param>
-/// <returns>Result surface cut</returns>
+/// <param name="patches">所有补丁
+/// 注意：非const因为需要为转换索引添加属性</param>
+/// <param name="mask">用于补丁的遮罩</param>
+/// <returns>结果表面切割</returns>
 SurfaceCut merge_patches(/*const*/ SurfacePatches &patches,
                          const std::vector<bool>  &mask);
 
@@ -1062,7 +1060,7 @@ priv::CutMesh priv::to_cgal(const ExPolygons  &shapes,
 
 priv::ModelCut2index::ModelCut2index(const VCutAOIs &cuts)
 {
-    // prepare offsets
+    // 准备偏移量
     m_offsets.reserve(cuts.size());
     uint32_t offset = 0;
     for (const CutAOIs &model_cuts: cuts) {

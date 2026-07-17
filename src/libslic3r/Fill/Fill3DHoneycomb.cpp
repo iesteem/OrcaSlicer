@@ -6,35 +6,32 @@
 
 namespace Slic3r {
 
-// sign function
+// 符号函数
 template <typename T> int sgn(T val) {
   return (T(0) < val) - (val < T(0));
 }
   
 /*
-Creates a contiguous sequence of points at a specified height that make
-up a horizontal slice of the edges of a space filling truncated
-octahedron tesselation. The octahedrons are oriented so that the
-square faces are in the horizontal plane with edges parallel to the X
-and Y axes.
+创建在指定高度上的连续点序列，这些点构成空间填充截断八面体镶嵌的边缘水平切片。
+八面体的朝向使得正方形面位于水平平面，边缘平行于 X 和 Y 轴。
 
-Credits: David Eccles (gringer).
+致谢：David Eccles (gringer)。
 */
 
-// triangular wave function
-// this has period (gridSize * 2), and amplitude (gridSize / 2),
-// with triWave(pos = 0) = 0
+// 三角波函数
+// 周期为 (gridSize * 2)，振幅为 (gridSize / 2)，
+// 其中 triWave(pos = 0) = 0
 static coordf_t triWave(coordf_t pos, coordf_t gridSize)
 {
   float t = (pos / (gridSize * 2.)) + 0.25; // convert relative to grid size
-  t = t - (int)t; // extract fractional part
+  t = t - (int)t; // 提取小数部分
   return((1. - abs(t * 8. - 4.)) * (gridSize / 4.) + (gridSize / 4.));
 }
 
-// truncated octagonal waveform, with period and offset
-// as per the triangular wave function. The Z position adjusts
-// the maximum offset [between -(gridSize / 4) and (gridSize / 4)], with a
-// period of (gridSize * 2) and troctWave(Zpos = 0) = 0
+// 截断八面体波形，具有周期和偏移
+// 与三角波函数相同。Z 位置调整
+// 最大偏移 [介于 -(gridSize / 4) 和 (gridSize / 4) 之间]，具有
+// 周期 (gridSize * 2) 且 troctWave(Zpos = 0) = 0
 static coordf_t troctWave(coordf_t pos, coordf_t gridSize, coordf_t Zpos)
 {
   coordf_t Zcycle = triWave(Zpos, gridSize);
@@ -45,13 +42,12 @@ static coordf_t troctWave(coordf_t pos, coordf_t gridSize, coordf_t Zpos)
 	 (y * sgn(perpOffset)));
 }
 
-// Identify the important points of curve change within a truncated
-// octahedron wave (as waveform fraction t):
-// 1. Start of wave (always 0.0)
-// 2. Transition to upper "horizontal" part
-// 3. Transition from upper "horizontal" part
-// 4. Transition to lower "horizontal" part
-// 5. Transition from lower "horizontal" part
+// 识别截断八面体波内曲线变化的关键点（以波形分数 t 表示）：
+// 1. 波的起点（始终为 0.0）
+// 2. 过渡到上部"水平"部分
+// 3. 从上部"水平"部分过渡
+// 4. 过渡到下部"水平"部分
+// 5. 从下部"水平"部分过渡
 /*    o---o
  *   /     \
  * o/       \
@@ -65,11 +61,11 @@ static std::vector<coordf_t> getCriticalPoints(coordf_t Zpos, coordf_t gridSize)
   coordf_t perpOffset = abs(triWave(Zpos, gridSize) / 2.);
 
   coordf_t normalisedOffset = perpOffset / gridSize;
-  // // for debugging: just generate evenly-distributed points
+  // // 调试用：仅生成均匀分布的点
   // for(coordf_t i = 0; i < 2; i += 0.05){
   //   res.push_back(gridSize * i);
   // }
-  // note: 0 == straight line
+  // 注意：0 == 直线
   if(normalisedOffset > 0){
     res.push_back(gridSize * (0. + normalisedOffset));
     res.push_back(gridSize * (1. - normalisedOffset));
@@ -79,10 +75,8 @@ static std::vector<coordf_t> getCriticalPoints(coordf_t Zpos, coordf_t gridSize)
   return(res);
 }
 
-// Generate an array of points that are in the same direction as the
-// basic printing line (i.e. Y points for columns, X points for rows)
-// Note: a negative offset only causes a change in the perpendicular
-// direction
+// 生成与基本打印线方向相同的点数组（即列对应 Y 点，行对应 X 点）
+// 注意：负偏移仅导致垂直方向的变化
 static std::vector<coordf_t> colinearPoints(const coordf_t Zpos, coordf_t gridSize, std::vector<coordf_t> critPoints,
 					     const size_t baseLocation, size_t gridLength)
 {
@@ -97,8 +91,7 @@ static std::vector<coordf_t> colinearPoints(const coordf_t Zpos, coordf_t gridSi
   return points;
 }
 
-// Generate an array of points for the dimension that is perpendicular to
-// the basic printing line (i.e. X points for columns, Y points for rows)
+// 生成垂直于基本打印线方向的点数组（即列对应 X 点，行对应 Y 点）
   static std::vector<coordf_t> perpendPoints(const coordf_t Zpos, coordf_t gridSize, std::vector<coordf_t> critPoints,
 					     size_t baseLocation, size_t gridLength,
                                              size_t offsetBase, coordf_t perpDir)
@@ -125,8 +118,7 @@ static inline Pointfs zip(const std::vector<coordf_t> &x, const std::vector<coor
     return out;
 }
 
-// Generate a set of curves (array of array of 2d points) that describe a
-// horizontal slice of a truncated regular octahedron.
+// 生成一组曲线（2D 点数组），描述截断正八面体的水平切片。
 static std::vector<Pointfs> makeActualGrid(coordf_t Zpos, coordf_t gridSize, size_t boundsX, size_t boundsY)
 {
   std::vector<Pointfs> points;
@@ -159,10 +151,8 @@ static std::vector<Pointfs> makeActualGrid(coordf_t Zpos, coordf_t gridSize, siz
   return points;
 }
 
-// Generate a set of curves (array of array of 2d points) that describe a
-// horizontal slice of a truncated regular octahedron with a specified
-// grid square size.
-// gridWidth and gridHeight define the width and height of the bounding box respectively
+// 生成一组曲线（2D 点数组），描述具有指定网格大小的截断正八面体的水平切片。
+// gridWidth 和 gridHeight 分别定义边界框的宽度和高度
 static Polylines makeGrid(coordf_t z, coordf_t gridSize, coordf_t boundWidth, coordf_t boundHeight, bool fillEvenly)
 {
   std::vector<Pointfs> polylines = makeActualGrid(z, gridSize, boundWidth, boundHeight);
@@ -178,14 +168,14 @@ static Polylines makeGrid(coordf_t z, coordf_t gridSize, coordf_t boundWidth, co
   return result;
 }
 
-// FillParams has the following useful information:
-// density <0 .. 1>  [proportion of space to fill]
+// FillParams 包含以下有用信息：
+// density <0 .. 1>  [填充空间的比例]
 // anchor_length     [???]
 // anchor_length_max [???]
-// dont_connect()    [avoid connect lines]
-// dont_adjust       [avoid filling space evenly]
-// monotonic         [fill strictly left to right]
-// complete          [complete each loop]
+// dont_connect()    [避免连接线]
+// dont_adjust       [避免均匀填充空间]
+// monotonic         [严格从左到右填充]
+// complete          [完成每个循环]
 
 void Fill3DHoneycomb::_fill_surface_single(
     const FillParams                &params,
@@ -194,52 +184,47 @@ void Fill3DHoneycomb::_fill_surface_single(
     ExPolygon                        expolygon,
     Polylines                       &polylines_out)
 {
-    // no rotation is supported for this infill pattern
-    // Support infill angle 
+    // 此填充图案不支持旋转
+    // 支持填充角度
     auto infill_angle   = float(this->angle);
     if (std::abs(infill_angle) >= EPSILON) expolygon.rotate(-infill_angle);
     BoundingBox bb = expolygon.contour.bounding_box();
 
-    // Note: with equally-scaled X/Y/Z, the pattern will create a vertically-stretched
-    // truncated octahedron; so Z is pre-adjusted first by scaling by sqrt(2)
+    // 注意：在 X/Y/Z 等比例缩放的情况下，图案将创建一个垂直拉伸的截断八面体；因此 Z 首先通过缩放 sqrt(2) 进行预调整
     coordf_t zScale = sqrt(2);
 
-    // adjustment to account for the additional distance of octagram curves
-    // note: this only strictly applies for a rectangular area where the total
-    //       Z travel distance is a multiple of the spacing... but it should
-    //       be at least better than the prevous estimate which assumed straight
-    //       lines
-    // = 4 * integrate(func=4*x(sqrt(2) - 1) + 1, from=0, to=0.25)
-    // = (sqrt(2) + 1) / 2 [... I think]
-    // make a first guess at the preferred grid Size
+    // 调整以考虑八边形曲线的额外距离
+    // 注意：这仅严格适用于矩形区域，其中总 Z 行程距离是间距的倍数……但它应该至少比之前假设直线的估计要好
+    // = 4 * 积分(func=4*x(sqrt(2) - 1) + 1, from=0, to=0.25)
+    // = (sqrt(2) + 1) / 2 [... 我认为]
+    // 对首选网格大小进行初步估计
     coordf_t gridSize = (scale_(this->spacing) * ((zScale + 1.) / 2.) * params.multiline  / params.density);
 
-    // This density calculation is incorrect for many values > 25%, possibly
-    // due to quantisation error, so this value is used as a first guess, then the
-    // Z scale is adjusted to make the layer patterns consistent / symmetric
-    // This means that the resultant infill won't be an ideal truncated octahedron,
-    // but it should look better than the equivalent quantised version
+    // 此密度计算对于许多 > 25% 的值是不正确的，可能是由于量化误差，
+    // 因此该值用作初步估计，然后调整 Z 比例以使层图案一致/对称
+    // 这意味着生成的填充不会是理想的截断八面体，
+    // 但它应该比等效的量化版本看起来更好
 
     coordf_t layerHeight = scale_(thickness_layers);
-    // ceiling to an integer value of layers per Z
-    // (with a little nudge in case it's close to perfect)
+    // 向上取整为每 Z 层的整数值
+    // （如果接近完美，则稍微调整）
     coordf_t layersPerModule = floor((gridSize * 2) / (zScale * layerHeight) + 0.05);
-    if(params.density > 0.42){ // exact layer pattern for >42% density
+    if(params.density > 0.42){ // >42% 密度的精确层模式
       layersPerModule = 2;
-      // re-adjust the grid size for a partial octahedral path
-      // (scale of 1.1 guessed based on modeling)
+      // 为部分八面体路径重新调整网格大小
+      // （基于建模估计的 1.1 比例）
       gridSize = (scale_(this->spacing) * 1.1 * params.multiline  / params.density);
-      // re-adjust zScale to make layering consistent
+      // 重新调整 zScale 以使分层一致
       zScale = (gridSize * 2) / (layersPerModule * layerHeight);
     } else {
       if(layersPerModule < 2){
 	layersPerModule = 2;
       }
-      // re-adjust zScale to make layering consistent
+      // 重新调整 zScale 以使分层一致
       zScale = (gridSize * 2) / (layersPerModule * layerHeight);
-      // re-adjust the grid size to account for the new zScale
+      // 重新调整网格大小以考虑新的 zScale
       gridSize = (scale_(this->spacing) * ((zScale + 1.) / 2.) * params.multiline  / params.density);
-      // re-calculate layersPerModule and zScale
+      // 重新计算 layersPerModule 和 zScale
       layersPerModule = floor((gridSize * 2) / (zScale * layerHeight) + 0.05);
       if(layersPerModule < 2){
 	layersPerModule = 2;
@@ -247,12 +232,11 @@ void Fill3DHoneycomb::_fill_surface_single(
       zScale = (gridSize * 2) / (layersPerModule * layerHeight);
     }
 
-    // align bounding box to a multiple of our honeycomb grid module
-    // (a module is 2*$gridSize since one $gridSize half-module is 
-    // growing while the other $gridSize half-module is shrinking)
+    // 将边界框对齐到蜂巢网格模块的倍数
+    // （一个模块是 2*$gridSize，因为一个 $gridSize 半模块在增长而另一个 $gridSize 半模块在收缩）
     bb.merge(align_to_grid(bb.min, Point(gridSize*4, gridSize*4)));
 
-    // generate pattern
+    // 生成图案
     Polylines polylines =
       makeGrid(
 	       scale_(this->z) * zScale,
@@ -261,34 +245,34 @@ void Fill3DHoneycomb::_fill_surface_single(
 	       bb.size()(1),
 	       !params.dont_adjust);
 
-    // move pattern in place
+    // 将图案移动到适当位置
     for (Polyline &pl : polylines){
       pl.translate(bb.min);
-      pl.simplify(5 * spacing); // simplify to 5x line width
+      pl.simplify(5 * spacing); // 简化为 5 倍线宽
     }
 
     // Apply multiline offset if needed
     multiline_fill(polylines, params, spacing);
 
-    // clip pattern to boundaries, chain the clipped polylines
+    // 将图案裁剪到边界，链接裁剪后的多段线
     polylines = intersection_pl(polylines, to_polygons(expolygon));
 
     if (! polylines.empty()) {
-    // Remove very small bits, but be careful to not remove infill lines connecting thin walls!
-    // The infill perimeter lines should be separated by around a single infill line width.
+    // 移除非常小的片段，但注意不要移除连接薄壁的填充线！
+    // 填充周长线应间隔大约一个填充线宽。
     const double minlength = scale_(0.8 * this->spacing);
     polylines.erase(
 	std::remove_if(polylines.begin(), polylines.end(), [minlength](const Polyline &pl) { return pl.length() < minlength; }),
 	polylines.end());
     }
 
-    // copy from fliplines
+    // 从 fliplines 复制
     if (!polylines.empty()) {
-        int infill_start_idx = polylines_out.size(); // only rotate what belongs to us.
-        // connect lines
+        int infill_start_idx = polylines_out.size(); // 仅旋转属于我们的部分。
+        // 连接线
         chain_or_connect_infill(std::move(polylines), expolygon, polylines_out, this->spacing, params);
 
-        // rotate back
+        // 旋转回来
         if (std::abs(infill_angle) >= EPSILON) {
           for (auto it = polylines_out.begin() + infill_start_idx; it != polylines_out.end(); ++it) 
             it->rotate(infill_angle);

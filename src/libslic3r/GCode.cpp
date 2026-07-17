@@ -52,8 +52,8 @@
 
 #include <tbb/parallel_for.h>
 #include "calib.hpp"
-// Intel redesigned some TBB interface considerably when merging TBB with their oneAPI set of libraries, see GH #7332.
-// We are using quite an old TBB 2017 U7. Before we update our build servers, let's use the old API, which is deprecated in up to date TBB.
+// Intel 在将 TBB 合并到其 oneAPI 库集时对某些 TBB 接口进行了大幅重新设计，请参见 GH #7332。
+// 我们使用的是相当旧的 TBB 2017 U7。在更新构建服务器之前，我们使用旧的 API，该 API 在最新 TBB 中已被弃用。
 #if !defined(TBB_VERSION_MAJOR)
 #include <tbb/version.h>
 #endif
@@ -85,8 +85,8 @@ using namespace std::literals::string_view_literals;
 
 namespace Slic3r {
 
-//! macro used to mark string used at localization,
-//! return same string
+//! 用于标记本地化所用字符串的宏，
+//! 返回相同字符串
 #define L(s) (s)
 #define _(s) Slic3r::I18N::translate(s)
 
@@ -101,13 +101,13 @@ Vec2d travel_point_3;
 
 static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 {
-    // give safe value in case there is no start_end_points in config
+    // 在配置中没有 start_end_points 时提供安全值
     std::vector<Vec2d> out_points;
     out_points.emplace_back(Vec2d(54, 0));
     out_points.emplace_back(Vec2d(54, 0));
     out_points.emplace_back(Vec2d(54, 245));
 
-    // get the start_end_points from config (20, -3) (54, 245)
+    // 从配置中获取 start_end_points (20, -3) (54, 245)
     Pointfs points = print.config().start_end_points.values;
     if (points.size() != 2)
         return out_points;
@@ -115,7 +115,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     Vec2d start_point = points[0];
     Vec2d end_point   = points[1];
 
-    // the cutter area size(18, 28)
+    // 切割区域尺寸(18, 28)
     Pointfs excluse_area = print.config().bed_exclude_area.values;
     if (excluse_area.size() != 4)
         return out_points;
@@ -129,7 +129,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
     bool can_travel_form_left = true;
 
-    // step 1: get the x-range intervals of all objects
+    // 步骤 1：获取所有对象的 x 范围区间
     std::vector<std::pair<double, double>> object_intervals;
     for (PrintObject* print_object : print.objects()) {
         const PrintInstances& print_instances = print_object->instances();
@@ -168,7 +168,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         }
     }
 
-    // step 2: get the available x-range
+    // 步骤 2：获取可用的 x 范围
     std::sort(object_intervals.begin(), object_intervals.end(),
               [](const std::pair<double, double>& left, const std::pair<double, double>& right) { return left.first < right.first; });
     std::vector<std::pair<double, double>> available_intervals;
@@ -180,7 +180,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     }
     available_intervals.push_back(std::make_pair(start_position, 255));
 
-    // step 3: get the nearest path
+    // 步骤 3：获取最近的路径
     double new_path = 255;
     for (auto available_interval : available_intervals) {
         if (available_interval.first > end_x_position) {
@@ -199,7 +199,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         }
     }
 
-    // step 4: generate path points  (new_path == start_x_position means not need to change path)
+    // 步骤 4：生成路径点 (new_path == start_x_position 表示无需更改路径)
     Vec2d out_point_1;
     Vec2d out_point_2;
     Vec2d out_point_3;
@@ -221,14 +221,14 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     return out_points;
 }
 
-// Only add a newline in case the current G-code does not end with a newline.
+// 仅在当前 G-code 不以换行结尾时添加换行。
 static inline void check_add_eol(std::string& gcode)
 {
     if (!gcode.empty() && gcode.back() != '\n')
         gcode += '\n';
 }
 
-// Return true if tch_prefix is found in custom_gcode
+// 如果在 custom_gcode 中找到 tch_prefix 则返回 true
 static bool custom_gcode_changes_tool(const std::string& custom_gcode, const std::string& tch_prefix, unsigned next_extruder)
 {
     bool   ok       = false;
@@ -238,13 +238,13 @@ static bool custom_gcode_changes_tool(const std::string& custom_gcode, const std
         if (pos + 1 == custom_gcode.size())
             break;
         from_pos = pos + 1;
-        // only whitespace is allowed before the command
+        // 命令前只允许空白字符
         while (--pos < custom_gcode.size() && custom_gcode[pos] != '\n') {
             if (!std::isspace(custom_gcode[pos]))
                 goto NEXT;
         }
         {
-            // we should also check that the extruder changes to what was expected
+            // 我们还应该检查挤出机是否按预期切换
             std::istringstream ss(custom_gcode.substr(from_pos, std::string::npos));
             unsigned           num = 0;
             if (ss >> num)
@@ -262,20 +262,20 @@ std::string OozePrevention::pre_toolchange(GCode& gcodegen)
     unsigned int extruder_id        = gcodegen.writer().extruder()->id();
     const auto&  filament_idle_temp = gcodegen.config().idle_temperature;
     if (filament_idle_temp.get_at(extruder_id) == 0) {
-        // There is no idle temperature defined in filament settings.
-        // Use the delta value from print config.
+        // 耗材设置中未定义待机温度。
+        // 使用打印配置中的差值。
         if (gcodegen.config().standby_temperature_delta.value != 0) {
-            // we assume that heating is always slower than cooling, so no need to block
+            // 我们假设加热总是比冷却慢，因此无需阻塞
             gcode += gcodegen.writer().set_temperature(this->_get_temp(gcodegen) + gcodegen.config().standby_temperature_delta.value, false,
                                                        extruder_id);
             gcode.pop_back();
-            gcode += " ;cooldown\n"; // this is a marker for GCodeProcessor, so it can supress the commands when needed
+            gcode += " ;cooldown\n"; // 这是 GCodeProcessor 的标记，使其可以在需要时抑制这些命令
         }
     } else {
-        // Use the value from filament settings. That one is absolute, not delta.
+        // 使用耗材设置中的值。该值是绝对值，而非差值。
         gcode += gcodegen.writer().set_temperature(filament_idle_temp.get_at(extruder_id), false, extruder_id);
         gcode.pop_back();
-        gcode += " ;cooldown\n"; // this is a marker for GCodeProcessor, so it can supress the commands when needed
+        gcode += " ;cooldown\n"; // 这是 GCodeProcessor 的标记，使其可以在需要时抑制这些命令
     }
 
     return gcode;
@@ -291,17 +291,17 @@ std::string OozePrevention::post_toolchange(GCode& gcodegen)
 
 int OozePrevention::_get_temp(const GCode& gcodegen) const
 {
-    // First layer temperature should be used when on the first layer (obviously) and when
-    // "other layers" is set to zero (which means it should not be used).
+    // 在第一层时应使用第一层温度（显然），并且当
+    // "其他层"设置为零时（这意味着不应使用它）。
     return (gcodegen.layer() == nullptr || gcodegen.layer()->id() == 0 ||
             gcodegen.config().nozzle_temperature.get_at(gcodegen.writer().extruder()->id()) == 0) ?
                gcodegen.config().nozzle_temperature_initial_layer.get_at(gcodegen.writer().extruder()->id()) :
                gcodegen.config().nozzle_temperature.get_at(gcodegen.writer().extruder()->id());
 }
 
-// Orca:
-// Function to calculate the excess retraction length that should be retracted either before or after wiping
-// in order for the wipe operation to respect the filament retraction speed
+// Orca：
+// 计算应在擦拭之前或之后回抽的额外回抽长度
+// 以使擦拭操作遵循耗材回抽速度
 Wipe::RetractionValues Wipe::calculateWipeRetractionLengths(GCode& gcodegen, bool toolchange)
 {
     auto& writer      = gcodegen.writer();
@@ -310,48 +310,48 @@ Wipe::RetractionValues Wipe::calculateWipeRetractionLengths(GCode& gcodegen, boo
     auto  extruder_id = extruder->id();
     auto  last_pos    = gcodegen.last_pos();
 
-    // Declare & initialize retraction lengths
+    // 声明并初始化回抽长度
     double retraction_length_remaining = 0, retractionBeforeWipe = 0, retractionDuringWipe = 0;
 
-    // initialise the remaining retraction amount with the full retraction amount.
+    // 用完整的回抽量初始化剩余回抽量。
     retraction_length_remaining = toolchange ? extruder->retract_length_toolchange() : extruder->retraction_length();
 
-    // nothing to retract - return early
+    // 无需回抽 - 提前返回
     if (retraction_length_remaining <= EPSILON)
         return {0.f, 0.f};
 
-    // calculate retraction before wipe distance from the user setting. Keep adding to this variable any excess retraction needed
-    // to be performed before the wipe.
+    // 根据用户设置计算回抽前的擦拭距离。持续向此变量添加任何需要在
+    // 在擦拭前执行的额外回抽。
     retractionBeforeWipe = retraction_length_remaining * extruder->retract_before_wipe();
     retraction_length_remaining -= retractionBeforeWipe; // subtract it from the remaining retraction length
 
-    // all of the retraction is to be done before the wipe
+    // 所有回抽将在擦拭前完成
     if (retraction_length_remaining <= EPSILON)
         return {retractionBeforeWipe, 0.f};
 
-    // Calculate wipe speed
+    // 计算擦拭速度
     double wipe_speed = config.role_based_wipe_speed ? writer.get_current_speed() / 60.0 : config.get_abs_value("wipe_speed");
     wipe_speed        = std::max(wipe_speed, 10.0);
 
-    // Process wipe path & calculate wipe path length
+    // 处理擦拭路径并计算擦拭路径长度
     double   wipe_dist = scale_(config.wipe_distance.get_at(extruder_id));
     Polyline wipe_path = {last_pos};
     wipe_path.append(this->path.points.begin() + 1, this->path.points.end());
     double wipe_path_length = std::min(wipe_path.length(), wipe_dist);
 
-    // Calculate the maximum retraction amount during wipe
+    // 计算擦拭期间的最大回抽量
     retractionDuringWipe = config.retraction_speed.get_at(extruder_id) * unscale_(wipe_path_length) / wipe_speed;
-    // If the maximum retraction amount during wipe is too small, return 0 and retract everything prior to the wipe.
+    // 如果擦拭期间的最大回抽量太小，则返回 0 并在擦拭前全部回抽。
     if (retractionDuringWipe <= EPSILON)
         return {retractionBeforeWipe, 0.f};
 
-    // If the maximum retraction amount during wipe is greater than any remaining retraction length
-    // return the remaining retraction length to be retracted during the wipe
+    // 如果擦拭期间的最大回抽量大于任何剩余回抽长度
+    // 返回要在擦拭期间回抽的剩余回抽长度
     if (retractionDuringWipe - retraction_length_remaining > EPSILON)
         return {retractionBeforeWipe, retraction_length_remaining};
 
-    // We will always proceed with incrementing the retraction amount before wiping with the difference
-    // and return the maximum allowed wipe amount to be retracted during the wipe move
+    // 我们将始终在擦拭前增加回抽量（差值部分）
+    // 并返回在擦拭移动期间允许回抽的最大擦拭量
     retractionBeforeWipe += retraction_length_remaining - retractionDuringWipe;
     return {retractionBeforeWipe, retractionDuringWipe};
 }
@@ -360,24 +360,24 @@ std::string Wipe::wipe(GCode& gcodegen, double length, bool toolchange, bool is_
 {
     std::string gcode;
 
-    /*  Reduce feedrate a bit; travel speed is often too high to move on existing material.
-        Too fast = ripping of existing material; too slow = short wipe path, thus more blob.  */
+    /*  稍微降低进给率；移动速度通常过高，不适合在已有材料上移动。
+        过快 = 撕裂已有材料；过慢 = 擦拭路径短，导致更多拉丝。  */
     double _wipe_speed = gcodegen.config().get_abs_value("wipe_speed"); // gcodegen.writer().config.travel_speed.value * 0.8;
     if (gcodegen.config().role_based_wipe_speed)
         _wipe_speed = gcodegen.writer().get_current_speed() / 60.0;
     if (_wipe_speed < 10)
         _wipe_speed = 10;
 
-    // SoftFever: allow 100% retract before wipe
+    // SoftFever：允许在擦拭前 100% 回抽
     if (length >= 0) {
-        /*  Calculate how long we need to travel in order to consume the required
-            amount of retraction. In other words, how far do we move in XY at wipe_speed
-            for the time needed to consume retraction_length at retraction_speed?  */
+        /*  计算需要移动多长距离以消耗所需的回抽量。
+            换句话说，在以擦拭速度移动 XY 时，
+            需要多长时间以回抽速度消耗 retraction_length？  */
         // BBS
         double wipe_dist = scale_(gcodegen.config().wipe_distance.get_at(gcodegen.writer().extruder()->id()));
 
-        /*  Take the stored wipe path and replace first point with the current actual position
-            (they might be different, for example, in case of loop clipping).  */
+        /*  获取存储的擦拭路径并将第一个点替换为当前实际位置
+            （它们可能不同，例如在循环裁剪的情况下）。  */
         Polyline wipe_path;
         wipe_path.append(gcodegen.last_pos());
         wipe_path.append(this->path.points.begin() + 1, this->path.points.end());
@@ -386,16 +386,16 @@ std::string Wipe::wipe(GCode& gcodegen, double length, bool toolchange, bool is_
 
         // subdivide the retraction in segments
         if (!wipe_path.empty()) {
-            // BBS. Handle short path case.
+            // BBS. 处理短路径情况。
             if (wipe_path.length() < wipe_dist) {
                 wipe_dist = wipe_path.length();
-                // BBS: avoid to divide 0
+                // BBS：避免除以零
                 wipe_dist = wipe_dist < EPSILON ? EPSILON : wipe_dist;
             }
 
-            // add tag for processor
+            // 为处理器添加标签
             gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Start) + "\n";
-            // BBS: don't need to enable cooling makers when this is the last wipe. Because no more cooling layer will clean this "_WIPE"
+            // BBS：当这是最后一次擦拭时，不需要启用冷却标记。因为没有更多的冷却层会清理这个 "_WIPE"
             // Softfever:
             std::string cooling_mark = "";
             if (gcodegen.enable_cooling_markers() && !is_last)
@@ -405,18 +405,18 @@ std::string Wipe::wipe(GCode& gcodegen, double length, bool toolchange, bool is_
             for (const Line& line : wipe_path.lines()) {
                 double segment_length = line.length();
                 double dE             = length * (segment_length / wipe_dist);
-                // BBS: fix this FIXME
-                // FIXME one shall not generate the unnecessary G1 Fxxx commands, here wipe_speed is a constant inside this cycle.
-                //  Is it here for the cooling markers? Or should it be outside of the cycle?
+                // BBS：修复此 FIXME
+                // FIXME 不应生成不必要的 G1 Fxxx 命令，此处 wipe_speed 在此循环内是常量。
+                //  它在这里是为了冷却标记吗？还是应该在循环之外？
                 // gcode += gcodegen.writer().set_speed(wipe_speed * 60, "", gcodegen.enable_cooling_markers() ? ";_WIPE" : "");
                 gcode += gcodegen.writer().extrude_to_xy(gcodegen.point_to_gcode(line.b), -dE, "wipe and retract");
             }
-            // add tag for processor
+            // 为处理器添加标签
             gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_End) + "\n";
             gcodegen.set_last_pos(wipe_path.points.back());
         }
 
-        // prevent wiping again on same path
+        // 防止在同一路径上再次擦拭
         this->reset_path();
     }
 
@@ -437,8 +437,8 @@ std::string WipeTowerIntegration::append_tcr(GCode& gcodegen, const WipeTower::T
 
     std::string gcode;
 
-    // Toolchangeresult.gcode assumes the wipe tower corner is at the origin (except for priming lines)
-    // We want to rotate and shift all extrusions (gcode postprocessing) and starting and ending position
+    // Toolchangeresult.gcode 假定擦拭塔角位于原点（灌注线除外）
+    // 我们需要旋转和平移所有挤出（G代码后处理）以及起始和结束位置
     float alpha = m_wipe_tower_rotation / 180.f * float(M_PI);
 
     auto transform_wt_pt = [&alpha, this](const Vec2f& pt) -> Vec2f {
@@ -459,14 +459,14 @@ std::string WipeTowerIntegration::append_tcr(GCode& gcodegen, const WipeTower::T
 
     std::string tcr_rotated_gcode = post_process_wipe_tower_moves(tcr, wipe_tower_offset, wipe_tower_rotation);
 
-    // BBS: add partplate logic
+    // BBS：添加打印板逻辑
     Vec2f plate_origin_2d(m_plate_origin(0), m_plate_origin(1));
 
     // BBS: toolchange gcode will move to start_pos,
     // so only perform movement when printing sparse partition to support upper layer.
     // start_pos is the position in plate coordinate.
     if (!tcr.priming && tcr.is_finish_first) {
-        // Move over the wipe tower.
+        // 移动到擦拭塔上方。
         gcode += gcodegen.retract();
         gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
         gcode += gcodegen.travel_to(wipe_tower_point_to_object_point(gcodegen, start_pos + plate_origin_2d), erMixed,
@@ -478,7 +478,7 @@ std::string WipeTowerIntegration::append_tcr(GCode& gcodegen, const WipeTower::T
     gcodegen.m_writer.add_object_end_labels(gcode);
 
     double current_z = gcodegen.writer().get_position().z();
-    if (z == -1.) // in case no specific z was provided, print at current_z pos
+    if (z == -1.) // 如果没有提供特定的 z，则在 current_z 位置打印
         z = current_z;
     if (!is_approx(z, current_z)) {
         gcode += gcodegen.writer().retract();
@@ -486,10 +486,10 @@ std::string WipeTowerIntegration::append_tcr(GCode& gcodegen, const WipeTower::T
         gcode += gcodegen.writer().unretract();
     }
 
-    // Process the end filament gcode.
+    // 处理结束耗材 G 代码。
     std::string end_filament_gcode_str;
     if (gcodegen.writer().extruder() != nullptr) {
-        // Process the custom filament_end_gcode in case of single_extruder_multi_material.
+        // 在单挤出机多材料情况下处理自定义 filament_end_gcode。
         unsigned int       old_extruder_id    = gcodegen.writer().extruder()->id();
         const std::string& filament_end_gcode = gcodegen.config().filament_end_gcode.get_at(old_extruder_id);
         if (gcodegen.writer().extruder() != nullptr && !filament_end_gcode.empty()) {
@@ -497,15 +497,15 @@ std::string WipeTowerIntegration::append_tcr(GCode& gcodegen, const WipeTower::T
             check_add_eol(end_filament_gcode_str);
         }
     }
-    // BBS: increase toolchange count
+    // BBS：增加工具切换计数
     gcodegen.m_toolchange_count++;
 
-    // BBS: should be placed before toolchange parsing
+    // BBS：应放置在工具切换解析之前
     std::string toolchange_retract_str = gcodegen.retract(true, false);
     check_add_eol(toolchange_retract_str);
 
-    // Process the custom change_filament_gcode. If it is empty, provide a simple Tn command to change the filament.
-    // Otherwise, leave control to the user completely.
+    // 处理自定义 change_filament_gcode。如果为空，则提供简单的 Tn 命令来切换耗材。
+    // 否则，完全由用户控制。
     std::string        toolchange_gcode_str;
     const std::string& change_filament_gcode = gcodegen.config().change_filament_gcode.value;
     //        m_max_layer_z = std::max(m_max_layer_z, tcr.print_z);
@@ -552,8 +552,8 @@ std::string WipeTowerIntegration::append_tcr(GCode& gcodegen, const WipeTower::T
             config.set_key_value("max_layer_z", new ConfigOptionFloat(gcodegen.m_max_layer_z));
             config.set_key_value("relative_e_axis", new ConfigOptionBool(full_config.use_relative_e_distances));
             config.set_key_value("toolchange_count", new ConfigOptionInt((int) gcodegen.m_toolchange_count));
-            // BBS: fan speed is useless placeholer now, but we don't remove it to avoid
-            // slicing error in old change_filament_gcode in old 3MF
+            // BBS：风扇速度现在是无效的占位符，但我们不删除它以避免
+            // 旧版 3MF 中旧 change_filament_gcode 出现切片错误
             config.set_key_value("fan_speed", new ConfigOptionInt((int) 0));
             config.set_key_value("old_retract_length", new ConfigOptionFloat(old_retract_length));
             config.set_key_value("new_retract_length", new ConfigOptionFloat(new_retract_length));
@@ -595,15 +595,15 @@ std::string WipeTowerIntegration::append_tcr(GCode& gcodegen, const WipeTower::T
         toolchange_gcode_str = gcodegen.placeholder_parser_process("change_filament_gcode", change_filament_gcode, new_extruder_id, &config);
         check_add_eol(toolchange_gcode_str);
 
-        // retract before toolchange
+        // 工具切换前回抽
         toolchange_gcode_str = toolchange_retract_str + toolchange_gcode_str;
         // BBS
         {
-            // BBS: current position and fan_speed is unclear after interting change_filament_gcode
+            // BBS：插入 change_filament_gcode 后，当前位置和风扇速度不明确
             check_add_eol(toolchange_gcode_str);
             toolchange_gcode_str += ";_FORCE_RESUME_FAN_SPEED\n";
             gcodegen.writer().set_current_position_clear(false);
-            // BBS: check whether custom gcode changes the z position. Update if changed
+            // BBS：检查自定义 G 代码是否更改了 z 位置。如果更改则更新
             double temp_z_after_tool_change;
             if (GCodeProcessor::get_last_z_from_gcode(toolchange_gcode_str, temp_z_after_tool_change)) {
                 Vec3d pos = gcodegen.writer().get_position();
@@ -612,14 +612,14 @@ std::string WipeTowerIntegration::append_tcr(GCode& gcodegen, const WipeTower::T
             }
         }
 
-        // move to start_pos for wiping after toolchange
+        // 工具切换后移动到 start_pos 进行擦拭
         std::string start_pos_str;
         start_pos_str = gcodegen.travel_to(wipe_tower_point_to_object_point(gcodegen, start_pos + plate_origin_2d), erMixed,
                                            "Move to start pos");
         check_add_eol(start_pos_str);
         toolchange_gcode_str += start_pos_str;
 
-        // unretract before wiping
+        // 擦拭前取消回抽
         toolchange_gcode_str += gcodegen.unretract();
         check_add_eol(toolchange_gcode_str);
     }
@@ -638,11 +638,11 @@ std::string WipeTowerIntegration::append_tcr(GCode& gcodegen, const WipeTower::T
                                       gcodegen.m_config.retraction_distances_when_cut.get_at(new_extruder_id));
     gcodegen.placeholder_parser().set("long_retraction_when_cut", gcodegen.m_config.long_retractions_when_cut.get_at(new_extruder_id));
 
-    // Process the start filament gcode.
+    // 处理开始耗材 G 代码。
     std::string        start_filament_gcode_str;
     const std::string& filament_start_gcode = gcodegen.config().filament_start_gcode.get_at(new_extruder_id);
     if (!filament_start_gcode.empty()) {
-        // Process the filament_start_gcode for the active filament only.
+        // 仅为当前激活的耗材处理 filament_start_gcode。
         DynamicConfig config;
         config.set_key_value("filament_extruder_id", new ConfigOptionInt(new_extruder_id));
         start_filament_gcode_str = gcodegen.placeholder_parser_process("filament_start_gcode", filament_start_gcode, new_extruder_id,
@@ -661,15 +661,15 @@ std::string WipeTowerIntegration::append_tcr(GCode& gcodegen, const WipeTower::T
     gcode += tcr_gcode;
     check_add_eol(toolchange_gcode_str);
 
-    // SoftFever: set new PA for new filament
+    // SoftFever：为新耗材设置新的 PA
     if (gcodegen.config().enable_pressure_advance.get_at(new_extruder_id)) {
         gcode += gcodegen.writer().set_pressure_advance(gcodegen.config().pressure_advance.get_at(new_extruder_id));
-        // Orca: Adaptive PA
-        // Reset Adaptive PA processor last PA value
+        // Orca：自适应 PA
+        // 重置自适应 PA 处理器上一个 PA 值
         gcodegen.m_pa_processor->resetPreviousPA(gcodegen.config().pressure_advance.get_at(new_extruder_id));
     }
 
-    // A phony move to the end position at the wipe tower.
+    // 一个假移动到擦拭塔的结束位置。
     gcodegen.writer().travel_to_xy((end_pos + plate_origin_2d).cast<double>());
     gcodegen.set_last_pos(wipe_tower_point_to_object_point(gcodegen, end_pos + plate_origin_2d));
     if (!is_approx(z, current_z)) {
@@ -679,13 +679,13 @@ std::string WipeTowerIntegration::append_tcr(GCode& gcodegen, const WipeTower::T
     }
 
     else {
-        // Prepare a future wipe.
+        // 准备未来的擦拭。
         gcodegen.m_wipe.reset_path();
         for (const Vec2f& wipe_pt : tcr.wipe_path)
             gcodegen.m_wipe.path.points.emplace_back(wipe_tower_point_to_object_point(gcodegen, transform_wt_pt(wipe_pt)));
     }
 
-    // Let the planner know we are traveling between objects.
+    // 让规划器知道我们正在对象之间移动。
     gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
     return gcode;
 }
@@ -699,8 +699,8 @@ std::string WipeTowerIntegration::append_tcr2(GCode& gcodegen, const WipeTower::
 
     std::string gcode;
 
-    // Toolchangeresult.gcode assumes the wipe tower corner is at the origin (except for priming lines)
-    // We want to rotate and shift all extrusions (gcode postprocessing) and starting and ending position
+    // Toolchangeresult.gcode 假定擦拭塔角位于原点（灌注线除外）
+    // 我们需要旋转和平移所有挤出（G代码后处理）以及起始和结束位置
     float alpha = m_wipe_tower_rotation / 180.f * float(M_PI);
 
     auto transform_wt_pt = [&alpha, this](const Vec2f& pt) -> Vec2f {
@@ -720,7 +720,7 @@ std::string WipeTowerIntegration::append_tcr2(GCode& gcodegen, const WipeTower::
     float wipe_tower_rotation = tcr.priming ? 0.f : alpha;
     Vec2f plate_origin_2d(m_plate_origin(0), m_plate_origin(1));
 
-    // For Snapmaker Artision
+    // 针对 Snapmaker Artisian
     gcodegen.m_next_wipe_x = 0;
     gcodegen.m_next_wipe_y = 0;
     auto transformed_pos   = Eigen::Rotation2Df(wipe_tower_rotation) * tcr.start_pos + wipe_tower_offset;
@@ -729,11 +729,11 @@ std::string WipeTowerIntegration::append_tcr2(GCode& gcodegen, const WipeTower::
 
     std::string tcr_rotated_gcode = post_process_wipe_tower_moves(tcr, wipe_tower_offset, wipe_tower_rotation);
 
-    gcode += gcodegen.writer().unlift(); // Make sure there is no z-hop (in most cases, there isn't).
+    gcode += gcodegen.writer().unlift(); // 确保没有 Z 轴跳跃（大多数情况下没有）。
 
     double current_z = gcodegen.writer().get_position().z();
 
-    if (z == -1.) // in case no specific z was provided, print at current_z pos
+    if (z == -1.) // 如果没有提供特定的 z，则在 current_z 位置打印
         z = current_z;
 
     const bool needs_toolchange = gcodegen.writer().need_toolchange(new_extruder_id);
@@ -746,8 +746,8 @@ std::string WipeTowerIntegration::append_tcr2(GCode& gcodegen, const WipeTower::
                                                          || is_ramming);
 
     if (should_travel_to_tower || gcodegen.m_need_change_layer_lift_z) {
-        // FIXME: It would be better if the wipe tower set the force_travel flag for all toolchanges,
-        // then we could simplify the condition and make it more readable.
+        // FIXME：如果擦拭塔为所有工具切换设置 force_travel 标志会更好，
+        // 这样我们就可以简化条件并使其更可读。
         auto type = ZHopType(gcodegen.m_config.z_hop_types.get_at(gcodegen.m_writer.extruder()->id()));
         if (type == ZHopType::zhtAuto) {
             type = ZHopType::zhtSpiral;
@@ -763,8 +763,8 @@ std::string WipeTowerIntegration::append_tcr2(GCode& gcodegen, const WipeTower::
                                     "Travel to a Wipe Tower");
         gcode += gcodegen.unretract();
     } else {
-        // When this is multiextruder printer without any ramming, we can just change
-        // the tool without travelling to the tower.
+        // 当这是多挤出机打印机且没有任何预挤时，我们可以直接
+        // 切换工具而无需移动到擦拭塔。
     }
 
     if (will_go_down) {
@@ -777,8 +777,8 @@ std::string WipeTowerIntegration::append_tcr2(GCode& gcodegen, const WipeTower::
     std::string deretraction_str;
     if (tcr.priming || (new_extruder_id >= 0 && needs_toolchange)) {
         if (is_ramming)
-            gcodegen.m_wipe.reset_path();                                           // We don't want wiping on the ramming lines.
-        toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z); // TODO: toolchange_z vs print_z
+            gcodegen.m_wipe.reset_path();                                           // 我们不希望在预挤线上进行擦拭。
+        toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z); // TODO：toolchange_z 与 print_z
         if (gcodegen.config().enable_prime_tower) {
             deretraction_str += gcodegen.writer().travel_to_z(z, "Force restore layer Z", true);
             Vec3d position{gcodegen.writer().get_position()};
@@ -788,7 +788,7 @@ std::string WipeTowerIntegration::append_tcr2(GCode& gcodegen, const WipeTower::
         }
     }
 
-    // Insert the toolchange and deretraction gcode into the generated gcode.
+    // 将工具切换和取消回抽 G 代码插入到生成的 G 代码中。
 
     DynamicConfig config;
     config.set_key_value("change_filament_gcode", new ConfigOptionString(toolchange_gcode_str));
@@ -803,15 +803,15 @@ std::string WipeTowerIntegration::append_tcr2(GCode& gcodegen, const WipeTower::
     gcode += tcr_gcode;
     check_add_eol(toolchange_gcode_str);
 
-    // SoftFever: set new PA for new filament
+    // SoftFever：为新耗材设置新的 PA
     if (new_extruder_id != -1 && gcodegen.config().enable_pressure_advance.get_at(new_extruder_id)) {
         gcode += gcodegen.writer().set_pressure_advance(gcodegen.config().pressure_advance.get_at(new_extruder_id));
-        // Orca: Adaptive PA
-        // Reset Adaptive PA processor last PA value
+        // Orca：自适应 PA
+        // 重置自适应 PA 处理器上一个 PA 值
         gcodegen.m_pa_processor->resetPreviousPA(gcodegen.config().pressure_advance.get_at(new_extruder_id));
     }
 
-    // A phony move to the end position at the wipe tower.
+    // 一个假移动到擦拭塔的结束位置。
     gcodegen.writer().travel_to_xy((end_pos + plate_origin_2d).cast<double>());
     gcodegen.set_last_pos(wipe_tower_point_to_object_point(gcodegen, end_pos + plate_origin_2d));
     if (!is_approx(z, current_z)) {
@@ -821,13 +821,13 @@ std::string WipeTowerIntegration::append_tcr2(GCode& gcodegen, const WipeTower::
     }
 
     else {
-        // Prepare a future wipe.
+        // 准备未来的擦拭。
         gcodegen.m_wipe.reset_path();
         for (const Vec2f& wipe_pt : tcr.wipe_path)
             gcodegen.m_wipe.path.points.emplace_back(wipe_tower_point_to_object_point(gcodegen, transform_wt_pt(wipe_pt)));
     }
 
-    // Let the planner know we are traveling between objects.
+    // 让规划器知道我们正在对象之间移动。
     gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
     return gcode;
 }
@@ -851,23 +851,23 @@ std::string WipeTowerIntegration::post_process_wipe_tower_moves(const WipeTower:
     bool isFirstTransform = true;
 
     while (gcode_str) {
-        std::getline(gcode_str, line); // we read the gcode line by line
+        std::getline(gcode_str, line); // 我们逐行读取 G 代码
 
-        // All G1 commands should be translated and rotated. X and Y coords are
-        // only pushed to the output when they differ from last time.
-        // WT generator can override this by appending the never_skip_tag
+        // 所有 G1 命令都应被平移和旋转。X 和 Y 坐标
+        // 仅在与上次不同时才输出。
+        // WT 生成器可以通过附加 never_skip_tag 来覆盖此行为
         if (line.find("G1 ") == 0 || line.find("G2 ") == 0 || line.find("G3 ") == 0) {
             std::string cur_gcode_start = line.find("G1 ") == 0 ? "G1 " : (line.find("G2 ") == 0 ? "G2 " : "G3 ");
             bool        never_skip      = false;
             auto        it              = line.find(WipeTower::never_skip_tag());
             if (it != std::string::npos) {
-                // remove the tag and remember we saw it
+                // 移除标签并记住我们已经看到它
                 never_skip = true;
                 line.erase(it, it + WipeTower::never_skip_tag().size());
             }
             std::ostringstream line_out;
             std::istringstream line_str(line);
-            line_str >> std::noskipws; // don't skip whitespace
+            line_str >> std::noskipws; // 不跳过空白字符
             char ch = 0;
             while (line_str >> ch) {
                 if (ch == 'X' || ch == 'Y')
@@ -897,13 +897,13 @@ std::string WipeTowerIntegration::post_process_wipe_tower_moves(const WipeTower:
 
         gcode_out += line + "\n";
 
-        // If this was a toolchange command, we should change current extruder offset
+        // 如果这是工具切换命令，我们应更改当前挤出机偏移
         if (line == "[change_filament_gcode]") {
             // BBS
             if (!m_single_extruder_multi_material) {
                 extruder_offset = extruder_offset_at(tcr.new_tool).cast<float>();
 
-                // If the extruder offset changed, add an extra move so everything is continuous
+                // 如果挤出机偏移已更改，添加额外移动以保持连续性
                 if (extruder_offset != extruder_offset_at(tcr.initial_tool).cast<float>()) {
                     std::ostringstream oss;
                     oss << std::fixed << std::setprecision(3) << "G1 X" << transformed_pos.x() - extruder_offset.x() << " Y"
@@ -921,7 +921,7 @@ Vec2d WipeTowerIntegration::extruder_offset_at(size_t extruder_id) const
     if (m_single_extruder_multi_material) {
         return m_extruder_offsets[0];
     } else {
-        // If the extruder_id is out of range, we return the offset of the first extruder. 
+        // 如果 extruder_id 超出范围，则返回第一个挤出机的偏移量。
         if (extruder_id >= m_extruder_offsets.size())
             return m_extruder_offsets[0];
         else
@@ -1234,8 +1234,8 @@ std::string WipeTowerIntegration::tool_change(GCode& gcodegen, int extruder_id, 
             }
         }
     } else {
-        // Calculate where the wipe tower layer will be printed. -1 means that print z will not change,
-        // resulting in a wipe tower with sparse layers.
+        // 计算擦拭塔层将被打印的位置。-1 表示打印 z 不会改变，
+        // 导致擦拭塔具有稀疏层。
         double wipe_tower_z  = -1;
         bool   ignore_sparse = false;
         if (gcodegen.config().wipe_tower_no_sparse_layers.value) {
@@ -1297,7 +1297,7 @@ bool WipeTowerIntegration::is_empty_wipe_tower_gcode(GCode& gcodegen, int extrud
     return true;
 }
 
-// Print is finished. Now it remains to unload the filament safely with ramming over the wipe tower.
+// 打印已完成。现在需要通过擦拭塔上的预挤安全地卸载耗材。
 std::string WipeTowerIntegration::finalize(GCode& gcodegen)
 {
     std::string gcode;
@@ -1361,11 +1361,11 @@ void GCode::PlaceholderParserIntegration::init(const GCodeWriter& writer)
     this->parser.set("extruded_volume_total", this->opt_extruded_volume_total);
     this->parser.set("extruded_weight_total", this->opt_extruded_weight_total);
 
-    // Reserve buffer for current position.
+    // 为当前位置保留缓冲区。
     this->position.assign(3, 0);
     this->opt_position = new ConfigOptionFloats(this->position);
     this->output_config.set_key_value("position", this->opt_position);
-    // Store zhop variable into the parser itself, it is a read-only variable to the script.
+    // 将 zhop 变量存储到解析器本身中，它是脚本的只读变量。
     this->opt_zhop = new ConfigOptionFloat(writer.get_zhop());
     this->parser.set("zhop", this->opt_zhop);
 }
@@ -1408,7 +1408,7 @@ void GCode::PlaceholderParserIntegration::update_from_gcodewriter(const GCodeWri
     }
 }
 
-// Throw if any of the output vector variables were resized by the script.
+// 如果脚本调整了任何输出向量变量的大小，则抛出异常。
 void GCode::PlaceholderParserIntegration::validate_output_vector_variables()
 {
     if (this->opt_position->values.size() != 3)
@@ -1423,23 +1423,23 @@ void GCode::PlaceholderParserIntegration::validate_output_vector_variables()
     }
 }
 
-// Collect pairs of object_layer + support_layer sorted by print_z.
-// object_layer & support_layer are considered to be on the same print_z, if they are not further than EPSILON.
+// 收集按 print_z 排序的 object_layer + support_layer 对。
+// 如果 object_layer 和 support_layer 之间的距离不超过 EPSILON，则认为它们处于相同的 print_z。
 std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObject& object)
 {
     std::vector<GCode::LayerToPrint> layers_to_print;
     layers_to_print.reserve(object.layers().size() + object.support_layers().size());
 
     /*
-    // Calculate a minimum support layer height as a minimum over all extruders, but not smaller than 10um.
-    // This is the same logic as in support generator.
-    //FIXME should we use the printing extruders instead?
+    // 计算所有挤出机的最小支撑层高，但不小于 10um。
+    // 这与支撑生成器中的逻辑相同。
+    //FIXME 是否应改用打印挤出机？
     double gap_over_supports = object.config().support_top_z_distance;
-    // FIXME should we test object.config().support_material_synchronize_layers ? Currently the support layers are synchronized with object
+    // FIXME 是否应测试 object.config().support_material_synchronize_layers？目前支撑层与对象同步
     layers iff soluble supports. assert(!object.has_support() || gap_over_supports != 0. ||
     object.config().support_material_synchronize_layers); if (gap_over_supports != 0.) { gap_over_supports = std::max(0.,
     gap_over_supports);
-        // Not a soluble support,
+        // 非可溶性支撑，
         double support_layer_height_min = 1000000.;
         for (auto lh : object.print()->config().min_layer_height.values)
             support_layer_height_min = std::min(support_layer_height_min, std::max(0.01, lh));
@@ -1448,7 +1448,7 @@ std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObjec
 
     std::vector<std::pair<double, double>> warning_ranges;
 
-    // Pair the object layers with the support layers by z.
+    // 按 z 配对对象层与支撑层。
     size_t              idx_object_layer     = 0;
     size_t              idx_support_layer    = 0;
     const LayerToPrint* last_extrusion_layer = nullptr;
@@ -1490,9 +1490,9 @@ std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObjec
                     object.id().id);
         }
 
-        // In case there are extrusions on this layer, check there is a layer to lay it on.
+        // 如果此层上有挤出，请检查是否存在可以放置的层。
         if ((layer_to_print.object_layer && layer_to_print.object_layer->has_extrusions())
-            // Allow empty support layers, as the support generator may produce no extrusions for non-empty support regions.
+            // 允许空的支撑层，因为支撑生成器可能为非空的支撑区域不产生任何挤出。
             || (layer_to_print.support_layer /* && layer_to_print.support_layer->has_extrusions() */)) {
             double top_cd    = object.config().support_top_z_distance;
             double bottom_cd = object.config().support_bottom_z_distance == 0. ? top_cd : object.config().support_bottom_z_distance;
@@ -1504,7 +1504,7 @@ std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObjec
             }
             double extra_gap = (layer_to_print.support_layer ? bottom_cd : top_cd);
 
-            // raft contact distance should not trigger any warning
+            // 筏层接触距离不应触发任何警告
             if (last_extrusion_layer && last_extrusion_layer->support_layer) {
                 double raft_gap = object.config().raft_contact_distance.value;
                 // if (!object.print()->config().independent_support_layer_height)
@@ -1515,13 +1515,13 @@ std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObjec
             }
             double maximal_print_z = (last_extrusion_layer ? last_extrusion_layer->print_z() : 0.) + layer_to_print.layer()->height +
                                      std::max(0., extra_gap);
-            // Negative support_contact_z is not taken into account, it can result in false positives in cases
+            // 不考虑负的 support_contact_z，在某些情况下可能导致误报
 
             if (has_extrusions && layer_to_print.print_z() > maximal_print_z + 2. * EPSILON)
                 warning_ranges.emplace_back(
                     std::make_pair((last_extrusion_layer ? last_extrusion_layer->print_z() : 0.), layers_to_print.back().print_z()));
         }
-        // Remember last layer with extrusions.
+        // 记住最后一个有挤出的层。
         if (has_extrusions)
             last_extrusion_layer = &layers_to_print.back();
     }
@@ -1543,9 +1543,9 @@ std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObjec
     return layers_to_print;
 }
 
-// Prepare for non-sequential printing of multiple objects: Support resp. object layers with nearly identical print_z
-// will be printed for  all objects at once.
-// Return a list of <print_z, per object LayerToPrint> items.
+// 为多个对象的非顺序打印做准备：具有几乎相同 print_z 的支撑层和对象层
+// 将一次性为所有对象打印。
+// 返回 <print_z, 每个对象的 LayerToPrint> 项列表。
 std::vector<std::pair<coordf_t, std::vector<GCode::LayerToPrint>>> GCode::collect_layers_to_print(const Print& print)
 {
     struct OrderingItem
@@ -1586,16 +1586,16 @@ std::vector<std::pair<coordf_t, std::vector<GCode::LayerToPrint>>> GCode::collec
 
     std::vector<std::pair<coordf_t, std::vector<LayerToPrint>>> layers_to_print;
 
-    // Merge numerically very close Z values.
+    // 合并数值上非常接近的 Z 值。
     for (size_t i = 0; i < ordering.size();) {
-        // Find the last layer with roughly the same print_z.
+        // 找到最后一个具有大致相同 print_z 的层。
         size_t   j    = i + 1;
         coordf_t zmax = ordering[i].print_z + EPSILON;
         for (; j < ordering.size() && ordering[j].print_z <= zmax; ++j)
             ;
         // Merge into layers_to_print.
         std::pair<coordf_t, std::vector<LayerToPrint>> merged;
-        // Assign an average print_z to the set of layers with nearly equal print_z.
+        // 为具有几乎相等 print_z 的层集分配平均 print_z。
         merged.first = 0.5 * (ordering[i].print_z + ordering[j - 1].print_z);
         merged.second.assign(print.objects().size(), LayerToPrint());
         for (; i < j; ++i) {
@@ -1609,7 +1609,7 @@ std::vector<std::pair<coordf_t, std::vector<GCode::LayerToPrint>>> GCode::collec
     return layers_to_print;
 }
 
-// free functions called by GCode::do_export()
+// 由 GCode::do_export() 调用的自由函数
 namespace DoExport {
 //    static void update_print_estimated_times_stats(const GCodeProcessor& processor, PrintStatistics& print_statistics)
 //    {
@@ -1633,7 +1633,7 @@ static void update_print_estimated_stats(const GCodeProcessor&        processor,
             get_time_dhms(result.print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Stealth)].time) :
             "N/A";
 
-    // update filament statictics
+    // 更新耗材统计信息
     double total_extruded_volume = 0.0;
     double total_used_filament   = 0.0;
     double total_weight          = 0.0;
@@ -1665,12 +1665,12 @@ static void update_print_estimated_stats(const GCodeProcessor&        processor,
     print_statistics.filament_stats = result.print_statistics.model_volumes_per_extruder;
 }
 
-// if any reserved keyword is found, returns a std::vector containing the first MAX_COUNT keywords found
-// into pairs containing:
-// first: source
-// second: keyword
-// to be shown in the warning notification
-// The returned vector is empty if no keyword has been found
+// 如果找到任何保留关键字，返回一个 std::vector，包含找到的前 MAX_COUNT 个关键字
+// 以键值对形式呈现：
+// first：来源
+// second：关键字
+// 用于在警告通知中显示
+// 如果未找到关键字，则返回空向量
 static std::vector<std::pair<std::string, std::string>> validate_custom_gcode(const Print& print)
 {
     static const unsigned int                        MAX_TAGS_COUNT = 5;
@@ -1756,7 +1756,7 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     GCodeWriter::full_gcode_comment = print->config().gcode_comments;
     CNumericLocalesSetter locales_setter;
 
-    // Does the file exist? If so, we hope that it is still valid.
+    // 文件是否存在？如果存在，我们希望它仍然有效。
     if (print->is_step_done(psGCodeExport) && boost::filesystem::exists(boost::filesystem::path(path)))
         return;
 
@@ -1764,8 +1764,8 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     GCodeProcessor::s_IsBBLPrinter = print->is_BBL_printer();
     print->set_started(psGCodeExport);
 
-    // check if any custom gcode contains keywords used by the gcode processor to
-    // produce time estimation and gcode toolpaths
+    // 检查任何自定义 G 代码是否包含 G 代码处理器用于
+    // 生成时间估计和 G 代码刀具路径的关键字
     std::vector<std::pair<std::string, std::string>> validation_res = DoExport::validate_custom_gcode(*print);
     if (!validation_res.empty()) {
         std::string reports;
@@ -1783,7 +1783,7 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
     BOOST_LOG_TRIVIAL(info) << "Exporting G-code..." << log_memory_info();
 
-    // Remove the old g-code if it exists.
+    // 如果存在则删除旧 G 代码。
     boost::nowide::remove(path);
 
     fs::path file_path(path);
@@ -1843,7 +1843,7 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 #endif
 
     BOOST_LOG_TRIVIAL(debug) << "Start processing gcode, " << log_memory_info();
-    // Post-process the G-code to update time stamps.
+    // 后处理 G 代码以更新时间戳。
 
     m_timelapse_warning_code = 0;
     if (m_config.printer_structure.value == PrinterStructure::psI3 && m_spiral_vase) {
@@ -1887,11 +1887,11 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     DoExport::update_print_estimated_stats(m_processor, m_writer.extruders(), print->m_print_statistics, print->config());
     if (result != nullptr) {
         *result = std::move(m_processor.extract_result());
-        // set the filename to the correct value
+        // 将文件名设置为正确的值
         result->filename = path;
     }
 
-    // BBS: add some log for error output
+    // BBS：为错误输出添加一些日志
     BOOST_LOG_TRIVIAL(debug) << boost::format("Finished processing gcode to %1% ") % path_tmp;
 
     std::error_code ret = rename_file(path_tmp, path);
@@ -1908,12 +1908,12 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     if (is_BBL_Printer())
         result->label_object_enabled = m_enable_exclude_object;
 
-    // Write the profiler measurements to file
+    // 将分析器测量结果写入文件
     PROFILE_UPDATE();
     PROFILE_OUTPUT(debug_out_path("gcode-export-profile.txt").c_str());
 }
 
-// free functions called by GCode::_do_export()
+// 由 GCode::_do_export() 调用的自由函数
 namespace DoExport {
 static void init_gcode_processor(const PrintConfig& config, GCodeProcessor& processor, bool& silent_time_estimator_enabled)
 {
@@ -1989,7 +1989,7 @@ static void init_ooze_prevention(const Print& print, OozePrevention& ooze_preven
     ooze_prevention.enable = print.config().ooze_prevention.value && !print.config().single_extruder_multi_material;
 }
 
-// Fill in print_statistics and return formatted string containing filament statistics to be inserted into G-code comment section.
+// 填充 print_statistics 并返回包含耗材统计信息的格式化字符串，以插入到 G 代码注释部分。
 static std::string update_print_stats_and_format_filament_stats(const bool                   has_wipe_tower,
                                                                 const WipeTowerData&         wipe_tower_data,
                                                                 const std::vector<Extruder>& extruders,
@@ -2013,7 +2013,7 @@ static std::string update_print_stats_and_format_filament_stats(const bool      
             auto   append          = [&extruder](std::pair<std::string, unsigned int>& dst, const char* tmpl, double value) {
                 assert(is_decimal_separator_point());
                 while (dst.second < extruder.id()) {
-                    // Fill in the non-printing extruders with zeros.
+                    // 用零填充非打印挤出机。
                     dst.first += (dst.second > 0) ? ", 0" : "0";
                     ++dst.second;
                 }
@@ -2069,8 +2069,8 @@ static inline std::vector<const PrintInstance*> sort_object_instances_by_max_z(c
 }
 #endif
 
-// Produce a vector of PrintObjects in the order of their respective ModelObjects in print.model().
-// BBS: add sort logic for seq-print
+// 按照 print.model() 中各自 ModelObject 的顺序生成 PrintObjects 的向量。
+// BBS：为顺序打印添加排序逻辑
 std::vector<const PrintInstance*> sort_object_instances_by_model_order(const Print& print, bool init_order)
 {
     auto find_object_index = [](const Model& model, const ModelObject* obj) {
@@ -2081,7 +2081,7 @@ std::vector<const PrintInstance*> sort_object_instances_by_model_order(const Pri
         return -1;
     };
 
-    // Build up map from ModelInstance* to PrintInstance*
+    // 建立从 ModelInstance* 到 PrintInstance* 的映射
     std::vector<std::pair<const ModelInstance*, const PrintInstance*>> model_instance_to_print_instance;
     model_instance_to_print_instance.reserve(print.num_object_instances());
     for (const PrintObject* print_object : print.objects())
@@ -2094,7 +2094,7 @@ std::vector<const PrintInstance*> sort_object_instances_by_model_order(const Pri
     std::sort(model_instance_to_print_instance.begin(), model_instance_to_print_instance.end(),
               [](auto& l, auto& r) { return l.first->arrange_order < r.first->arrange_order; });
     if (init_order) {
-        // Re-assign the arrange_order so each instance has a unique order number
+        // 重新分配 arrange_order，使每个实例都有唯一的订单号
         for (int k = 0; k < model_instance_to_print_instance.size(); k++) {
             const_cast<ModelInstance*>(model_instance_to_print_instance[k].first)->arrange_order = k + 1;
         }
@@ -2147,11 +2147,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
 {
     PROFILE_FUNC();
 
-    // modifies m_silent_time_estimator_enabled
+    // 修改 m_silent_time_estimator_enabled
     DoExport::init_gcode_processor(print.config(), m_processor, m_silent_time_estimator_enabled);
     const bool is_bbl_printers = print.is_BBL_printer();
     m_calib_config.clear();
-    // resets analyzer's tracking data
+    // 重置分析器的跟踪数据
     m_last_height  = 0.f;
     m_last_layer_z = 0.f;
     m_max_layer_z  = 0.f;
@@ -2165,11 +2165,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
 
     m_writer.set_is_bbl_machine(is_bbl_printers);
 
-    // How many times will be change_layer() called?
-    // change_layer() in turn increments the progress bar status.
+    // change_layer() 将被调用多少次？
+    // change_layer() 依次增加进度条状态。
     m_layer_count = 0;
     if (print.config().print_sequence == PrintSequence::ByObject) {
-        // Add each of the object's layers separately.
+        // 分别添加每个对象的层。
         for (auto object : print.objects()) {
             std::vector<coordf_t> zs;
             zs.reserve(object->layers().size() + object->support_layers().size());
@@ -2188,7 +2188,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
             m_layer_count += (unsigned int) (object->instances().size() * temp_layer_count);
         }
     } else {
-        // Print all objects with the same print_z together.
+        // 一起打印所有具有相同 print_z 的对象。
         std::vector<coordf_t> zs;
         for (auto object : print.objects()) {
             zs.reserve(zs.size() + object->layers().size() + object->support_layers().size());
@@ -2228,24 +2228,24 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
     if (!print.config().small_area_infill_flow_compensation_model.empty())
         m_small_area_infill_flow_compensator = make_unique<SmallAreaInfillFlowCompensator>(print.config());
 
-    // Orca: Don't output Header block if BTT thumbnail is identified in the list
-    // Get the thumbnails value as a string
+    // Orca：如果在列表中识别到 BTT 缩略图，则不输出 Header 块
+    // 将缩略图值作为字符串获取
     std::string thumbnails_value = print.config().option<ConfigOptionString>("thumbnails")->value;
-    // search string for the BTT_TFT label
+    // 搜索字符串中的 BTT_TFT 标签
     bool has_BTT_thumbnail = (thumbnails_value.find("BTT_TFT") != std::string::npos);
 
     if (!has_BTT_thumbnail) {
         file.write_format("; HEADER_BLOCK_START\n");
-        // Write information on the generator.
+        // 写入生成器的信息。
         file.write_format("; generated by %s on %s\n", Slic3r::header_slic3r_generated().c_str(), Slic3r::Utils::local_timestamp().c_str());
         if (is_bbl_printers)
             file.write_format(";%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Estimated_Printing_Time_Placeholder).c_str());
-        // BBS: total layer number
+        // BBS：总层数
         file.write_format(";%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Total_Layer_Number_Placeholder).c_str());
-        // Orca: extra check for bbl printer
+        // Orca：额外检查 BBL 打印机
         if (is_bbl_printers) {
             if (print.calib_params().mode == CalibMode::Calib_None) { // Don't support skipping in cali mode
-                // list all label_object_id with sorted order here
+                // 在此处按排序顺序列出所有 label_object_id
                 m_enable_exclude_object = true;
                 m_label_objects_ids.clear();
                 m_label_objects_ids.reserve(print.num_object_instances());
@@ -2286,12 +2286,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
         file.write_format("; HEADER_BLOCK_END\n\n");
     }
 
-    // BBS: write global config at the beginning of gcode file because printer
-    // need these config information
-    // Append full config, delimited by two 'phony' configuration keys
-    // CONFIG_BLOCK_START and CONFIG_BLOCK_END. The delimiters are structured
-    // as configuration key / value pairs to be parsable by older versions of
-    // PrusaSlicer G-code viewer.
+    // BBS：在 G 代码文件开头写入全局配置，因为打印机
+    // 需要这些配置信息
+    // 附加完整配置，由两个"虚拟"配置键分隔
+    // CONFIG_BLOCK_START 和 CONFIG_BLOCK_END。分隔符的结构
+    // 为配置键/值对，以便旧版本的 PrusaSlicer G-code 查看器可以解析。
     {
         if (is_bbl_printers) {
             file.write("; CONFIG_BLOCK_START\n");
@@ -2300,13 +2299,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
             if (!full_config.empty())
                 file.write(full_config);
 
-            // SoftFever: write compatiple image
+            // SoftFever：写入兼容图像
             int first_layer_bed_temperature = get_bed_temperature(0, true, print.config().curr_bed_type);
             file.write_format("; first_layer_bed_temperature = %d\n", first_layer_bed_temperature);
             file.write_format("; first_layer_temperature = %d\n", print.config().nozzle_temperature_initial_layer.get_at(0));
             file.write("; CONFIG_BLOCK_END\n\n");
         } else if (thumbnail_cb != nullptr) {
-            // generate the thumbnails
+            // 生成缩略图
             auto [thumbnails, errors] = GCodeThumbnails::make_and_check_thumbnail_list(print.full_print_config());
 
             if (errors != enum_bitmask<ThumbnailError>()) {
@@ -2322,7 +2321,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
         }
     }
 
-    // Write some terse information on the slicing parameters.
+    // 写入有关切片参数的一些简洁信息。
     const PrintObject* first_object               = print.objects().front();
     const double       layer_height               = first_object->config().layer_height.value;
     const double       initial_layer_print_height = print.config().initial_layer_print_height.value;
@@ -2348,20 +2347,20 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
     if (m_enable_exclude_object)
         file.write(set_object_info(&print));
 
-    // adds tags for time estimators
+    // 为时间估计器添加标签
     file.write_format(";%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::First_Line_M73_Placeholder).c_str());
 
-    // Prepare the helper object for replacing placeholders in custom G-code and output filename.
+    // 准备辅助对象，用于替换自定义 G 代码和输出文件名中的占位符。
     m_placeholder_parser_integration.parser = print.placeholder_parser();
     m_placeholder_parser_integration.parser.update_timestamp();
     m_placeholder_parser_integration.parser.update_user_name();
     m_placeholder_parser_integration.context.rng = std::mt19937(std::chrono::high_resolution_clock::now().time_since_epoch().count());
-    // Enable passing global variables between PlaceholderParser invocations.
+    // 启用 PlaceholderParser 调用之间的全局变量传递。
     m_placeholder_parser_integration.context.global_config = std::make_unique<DynamicConfig>();
     print.update_object_placeholders(m_placeholder_parser_integration.parser.config_writable(), ".gcode");
 
-    // Get optimal tool ordering to minimize tool switches of a multi-exruder print.
-    // For a print by objects, find the 1st printing object.
+    // 获取最佳工具排序以最小化多挤出机打印的工具切换。
+    // 对于按对象打印，找到第一个打印对象。
     ToolOrdering tool_ordering;
     unsigned int initial_extruder_id = (unsigned int) -1;
     // BBS: first non-support filament extruder
@@ -2371,15 +2370,15 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
     std::vector<const PrintInstance*>                 print_object_instances_ordering;
     std::vector<const PrintInstance*>::const_iterator print_object_instance_sequential_active;
     if (print.config().print_sequence == PrintSequence::ByObject) {
-        // Order object instances for sequential print.
+        // 为顺序打印排序对象实例。
         print_object_instances_ordering = sort_object_instances_by_model_order(print);
         //        print_object_instances_ordering = sort_object_instances_by_max_z(print);
-        // Find the 1st printing object, find its tool ordering and the initial extruder ID.
+        // 找到第一个打印对象，找到其工具排序和初始挤出机 ID。
         print_object_instance_sequential_active = print_object_instances_ordering.begin();
         for (; print_object_instance_sequential_active != print_object_instances_ordering.end(); ++print_object_instance_sequential_active) {
             tool_ordering = ToolOrdering(*(*print_object_instance_sequential_active)->print_object, initial_extruder_id);
             if ((initial_extruder_id = tool_ordering.first_extruder()) != static_cast<unsigned int>(-1)) {
-                // BBS: try to find the non-support filament extruder if is multi color and initial_extruder is support filament
+                // BBS：如果是多色且 initial_extruder 是支撑耗材，尝试找到非支撑耗材挤出机
                 initial_non_support_extruder_id = initial_extruder_id;
                 if (tool_ordering.all_extruders().size() > 1 && print.config().filament_is_support.get_at(initial_extruder_id)) {
                     bool has_non_support_filament = false;
@@ -2407,7 +2406,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
             }
         }
         if (initial_extruder_id == static_cast<unsigned int>(-1))
-            // No object to print was found, cancel the G-code export.
+            // 未找到要打印的对象，取消 G 代码导出。
             throw Slic3r::SlicingError(_(L("No object can be printed. Maybe too small")));
         // We don't allow switching of extruders per layer by Model::custom_gcode_per_print_z in sequential mode.
         // Use the extruder IDs collected from Regions.
@@ -2415,15 +2414,15 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
 
         has_wipe_tower = print.has_wipe_tower() && tool_ordering.has_wipe_tower();
     } else {
-        // Find tool ordering for all the objects at once, and the initial extruder ID.
-        // If the tool ordering has been pre-calculated by Print class for wipe tower already, reuse it.
+        // 一次性找到所有对象的工具排序和初始挤出机 ID。
+        // 如果工具排序已由 Print 类为擦拭塔预先计算，则直接重用。
         tool_ordering = print.tool_ordering();
         tool_ordering.assign_custom_gcodes(print);
         if (tool_ordering.all_extruders().empty())
-            // No object to print was found, cancel the G-code export.
+            // 未找到要打印的对象，取消 G 代码导出。
             throw Slic3r::SlicingError(_(L("No object can be printed. Maybe too small")));
         has_wipe_tower = print.has_wipe_tower() && tool_ordering.has_wipe_tower();
-        // Orca: support all extruder priming
+        // Orca：支持所有挤出机灌注
         initial_extruder_id = (!is_bbl_printers && has_wipe_tower && !print.config().single_extruder_multi_material_priming) ?
                                   // The priming towers will be skipped.
                                   tool_ordering.all_extruders().back() :
@@ -2456,18 +2455,18 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
             }
         }
 
-        // In non-sequential print, the printing extruders may have been modified by the extruder switches stored in
-        // Model::custom_gcode_per_print_z. Therefore initialize the printing extruders from there.
+        // 在非顺序打印中，打印挤出机可能已被存储在
+        // Model::custom_gcode_per_print_z 中的挤出机切换修改。因此从那里初始化打印挤出机。
         this->set_extruders(tool_ordering.all_extruders());
         print_object_instances_ordering =
-            // By default, order object instances using a nearest neighbor search.
+            // 默认情况下，使用最近邻搜索对对象实例进行排序。
             print.config().print_order == PrintOrder::Default ? chain_print_object_instances(print)
-                                                                // Otherwise same order as the object list
+                                                                // 否则与对象列表顺序相同
                                                                 :
                                                                 sort_object_instances_by_model_order(print);
     }
     if (initial_extruder_id == (unsigned int) -1) {
-        // Nothing to print!
+        // 没有要打印的内容！
         initial_extruder_id             = 0;
         initial_non_support_extruder_id = 0;
         final_extruder_id               = 0;
@@ -2480,40 +2479,40 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
     m_cooling_buffer = make_unique<CoolingBuffer>(*this);
     m_cooling_buffer->set_current_extruder(initial_extruder_id);
 
-    // Orca: Initialise AdaptivePA processor filter
+    // Orca：初始化自适应 PA 处理器过滤器
     m_pa_processor = std::make_unique<AdaptivePAProcessor>(*this, tool_ordering.all_extruders());
 
-    // Emit machine envelope limits for the Marlin firmware.
+    // 发出 Marlin 固件的机器范围限制。
     this->print_machine_envelope(file, print);
 
-    // Disable fan.
+    // 关闭风扇。
     if (m_config.auxiliary_fan.value && print.config().close_fan_the_first_x_layers.get_at(initial_extruder_id)) {
         file.write(m_writer.set_fan(0));
-        // BBS: disable additional fan
+        // BBS：关闭附加风扇
         file.write(m_writer.set_additional_fan(0));
     }
 
-    // Update output variables after the extruders were initialized.
+    // 在挤出机初始化后更新输出变量。
     m_placeholder_parser_integration.init(m_writer);
-    // Let the start-up script prime the 1st printing tool.
+    // 让启动脚本灌注第一个打印工具。
     this->placeholder_parser().set("initial_tool", initial_extruder_id);
     this->placeholder_parser().set("initial_extruder", initial_extruder_id);
     // BBS
     this->placeholder_parser().set("initial_no_support_tool", initial_non_support_extruder_id);
     this->placeholder_parser().set("initial_no_support_extruder", initial_non_support_extruder_id);
     this->placeholder_parser().set("current_extruder", initial_extruder_id);
-    // Orca: set the key for compatibilty
+    // Orca：为兼容性设置键
     this->placeholder_parser().set("retraction_distance_when_cut", m_config.retraction_distances_when_cut.get_at(initial_extruder_id));
     this->placeholder_parser().set("long_retraction_when_cut", m_config.long_retractions_when_cut.get_at(initial_extruder_id));
     this->placeholder_parser().set("temperature", new ConfigOptionInts(print.config().nozzle_temperature));
 
     this->placeholder_parser().set("retraction_distances_when_cut", new ConfigOptionFloats(m_config.retraction_distances_when_cut));
     this->placeholder_parser().set("long_retractions_when_cut", new ConfigOptionBools(m_config.long_retractions_when_cut));
-    // Set variable for total layer count so it can be used in custom gcode.
+    // 设置总层数变量，以便在自定义 G 代码中使用。
     this->placeholder_parser().set("total_layer_count", m_layer_count);
-    // Useful for sequential prints.
+    // 对顺序打印很有用。
     this->placeholder_parser().set("current_object_idx", 0);
-    // For the start / end G-code to do the priming and final filament pull in case there is no wipe tower provided.
+    // 用于在没有提供擦拭塔的情况下，开始/结束 G 代码执行灌注和最终耗材拉出。
     this->placeholder_parser().set("has_wipe_tower", has_wipe_tower);
     this->placeholder_parser().set("has_single_extruder_multi_material_priming",
                                    !is_bbl_printers && has_wipe_tower && print.config().single_extruder_multi_material_priming);
@@ -2525,7 +2524,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
     this->placeholder_parser().set("num_extruders", int(print.config().nozzle_diameter.values.size()));
     this->placeholder_parser().set("retract_length", new ConfigOptionFloats(print.config().retraction_length));
 
-    // Orca: support max MAXIMUM_EXTRUDER_NUMBER extruders/filaments
+    // Orca：支持最多 MAXIMUM_EXTRUDER_NUMBER 个挤出机/耗材
     std::vector<unsigned char> is_extruder_used(std::max(size_t(MAXIMUM_EXTRUDER_NUMBER), print.config().filament_diameter.size()), 0);
     for (unsigned int extruder : tool_ordering.all_extruders())
         is_extruder_used[extruder] = true;
@@ -2543,7 +2542,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
         if (print.calib_mode() == CalibMode::Calib_PA_Line || print.calib_mode() == CalibMode::Calib_PA_Pattern) {
             bbox = bbox_bed;
             bbox.offset(-25.0);
-            // add 4 corner points of bbox into pts
+            // 将 bbox 的 4 个角点添加到 pts 中
             pts->values.reserve(4);
             pts->values.emplace_back(bbox.min.x(), bbox.min.y());
             pts->values.emplace_back(bbox.max.x(), bbox.min.y());
@@ -2551,11 +2550,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
             pts->values.emplace_back(bbox.min.x(), bbox.max.y());
 
         } else {
-            // Convex hull of the 1st layer extrusions, for bed leveling and placing the initial purge line.
-            // It encompasses the object extrusions, support extrusions, skirt, brim, wipe tower.
-            // It does NOT encompass user extrusions generated by custom G-code,
-            // therefore it does NOT encompass the initial purge line.
-            // It does NOT encompass MMU/MMU2 starting (wipe) areas.
+            // 第一层挤出的凸包，用于热床调平和放置初始清理线。
+            // 它包含对象挤出、支撑挤出、裙边、边框、擦拭塔。
+            // 它不包含由自定义 G 代码生成的用户挤出，
+            // 因此它不包含初始清理线。
+            // 它不包含 MMU/MMU2 起始（擦拭）区域。
             pts->values.reserve(print.first_layer_convex_hull().size());
             for (const Point& pt : print.first_layer_convex_hull().points)
                 pts->values.emplace_back(print.translate_to_print_space(pt));
@@ -2567,7 +2566,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
         this->placeholder_parser().set("first_layer_print_size", new ConfigOptionFloats({bbox.size().x(), bbox.size().y()}));
 
         {
-            // use first layer convex_hull union with each object's bbox to check whether in head detect zone
+            // 使用第一层凸包与每个对象的 bbox 的并集来检查是否在头部检测区域内
             Polygons object_projections;
             for (auto& obj : print.objects()) {
                 for (auto& instance : obj->instances()) {
@@ -2633,8 +2632,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
 
         std::string first_layer_bed_temp_str;
         const BedType curr_bed = static_cast<BedType>(curr_bed_type);
-        // Some bed types (for example newly added btGESP) may not have dedicated temp options in old presets.
-        // Fallback to PEI temps to avoid null-dereference during slicing placeholder setup.
+        // 某些热床类型（例如新添加的 btGESP）在旧预设中可能没有专门的温度选项。
+        // 回退到 PEI 温度以避免在切片占位符设置期间出现空指针解引用。
         const std::string first_bed_temp_key = get_bed_temp_1st_layer_key(curr_bed).empty() ? get_bed_temp_1st_layer_key(btPEI) : get_bed_temp_1st_layer_key(curr_bed);
         const std::string bed_temp_key       = get_bed_temp_key(curr_bed).empty() ? get_bed_temp_key(btPEI) : get_bed_temp_key(curr_bed);
         const ConfigOptionInts* first_bed_temp_opt = m_config.option<ConfigOptionInts>(first_bed_temp_key);
@@ -2658,7 +2657,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
         this->placeholder_parser().set("chamber_temperature", new ConfigOptionInts(m_config.chamber_temperature));
         this->placeholder_parser().set("overall_chamber_temperature", new ConfigOptionInt(max_chamber_temp));
 
-        // SoftFever: support variables `first_layer_temperature` and `first_layer_bed_temperature`
+        // SoftFever：支持变量 `first_layer_temperature` 和 `first_layer_bed_temperature`
         this->placeholder_parser().set("first_layer_bed_temperature", new ConfigOptionInts(*first_bed_temp_opt));
         this->placeholder_parser().set("first_layer_temperature", new ConfigOptionInts(m_config.nozzle_temperature_initial_layer));
         this->placeholder_parser().set("max_print_height", new ConfigOptionInt(m_config.printable_height));
@@ -2675,7 +2674,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
             during_print_exhaust_fan_speed_num.emplace_back((int) (item / 100.0 * 255));
         this->placeholder_parser().set("during_print_exhaust_fan_speed_num", new ConfigOptionInts(during_print_exhaust_fan_speed_num));
 
-        // calculate the volumetric speed of outer wall. Ignore per-object setting and multi-filament, and just use the default setting
+        // 计算外墙的体积速度。忽略每个对象的设置和多耗材，只使用默认设置
         {
             float filament_max_volumetric_speed = m_config.option<ConfigOptionFloats>("filament_max_volumetric_speed")
                                                       ->get_at(initial_non_support_extruder_id);
@@ -2699,7 +2698,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
         }
     }
 
-    // Compute chamber cooling mode based on all filaments used on this plate.
+    // 基于此打印板上使用的所有耗材计算腔体冷却模式。
     constexpr int kChamberCoolingKeepWarm  = 0;
     constexpr int kChamberCoolingWeak      = 1;
     constexpr int kChamberCoolingStrong    = 2;
@@ -2724,28 +2723,28 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
     std::string machine_start_gcode = this->placeholder_parser_process("machine_start_gcode", print.config().machine_start_gcode.value,
                                                                        initial_extruder_id);
     if (print.config().gcode_flavor != gcfKlipper) {
-        // Set bed temperature if the start G-code does not contain any bed temp control G-codes.
+        // 如果开始 G 代码不包含任何热床温度控制 G 代码，则设置热床温度。
         this->_print_first_layer_bed_temperature(file, print, machine_start_gcode, initial_extruder_id, true);
-        // Set extruder(s) temperature before and after start G-code.
+        // 在开始 G 代码之前和之后设置挤出机温度。
         this->_print_first_layer_extruder_temperatures(file, print, machine_start_gcode, initial_extruder_id, false);
     }
 
-    // adds tag for processor
+    // 为处理器添加标签
     file.write_format(";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(),
                       ExtrusionEntity::role_to_string(erCustom).c_str());
 
-    // Orca: set chamber temperature at the beginning of gcode file
+    // Orca：在 G 代码文件开头设置腔体温度
     if (activate_chamber_temp_control && max_chamber_temp > 0)
         file.write(m_writer.set_chamber_temperature(max_chamber_temp, true)); // set chamber_temperature
 
-    // Write the custom start G-code
+    // 写入自定义开始 G 代码
     file.writeln(machine_start_gcode);
 
-    // BBS: gcode writer doesn't know where the real position of extruder is after inserting custom gcode
+    // BBS：G 代码写入器在插入自定义 G 代码后不知道挤出机的实际位置
     m_writer.set_current_position_clear(false);
     m_start_gcode_filament = GCodeProcessor::get_gcode_last_filament(machine_start_gcode);
 
-    // flush FanMover buffer to avoid modifying the start gcode if it's manual.
+    // 刷新 FanMover 缓冲区，以避免在手动模式下修改开始 G 代码。
     if (!machine_start_gcode.empty() && this->m_fan_mover.get() != nullptr)
         file.write(this->m_fan_mover.get()->process_gcode("", true));
 
@@ -2762,7 +2761,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
     if (is_bbl_printers) {
         this->_print_first_layer_extruder_temperatures(file, print, machine_start_gcode, initial_extruder_id, true);
     }
-    // Orca: when activate_air_filtration is set on any extruder, find and set the highest during_print_exhaust_fan_speed
+    // Orca：当在任何挤出机上设置了 activate_air_filtration 时，查找并设置最高的 during_print_exhaust_fan_speed
     bool activate_air_filtration        = false;
     int  during_print_exhaust_fan_speed = 0;
     for (const auto& extruder : m_writer.extruders()) {
@@ -2776,18 +2775,18 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
 
     print.throw_if_canceled();
 
-    // Set other general things.
+    // 设置其他一般事项。
     file.write(this->preamble());
 
-    // Calculate wiping points if needed
+    // 如果需要，计算擦拭点
     DoExport::init_ooze_prevention(print, m_ooze_prevention);
     print.throw_if_canceled();
 
-    // Collect custom seam data from all objects.
+    // 从所有对象收集自定义接缝数据。
     std::function<void(void)> throw_if_canceled_func = [&print]() { print.throw_if_canceled(); };
     m_seam_placer.init(print, throw_if_canceled_func);
 
-    // BBS: get path for change filament
+    // BBS：获取更换耗材的路径
     if (m_writer.multiple_extruders) {
         std::vector<Vec2d> points = get_path_of_change_filament(print);
         if (points.size() == 3) {
@@ -2797,13 +2796,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
         }
     }
 
-    // Orca: support extruder priming
+    // Orca：支持挤出机灌注
     if (is_bbl_printers || !(has_wipe_tower && print.config().single_extruder_multi_material_priming)) {
-        // Set initial extruder only after custom start G-code.
-        // Ugly hack: Do not set the initial extruder if the extruder is primed using the MMU priming towers at the edge of the print bed.
+        // 仅在自定义开始 G 代码之后设置初始挤出机。
+        // 丑陋的 hack：如果挤出机使用打印床边缘的 MMU 灌注塔灌注，则不设置初始挤出机。
         file.write(this->set_extruder(initial_extruder_id, 0.));
     }
-    // BBS: set that indicates objs with brim
+    // BBS：设置指示带有边框的对象的变量
     for (auto iter = print.m_brimMap.begin(); iter != print.m_brimMap.end(); ++iter) {
         if (!iter->second.empty())
             this->m_objsWithBrim.insert(iter->first);
@@ -2815,7 +2814,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
     if (this->m_objsWithBrim.empty() && this->m_objSupportsWithBrim.empty())
         m_brim_done = true;
 
-    // SoftFever: calib
+    // SoftFever：校准
     if (print.calib_params().mode == CalibMode::Calib_PA_Line) {
         std::string gcode;
         if ((print.default_object_config().outer_wall_acceleration.value > 0 &&
@@ -2845,13 +2844,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
 
         file.write(gcode);
     } else {
-        // BBS: open spaghetti detector
+        // BBS：打开 spaghetti 检测器
         if (is_bbl_printers) {
             // if (print.config().spaghetti_detector.value)
             file.write("M981 S1 P20000 ;open spaghetti detector\n");
         }
 
-        // Do all objects for each layer.
+        // 为每层处理所有对象。
         if (print.config().print_sequence == PrintSequence::ByObject && !has_wipe_tower) {
             size_t             finished_objects = 0;
             const PrintObject* prev_object      = (*print_object_instance_sequential_active)->print_object;
@@ -2871,11 +2870,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
                 print.throw_if_canceled();
                 this->set_origin(unscale((*print_object_instance_sequential_active)->shift));
 
-                // BBS: prime extruder if extruder change happens before this object instance
+                // BBS：如果在此对象实例之前发生挤出机切换，则灌注挤出机
                 bool prime_extruder = false;
                 if (finished_objects > 0) {
-                    // Move to the origin position for the copy we're going to print.
-                    // This happens before Z goes down to layer 0 again, so that no collision happens hopefully.
+                    // 移动到要打印的副本的原点位置。
+                    // 这发生在 Z 再次降到第 0 层之前，以便希望不会发生碰撞。
                     m_enable_cooling_markers = false; // we're not filtering these moves through CoolingBuffer
                     m_avoid_crossing_perimeters.use_external_mp_once();
                     // BBS. change tool before moving to origin point.
@@ -2890,11 +2889,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
                     file.write(m_writer.travel_to_z(m_max_layer_z));
                     file.write(this->travel_to(Point(0, 0), erNone, "move to origin position for next object"));
                     m_enable_cooling_markers = true;
-                    // Disable motion planner when traveling to first object point.
+                    // 移动到第一个对象点时禁用运动规划器。
                     m_avoid_crossing_perimeters.disable_once();
-                    // Ff we are printing the bottom layer of an object, and we have already finished
-                    // another one, set first layer temperatures. This happens before the Z move
-                    // is triggered, so machine has more time to reach such temperatures.
+                    // 如果我们正在打印对象的底层，并且已经完成了另一个对象，设置第一层温度。这发生在 Z 移动
+                    // 被触发之前，因此机器有更多时间达到这些温度。
                     this->placeholder_parser().set("current_object_idx", int(finished_objects));
                     std::string printing_by_object_gcode = this->placeholder_parser_process("printing_by_object_gcode",
                                                                                             print.config().printing_by_object_gcode.value,
@@ -2904,10 +2902,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
                     this->_print_first_layer_extruder_temperatures(file, print, printing_by_object_gcode, initial_extruder_id, false);
                     file.writeln(printing_by_object_gcode);
                 }
-                // Reset the cooling buffer internal state (the current position, feed rate, accelerations).
+                // 重置冷却缓冲区内部状态（当前位置、进给率、加速度）。
                 m_cooling_buffer->reset(this->writer().get_position());
                 m_cooling_buffer->set_current_extruder(initial_extruder_id);
-                // Process all layers of a single object instance (sequential mode) with a parallel pipeline:
+                // 使用并行管道处理单个对象实例（顺序模式）的所有层：
                 // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
                 // and export G-code into file.
                 this->process_layers(print, tool_ordering, collect_layers_to_print(object),
@@ -2976,7 +2974,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
                 }
                 print.throw_if_canceled();
             }
-            // Process all layers of all objects (non-sequential mode) with a parallel pipeline:
+            // 使用并行管道处理所有对象（非顺序模式）的所有层：
             // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
             // and export G-code into file.
             this->process_layers(print, tool_ordering, print_object_instances_ordering, layers_to_print, file);
@@ -2988,12 +2986,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
                 }
             }
             if (m_wipe_tower)
-                // Purge the extruder, pull out the active filament.
+                // 清理挤出机，拉出当前耗材。
                 file.write(m_wipe_tower->finalize(*this));
         }
     }
-    // BBS: the last retraction
-    //  Write end commands to file.
+    // BBS：最后一次回抽
+    //  将结束命令写入文件。
     file.write(this->retract(false, true));
 
     // if needed, write the gcode_label_objects_end
@@ -3004,21 +3002,21 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
     }
 
     file.write(m_writer.set_fan(0));
-    // BBS: make sure the additional fan is closed when end
+    // BBS：确保结束时关闭附加风扇
     if (m_config.auxiliary_fan.value)
         file.write(m_writer.set_additional_fan(0));
     if (is_bbl_printers) {
-        // BBS: close spaghetti detector
-        // Note: M981 is also used to tell xcam the last layer is finished, so we need always send it even if spaghetti option is disabled.
+        // BBS：关闭 spaghetti 检测器
+        // 注意：M981 也用于通知 xcam 最后一层已完成，因此即使 spaghetti 选项被禁用，我们也需要始终发送它。
         // if (print.config().spaghetti_detector.value)
         file.write("M981 S0 P20000 ; close spaghetti detector\n");
     }
 
-    // adds tag for processor
+    // 为处理器添加标签
     file.write_format(";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(),
                       ExtrusionEntity::role_to_string(erCustom).c_str());
 
-    // Process filament-specific gcode in extruder order.
+    // 按挤出机顺序处理耗材特定的 G 代码。
     {
         DynamicConfig config;
         config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
@@ -3026,7 +3024,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
         config.set_key_value("layer_z", new ConfigOptionFloat(m_writer.get_position()(2) - m_config.z_offset.value));
         config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
         if (print.config().single_extruder_multi_material) {
-            // Process the filament_end_gcode for the active filament only.
+            // 仅为当前耗材处理 filament_end_gcode。
             int extruder_id = m_writer.extruder()->id();
             config.set_key_value("filament_extruder_id", new ConfigOptionInt(extruder_id));
             file.writeln(this->placeholder_parser_process("filament_end_gcode", print.config().filament_end_gcode.get_at(extruder_id),
@@ -3055,13 +3053,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
                                                             m_config.complete_print_exhaust_fan_speed.get_at(extruder.id()));
         file.write(m_writer.set_exhaust_fan(complete_print_exhaust_fan_speed, true));
     }
-    // adds tags for time estimators
+    // 为时间估计器添加标签
     file.write_format(";%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Last_Line_M73_Placeholder).c_str());
     file.write_format("; EXECUTABLE_BLOCK_END\n\n");
 
     print.throw_if_canceled();
 
-    // Get filament stats.
+    // 获取耗材统计信息。
     file.write(DoExport::update_print_stats_and_format_filament_stats(
         // Const inputs
         has_wipe_tower, print.wipe_tower_data(), m_writer.extruders(),
@@ -3082,7 +3080,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
         if (!full_config.empty())
             file.write(full_config);
 
-        // SoftFever: write compatiple info
+        // SoftFever：写入兼容信息
         int first_layer_bed_temperature = get_bed_temperature(0, true, print.config().curr_bed_type);
         file.write_format("; first_layer_bed_temperature = %d\n", first_layer_bed_temperature);
         file.write_format("; bed_shape = %s\n", print.full_print_config().opt_serialize("printable_area").c_str());
@@ -3103,7 +3101,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
 void GCode::check_placeholder_parser_failed()
 {
     if (!m_placeholder_parser_integration.failed_templates.empty()) {
-        // G-code export proceeded, but some of the PlaceholderParser substitutions failed.
+        // G 代码导出已进行，但某些 PlaceholderParser 替换失败。
         std::string msg = Slic3r::format(_(L("Failed to generate G-code for invalid custom G-code.\n\n")));
         for (const auto& name_and_error : m_placeholder_parser_integration.failed_templates)
             msg += name_and_error.first + " " + name_and_error.second + "\n";
@@ -3112,16 +3110,16 @@ void GCode::check_placeholder_parser_failed()
     }
 }
 
-// Process all layers of all objects (non-sequential mode) with a parallel pipeline:
-// Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
-// and export G-code into file.
+// 使用并行管道处理所有对象（非顺序模式）的所有层：
+// 生成 G 代码，运行过滤器（花瓶模式、冷却缓冲区），运行 G 代码分析器
+// 并将 G 代码导出到文件。
 void GCode::process_layers(const Print&                                                       print,
                            const ToolOrdering&                                                tool_ordering,
                            const std::vector<const PrintInstance*>&                           print_object_instances_ordering,
                            const std::vector<std::pair<coordf_t, std::vector<LayerToPrint>>>& layers_to_print,
                            GCodeOutputStream&                                                 output_stream)
 {
-    // The pipeline is variable: The vase mode filter is optional.
+    // 管道是可变的：花瓶模式过滤器是可选的。
     size_t     layer_to_print_idx = 0;
     const auto generator          = tbb::make_filter<void, LayerResult>(
         slic3r_tbb_filtermode::serial_in_order,
@@ -3132,8 +3130,8 @@ void GCode::process_layers(const Print&                                         
                     fc.stop();
                     return {};
                 } else {
-                    // Pressure equalizer need insert empty input. Because it returns one layer back.
-                    // Insert NOP (no operation) layer;
+                    // 压力均衡器需要插入空输入。因为它会返回一层。
+                    // 插入 NOP（无操作）层；
                     ++layer_to_print_idx;
                     return LayerResult::make_nop_layer_result();
                 }
@@ -3198,13 +3196,13 @@ void GCode::process_layers(const Print&                                         
                     fan_mover.reset(new Slic3r::FanMover(writer, std::abs((float) config.fan_speedup_time.value),
                                                          config.fan_speedup_time.value > 0, config.use_relative_e_distances.value,
                                                          config.fan_speedup_overhangs.value, (float) config.fan_kickstart.value));
-                // flush as it's a whole layer
+                // 刷新，因为它是整个层
                 return fan_mover->process_gcode(in, true);
             }
             return in;
         });
 
-    // The pipeline elements are joined using const references, thus no copying is performed.
+    // 管道元素使用常量引用连接，因此不执行复制。
     if (m_spiral_vase && m_pressure_equalizer)
         tbb::parallel_pipeline(12, generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
     else if (m_spiral_vase)
@@ -3215,9 +3213,9 @@ void GCode::process_layers(const Print&                                         
         tbb::parallel_pipeline(12, generator & cooling & fan_mover & pa_processor_filter & output);
 }
 
-// Process all layers of a single object instance (sequential mode) with a parallel pipeline:
-// Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
-// and export G-code into file.
+// 使用并行管道处理单个对象实例（顺序模式）的所有层：
+// 生成 G 代码，运行过滤器（花瓶模式、冷却缓冲区），运行 G 代码分析器
+// 并将 G 代码导出到文件。
 void GCode::process_layers(const Print&              print,
                            const ToolOrdering&       tool_ordering,
                            std::vector<LayerToPrint> layers_to_print,
@@ -3226,7 +3224,7 @@ void GCode::process_layers(const Print&              print,
                            // BBS
                            const bool prime_extruder)
 {
-    // The pipeline is variable: The vase mode filter is optional.
+    // 管道是可变的：花瓶模式过滤器是可选的。
     size_t     layer_to_print_idx = 0;
     const auto generator =
         tbb::make_filter<void, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
@@ -3300,13 +3298,13 @@ void GCode::process_layers(const Print&              print,
                     fan_mover.reset(new Slic3r::FanMover(writer, std::abs((float) config.fan_speedup_time.value),
                                                          config.fan_speedup_time.value > 0, config.use_relative_e_distances.value,
                                                          config.fan_speedup_overhangs.value, (float) config.fan_kickstart.value));
-                // flush as it's a whole layer
+                // 刷新，因为它是整个层
                 return fan_mover->process_gcode(in, true);
             }
             return in;
         });
 
-    // The pipeline elements are joined using const references, thus no copying is performed.
+    // 管道元素使用常量引用连接，因此不执行复制。
     if (m_spiral_vase && m_pressure_equalizer)
         tbb::parallel_pipeline(12, generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
     else if (m_spiral_vase)
@@ -3322,9 +3320,9 @@ std::string GCode::placeholder_parser_process(const std::string&   name,
                                               unsigned int         current_extruder_id,
                                               const DynamicConfig* config_override)
 {
-    // Orca: Added CMake config option since debug is rarely used in current workflow.
-    // Also changed from throwing error immediately to storing messages till slicing is completed
-    // to raise all errors at the same time.
+    // Orca：添加了 CMake 配置选项，因为调试在当前工作流中很少使用。
+    // 还从立即抛出错误改为将消息存储到切片完成
+    // 以同时报告所有错误。
 #if ORCA_CHECK_GCODE_PLACEHOLDERS
     if (config_override) {
         const auto& custom_gcode_placeholders = custom_gcode_specific_placeholders();
@@ -3409,7 +3407,7 @@ static bool custom_gcode_sets_temperature(
     const char* ptr               = gcode.data();
     bool        temp_set_by_gcode = false;
     while (*ptr != 0) {
-        // Skip whitespaces.
+        // 跳过空白字符。
         for (; *ptr == ' ' || *ptr == '\t'; ++ptr)
             ;
         if (*ptr == 'M' ||                  // Line starts with 'M'. It is a machine command.
@@ -3426,49 +3424,49 @@ static bool custom_gcode_sets_temperature(
                     (mgcode == mcode_set_temp_dont_wait || mgcode == mcode_set_temp_and_wait)) {
                 ptr = endptr;
                 if (!is_gcode)
-                    // Let the caller know that the custom M-code sets the temperature.
+                    // 让调用者知道自定义 M 代码设置了温度。
                     temp_set_by_gcode = true;
-                // Now try to parse the temperature value.
-                // While not at the end of the line:
+                // 现在尝试解析温度值。
+                // 当不在行尾时：
                 while (strchr(";\r\n\0", *ptr) == nullptr) {
-                    // Skip whitespaces.
+                    // 跳过空白字符。
                     for (; *ptr == ' ' || *ptr == '\t'; ++ptr)
                         ;
                     if (*ptr == 'S') {
-                        // Skip whitespaces.
+                        // 跳过空白字符。
                         for (++ptr; *ptr == ' ' || *ptr == '\t'; ++ptr)
                             ;
-                        // Parse an int.
+                        // 解析一个整数。
                         endptr           = nullptr;
                         long temp_parsed = strtol(ptr, &endptr, 10);
                         if (endptr > ptr) {
                             ptr      = endptr;
                             temp_out = temp_parsed;
-                            // Let the caller know that the custom G-code sets the temperature
-                            // Only do this after successfully parsing temperature since G10
-                            // can be used for other reasons
+                            // 让调用者知道自定义 G 代码设置了温度
+                            // 仅在成功解析温度后执行此操作，因为 G10
+                            // 可能用于其他原因
                             temp_set_by_gcode = true;
                         }
                     } else {
-                        // Skip this word.
+                        // 跳过此单词。
                         for (; strchr(" \t;\r\n\0", *ptr) == nullptr; ++ptr)
                             ;
                     }
                 }
             }
         }
-        // Skip the rest of the line.
+        // 跳过该行的其余部分。
         for (; *ptr != 0 && *ptr != '\r' && *ptr != '\n'; ++ptr)
             ;
-        // Skip the end of line indicators.
+        // 跳过行尾指示符。
         for (; *ptr == '\r' || *ptr == '\n'; ++ptr)
             ;
     }
     return temp_set_by_gcode;
 }
 
-// Print the machine envelope G-code for the Marlin firmware based on the "machine_max_xxx" parameters.
-// Do not process this piece of G-code by the time estimator, it already knows the values through another sources.
+// 根据 "machine_max_xxx" 参数为 Marlin 固件打印机器范围 G 代码。
+// 不要通过时间估计器处理这段 G 代码，它已通过其他来源知道这些值。
 void GCode::print_machine_envelope(GCodeOutputStream& file, Print& print)
 {
     const auto flavor = print.config().gcode_flavor.value;
@@ -3484,16 +3482,16 @@ void GCode::print_machine_envelope(GCodeOutputStream& file, Print& print)
                           int(print.config().machine_max_speed_z.values.front() * factor + 0.5),
                           int(print.config().machine_max_speed_e.values.front() * factor + 0.5));
 
-        // Now M204 - acceleration. This one is quite hairy thanks to how Marlin guys care about
-        // Legacy Marlin should export travel acceleration the same as printing acceleration.
-        // MarlinFirmware has the two separated.
+        // 现在 M204 - 加速度。这个有点复杂，因为 Marlin 开发者对它的处理方式
+        // 旧版 Marlin 应将移动加速度与打印加速度相同导出。
+        // MarlinFirmware 将两者分开。
         int travel_acc = flavor == gcfMarlinLegacy ? int(print.config().machine_max_acceleration_extruding.values.front() + 0.5) :
                                                      int(print.config().machine_max_acceleration_travel.values.front() + 0.5);
         if (flavor == gcfRepRapFirmware)
             file.write_format("M204 P%d T%d ; sets acceleration (P, T), mm/sec^2\n",
                               int(print.config().machine_max_acceleration_extruding.values.front() + 0.5), travel_acc);
         else if (flavor == gcfMarlinFirmware)
-            // New Marlin uses M204 P[print] R[retract] T[travel]
+            // 新版 Marlin 使用 M204 P[打印] R[回抽] T[移动]
             file.write_format("M204 P%d R%d T%d ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2\n",
                               int(print.config().machine_max_acceleration_extruding.values.front() + 0.5),
                               int(print.config().machine_max_acceleration_retracting.values.front() + 0.5),
@@ -3510,7 +3508,7 @@ void GCode::print_machine_envelope(GCodeOutputStream& file, Print& print)
                           print.config().machine_max_jerk_z.values.front() * factor,
                           print.config().machine_max_jerk_e.values.front() * factor);
 
-        // New Marlin uses M205 J[mm] for junction deviation (only apply if it is > 0)
+        // 新版 Marlin 使用 M205 J[mm] 用于节点偏差（仅在 > 0 时应用）
         file.write_format(writer().set_junction_deviation(config().machine_max_junction_deviation.values.front()).c_str());
     }
 }
@@ -3523,19 +3521,19 @@ int GCode::get_bed_temperature(const int extruder_id, const bool is_first_layer,
     return bed_temp_opt->get_at(extruder_id);
 }
 
-// Write 1st layer bed temperatures into the G-code.
-// Only do that if the start G-code does not already contain any M-code controlling an extruder temperature.
-// M140 - Set Extruder Temperature
-// M190 - Set Extruder Temperature and Wait
+// 将第一层热床温度写入 G 代码。
+// 仅当开始 G 代码尚未包含任何控制挤出机温度的 M 代码时才执行此操作。
+// M140 - 设置挤出机温度
+// M190 - 设置挤出机温度并等待
 void GCode::_print_first_layer_bed_temperature(
     GCodeOutputStream& file, Print& print, const std::string& gcode, unsigned int first_printing_extruder_id, bool wait)
 {
-    // Initial bed temperature based on the first extruder.
+    // 基于第一个挤出机的初始热床温度。
     // BBS
     std::vector<int> temps_per_bed;
     int              bed_temp = get_bed_temperature(first_printing_extruder_id, true, print.config().curr_bed_type);
 
-    // Is the bed temperature set by the provided custom G-code?
+    // 热床温度是否由提供的自定义 G 代码设置？
     int  temp_by_gcode     = -1;
     bool temp_set_by_gcode = custom_gcode_sets_temperature(gcode, 140, 190, false, temp_by_gcode);
     // BBS
@@ -3544,39 +3542,39 @@ void GCode::_print_first_layer_bed_temperature(
         temp = temp_by_gcode;
 #endif
 
-    // Always call m_writer.set_bed_temperature() so it will set the internal "current" state of the bed temp as if
-    // the custom start G-code emited these.
+    // 始终调用 m_writer.set_bed_temperature()，以便设置热床温度的"当前"内部状态，如同
+    // 自定义开始 G 代码已发出这些命令一样。
     std::string set_temp_gcode = m_writer.set_bed_temperature(bed_temp, wait);
     if (!temp_set_by_gcode)
         file.write(set_temp_gcode);
 }
 
-// Write 1st layer extruder temperatures into the G-code.
-// Only do that if the start G-code does not already contain any M-code controlling an extruder temperature.
-// M104 - Set Extruder Temperature
-// M109 - Set Extruder Temperature and Wait
+// 将第一层挤出机温度写入 G 代码。
+// 仅当开始 G 代码尚未包含任何控制挤出机温度的 M 代码时才执行此操作。
+// M104 - 设置挤出机温度
+// M109 - 设置挤出机温度并等待
 // RepRapFirmware: G10 Sxx
 void GCode::_print_first_layer_extruder_temperatures(
     GCodeOutputStream& file, Print& print, const std::string& gcode, unsigned int first_printing_extruder_id, bool wait)
 {
-    // Is the bed temperature set by the provided custom G-code?
+    // 热床温度是否由提供的自定义 G 代码设置？
     int  temp_by_gcode = -1;
     bool include_g10   = print.config().gcode_flavor == gcfRepRapFirmware;
     if (custom_gcode_sets_temperature(gcode, 104, 109, include_g10, temp_by_gcode)) {
-        // Set the extruder temperature at m_writer, but throw away the generated G-code as it will be written with the custom G-code.
+        // 在 m_writer 中设置挤出机温度，但丢弃生成的 G 代码，因为它将与自定义 G 代码一起写入。
         int temp = print.config().nozzle_temperature_initial_layer.get_at(first_printing_extruder_id);
         if (temp_by_gcode >= 0 && temp_by_gcode < 1000)
             temp = temp_by_gcode;
         m_writer.set_temperature(temp, wait, first_printing_extruder_id);
     } else {
-        // Custom G-code does not set the extruder temperature. Do it now.
+        // 自定义 G 代码未设置挤出机温度。现在设置。
         if (print.config().single_extruder_multi_material.value) {
-            // Set temperature of the first printing extruder only.
+            // 仅设置第一个打印挤出机的温度。
             int temp = print.config().nozzle_temperature_initial_layer.get_at(first_printing_extruder_id);
             if (temp > 0)
                 file.write(m_writer.set_temperature(temp, wait, first_printing_extruder_id));
         } else {
-            // Set temperatures of all the printing extruders.
+            // 设置所有打印挤出机的温度。
             bool is_active   = true;
             int  target_temp = -1;
             int  target_tool = -1;
@@ -4491,8 +4489,8 @@ static std::map<unsigned int, std::pair<size_t, size_t>> make_skirt_loops_per_ex
     // Heights (print_z) at which the skirt has already been extruded.
     std::vector<coordf_t>& skirt_done)
 {
-    // Extrude skirt at the print_z of the raft layers and normal object layers
-    // not at the print_z of the interlaced support material layers.
+    // 在筏层和普通对象层的 print_z 处挤出裙边
+    // 不在交错支撑材料层的 print_z 处。
     std::map<unsigned int, std::pair<size_t, size_t>> skirt_loops_per_extruder_out;
     // For sequential print, the following test may fail when extruding the 2nd and other objects.
     //  assert(skirt_done.empty());
@@ -4510,8 +4508,8 @@ static std::map<unsigned int, std::pair<size_t, size_t>> make_skirt_loops_per_ex
     // Heights (print_z) at which the skirt has already been extruded.
     std::vector<coordf_t>& skirt_done)
 {
-    // Extrude skirt at the print_z of the raft layers and normal object layers
-    // not at the print_z of the interlaced support material layers.
+    // 在筏层和普通对象层的 print_z 处挤出裙边
+    // 不在交错支撑材料层的 print_z 处。
     std::map<unsigned int, std::pair<size_t, size_t>> skirt_loops_per_extruder_out;
     if (print.has_skirt() && !skirt.entities.empty() && layer_tools.has_skirt &&
         // Not enough skirt layers printed yet.
@@ -4523,10 +4521,10 @@ static std::map<unsigned int, std::pair<size_t, size_t>> make_skirt_loops_per_ex
         // FIXME: The skirt_done should not be empty at this point. The check is a workaround
         if (valid) {
 #if 0
-                // Prime just the first printing extruder. This is original Slic3r's implementation.
+                // 仅灌注第一个打印挤出机。这是原始 Slic3r 的实现。
                 skirt_loops_per_extruder_out[layer_tools.extruders.front()] = std::pair<size_t, size_t>(0, print.config().skirt_loops.value);
 #else
-            // Prime all extruders planned for this layer, see
+            // 灌注为此层计划的所有挤出机，参见
             skirt_loops_per_extruder_all_printing(print, skirt, layer_tools, skirt_loops_per_extruder_out);
 #endif
             assert(!skirt_done.empty());
@@ -4569,9 +4567,9 @@ static Point find_start_point(ExtrusionLoop& loop, float start_angle)
 // Orca: Klipper can't parse object names with spaces and other spetical characters
 std::string sanitize_instance_name(const std::string& name)
 {
-    // Replace sequences of non-word characters with an underscore
+    // 用下划线替换非单词字符序列
     std::string result = std::regex_replace(name, std::regex("[ !@#$%^&*()=+\\[\\]{};:\",']+"), "_");
-    // Remove leading and trailing underscores
+    // 移除前导和尾随下划线
     if (!result.empty() && result.front() == '_') {
         result.erase(result.begin());
     }
@@ -4601,8 +4599,8 @@ std::string GCode::generate_skirt(const Print&                     print,
 {
     bool        first_layer = (layer.id() == 0 && abs(layer.bottom_z()) < EPSILON);
     std::string gcode;
-    // Extrude skirt at the print_z of the raft layers and normal object layers
-    // not at the print_z of the interlaced support material layers.
+    // 在筏层和普通对象层的 print_z 处挤出裙边
+    // 不在交错支撑材料层的 print_z 处。
     // Map from extruder ID to <begin, end> index of skirt loops to be extruded with that extruder.
     std::map<unsigned int, std::pair<size_t, size_t>> skirt_loops_per_extruder;
     skirt_loops_per_extruder = first_layer ? Skirt::make_skirt_loops_per_extruder_1st_layer(print, skirt, layer_tools, m_skirt_done) :
@@ -4617,31 +4615,31 @@ std::string GCode::generate_skirt(const Print&                     print,
         Flow layer_skirt_flow = print.skirt_flow().with_height(
             float(m_skirt_done.back() - (m_skirt_done.size() == 1 ? 0. : m_skirt_done[m_skirt_done.size() - 2])));
         double mm3_per_mm = layer_skirt_flow.mm3_per_mm();
-        // Decide where to start looping:
-        // - If it’s the first layer or if we do NOT want a single-wall skirt/draft shield,
-        //   start from loops.first (all loops).
-        // - Otherwise, if single_loop_draft_shield == true (and not the first layer),
-        //   start from loops.second - 1 (just one loop).
+        // 决定从哪里开始循环：
+        // - 如果是第一层或者我们不想要单墙裙边/防风罩，
+        //   从 loops.first 开始（所有循环）。
+        // - 否则，如果 single_loop_draft_shield == true（且不是第一层），
+        //   从 loops.second - 1 开始（仅一个循环）。
         const size_t start_idx = (first_layer || !print.m_config.single_loop_draft_shield) ? loops.first : (loops.second - 1);
 
-        // Loop over the skirt loops and extrude
+        // 循环遍历裙边循环并挤出
         for (size_t i = start_idx; i < loops.second; ++i) {
-            // Adjust flow according to this layer's layer height.
+            // 根据此层的层高调整流量。
             ExtrusionLoop loop = *dynamic_cast<const ExtrusionLoop*>(skirt.entities[i]);
             for (ExtrusionPath& path : loop.paths) {
                 path.height     = layer_skirt_flow.height();
                 path.mm3_per_mm = mm3_per_mm;
             }
 
-            // FIXME using the support_speed of the 1st object printed.
+            // FIXME 使用第一个打印对象的 support_speed。
             if (first_layer && i == loops.first) {
-                // set skirt start point location
+                // 设置裙边起点位置
                 const Point desired_start_point = Skirt::find_start_point(loop, skirt_start_angle);
                 gcode += this->extrude_loop(loop, "skirt", m_config.support_speed.value, {}, &desired_start_point);
             } else
                 gcode += this->extrude_loop(loop, "skirt", m_config.support_speed.value);
 
-            // If we only want a single wall on non-first layers, break now
+            // 如果在非第一层上只需要单墙，则立即退出
             if (!first_layer && print.m_config.single_loop_draft_shield) {
                 break;
             }
@@ -4656,27 +4654,27 @@ std::string GCode::generate_skirt(const Print&                     print,
 
 // In sequential mode, process_layer is called once per each object and its copy,
 // therefore layers will contain a single entry and single_object_instance_idx will point to the copy of the object.
-// In non-sequential mode, process_layer is called per each print_z height with all object and support layers accumulated.
-// For multi-material prints, this routine minimizes extruder switches by gathering extruder specific extrusion paths
-// and performing the extruder specific extrusions together.
+// 在非顺序模式下，process_layer 为每个 print_z 高度调用，并累积所有对象和支撑层。
+// 对于多材料打印，此例程通过收集挤出机特定的挤出路径
+// 并一起执行挤出机特定的挤出来最小化挤出机切换。
 LayerResult GCode::process_layer(const Print& print,
-                                 // Set of object & print layers of the same PrintObject and with the same print_z.
+                                 // 同一 PrintObject 且具有相同 print_z 的对象层和支撑层集合。
                                  const std::vector<LayerToPrint>& layers,
                                  const LayerTools&                layer_tools,
                                  const bool                       last_layer,
-                                 // Pairs of PrintObject index and its instance index.
+                                 // PrintObject 索引及其实例索引的对。
                                  const std::vector<const PrintInstance*>* ordering,
-                                 // If set to size_t(-1), then print all copies of all objects.
-                                 // Otherwise print a single copy of a single object.
+                                 // 如果设置为 size_t(-1)，则打印所有对象的所有副本。
+                                 // 否则打印单个对象的单个副本。
                                  const size_t single_object_instance_idx,
                                  // BBS
                                  const bool prime_extruder)
 {
     assert(!layers.empty());
-    // Either printing all copies of all objects, or just a single copy of a single object.
+    // 要么打印所有对象的所有副本，要么仅打印单个对象的单个副本。
     assert(single_object_instance_idx == size_t(-1) || layers.size() == 1);
 
-    // First object, support and raft layer, if available.
+    // 第一个对象、支撑层和筏层（如果可用）。
     const Layer*        object_layer  = nullptr;
     const SupportLayer* support_layer = nullptr;
     const SupportLayer* raft_layer    = nullptr;
@@ -4699,23 +4697,22 @@ LayerResult GCode::process_layer(const Print& print,
     const Layer& layer = *layer_ptr;
     LayerResult  result{{}, layer.id(), false, last_layer};
     if (layer_tools.extruders.empty())
-        // Nothing to extrude.
+        // 没有要挤出的内容。
         return result;
 
-    // Extract 1st object_layer and support_layer of this set of layers with an equal print_z.
+    // 提取具有相同 print_z 的这组层中的第一个 object_layer 和 support_layer。
     coordf_t print_z = layer.print_z;
-    // BBS: using layer id to judge whether the layer is first layer is wrong. Because if the normal
-    // support is attached above the object, and support layers has independent layer height, then the lowest support
+    // BBS：使用层 ID 判断是否为第一层是错误的。因为如果普通支撑附着在对象上方，并且支撑层具有独立的层高，那么最低的支撑
     // interface layer id is 0.
     bool first_layer = (layer.id() == 0 && abs(layer.bottom_z()) < EPSILON);
     m_writer.set_is_first_layer(first_layer);
     unsigned int first_extruder_id = layer_tools.extruders.front();
 
-    // Initialize config with the 1st object to be printed at this layer.
+    // 使用在此层打印的第一个对象初始化配置。
     m_config.apply(layer.object()->config(), true);
 
-    // Check whether it is possible to apply the spiral vase logic for this layer.
-    // Just a reminder: A spiral vase mode is allowed for a single object, single material print only.
+    // 检查是否可能为此层应用螺旋花瓶逻辑。
+    // 提醒：螺旋花瓶模式仅允许用于单个对象、单材料打印。
     m_enable_loop_clipping = true;
     if (m_spiral_vase && layers.size() == 1 && support_layer == nullptr) {
         bool enable = (layer.id() > 0 || !print.has_brim()) &&
@@ -4729,29 +4726,29 @@ LayerResult GCode::process_layer(const Print& print,
                 }
         }
         result.spiral_vase_enable = enable;
-        // If we're going to apply spiralvase to this layer, disable loop clipping.
+        // 如果我们将为此层应用螺旋花瓶，则禁用循环裁剪。
         m_enable_loop_clipping = !enable;
     }
 
     std::string gcode;
     assert(is_decimal_separator_point()); // for the sprintfs
 
-    // add tag for processor
+    // 为处理器添加标签
     gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
-    // export layer z
+    // 导出层 Z
     char buf[64];
     sprintf(buf, print.is_BBL_printer() ? "; Z_HEIGHT: %g\n" : ";Z:%g\n", print_z);
     gcode += buf;
-    // export layer height
+    // 导出层高
     float height = first_layer ? static_cast<float>(print_z) : static_cast<float>(print_z) - m_last_layer_z;
     sprintf(buf, ";%s%g\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height).c_str(), height);
     gcode += buf;
-    // update caches
+    // 更新缓存
     m_last_layer_z = static_cast<float>(print_z);
     m_max_layer_z  = std::max(m_max_layer_z, m_last_layer_z);
     m_last_height  = height;
 
-    // Set new layer - this will change Z and force a retraction if retract_when_changing_layer is enabled.
+    // 设置新层 - 这将更改 Z，并在启用 retract_when_changing_layer 时强制回抽。
     if (!m_config.before_layer_change_gcode.value.empty()) {
         DynamicConfig config;
         config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index + 1));
@@ -4785,7 +4782,7 @@ LayerResult GCode::process_layer(const Print& print,
         return gcode_res;
     };
 
-    // BBS: don't use lazy_raise when enable spiral vase
+    // BBS：启用螺旋花瓶时不要使用延迟抬升
     gcode += this->change_layer(print_z); // this will increase m_layer_index
     m_layer                  = &layer;
     m_object_layer_over_raft = false;
@@ -4796,7 +4793,7 @@ LayerResult GCode::process_layer(const Print& print,
             if (!timepals_gcode.empty()) {
                 gcode += timepals_gcode;
                 m_writer.set_current_position_clear(false);
-                // BBS: check whether custom gcode changes the z position. Update if changed
+                // BBS：检查自定义 G 代码是否更改了 z 位置。如果更改则更新
                 double temp_z_after_timepals_gcode;
                 if (GCodeProcessor::get_last_z_from_gcode(timepals_gcode, temp_z_after_timepals_gcode)) {
                     Vec3d pos = m_writer.get_position();
@@ -4828,7 +4825,7 @@ LayerResult GCode::process_layer(const Print& print,
     // BBS: set layer time fan speed after layer change gcode
     gcode += ";_SET_FAN_SPEED_CHANGING_LAYER\n";
 
-    // Calibration Layer-specific GCode
+    // 校准层特定的 G 代码
     switch (print.calib_mode()) {
     case CalibMode::Calib_PA_Tower: {
         gcode += writer().set_pressure_advance(print.calib_params().start + static_cast<int>(print_z) * print.calib_params().step);
@@ -4902,7 +4899,7 @@ LayerResult GCode::process_layer(const Print& print,
 
     // BBS
     if (first_layer) {
-        // Orca: we don't need to optimize the Klipper as only set once
+        // Orca：我们不需要优化 Klipper，因为只设置一次
         if (m_config.default_acceleration.value > 0 && m_config.initial_layer_acceleration.value > 0) {
             gcode += m_writer.set_print_acceleration((unsigned int) floor(m_config.initial_layer_acceleration.value + 0.5));
         }
@@ -4918,14 +4915,14 @@ LayerResult GCode::process_layer(const Print& print,
 
     if (!first_layer && !m_second_layer_things_done) {
         if (print.is_BBL_printer()) {
-            // BBS: open powerlost recovery
+            // BBS：打开断电恢复
             {
                 gcode += "; open powerlost recovery\n";
                 gcode += "M1003 S1\n";
             }
-            // BBS: open first layer inspection at second layer
+            // BBS：在第二层打开第一层检查
             if (print.config().scan_first_layer.value) {
-                // BBS: retract first to avoid droping when scan model
+                // BBS：先回抽以避免扫描模型时滴落
                 gcode += this->retract();
                 gcode += "M976 S1 P1 ; scan model before printing 2nd layer\n";
                 gcode += "M400 P100\n";
@@ -4942,12 +4939,12 @@ LayerResult GCode::process_layer(const Print& print,
             gcode += m_writer.set_jerk_xy(m_config.default_jerk.value);
         }
 
-        // Transition from 1st to 2nd layer. Adjust nozzle temperatures as prescribed by the nozzle dependent
-        // nozzle_temperature_initial_layer vs. temperature settings.
+        // 从第 1 层过渡到第 2 层。根据喷嘴相关的
+        // nozzle_temperature_initial_layer 与 temperature 设置调整喷嘴温度。
         for (const Extruder& extruder : m_writer.extruders()) {
             if ((print.config().single_extruder_multi_material.value || m_ooze_prevention.enable) &&
                 extruder.id() != m_writer.extruder()->id())
-                // In single extruder multi material mode, set the temperature for the current extruder only.
+                // 在单挤出机多材料模式下，仅设置当前挤出机的温度。
                 continue;
             int temperature = print.config().nozzle_temperature.get_at(extruder.id());
             if (temperature > 0 && temperature != print.config().nozzle_temperature_initial_layer.get_at(extruder.id()))
@@ -4957,7 +4954,7 @@ LayerResult GCode::process_layer(const Print& print,
         // BBS
         int bed_temp = get_bed_temperature(first_extruder_id, false, print.config().curr_bed_type);
         gcode += m_writer.set_bed_temperature(bed_temp);
-        // Mark the temperature transition from 1st to 2nd layer to be finished.
+        // 标记从第 1 层到第 2 层的温度过渡已完成。
         m_second_layer_things_done = true;
     }
 
@@ -4967,11 +4964,11 @@ LayerResult GCode::process_layer(const Print& print,
                                                              print.config());
     }
 
-    // BBS: get next extruder according to flush and soluble
+    // BBS：根据冲洗量和可溶性获取下一个挤出机
     auto get_next_extruder = [&](int current_extruder, const std::vector<unsigned int>& extruders) {
         std::vector<float> flush_matrix(cast<float>(m_config.flush_volumes_matrix.values));
         const unsigned int number_of_extruders = (unsigned int) (sqrt(flush_matrix.size()) + EPSILON);
-        // Extract purging volumes for each extruder pair:
+        // 提取每对挤出机的冲洗量：
         std::vector<std::vector<float>> wipe_volumes;
         for (unsigned int i = 0; i < number_of_extruders; ++i)
             wipe_volumes.push_back(
@@ -5001,7 +4998,7 @@ LayerResult GCode::process_layer(const Print& print,
         }
     }
 
-    // Group extrusions by an extruder, then by an object, an island and a region.
+    // 按挤出机分组挤出，然后按对象、岛和区域分组。
     std::map<unsigned int, std::vector<ObjectByExtruder>> by_extruder;
     bool is_anything_overridden = const_cast<LayerTools&>(layer_tools).wiping_extrusions().is_anything_overridden();
     const double nozzle_0_mm = m_config.nozzle_diameter.values.empty() ? 0.4 : m_config.nozzle_diameter.get_at(0);
@@ -5089,10 +5086,10 @@ LayerResult GCode::process_layer(const Print& print,
             return configured_filament_id;
         return 0;
     };
-    // Compensate perimeter clipping at mixed-mask boundaries to avoid cracks from exact centerline clipping.
+    // 补偿混合遮罩边界处的周长裁剪，以避免精确中心线裁剪产生的裂缝。
     constexpr double LOCAL_Z_PERIMETER_MASK_EXPAND_MM = 0.10;
-    // Keep base exclusion smaller than mixed-pass inclusion to guarantee a slight overlap
-    // instead of a moat at the boundary.
+    // 保持基础排除小于混合通道包含，以确保在边界处有轻微重叠
+    // 而不是沟壑。
     constexpr double LOCAL_Z_BASE_MASK_EXPAND_MM      = 0.04;
     const float      local_z_perimeter_mask_expand    = float(scale_(LOCAL_Z_PERIMETER_MASK_EXPAND_MM));
     const float      local_z_base_mask_expand         = float(scale_(LOCAL_Z_BASE_MASK_EXPAND_MM));
@@ -5414,8 +5411,8 @@ LayerResult GCode::process_layer(const Print& print,
             // (Still, we have to keep track of regions because we need to apply their config)
             size_t                          n_slices             = layer.lslices.size();
             const std::vector<BoundingBox>& layer_surface_bboxes = layer.lslices_bboxes;
-            // Traverse the slices in an increasing order of bounding box size, so that the islands inside another islands are tested first,
-            // so we can just test a point inside ExPolygon::contour and we may skip testing the holes.
+            // 按边界框大小递增的顺序遍历切片，以便先测试另一个岛内的岛，
+            // 这样我们只需测试 ExPolygon::contour 内的点，可以跳过测试孔。
             std::vector<size_t> slices_test_order;
             slices_test_order.reserve(n_slices);
             for (size_t i = 0; i < n_slices; ++i)
@@ -5471,13 +5468,13 @@ LayerResult GCode::process_layer(const Print& print,
                 const LayerRegion* layerm = layer.regions()[region_id];
                 if (layerm == nullptr)
                     continue;
-                // PrintObjects own the PrintRegions, thus the pointer to PrintRegion would be unique to a PrintObject, they would not
-                // identify the content of PrintRegion accross the whole print uniquely. Translate to a Print specific PrintRegion.
+                // PrintObjects 拥有 PrintRegions，因此指向 PrintRegion 的指针对每个 PrintObject 是唯一的，它们
+                // 无法在整个打印中唯一标识 PrintRegion 的内容。转换为 Print 特定的 PrintRegion。
                 const PrintRegion& region = print.get_print_region(layerm->region().print_region_id());
 
-                // Now we must process perimeters and infills and create islands of extrusions in by_region std::map.
-                // It is also necessary to save which extrusions are part of MM wiping and which are not.
-                // The process is almost the same for perimeters and infills - we will do it in a cycle that repeats twice:
+                // 现在我们必须处理周长和填充，并在 by_region 映射中创建挤出岛。
+                // 还需要保存哪些挤出是 MM 擦拭的一部分，哪些不是。
+                // 对于周长和填充，过程几乎相同 - 我们将在重复两次的循环中完成：
                 std::vector<unsigned int> printing_extruders;
                 for (const ObjectByExtruder::Island::Region::Type entity_type :
                      {ObjectByExtruder::Island::Region::INFILL, ObjectByExtruder::Island::Region::PERIMETERS}) {
@@ -6229,7 +6226,7 @@ LayerResult GCode::process_layer(const Print& print,
                     if (!timepals_gcode.empty()) {
                         gcode += timepals_gcode;
                         m_writer.set_current_position_clear(false);
-                        // BBS: check whether custom gcode changes the z position. Update if changed
+                        // BBS：检查自定义 G 代码是否更改了 z 位置。如果更改则更新
                         double temp_z_after_timepals_gcode;
                         if (GCodeProcessor::get_last_z_from_gcode(timepals_gcode, temp_z_after_timepals_gcode)) {
                             Vec3d pos = m_writer.get_position();
@@ -6245,12 +6242,12 @@ LayerResult GCode::process_layer(const Print& print,
             gcode_toolchange = this->set_extruder(extruder_id, print_z);
         }
         if (!gcode_toolchange.empty()) {
-            // Disable vase mode for layers that has toolchange
+            // 对具有工具切换的层禁用花瓶模式
             result.spiral_vase_enable = false;
         }
         gcode += std::move(gcode_toolchange);
 
-        // let analyzer tag generator aware of a role type change
+        // 让分析器标签生成器知道角色类型的变化
         if (layer_tools.has_wipe_tower && m_wipe_tower)
             m_last_processor_extrusion_role = erWipeTower;
 
@@ -6258,7 +6255,7 @@ LayerResult GCode::process_layer(const Print& print,
         if (objects_by_extruder_it == by_extruder.end())
             continue;
 
-        // BBS: ordering instances by extruder
+        // BBS：按挤出机排序实例
         std::vector<InstanceToPrint> instances_to_print;
         bool                         has_prime_tower = print.config().enable_prime_tower && print.extruders().size() > 1 &&
                                ((print.config().print_sequence == PrintSequence::ByLayer &&
@@ -6313,8 +6310,8 @@ LayerResult GCode::process_layer(const Print& print,
             }
         }
 
-        // We are almost ready to print. However, we must go through all the objects twice to print the the overridden extrusions first
-        // (infill/perimeter wiping feature):
+        // 我们已接近准备好打印。然而，我们必须遍历所有对象两次，以先打印被覆盖的挤出
+        //（填充/周长擦拭功能）：
         std::vector<ObjectByExtruder::Island::Region> by_region_per_copy_cache;
         for (int print_wipe_extrusions = is_anything_overridden; print_wipe_extrusions >= 0; --print_wipe_extrusions) {
             if (is_anything_overridden && print_wipe_extrusions == 0)
@@ -6335,7 +6332,7 @@ LayerResult GCode::process_layer(const Print& print,
 
                 const auto&         inst           = instance_to_print.print_object.instances()[instance_to_print.instance_id];
                 const LayerToPrint& layer_to_print = layers[instance_to_print.layer_id];
-                // To control print speed of the 1st object layer printed over raft interface.
+                // 控制通过筏层界面打印的第一对象层的打印速度。
                 bool object_layer_over_raft = layer_to_print.object_layer && layer_to_print.object_layer->id() > 0 &&
                                               instance_to_print.print_object.slicing_parameters().raft_layers() ==
                                                   layer_to_print.object_layer->id();
@@ -6349,7 +6346,7 @@ LayerResult GCode::process_layer(const Print& print,
                     gcode += std::string("; printing object ") + instance_to_print.print_object.model_object()->name +
                              " id:" + std::to_string(instance_to_print.print_object.get_id()) + " copy " + std::to_string(inst.id) + "\n";
                 }
-                // exclude objects
+                // 排除对象
                 if (m_enable_exclude_object) {
                     if (is_BBL_Printer()) {
                         m_writer.set_object_start_str(std::string("; start printing object, unique label id: ") +
@@ -6367,13 +6364,13 @@ LayerResult GCode::process_layer(const Print& print,
                     }
                 }
 
-                // Orca(#7946): set current obj regardless of the `enable_overhang_speed` value, because
-                // `enable_overhang_speed` is a PrintRegionConfig and here we don't have a region yet.
-                // And no side effect doing this even if `enable_overhang_speed` is off, so don't bother
-                // checking anything here.
+                // Orca(#7946)：无论 `enable_overhang_speed` 的值如何，都设置当前对象，因为
+                // `enable_overhang_speed` 是 PrintRegionConfig，而这里我们还没有区域。
+                // 即使 `enable_overhang_speed` 关闭，这样做也没有副作用，所以不必
+                // 在此处检查任何内容。
                 m_extrusion_quality_estimator.set_current_object(&instance_to_print.print_object);
 
-                // When starting a new object, use the external motion planner for the first travel move.
+                // 当开始新对象时，为第一个移动动作使用外部运动规划器。
                 const Point& offset = instance_to_print.print_object.instances()[instance_to_print.instance_id].shift;
                 std::pair<const PrintObject*, Point> this_object_copy(&instance_to_print.print_object, offset);
                 if (m_last_obj_copy != this_object_copy)
@@ -6384,7 +6381,7 @@ LayerResult GCode::process_layer(const Print& print,
                     m_layer                  = layers[instance_to_print.layer_id].support_layer;
                     m_object_layer_over_raft = false;
 
-                    // BBS: print supports' brims first
+                    // BBS：先打印支撑边框
                     if (this->m_objSupportsWithBrim.find(instance_to_print.print_object.id()) != this->m_objSupportsWithBrim.end() &&
                         !print_wipe_extrusions) {
                         this->set_origin(0., 0.);
@@ -6393,11 +6390,11 @@ LayerResult GCode::process_layer(const Print& print,
                             gcode += this->extrude_entity(*ee, "brim", m_config.support_speed.value);
                         }
                         m_avoid_crossing_perimeters.use_external_mp(false);
-                        // Allow a straight travel move to the first object point.
+                        // 允许直线移动到第一个对象点。
                         m_avoid_crossing_perimeters.disable_once();
                         this->m_objSupportsWithBrim.erase(instance_to_print.print_object.id());
                     }
-                    // When starting a new object, use the external motion planner for the first travel move.
+                    // 当开始新对象时，为第一个移动动作使用外部运动规划器。
                     const Point& offset = instance_to_print.print_object.instances()[instance_to_print.instance_id].shift;
                     std::pair<const PrintObject*, Point> this_object_copy(&instance_to_print.print_object, offset);
                     if (m_last_obj_copy != this_object_copy)
@@ -6420,7 +6417,7 @@ LayerResult GCode::process_layer(const Print& print,
                             // all extrusion paths.
                             *instance_to_print.object_by_extruder.support, support_extrusion_role);
 
-                        // Make sure ironing is the last
+                        // 确保熨烫是最后一个
                         if (support_extrusion_role == erMixed || support_extrusion_role == erSupportMaterialInterface) {
                             gcode += this->extrude_support(*instance_to_print.object_by_extruder.support, erIroning);
                         }
@@ -6429,15 +6426,15 @@ LayerResult GCode::process_layer(const Print& print,
                     m_layer                  = layer_to_print.layer();
                     m_object_layer_over_raft = object_layer_over_raft;
                 }
-                // FIXME order islands?
-                //  Sequential tool path ordering of multiple parts within the same object, aka. perimeter tracking (#5511)
+                // FIXME 对岛进行排序？
+                //  同一对象内多个部件的顺序刀具路径排序，即周长跟踪 (#5511)
                 for (ObjectByExtruder::Island& island : instance_to_print.object_by_extruder.islands) {
                     const auto& by_region_specific = is_anything_overridden ?
                                                          island.by_region_per_copy(by_region_per_copy_cache,
                                                                                    static_cast<unsigned int>(instance_to_print.instance_id),
                                                                                    extruder_id, print_wipe_extrusions != 0) :
                                                          island.by_region;
-                    // BBS: add brim by obj by extruder
+                    // BBS：按对象和挤出机添加边框
                     if (first_layer) {
                         if (this->m_objsWithBrim.find(instance_to_print.print_object.id()) != this->m_objsWithBrim.end() &&
                             !print_wipe_extrusions) {
@@ -6447,19 +6444,19 @@ LayerResult GCode::process_layer(const Print& print,
                                 gcode += this->extrude_entity(*ee, "brim", m_config.support_speed.value);
                             }
                             m_avoid_crossing_perimeters.use_external_mp(false);
-                            // Allow a straight travel move to the first object point.
+                            // 允许直线移动到第一个对象点。
                             m_avoid_crossing_perimeters.disable_once();
                             this->m_objsWithBrim.erase(instance_to_print.print_object.id());
                         }
                     }
-                    // When starting a new object, use the external motion planner for the first travel move.
+                    // 当开始新对象时，为第一个移动动作使用外部运动规划器。
                     const Point& offset = instance_to_print.print_object.instances()[instance_to_print.instance_id].shift;
                     std::pair<const PrintObject*, Point> this_object_copy(&instance_to_print.print_object, offset);
                     if (m_last_obj_copy != this_object_copy)
                         m_avoid_crossing_perimeters.use_external_mp_once();
                     m_last_obj_copy = this_object_copy;
                     this->set_origin(unscale(offset));
-                    // FIXME the following code prints regions in the order they are defined, the path is not optimized in any way.
+                    // FIXME 以下代码按区域定义的顺序打印，路径没有任何优化。
 
                     auto has_infill = [](const std::vector<ObjectByExtruder::Island::Region>& by_region) {
                         for (auto region : by_region) {
@@ -6469,7 +6466,7 @@ LayerResult GCode::process_layer(const Print& print,
                         return false;
                     };
                     {
-                        // Print perimeters of regions that has is_infill_first == false
+                        // 打印 is_infill_first == false 的区域周长
                         gcode += this->extrude_perimeters(print, by_region_specific, first_layer, false);
                         if (!has_wipe_tower && need_insert_timelapse_gcode_for_traditional && !has_insert_timelapse_gcode &&
                             has_infill(by_region_specific)) {
@@ -6479,7 +6476,7 @@ LayerResult GCode::process_layer(const Print& print,
                             if (!timepals_gcode.empty()) {
                                 gcode += timepals_gcode;
                                 m_writer.set_current_position_clear(false);
-                                // BBS: check whether custom gcode changes the z position. Update if changed
+                                // BBS：检查自定义 G 代码是否更改了 z 位置。如果更改则更新
                                 double temp_z_after_timepals_gcode;
                                 if (GCodeProcessor::get_last_z_from_gcode(timepals_gcode, temp_z_after_timepals_gcode)) {
                                     Vec3d pos = m_writer.get_position();
@@ -6489,12 +6486,12 @@ LayerResult GCode::process_layer(const Print& print,
                             }
                             has_insert_timelapse_gcode = true;
                         }
-                        // Then print infill
+                        // 然后打印填充
                         gcode += this->extrude_infill(print, by_region_specific, false);
-                        // Then print perimeters of regions that has is_infill_first == true
+                        // 然后打印 is_infill_first == true 的区域周长
                         gcode += this->extrude_perimeters(print, by_region_specific, first_layer, true);
                     }
-                    // ironing
+                    // 熨烫
                     gcode += this->extrude_infill(print, by_region_specific, true);
                 }
 
@@ -6502,8 +6499,8 @@ LayerResult GCode::process_layer(const Print& print,
                     gcode += std::string("; stop printing object ") + instance_to_print.print_object.model_object()->name +
                              " id:" + std::to_string(instance_to_print.print_object.get_id()) + " copy " + std::to_string(inst.id) + "\n";
                 }
-                // exclude objects
-                // Don't set m_gcode_label_objects_end if you don't had to write the m_gcode_label_objects_start.
+                // 排除对象
+                // 如果不需要写入 m_gcode_label_objects_start，请不要设置 m_gcode_label_objects_end。
                 if (!m_writer.is_object_start_str_empty()) {
                     m_writer.set_object_start_str("");
                 } else if (m_enable_exclude_object) {
@@ -6561,7 +6558,7 @@ LayerResult GCode::process_layer(const Print& print,
         if (!timepals_gcode.empty()) {
             gcode += timepals_gcode;
             m_writer.set_current_position_clear(false);
-            // BBS: check whether custom gcode changes the z position. Update if changed
+            // BBS：检查自定义 G 代码是否更改了 z 位置。如果更改则更新
             double temp_z_after_timepals_gcode;
             if (GCodeProcessor::get_last_z_from_gcode(timepals_gcode, temp_z_after_timepals_gcode)) {
                 Vec3d pos = m_writer.get_position();
@@ -6739,21 +6736,21 @@ static std::unique_ptr<EdgeGrid::Grid> calculate_layer_edge_grid(const Layer& la
 std::string GCode::extrude_loop(
     ExtrusionLoop loop, std::string description, double speed, const ExtrusionEntitiesPtr& region_perimeters, const Point* start_point)
 {
-    // get a copy; don't modify the orientation of the original loop object otherwise
-    // next copies (if any) would not detect the correct orientation
+    // 获取副本；不要修改原始循环对象的朝向，否则
+    // 下一个副本（如果有）将无法检测到正确的朝向
 
     bool is_hole = (loop.loop_role() & elrHole) == elrHole;
 
     if (m_config.spiral_mode && !is_hole) {
-        // if spiral vase, we have to ensure that all contour are in the same orientation.
+        // 如果是螺旋花瓶，我们必须确保所有轮廓具有相同的朝向。
         loop.make_counter_clockwise();
     }
     // if (loop.loop_role() == elrSkirt && (this->m_layer->id() % 2 == 1))
     //     loop.reverse();
 
-    // find the point of the loop that is closest to the current extruder position
-    // or randomize if requested;
-    // or, if `start_point` is specified, start the loop at point closest to it
+    // 找到最接近当前挤出机位置的循环点
+    // 或根据请求随机化；
+    // 或者，如果指定了 `start_point`，则在其最近的点处开始循环
     Point last_pos      = start_point ? *start_point : this->last_pos();
     float seam_overhang = std::numeric_limits<float>::lowest();
     if (!m_config.spiral_mode && description == "perimeter") {
@@ -6778,9 +6775,9 @@ std::string GCode::extrude_loop(
         enable_seam_slope      = seam_overhang < m_config.scarf_overhang_threshold.value * 0.01f * _line_width;
     }
 
-    // clip the path to avoid the extruder to get exactly on the first point of the loop;
-    // if polyline was shorter than the clipping distance we'd get a null polyline, so
-    // we discard it in that case
+    // 裁剪路径以避免挤出机恰好停在循环的第一个点上；
+    // 如果折线比裁剪距离短，我们将得到空折线，因此
+    // 在这种情况下我们丢弃它
     const double seam_gap    = scale_(m_config.seam_gap.get_abs_value(nozzle_diameter));
     const double clip_length = m_enable_loop_clipping && !enable_seam_slope ? seam_gap : 0;
 
@@ -6790,7 +6787,7 @@ std::string GCode::extrude_loop(
     if (paths.empty())
         return "";
 
-    // SoftFever: check loop lenght for small perimeter.
+    // SoftFever：检查小周长的循环长度。
     double small_peri_speed = -1;
     if (speed == -1 && loop.length() <= SMALL_PERIMETER_LENGTH(m_config.small_perimeter_threshold.value)) {
         if (m_config.small_perimeter_speed == 0)
@@ -6803,22 +6800,22 @@ std::string GCode::extrude_loop(
     std::string gcode;
 
     // Orca:
-    // Port of "wipe inside before extruding an external perimeter" feature from super slicer
-    // If region perimeters size not greater than or equal to 2, then skip the wipe inside move as we will extrude in mid air
-    // as no neighbouring perimeter exists. If an internal perimeter exists, we should find 2 perimeters touching the de-retraction point
-    // 1 - the currently printed external perimeter and 2 - the neighbouring internal perimeter.
+    // 从 Super Slicer 移植的"在挤出外部周长之前内部擦拭"功能
+    // 如果区域周长大小小于 2，则跳过内部擦拭移动，因为我们将在半空中挤出
+    // 因为没有相邻的周长存在。如果存在内部周长，我们应该找到 2 个接触取消回抽点的周长
+    // 1 - 当前打印的外部周长，2 - 相邻的内部周长。
     if (m_config.wipe_before_external_loop.value && !paths.empty() && paths.front().size() > 1 && paths.back().size() > 1 &&
         paths.front().role() == erExternalPerimeter && region_perimeters.size() > 1) {
         const bool   is_full_loop_ccw = loop.polygon().is_counter_clockwise();
         bool         is_hole_loop     = (loop.loop_role() & ExtrusionLoopRole::elrHole) != 0; // loop.make_counter_clockwise();
         const double nozzle_diam      = nozzle_diameter;
 
-        // note: previous & next are inverted to extrude "in the opposite direction, and we are "rewinding"
+        // 注意：previous 和 next 是反向的，以便"反向"挤出，并且我们在"回退"
         Point previous_point = paths.front().polyline.points[1];
         Point current_point  = paths.front().polyline.points.front();
         Point next_point     = paths.back().polyline.points.back();
 
-        // can happen if seam_gap is null
+        // 如果 seam_gap 为空，可能发生
         if (next_point == current_point) {
             next_point = paths.back().polyline.points[paths.back().polyline.points.size() - 2];
         }
@@ -6832,7 +6829,7 @@ std::string GCode::extrude_loop(
 
         double angle = current_point.ccw_angle(a, b) / 3;
 
-        // turn outwards if contour, turn inwwards if hole
+        // 如果是轮廓则向外转，如果是孔则向内转
         if (is_hole_loop ? !is_full_loop_ccw : is_full_loop_ccw)
             angle *= -1;
 
@@ -6840,9 +6837,8 @@ std::string GCode::extrude_loop(
         Vec2d  next_pos    = next_point.cast<double>();
         Vec2d  vec_dist    = next_pos - current_pos;
         double vec_norm    = vec_dist.norm();
-        // Offset distance is the minimum between half the nozzle diameter or half the line width for the upcomming perimeter
-        // This is to mimimize potential instances where the de-retraction is performed on top of a neighbouring
-        // thin perimeter due to arachne reducing line width.
+        // 偏移距离是喷嘴直径的一半或即将打印的周长线宽的一半中的最小值
+        // 这是为了最小化由于 Arachne 减少线宽而导致在相邻细周长上执行取消回抽的潜在情况。
         coordf_t dist = std::min(scaled(nozzle_diam) * 0.5, scaled(paths.front().width) * 0.5);
 
         // FIXME Hiding the seams will not work nicely for very densely discretized contours!
@@ -6851,9 +6847,9 @@ std::string GCode::extrude_loop(
         pt = (current_pos + vec_dist * (2 * dist / vec_norm)).cast<coord_t>();
         pt.rotate(angle, current_point);
 
-        // Search region perimeters for lines that are touching the de-retraction point.
-        // If an internal perimeter exists, we should find 2 perimeters touching the de-retraction point
-        // 1: the currently printed external perimeter and 2: the neighbouring internal perimeter.
+        // 搜索区域周长中接触取消回抽点的线。
+        // 如果存在内部周长，我们应该找到 2 个接触取消回抽点的周长
+        // 1：当前打印的外部周长，2：相邻的内部周长。
         int discoveredTouchingLines = 0;
         for (const ExtrusionEntity* ee : region_perimeters) {
             auto                                potential_touching_line = ee->as_polyline();
@@ -6865,10 +6861,9 @@ std::string GCode::extrude_loop(
                     break; // found 2 touching lines. End the search early.
             }
         }
-        // found 2 perimeters touching the de-retraction point. Its safe to deretract as the point will be
-        // inside the model
+        // 找到 2 个接触取消回抽点的周长。取消回抽是安全的，因为该点将在模型内部
         if (discoveredTouchingLines > 1) {
-            // use extrude instead of travel_to_xy to trigger the unretract
+            // 使用挤出代替 travel_to_xy 来触发取消回抽
             ExtrusionPath fake_path_wipe(Polyline{pt, current_point}, paths.front());
             fake_path_wipe.set_force_no_extrusion(true);
             fake_path_wipe.mm3_per_mm = 0;
@@ -6878,13 +6873,13 @@ std::string GCode::extrude_loop(
     }
 
     const auto speed_for_path = [&speed, &small_peri_speed](const ExtrusionPath& path) {
-        // don't apply small perimeter setting for overhangs/bridges/non-perimeters
+        // 不要对悬垂/桥接/非周长应用小周长设置
         const bool is_small_peri = is_perimeter(path.role()) && !is_bridge(path.role()) && small_peri_speed > 0;
         return is_small_peri ? small_peri_speed : speed;
     };
 
-    // Orca: Adaptive PA: calculate average mm3_per_mm value over the length of the loop.
-    // This is used for adaptive PA
+    // Orca：自适应 PA：计算循环长度上的平均 mm3_per_mm 值。
+    // 这用于自适应 PA
     m_multi_flow_segment_path_pa_set             = false; // always emit PA on the first path of the loop
     m_multi_flow_segment_path_average_mm3_per_mm = 0;
     double weighted_sum_mm3_per_mm               = 0.0;
@@ -6910,7 +6905,7 @@ std::string GCode::extrude_loop(
             m_multi_flow_segment_path_pa_set = true;
         }
     } else {
-        // Create seam slope
+        // 创建接缝斜坡
         double start_slope_ratio;
         if (m_config.seam_slope_start_height.percent) {
             start_slope_ratio = m_config.seam_slope_start_height.value / 100.;
@@ -6932,11 +6927,11 @@ std::string GCode::extrude_loop(
         const int    slope_steps       = m_config.seam_slope_steps;
         const double slope_max_segment_length = scale_(slope_min_length / slope_steps);
 
-        // Calculate the sloped loop
+        // 计算斜坡循环
         ExtrusionLoopSloped new_loop(paths, seam_gap, slope_min_length, slope_max_segment_length, start_slope_ratio, loop.loop_role());
         new_loop.clip_slope(seam_gap);
 
-        // Then extrude it
+        // 然后挤出它
         for (const auto& p : new_loop.get_all_paths()) {
             gcode += this->_extrude(*p, description, speed_for_path(*p));
             // Orca: Adaptive PA - dont adapt PA after the first pultipath extrusion is completed
@@ -6945,10 +6940,10 @@ std::string GCode::extrude_loop(
             m_multi_flow_segment_path_pa_set = true;
         }
 
-        // Fix path for wipe
+        // 修复擦拭路径
         if (!new_loop.ends.empty()) {
             paths.clear();
-            // The start slope part is ignored as it overlaps with the end part
+            // 起始斜坡部分被忽略，因为它与结束部分重叠
             paths.reserve(new_loop.paths.size() + new_loop.ends.size());
             paths.insert(paths.end(), new_loop.paths.begin(), new_loop.paths.end());
             paths.insert(paths.end(), new_loop.ends.begin(), new_loop.ends.end());
@@ -6959,7 +6954,7 @@ std::string GCode::extrude_loop(
     if (m_wipe.enable) {
         m_wipe.path = Polyline();
         for (ExtrusionPath& path : paths) {
-            // BBS: Don't need to save duplicated point into wipe path
+            // BBS：不需要将重复点保存到擦拭路径中
             if (!m_wipe.path.empty() && !path.empty() && m_wipe.path.last_point() == path.first_point())
                 m_wipe.path.append(path.polyline.points.begin() + 1, path.polyline.points.end());
             else
@@ -6967,13 +6962,13 @@ std::string GCode::extrude_loop(
         }
     }
 
-    // make a little move inwards before leaving loop
+    // 在离开循环前向内做一点移动
     if (m_config.wipe_on_loops.value && paths.back().role() == erExternalPerimeter && m_layer != NULL && m_config.wall_loops.value > 1 &&
         paths.front().size() >= 2 && paths.back().polyline.points.size() >= 3) {
-        // detect angle between last and first segment
-        // the side depends on the original winding order of the polygon (inwards for contours, outwards for holes)
-        // FIXME improve the algorithm in case the loop is tiny.
-        // FIXME improve the algorithm in case the loop is split into segments with a low number of points (see the Point b query).
+        // 检测最后一段和第一段之间的角度
+        // 方向取决于多边形的原始绕线顺序（轮廓向内，孔向外）
+        // FIXME 改进算法以处理微小循环的情况。
+        // FIXME 改进算法以处理循环被分割成点数较少的段的情况（参见 Point b 查询）。
         Point a = paths.front().polyline.points[1];          // second point
         Point b = *(paths.back().polyline.points.end() - 3); // second to last point
         if (is_hole == loop.is_counter_clockwise()) {
@@ -6985,28 +6980,28 @@ std::string GCode::extrude_loop(
 
         double angle = paths.front().first_point().ccw_angle(a, b) / 3;
 
-        // turn inwards if contour, turn outwards if hole
+        // 如果是轮廓则向内转，如果是孔则向外转
         if (is_hole == loop.is_counter_clockwise())
             angle *= -1;
 
-        // create the destination point along the first segment and rotate it
-        // we make sure we don't exceed the segment length because we don't know
-        // the rotation of the second segment so we might cross the object boundary
+        // 沿第一段创建目标点并旋转它
+        // 我们确保不超过段长度，因为我们不知道第二段的旋转
+        // 所以可能越过对象边界
         Vec2d  p1 = paths.front().polyline.points.front().cast<double>();
         Vec2d  p2 = paths.front().polyline.points[1].cast<double>();
         Vec2d  v  = p2 - p1;
         double nd = scale_(EXTRUDER_CONFIG(nozzle_diameter));
         double l2 = v.squaredNorm();
         // Shift by no more than a nozzle diameter.
-        // FIXME Hiding the seams will not work nicely for very densely discretized contours!
-        // BBS. shorten the travel distant before the wipe path
+        // FIXME 对于非常密集离散化的轮廓，隐藏接缝效果不佳！
+        // BBS. 在擦拭路径之前缩短移动距离
         double threshold = 0.2;
         Point  pt        = (p1 + v * threshold).cast<coord_t>();
         if (nd * nd < l2)
             pt = (p1 + threshold * v * (nd / sqrt(l2))).cast<coord_t>();
         // Point pt = ((nd * nd >= l2) ? (p1+v*0.4): (p1 + 0.2 * v * (nd / sqrt(l2)))).cast<coord_t>();
         pt.rotate(angle, paths.front().polyline.points.front());
-        // generate the travel move
+        // 生成移动动作
         gcode += m_writer.extrude_to_xy(this->point_to_gcode(pt), 0, "move inwards before travel", true);
     }
 
@@ -7018,8 +7013,8 @@ std::string GCode::extrude_multi_path(ExtrusionMultiPath multipath, std::string 
     // extrude along the path
     std::string gcode;
 
-    // Orca: calculate multipath average mm3_per_mm value over the length of the path.
-    // This is used for adaptive PA
+    // Orca：计算路径长度上的多段路径平均 mm3_per_mm 值。
+    // 这用于自适应 PA
     m_multi_flow_segment_path_pa_set             = false; // always emit PA on the first path of the multi-path
     m_multi_flow_segment_path_average_mm3_per_mm = 0;
     double weighted_sum_mm3_per_mm               = 0.0;
@@ -7037,9 +7032,8 @@ std::string GCode::extrude_multi_path(ExtrusionMultiPath multipath, std::string 
 
     for (ExtrusionPath path : multipath.paths) {
         gcode += this->_extrude(path, description, speed);
-        // Orca: Adaptive PA - dont adapt PA after the first pultipath extrusion is completed
-        // as we have already set the PA value to the average flow over the totality of the path
-        // in the first extrude move.
+        // Orca：自适应 PA - 在第一个多段路径挤出完成后不再调整 PA
+        // 因为我们已在第一个挤出移动中将 PA 值设置为整个路径的平均流量.
         m_multi_flow_segment_path_pa_set = true;
     }
 
@@ -7047,7 +7041,7 @@ std::string GCode::extrude_multi_path(ExtrusionMultiPath multipath, std::string 
     if (m_wipe.enable) {
         m_wipe.path = Polyline();
         for (ExtrusionPath& path : multipath.paths) {
-            // BBS: Don't need to save duplicated point into wipe path
+            // BBS：不需要将重复点保存到擦拭路径中
             if (!m_wipe.path.empty() && !path.empty() && m_wipe.path.last_point() == path.first_point())
                 m_wipe.path.append(path.polyline.points.begin() + 1, path.polyline.points.end());
             else
@@ -7077,7 +7071,7 @@ std::string GCode::extrude_entity(const ExtrusionEntity&      entity,
 
 std::string GCode::extrude_path(ExtrusionPath path, std::string description, double speed)
 {
-    // Orca: Reset average multipath flow as this is a single line, single extrude volumetric speed path
+    // Orca：重置平均多段路径流量，因为这是单线、单挤出体积速度路径
     m_multi_flow_segment_path_pa_set             = false;
     m_multi_flow_segment_path_average_mm3_per_mm = 0;
     //    description += ExtrusionEntity::role_to_string(path.role());
@@ -7090,7 +7084,7 @@ std::string GCode::extrude_path(ExtrusionPath path, std::string description, dou
     return gcode;
 }
 
-// Extrude perimeters: Decide where to put seams (hide or align seams).
+// 挤出周长：决定在哪里放置接缝（隐藏或对齐接缝）。
 std::string GCode::extrude_perimeters(const Print&                                         print,
                                       const std::vector<ObjectByExtruder::Island::Region>& by_region,
                                       bool                                                 is_first_layer,
@@ -7100,8 +7094,8 @@ std::string GCode::extrude_perimeters(const Print&                              
     for (const ObjectByExtruder::Island::Region& region : by_region)
         if (!region.perimeters.empty()) {
             m_config.apply(print.get_print_region(&region - &by_region.front()).config());
-            // BBS: for first layer, we always print wall firstly to get better bed adhesive force
-            // This behaviour is same with cura
+            // BBS：对于第一层，我们始终先打印墙以获得更好的热床附着力
+            // 此行为与 Cura 相同
             const bool should_print = is_first_layer ? !is_infill_first : (m_config.is_infill_first == is_infill_first);
             if (!should_print)
                 continue;
@@ -7112,7 +7106,7 @@ std::string GCode::extrude_perimeters(const Print&                              
     return gcode;
 }
 
-// Chain the paths hierarchically by a greedy algorithm to minimize a travel distance.
+// 通过贪心算法按层次链接路径以最小化移动距离。
 std::string GCode::extrude_infill(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool ironing)
 {
     std::string          gcode;
@@ -7295,9 +7289,9 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
         auto target_z       = get_sloped_z(sloped->slope_begin.z_ratio);
         slope_need_z_travel = m_writer.will_move_z(target_z);
     }
-    // Move to first point of extrusion path
-    // path is 2D. But in slope lift case, lift z is done in travel_to function.
-    // Add m_need_change_layer_lift_z when change_layer in case of no lift if m_last_pos is equal to path.first_point() by chance
+    // 移动到挤出路径的第一个点
+    // 路径是 2D 的。但在斜坡抬升的情况下，抬升 Z 在 travel_to 函数中完成。
+    // 在 change_layer 时添加 m_need_change_layer_lift_z，以防万一 m_last_pos 恰好等于 path.first_point() 时没有抬升
     if (!m_last_pos_defined || m_last_pos != path.first_point() || m_need_change_layer_lift_z || slope_need_z_travel) {
         const bool _last_pos_undefined = !m_last_pos_defined;
         gcode += this->travel_to(path.first_point(), path.role(), "move to first " + description + " point",
@@ -7309,11 +7303,11 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
         }
     }
 
-    // if needed, write the gcode_label_objects_end then gcode_label_objects_start
-    // should be already done by travel_to, but just in case
+    // 如果需要，写入 gcode_label_objects_end 然后 gcode_label_objects_start
+    // 应该已由 travel_to 完成，但以防万一
     m_writer.add_object_change_labels(gcode);
 
-    // compensate retraction
+    // 补偿回抽
     gcode += this->unretract();
     m_config.apply(m_calib_config);
 
@@ -7327,10 +7321,10 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
     const bool skip_accel_jerk_switch_for_short_pointillism =
         pointillism_path && path_length_mm <= pointillism_min_accel_switch_len_mm + EPSILON;
 
-    // Orca: optimize for Klipper, set acceleration and jerk in one command
+    // Orca：为 Klipper 优化，在一个命令中设置加速度和加加速度
     unsigned int acceleration_i = 0;
     double       jerk           = 0;
-    // adjust acceleration
+    // 调整加速度
     if (m_config.default_acceleration.value > 0) {
         double acceleration;
         if (this->on_first_layer() && m_config.initial_layer_acceleration.value > 0) {
@@ -7357,7 +7351,7 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
         acceleration_i = (unsigned int) floor(acceleration + 0.5);
     }
 
-    // adjust X Y jerk
+    // 调整 XY 加加速度
     if (m_config.default_jerk.value > 0) {
         if (this->on_first_layer() && m_config.initial_layer_jerk.value > 0) {
             jerk = m_config.initial_layer_jerk.value;
@@ -7384,7 +7378,7 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
         }
     }
 
-    // calculate effective extrusion length per distance unit (e_per_mm)
+    // 计算每距离单位的有效挤出长度 (e_per_mm)
     double filament_flow_ratio = m_config.option<ConfigOptionFloats>("filament_flow_ratio")->get_at(0);
     // We set _mm3_per_mm to effectove flow = Geometric volume * print flow ratio * filament flow ratio * role-based-flow-ratios
     auto _mm3_per_mm = path.mm3_per_mm * this->config().print_flow_ratio;
@@ -7402,7 +7396,7 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
     double e_per_mm = m_writer.extruder()->e_per_mm3() * _mm3_per_mm;
     e_per_mm /= filament_flow_ratio;
 
-    // set speed
+    // 设置速度
     if (speed == -1) {
         if (path.role() == erPerimeter) {
             speed = m_config.get_abs_value("inner_wall_speed");
@@ -7438,12 +7432,11 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
             throw Slic3r::InvalidArgument("Invalid speed");
         }
     }
-    // BBS: if not set the speed, then use the filament_max_volumetric_speed directly
+    // BBS：如果未设置速度，则直接使用 filament_max_volumetric_speed
     if (speed == 0)
         speed = EXTRUDER_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm;
     if (this->on_first_layer()) {
-        // BBS: for solid infill of initial layer, speed can be higher as long as
-        // wall lines have be attached
+        // BBS：对于初始层的实心填充，只要墙线已附着，速度可以更高
         if (path.role() != erBottomSurface)
             speed = m_config.get_abs_value("initial_layer_speed");
     } else if (m_config.slow_down_layers > 1) {
@@ -7456,7 +7449,7 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
             }
         }
     }
-    // Override skirt speed if set
+    // 如果设置了裙边速度则覆盖
     if (path.role() == erSkirt) {
         const double skirt_speed = m_config.get_abs_value("skirt_speed");
         if (skirt_speed > 0.0)
@@ -7473,29 +7466,29 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
     //     );
     // }
     if (EXTRUDER_CONFIG(filament_max_volumetric_speed) > 0) {
-        // cap speed with max_volumetric_speed anyway (even if user is not using autospeed)
+        // 无论如何用 max_volumetric_speed 限制速度（即使用户未使用自动速度）
         speed = std::min(speed, EXTRUDER_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm);
     }
-    // ORCA: resonance‑avoidance on short external perimeters
+    // ORCA：短外部周长上的共振避免
     {
         double ref_speed = speed; // stash the pre‑cap speed
         if (path.role() == erExternalPerimeter && m_config.resonance_avoidance.value) {
-            // if our original speed was above “max”, disable RA for this loop
+            // 如果我们的原始速度高于”最大值”，则对此循环禁用 RA
             if (ref_speed > m_config.max_resonance_avoidance_speed.value) {
                 m_resonance_avoidance = false;
             }
 
-            // re‑apply volumetric cap
+            // 重新应用体积上限
             if (EXTRUDER_CONFIG(filament_max_volumetric_speed) > 0) {
                 speed = std::min(speed, EXTRUDER_CONFIG(filament_max_volumetric_speed) / _mm3_per_mm);
             }
 
-            // if still in avoidance mode and under “max”, clamp to “min”
+            // 如果仍在避免模式下且低于”最大值”，则限制为”最小值”
             if (m_resonance_avoidance && speed <= m_config.max_resonance_avoidance_speed.value) {
                 speed = std::min(speed, m_config.min_resonance_avoidance_speed.value);
             }
 
-            // reset flag for next segment
+            // 重置下一段的标志
             m_resonance_avoidance = true;
         }
     }
@@ -7568,16 +7561,16 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
 
     double F = speed * 60; // convert mm/sec to mm/min
 
-    // Orca: Dynamic PA
-    // If adaptive PA is enabled, by default evaluate PA on all extrusion moves
+    // Orca：动态 PA
+    // 如果启用了自适应 PA，默认在所有挤出移动上评估 PA
     bool is_pa_calib = m_curr_print->calib_mode() == CalibMode::Calib_PA_Line ||
                        m_curr_print->calib_mode() == CalibMode::Calib_PA_Pattern || m_curr_print->calib_mode() == CalibMode::Calib_PA_Tower;
     bool evaluate_adaptive_pa = false;
     bool role_change          = (m_last_extrusion_role != path.role());
     if (!is_pa_calib && EXTRUDER_CONFIG(adaptive_pressure_advance) && EXTRUDER_CONFIG(enable_pressure_advance)) {
         evaluate_adaptive_pa = true;
-        // If we have already emmited a PA change because the m_multi_flow_segment_path_pa_set is set
-        // skip re-issuing the PA change tag.
+        // 如果已经因为设置了 m_multi_flow_segment_path_pa_set 而发出了 PA 更改，
+        // 则跳过重新发出 PA 更改标签。
         if (m_multi_flow_segment_path_pa_set && evaluate_adaptive_pa)
             evaluate_adaptive_pa = false;
         // TODO: Explore forcing evaluation of PA if a role change is happening mid extrusion.
@@ -7591,7 +7584,7 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
     }
     // Orca: End of dynamic PA trigger flag segment
 
-    // Orca: process custom gcode for extrusion role change
+    // Orca：处理挤出角色更改的自定义 G 代码
     if (path.role() != m_last_extrusion_role && !m_config.change_extrusion_role_gcode.value.empty()) {
         DynamicConfig config;
         config.set_key_value("extrusion_role", new ConfigOptionString(extrusion_role_to_string_for_parser(path.role())));
@@ -7603,7 +7596,7 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
                  "\n";
     }
 
-    // extrude arc or line
+    // 挤出弧线或直线
     if (m_enable_extrusion_role_markers) {
         if (path.role() != m_last_extrusion_role) {
             char buf[32];
@@ -7614,9 +7607,9 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
 
     m_last_extrusion_role = path.role();
 
-    // adds processor tags and updates processor tracking data
-    // PrusaMultiMaterial::Writer may generate GCodeProcessor::Height_Tag lines without updating m_last_height
-    // so, if the last role was erWipeTower we force export of GCodeProcessor::Height_Tag lines
+    // 添加处理器标签并更新处理器跟踪数据
+    // PrusaMultiMaterial::Writer 可能生成 GCodeProcessor::Height_Tag 行而不更新 m_last_height
+    // 因此，如果上一个角色是 erWipeTower，我们强制导出 GCodeProcessor::Height_Tag 行
     bool last_was_wipe_tower = (m_last_processor_extrusion_role == erWipeTower);
     char buf[64];
     assert(is_decimal_separator_point());
@@ -7648,16 +7641,16 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
         gcode += buf;
     }
 
-    // Orca: Dynamic PA
-    // Post processor flag generation code segment when option to emit only at role changes is enabled
-    // Variables published to the post processor:
-    // 1) Tag to trigger a PA evaluation (because a role change was identified and the user has requested dynamic PA adjustments)
-    // 2) Current extruder ID (to identify the PA model for the currently used extruder)
-    // 3) mm3_per_mm value (to then multiply by the final model print speed after slowdown for cooling is applied)
-    // 4) the current acceleration (to pass to the model for evaluation)
-    // 5) whether this is an external perimeter (for future use)
-    // 6) whether this segment is triggered because of a role change (to aid in calculation of average speed for the role)
-    // This tag simplifies the creation of the gcode post processor while also keeping the feature decoupled from other tags.
+    // Orca：动态 PA
+    // 当启用在角色更改时仅发出的选项时，后处理器标志生成代码段
+    // 发布到后处理器的变量：
+    // 1) 触发 PA 评估的标签（因为识别到角色更改，并且用户请求了动态 PA 调整）
+    // 2) 当前挤出机 ID（用于识别当前使用的挤出机的 PA 模型）
+    // 3) mm3_per_mm 值（然后乘以应用冷却减速后的最终模型打印速度）
+    // 4) 当前加速度（传递给模型进行评估）
+    // 5) 这是否是外部周长（供将来使用）
+    // 6) 此段是否因角色更改而触发（有助于计算角色的平均速度）
+    // 此标签简化了 G 代码后处理器的创建，同时使该功能与其他标签解耦。
     if (evaluate_adaptive_pa) {
         bool isOverhangPerimeter = (path.role() == erOverhangPerimeter);
         if (m_multi_flow_segment_path_average_mm3_per_mm > 0) {
@@ -7710,7 +7703,7 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
             comment += ";_EXTERNAL_PERIMETER";
     }
 
-    // Change fan speed based on current extrusion role
+    // 根据当前挤出角色更改风扇速度
     auto append_role_based_fan_marker = [this, &gcode](const ExtrusionRole role, const std::string_view& marker_prefix, const bool fan_on) {
         assert(m_enable_cooling_markers);
 
@@ -7786,8 +7779,7 @@ std::string GCode::_extrude(const ExtrusionPath& path, std::string description, 
         {
             if (m_enable_cooling_markers) {
                 if (enable_overhang_bridge_fan) {
-                    // BBS: Overhang_threshold_none means Overhang_threshold_1_4 and forcing cooling for all external
-                    // perimeter
+                    // BBS：Overhang_threshold_none 表示 Overhang_threshold_1_4 并强制对所有外部周长进行冷却
                     append_role_based_fan_marker(
                         erOverhangPerimeter, "_OVERHANG"sv,
                         (overhang_fan_threshold == Overhang_threshold_none && is_external_perimeter(path.role())) ||
@@ -8607,7 +8599,7 @@ std::string GCode::set_extruder(unsigned int extruder_id, double print_z, bool b
             // Set this flag so that normal lift will be used the first time after tool change.
             gcode += ";_FORCE_RESUME_FAN_SPEED\n";
             m_writer.set_current_position_clear(false);
-            // BBS: check whether custom gcode changes the z position. Update if changed
+            // BBS：检查自定义 G 代码是否更改了 z 位置。如果更改则更新
             double temp_z_after_tool_change;
             if (GCodeProcessor::get_last_z_from_gcode(toolchange_gcode_parsed, temp_z_after_tool_change)) {
                 Vec3d pos = m_writer.get_position();

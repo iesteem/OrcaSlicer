@@ -27,34 +27,34 @@ public:
     const Slic3r::Point &front()  const { return *m_begin; }
     const Slic3r::Point &back()   const { return *(m_end - 1); }
 
-	// Start point of a segment idx.
+	// 线段 idx 的起点。
 	const Slic3r::Point& segment_start(size_t idx) const {
 		assert(idx < this->num_segments());
 		return m_begin[idx];
 	}
 
-	// End point of a segment idx.
+	// 线段 idx 的终点。
 	const Slic3r::Point& segment_end(size_t idx) const {
 		assert(idx < this->num_segments());
 		const Slic3r::Point *ptr = m_begin + idx + 1;
 		return ptr == m_end ? *m_begin : *ptr;
 	}
 
-	// Start point of a segment preceding idx.
+	// 线段 idx 的前一段的起点。
 	const Slic3r::Point& segment_prev(size_t idx) const {
 		assert(idx < this->num_segments());
 		assert(idx > 0 || ! m_open);
 		return idx == 0 ? m_end[-1] : m_begin[idx - 1];
 	}
 
-	// Index of a segment preceding idx.
+	// 线段 idx 的前一段的索引。
 	const size_t 		 segment_idx_prev(size_t idx) const {
 		assert(idx < this->num_segments());
 		assert(idx > 0 || ! m_open);
 		return (idx == 0 ? this->size() : idx) - 1;
 	}
 
-	// Index of a segment preceding idx.
+	// 线段 idx 的下一段的索引。
 	const size_t 		 segment_idx_next(size_t idx) const {
 		assert(idx < this->num_segments());
 		++ idx;
@@ -96,16 +96,15 @@ public:
 
 	void set_bbox(const BoundingBox &bbox) { m_bbox = bbox; }
 
-	// Fill in the grid with open polylines or closed contours.
-	// If open flag is indicated, then polylines_or_polygons are considered to be open by default.
-	// Only if the first point of a polyline is equal to the last point of a polyline, 
-	// then the polyline is considered to be closed and the last repeated point is removed when
-	// inserted into the EdgeGrid.
-	// Most of the Grid functions expect all the contours to be closed, you have been warned!
+	// 使用开放折线或闭合轮廓填充网格。
+	// 如果设置了开放标志，则 polylines_or_polygons 默认被视为开放。
+	// 仅当折线的第一个点等于最后一个点时，
+	// 该折线被视为闭合，并且在插入到 EdgeGrid 时移除最后一个重复点。
+	// 大多数 Grid 函数期望所有轮廓都是闭合的，请注意！
 	void create(const std::vector<Points> &polylines_or_polygons, coord_t resolution, bool open);
 	void create(const Polygons &polygons, const Polylines &polylines, coord_t resolution);
 
-	// Fill in the grid with closed contours.
+	// 使用闭合轮廓填充网格。
 	void create(const Polygons &polygons, coord_t resolution);
 	void create(const std::vector<const Polygon*> &polygons, coord_t resolution);
 	void create(const std::vector<Points> &polygons, coord_t resolution) { this->create(polygons, resolution, false); }
@@ -126,34 +125,34 @@ public:
 	bool inside(const Point &pt);
 #endif
 
-	// Fill in a rough m_signed_distance_field from the edge grid.
-	// The rough SDF is used by signed_distance() for distances outside of the search_radius.
-	// Only call this function for closed contours!
+	// 从边缘网格填充粗略的 m_signed_distance_field。
+	// 粗略的 SDF 由 signed_distance() 用于搜索半径之外的距离。
+	// 仅对闭合轮廓调用此函数！
 	void calculate_sdf();
 
-	// Return an estimate of the signed distance based on m_signed_distance_field grid.
+	// 返回基于 m_signed_distance_field 网格的有符号距离估计值。
 	float signed_distance_bilinear(const Point &pt) const;
 
-	// Calculate a signed distance to the contours in search_radius from the point.
-	// Only call this function for closed contours!
+	// 计算从点到搜索半径内轮廓的有符号距离。
+	// 仅对闭合轮廓调用此函数！
 	struct ClosestPointResult {
 		size_t contour_idx  	= size_t(-1);
 		size_t start_point_idx  = size_t(-1);
-		// Signed distance to the closest point.
+		// 到最近点的有符号距离。
 		double distance 		= std::numeric_limits<double>::max();
-		// Parameter of the closest point on edge starting with start_point_idx <0, 1)
+		// 从 start_point_idx 开始的边上最近点的参数 <0, 1)
 		double t 				= 0.;
 
 		bool valid() const { return contour_idx != size_t(-1); }
 	};
 	ClosestPointResult closest_point_signed_distance(const Point &pt, coord_t search_radius) const;
 
-	// Only call this function for closed contours!
+	// 仅对闭合轮廓调用此函数！
 	bool signed_distance_edges(const Point &pt, coord_t search_radius, coordf_t &result_min_dist, bool *pon_segment = nullptr) const;
 
-	// Calculate a signed distance to the contours in search_radius from the point. If no edge is found in search_radius,
-	// return an interpolated value from m_signed_distance_field, if it exists.
-	// Only call this function for closed contours!
+	// 计算从点到搜索半径内轮廓的有符号距离。如果在搜索半径内未找到边缘，
+	// 则从 m_signed_distance_field 返回插值（如果存在）。
+	// 仅对闭合轮廓调用此函数！
 	bool signed_distance(const Point &pt, coord_t search_radius, coordf_t &result_min_dist) const;
 
 	const BoundingBox& 	bbox() const { return m_bbox; }
@@ -161,7 +160,7 @@ public:
 	const size_t		rows() const { return m_rows; }
 	const size_t		cols() const { return m_cols; }
 
-	// For supports: Contours enclosing the rasterized edges.
+	// 用于支撑：包围光栅化边缘的轮廓。
 	Polygons 			contours_simplified(coord_t offset, bool fill_holes) const;
 
 	typedef std::pair<const Contour*, size_t> ContourPoint;
@@ -171,7 +170,7 @@ public:
 
 	template<typename VISITOR> void visit_cells_intersecting_line(Slic3r::Point p1, Slic3r::Point p2, VISITOR &visitor) const
 	{
-		// End points of the line segment.
+		// 线段的端点。
 		assert(m_bbox.contains(p1));
 		assert(m_bbox.contains(p2));
 		p1 -= m_bbox.min;
@@ -180,7 +179,7 @@ public:
         assert(p1.y() >= 0 && size_t(p1.y()) < m_rows * m_resolution);
         assert(p2.x() >= 0 && size_t(p2.x()) < m_cols * m_resolution);
         assert(p2.y() >= 0 && size_t(p2.y()) < m_rows * m_resolution);
-		// Get the cells of the end points.
+		// 获取端点的单元格。
 		coord_t ix = p1(0) / m_resolution;
 		coord_t iy = p1(1) / m_resolution;
 		coord_t ixb = p2(0) / m_resolution;
@@ -189,17 +188,17 @@ public:
 		assert(iy >= 0 && size_t(iy) < m_rows);
 		assert(ixb >= 0 && size_t(ixb) < m_cols);
 		assert(iyb >= 0 && size_t(iyb) < m_rows);
-		// Account for the end points.
+		// 考虑端点。
 		if (! visitor(iy, ix) || (ix == ixb && iy == iyb))
-			// Both ends fall into the same cell.
+			// 两端落入同一单元格。
 			return;
-		// Raster the centeral part of the line.
+		// 光栅化线的中心部分。
 		coord_t dx = std::abs(p2(0) - p1(0));
 		coord_t dy = std::abs(p2(1) - p1(1));
 		if (p1(0) < p2(0)) {
 			int64_t ex = int64_t((ix + 1)*m_resolution - p1(0)) * int64_t(dy);
 			if (p1(1) < p2(1)) {
-				// x positive, y positive
+				// x 正方向，y 正方向
 				int64_t ey = int64_t((iy + 1)*m_resolution - p1(1)) * int64_t(dx);
 				do {
 					assert(ix <= ixb && iy <= iyb);
@@ -229,7 +228,7 @@ public:
 				} while (ix != ixb || iy != iyb);
 			}
 			else {
-				// x positive, y non positive
+				// x 正方向，y 负方向
 				int64_t ey = int64_t(p1(1) - iy*m_resolution) * int64_t(dx);
 				do {
 					assert(ix <= ixb && iy >= iyb);
@@ -253,7 +252,7 @@ public:
 		else {
 			int64_t ex = int64_t(p1(0) - ix*m_resolution) * int64_t(dy);
 			if (p1(1) < p2(1)) {
-				// x non positive, y positive
+				// x 负方向，y 正方向
 				int64_t ey = int64_t((iy + 1)*m_resolution - p1(1)) * int64_t(dx);
 				do {
 					assert(ix >= ixb && iy <= iyb);
@@ -275,7 +274,7 @@ public:
 				} while (ix != ixb || iy != iyb);
 			}
 			else {
-				// x non positive, y non positive
+				// x 负方向，y 负方向
 				int64_t ey = int64_t(p1(1) - iy*m_resolution) * int64_t(dx);
 				do {
 					assert(ix >= ixb && iy >= iyb);
@@ -286,9 +285,9 @@ public:
 						assert(ix >= ixb);
 					}
 					else if (ex == ey) {
-						// The lower edge of a grid cell belongs to the cell.
-						// Handle the case where the ray may cross the lower left corner of a cell in a general case,
-						// or a left or lower edge in a degenerate case (horizontal or vertical line).
+						// 网格单元格的下边缘属于该单元格。
+						// 处理一般情况下射线可能穿过单元格左下角的情况，
+						// 或退化情况下（水平或垂直线）的左边缘或下边缘。
 						if (dx > 0) {
 							ex = int64_t(dy) * m_resolution;
 							ix -= 1;
@@ -316,13 +315,13 @@ public:
 
 	template<typename VISITOR> void visit_cells_intersecting_box(BoundingBox bbox, VISITOR &visitor) const
 	{
-		// End points of the line segment.
+		// 线段的端点。
 		bbox.min -= m_bbox.min;
 		bbox.max -= m_bbox.min + Point(1, 1);
-		// Get the cells of the end points.
+		// 获取端点的单元格。
 		bbox.min /= m_resolution;
 		bbox.max /= m_resolution;
-		// Trim with the cells.
+		// 用单元格进行裁剪。
 		bbox.min.x() = std::max<coord_t>(bbox.min.x(), 0);
 		bbox.min.y() = std::max<coord_t>(bbox.min.y(), 0);
 		bbox.max.x() = std::min<coord_t>(bbox.max.x(), (coord_t)m_cols - 1);
@@ -370,8 +369,8 @@ protected:
 	{
 		if (r < 0 || (size_t)r >= m_rows ||
 			c < 0 || (size_t)c >= m_cols)
-			// The cell is outside the domain. Hoping that the contours were correctly oriented, so
-			// there is a CCW outmost contour so the out of domain cells are outside.
+			// 单元格在域外。希望轮廓已正确定向，因此
+			// 存在一个逆时针（CCW）最外轮廓，使得域外的单元格位于外部。
 			return false;
 		const Cell &cell = m_cells[r * m_cols + c];
 		return 
@@ -379,38 +378,38 @@ protected:
 			(! m_signed_distance_field.empty() && m_signed_distance_field[r * (m_cols + 1) + c] <= 0.f);
 	}
 
-	// Bounding box around the contours.
+	// 轮廓周围的边界框。
 	BoundingBox 								m_bbox;
-	// Grid dimensions.
+	// 网格尺寸。
 	coord_t										m_resolution;
 	size_t										m_rows = 0;
 	size_t										m_cols = 0;
 
-	// Referencing the source contours.
-	// This format allows one to work with any Slic3r fixed point contour format
-	// (Polygon, ExPolygon, ExPolygons etc).
+	// 引用源轮廓。
+	// 此格式允许处理任何 Slic3r 定点轮廓格式
+	//（Polygon, ExPolygon, ExPolygons 等）。
 	std::vector<Contour>						m_contours;
 
-	// Referencing a contour and a line segment of m_contours.
+	// 引用 m_contours 的轮廓和线段。
 	std::vector<std::pair<size_t, size_t> >		m_cell_data;
 
-	// Full grid of cells.
+	// 完整网格的单元格。
 	std::vector<Cell> 							m_cells;
 
-	// Distance field derived from the edge grid, seed filled by the Danielsson chamfer metric.
-	// May be empty.
+	// 从边缘网格导出的距离场，由 Danielsson 倒角度量填充种子。
+	// 可能为空。
 	std::vector<float>							m_signed_distance_field;
 };
 
-// Debugging utility. Save the signed distance field.
+// 调试工具。保存有符号距离场。
 extern void save_png(const Grid &grid, const BoundingBox &bbox, coord_t resolution, const char *path, size_t scale = 1);
 
 } // namespace EdgeGrid
 
-// Find all pairs of intersectiong edges from the set of polygons.
+// 从多边形集合中查找所有相交边对。
 extern std::vector<std::pair<EdgeGrid::Grid::ContourEdge, EdgeGrid::Grid::ContourEdge>> intersecting_edges(const Polygons &polygons);
 
-// Find all pairs of intersectiong edges from the set of polygons, highlight them in an SVG.
+// 从多边形集合中查找所有相交边对，并在 SVG 中高亮显示。
 extern void export_intersections_to_svg(const std::string &filename, const Polygons &polygons);
 
 } // namespace Slic3r

@@ -9,7 +9,7 @@
 
 namespace Slic3r {
 
-// The original Perl code used path generators from Math::PlanePath library:
+// 原始 Perl 代码使用了 Math::PlanePath 库中的路径生成器：
 // http://user42.tuxfamily.org/math-planepath/
 // http://user42.tuxfamily.org/math-planepath/gallery.html
 
@@ -25,11 +25,11 @@ public:
 protected:
     const Point     scaled(const Vec2d& fpt) const { return { coord_t(floor(fpt.x() * m_scale_out + 0.5)), coord_t(floor(fpt.y() * m_scale_out + 0.5)) }; }
 
-    // Output polyline.
+    // 输出多段线。
     Points          m_out;
 
 private:
-    // Scaling coefficient of the generated points before tested against m_bbox and clipped by bbox.
+    // 生成的点在测试 m_bbox 并由 bbox 裁剪之前的缩放系数。
     double          m_scale_out;
 };
 

@@ -115,13 +115,13 @@ float estimate_curled_up_height(
         float curling_section = distance;
 
         // after extruding, the curling (floating) part of the extrusion starts to shrink back to the rounded shape of the nozzle
-        // The anchored part not, because the melted material holds to the previous layer well.
-        // We can assume for simplicity perfect equalization of layer height and raising part width, from which:
+        // The anchored part not, because the melted material holds to the previous layer well. 锚定部分则不会，因为熔融材料很好地粘附在前一层上。
+        // We can assume for simplicity perfect equalization of layer height and raising part width, from which: 为简化起见，我们可以假设层高和翘起部分宽度的完美均衡，由此得出：
         float swelling_radius = (layer_height + curling_section) / 2.0f;
         curled_up_height += std::max(0.f, (swelling_radius - layer_height) / 2.0f);
 
-        // On convex turns, there is larger tension on the floating edge of the extrusion then on the middle section.
-        // The tension is caused by the shrinking tendency of the filament, and on outer edge of convex trun, the expansion is greater and
+        // On convex turns, there is larger tension on the floating edge of the extrusion then on the middle section. 在凸转弯处，挤出物的浮动边缘比中间部分承受更大的张力。
+        // The tension is caused by the shrinking tendency of the filament, and on outer edge of convex trun, the expansion is greater and 张力由细丝的收缩趋势引起，在凸转弯的外边缘，膨胀更大且
         // thus shrinking force is greater. This tension will cause the curling section to curle up
         if (curvature > 0.01) {
             float radius    = (1.0 / curvature);
@@ -402,7 +402,7 @@ std::vector<ExtrusionLine> check_extrusion_entity_stability(const ExtrusionEntit
         }
 
         const float flow_width = get_flow_width(layer_region, entity->role());
-        // Compute only unsigned distance - prev_layer_lines can contain unconnected paths, thus the sign of the distance is unreliable
+        // Compute only unsigned distance - prev_layer_lines can contain unconnected paths, thus the sign of the distance is unreliable 仅计算无符号距离 - prev_layer_lines可能包含不连通的路径，因此距离的符号不可靠
         std::vector<ExtendedPoint> annotated_points = estimate_points_properties<true, true, false, false>(entity->as_polyline().points,
                                                                                                            prev_layer_lines, flow_width,
                                                                                                            params.bridge_distance);
@@ -544,7 +544,7 @@ public:
         Vec3f centroid   = centroid_accumulator / area;
         Vec2f variance   = (second_moment_of_area_accumulator / area - centroid.head<2>().cwiseProduct(centroid.head<2>()));
         float covariance = second_moment_of_area_covariance_accumulator / area - centroid.x() * centroid.y();
-        // Var(aX+bY)=a^2*Var(X)+b^2*Var(Y)+2*a*b*Cov(X,Y)
+        // Var(aX+bY)=a^2*Var(X)+b^2*Var(Y)+2*a*b*Cov(X,Y) 方差公式
         float directional_xy_variance = line_dir.x() * line_dir.x() * variance.x() + line_dir.y() * line_dir.y() * variance.y() +
                                         2.0f * line_dir.x() * line_dir.y() * covariance;
 #ifdef DETAILED_DEBUG_LOGS
@@ -716,7 +716,7 @@ std::tuple<ObjectPart, float> build_object_part_from_slice(const size_t &slice_i
                 new_object_part.sticking_area += sticking_area;
                 Vec2f middle = Vec2f((line.a + line.b) / 2.0f);
                 new_object_part.sticking_centroid_accumulator += sticking_area * to_3d(middle, slice_z);
-                // Bottom infill lines can be quite long, and algined, so the middle approximaton used above does not work
+                // Bottom infill lines can be quite long, and aligned, so the middle approximaton used above does not work 底部填充线可能很长且对齐，因此上面使用的中间近似法不适用
                 Vec2f dir            = (line.b - line.a).normalized();
                 float segment_length = flow_width; // segments of size flow_width
                 for (float segment_middle_dist = std::min(line.len, segment_length * 0.5f); segment_middle_dist < line.len;
@@ -756,7 +756,7 @@ std::tuple<ObjectPart, float> build_object_part_from_slice(const size_t &slice_i
     //  BRIM HANDLING
     if (layer->id() == params.raft_layers_count && params.raft_layers_count == 0 && params.brim_type != BrimType::btNoBrim &&
         params.brim_width > 0.0) {
-        // TODO: The algorithm here should take into account that multiple slices may have coliding Brim areas and the final brim area is
+        // TODO: The algorithm here should take into account that multiple slices may have coliding Brim areas and the final brim area is TODO：此处的算法应考虑多个切片可能有冲突的裙边区域，最终裙边区域
         // smaller,
         //  thus has lower adhesion. For now this effect will be neglected.
         ExPolygon  slice_poly = layer->lslices[slice_idx];
@@ -889,7 +889,7 @@ std::tuple<SupportPoints, PartialObjects> check_stability(const PrintObject *po,
             } else {
                 size_t          final_part_id{};
                 SliceConnection transfered_weakest_connection{};
-                // MERGE parts
+                // MERGE parts 合并部分
                 {
                     std::unordered_set<size_t> parts_ids;
                     for (const auto &link : slice.overlaps_below) {
@@ -941,8 +941,8 @@ std::tuple<SupportPoints, PartialObjects> check_stability(const PrintObject *po,
 
         std::vector<ExtrusionLine> current_layer_ext_perims_lines{};
         current_layer_ext_perims_lines.reserve(prev_layer_ext_perim_lines.get_lines().size());
-        // All object parts updated, and for each slice we have coresponding weakest connection.
-        // We can now check each slice and its corresponding weakest connection and object part for stability.
+        // All object parts updated, and for each slice we have coresponding weakest connection. 所有物体部分已更新，每个切片都有对应的最薄弱连接。
+        // We can now check each slice and its corresponding weakest connection and object part for stability. 现在可以检查每个切片及其对应的最薄弱连接和物体部分的稳定性。
         for (size_t slice_idx = 0; slice_idx < layer->lslices_ex.size(); ++slice_idx) {
             const LayerSlice          &slice        = layer->lslices_ex.at(slice_idx);
             ObjectPart                &part         = active_object_parts.access(prev_slice_idx_to_object_part_mapping[slice_idx]);
@@ -961,13 +961,13 @@ std::tuple<SupportPoints, PartialObjects> check_stability(const PrintObject *po,
 #ifdef DETAILED_DEBUG_LOGS
             weakest_conn.print_info("weakest connection info: ");
 #endif
-            // Function that is used when new support point is generated. It will update the ObjectPart stability, weakest conneciton info,
+            // Function that is used when new support point is generated. It will update the ObjectPart stability, weakest conneciton info, 生成新支撑点时使用的函数。它将更新ObjectPart稳定性、最薄弱连接信息，
             // and the support presence grid and add the point to the issues.
             auto reckon_new_support_point = [&part, &weakest_conn, &supp_points, &supports_presence_grid, &params,
                                              &layer_idx](SupportPointCause cause, const Vec3f &support_point, float force,
                                                          const Vec2f &dir) {
                 // if position is taken and point is for global stability (force > 0) or we are too close to the bed, do not add
-                // This allows local support points (e.g. bridging) to be generated densely
+                // This allows local support points (e.g. bridging) to be generated densely 这允许局部支撑点（例如桥接）密集生成
                 if ((supports_presence_grid.position_taken(support_point) && force > 0) || layer_idx <= 1) {
                     return;
                 }
@@ -983,7 +983,7 @@ std::tuple<SupportPoints, PartialObjects> check_stability(const PrintObject *po,
                 supp_points.emplace_back(cause, support_point, force, radius, dir);
                 supports_presence_grid.take_position(support_point);
 
-                // The support point also increases the stability of the weakest connection of the object, which should be reflected
+                // The support point also increases the stability of the weakest connection of the object, which should be reflected 支撑点也会增加物体最薄弱连接的稳定性，这应该被反映出来
                 if (weakest_conn.area > EPSILON) { // Do not add it to the weakest connection if it is not valid - does not exist
                     weakest_conn.area += area;
                     weakest_conn.centroid_accumulator += support_point * area;
@@ -995,7 +995,7 @@ std::tuple<SupportPoints, PartialObjects> check_stability(const PrintObject *po,
             // first we will check local extrusion stability of bridges, then of perimeters. Perimeters are more important, they
             // account for most of the curling and possible crashes, so on them we will run also global stability check
             for (const auto &island : slice.islands) {
-                // Support bridges where needed.
+                // Support bridges where needed. 在需要的地方支撑桥接。
                 for (const LayerExtrusionRange &fill_range : island.fills) {
                     const LayerRegion *fill_region = layer->get_region(fill_range.region());
                     for (const auto &fill_idx : fill_range) {
@@ -1029,7 +1029,7 @@ std::tuple<SupportPoints, PartialObjects> check_stability(const PrintObject *po,
                         }
                     }
                 }
-                // DEBUG EXPORT, NOT USED NOW
+                // DEBUG EXPORT, NOT USED NOW 调试导出，当前未使用
                 // if (BR_bridge) {
                 //     Lines scaledl;
                 //     for (const auto &l : prev_layer_boundary.get_lines()) {
@@ -1214,12 +1214,12 @@ void estimate_supports_malformations(SupportLayerPtrs &layers, float flow_width,
 std::vector<std::pair<SupportPointCause, bool>> gather_issues(const SupportPoints &support_points, PartialObjects &partial_objects)
 {
     std::vector<std::pair<SupportPointCause, bool>> result;
-    // The partial object are most likely sorted from smaller to larger as the print continues, so this should save some sorting time
+    // The partial object are most likely sorted from smaller to larger as the print continues, so this should save some sorting time 部分对象很可能随着打印的进行从小到大排序，因此这应该可以节省一些排序时间
     std::reverse(partial_objects.begin(), partial_objects.end());
     std::sort(partial_objects.begin(), partial_objects.end(),
               [](const PartialObject &left, const PartialObject &right) { return left.volume > right.volume; });
 
-    // Object may have zero extrusions and thus no partial objects. (e.g. very tiny object)
+    // Object may have zero extrusions and thus no partial objects. (e.g. very tiny object) 物体可能没有挤出物，因此没有部分对象（例如非常小的物体）。
     float max_volume_part = partial_objects.empty() ? 0.0f : partial_objects.front().volume;
     for (const PartialObject &p : partial_objects) {
         if (p.volume > max_volume_part / 200.0f && !p.connected_to_bed) {

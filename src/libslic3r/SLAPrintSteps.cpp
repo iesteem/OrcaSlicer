@@ -5,7 +5,7 @@
 #include <libslic3r/MeshBoolean.hpp>
 #include <libslic3r/TriangleMeshSlicer.hpp>
 
-// Need the cylinder method for the the drainholes in hollowing step
+// 在掏空步骤中需要圆柱体方法来处理排水孔
 #include <libslic3r/SLA/SupportTreeBuilder.hpp>
 
 #include <libslic3r/SLA/Concurrency.hpp>
@@ -21,8 +21,8 @@
 
 #include "I18N.hpp"
 
-//! macro used to mark string used at localization,
-//! return same string
+//! 用于标记本地化字符串的宏，
+//! 返回相同字符串
 #define L(s) Slic3r::I18N::translate(s)
 
 namespace Slic3r {
@@ -145,14 +145,14 @@ void SLAPrint::Steps::hollow_model(SLAPrintObject &po)
 
 struct FaceHash {
 
-    // A 64 bit number's max hex digits
+    // 64位数的最大十六进制位数
     static constexpr size_t MAX_NUM_CHARS = 16;
 
-    // A hash is created for each triangle to be identifiable. The hash uses
-    // only the triangle's geometric traits, not the index in a particular mesh.
+    // 为每个三角形创建哈希以便识别。哈希仅使用
+    // 三角形的几何特征，而不是特定网格中的索引。
     std::unordered_set<std::string> facehash;
 
-    // Returns the string in reverse, but that is ok for hashing
+    // 返回反转的字符串，但对于哈希来说没问题
     static std::array<char, MAX_NUM_CHARS + 1> to_chars(int64_t val)
     {
         std::array<char, MAX_NUM_CHARS + 1> ret;
@@ -185,20 +185,19 @@ struct FaceHash {
 
     static std::string facekey(const Vec3i32 &face, const std::vector<Vec3f> &vertices)
     {
-        // Scale to integer to avoid floating points
+        // 缩放到整数以避免浮点数
         std::array<Vec<3, int64_t>, 3> pts = {
             scaled<int64_t>(vertices[face(0)]),
             scaled<int64_t>(vertices[face(1)]),
             scaled<int64_t>(vertices[face(2)])
         };
 
-        // Get the first two sides of the triangle, do a cross product and move
-        // that vector to the center of the triangle. This encodes all
-        // information to identify an identical triangle at the same position.
+        // 获取三角形的前两条边，计算叉积并将该向量移动到三角形中心。
+        // 这编码了识别相同位置相同三角形的所有信息。
         Vec<3, int64_t> a = pts[0] - pts[2], b = pts[1] - pts[2];
         Vec<3, int64_t> c = a.cross(b) + (pts[0] + pts[1] + pts[2]) / 3;
 
-        // Return a concatenated string representation of the coordinates
+        // 返回坐标的拼接字符串表示
         return hash(c);
     }
 
@@ -215,11 +214,9 @@ struct FaceHash {
     }
 };
 
-// Create exclude mask for triangle removal inside hollowed interiors.
-// This is necessary when the interior is already part of the mesh which was
-// drilled using CGAL mesh boolean operation. Excluded will be the triangles
-// originally part of the interior mesh and triangles that make up the drilled
-// hole walls.
+// 为在掏空内部移除三角形创建排除掩码。
+// 当内部已经是使用 CGAL 网格布尔运算钻孔的网格的一部分时，这是必要的。
+// 将被排除的是原始属于内部网格的三角形以及构成钻孔壁的三角形。
 static std::vector<bool> create_exclude_mask(
         const indexed_triangle_set &its,
         const sla::Interior &interior,
@@ -253,18 +250,15 @@ static std::vector<bool> create_exclude_mask(
             continue;
         }
 
-        // Lets deal with the holes. All the triangles of a hole and all the
-        // neighbors of these triangles need to be kept. The neigbors were
-        // created by CGAL mesh boolean operation that modified the original
-        // interior inside the input mesh to contain the holes.
+        // 处理孔洞。孔的所有三角形以及这些三角形的所有邻居都需要保留。
+        // 这些邻居是由 CGAL 网格布尔运算创建的，该运算修改了输入网格内部的原始内部以包含孔洞。
         Vec3d tr_center = (
             its.vertices[face(0)] +
             its.vertices[face(1)] +
             its.vertices[face(2)]
         ).cast<double>() / 3.;
 
-        // If the center is more than half a mm inside the interior,
-        // it cannot possibly be part of a hole wall.
+        // 如果中心在内部超过半毫米，则不可能成为孔壁的一部分。
         if (sla::get_distance(tr_center, interior) < -0.5)
             continue;
 
@@ -285,10 +279,9 @@ static std::vector<bool> create_exclude_mask(
             double D_hole        = std::abs(D_hole_center - dh.radius);
             float dot            = dh.normal.dot(face_normal);
 
-            // Empiric tolerances for center distance and normals angle.
-            // For triangles that are part of a hole wall the angle of
-            // triangle normal and the hole axis is around 90 degrees,
-            // so the dot product is around zero.
+            // 中心距离和法线角度的经验公差。
+            // 对于孔壁部分的三角形，三角形法线与孔轴的角度约为90度，
+            // 因此点积约为零。
             double D_tol = dh.radius / sla::DrainHole::steps;
             float normal_angle_tol = 1.f / sla::DrainHole::steps;
 
@@ -469,14 +462,11 @@ void SLAPrint::Steps::drill_holes(SLAPrintObject &po)
      */
 }
 
-// The slicing will be performed on an imaginary 1D grid which starts from
-// the bottom of the bounding box created around the supported model. So
-// the first layer which is usually thicker will be part of the supports
-// not the model geometry. Exception is when the model is not in the air
-// (elevation is zero) and no pad creation was requested. In this case the
-// model geometry starts on the ground level and the initial layer is part
-// of it. In any case, the model and the supports have to be sliced in the
-// same imaginary grid (the height vector argument to TriangleMeshSlicer).
+// 切片将在从支撑模型周围的边界框底部开始的假想1D网格上执行。
+// 因此通常较厚的第一层将是支撑的一部分，而不是模型几何体。
+// 例外情况是模型不在空中（抬高为零）且未请求创建底座。
+// 在这种情况下，模型几何体从地面层开始，初始层是其一部分。
+// 无论如何，模型和支撑必须在相同的假想网格中切片（TriangleMeshSlicer 的高度向量参数）。
 void SLAPrint::Steps::slice_model(SLAPrintObject &po)
 {
     const TriangleMesh &mesh = po.get_mesh_to_slice();
@@ -503,7 +493,7 @@ void SLAPrint::Steps::slice_model(SLAPrintObject &po)
     for(coord_t h = minZs + ilhs + lhs; h <= maxZs; h += lhs)
         po.m_slice_index.emplace_back(h, unscaled<float>(h) - lh / 2.f, lh);
 
-    // Just get the first record that is from the model:
+    // 获取来自模型的第一个记录：
     auto slindex_it =
         po.closest_slice_record(po.m_slice_index, float(bb3d.min(Z)));
 
@@ -567,11 +557,10 @@ void SLAPrint::Steps::slice_model(SLAPrintObject &po)
     }
 }
 
-// In this step we check the slices, identify island and cover them with
-// support points. Then we sprinkle the rest of the mesh.
+// 在此步骤中，我们检查切片，识别孤岛并用支撑点覆盖它们。然后我们在网格的其余部分撒点。
 void SLAPrint::Steps::support_points(SLAPrintObject &po)
 {
-    // If supports are disabled, we can skip the model scan.
+    // 如果支撑禁用，我们可以跳过模型扫描。
     if(!po.m_config.supports_enable.getBool()) return;
 
     if (!po.m_supportdata)
@@ -582,17 +571,15 @@ void SLAPrint::Steps::support_points(SLAPrintObject &po)
     BOOST_LOG_TRIVIAL(debug) << "Support point count "
                              << mo.sla_support_points.size();
 
-    // Unless the user modified the points or we already did the calculation,
-    // we will do the autoplacement. Otherwise we will just blindly copy the
-    // frontend data into the backend cache.
+    // 除非用户修改了点或我们已经完成了计算，
+    // 否则我们将进行自动放置。否则我们将直接把前端数据复制到后端缓存。
     if (mo.sla_points_status != sla::PointsStatus::UserModified) {
 
-        // calculate heights of slices (slices are calculated already)
+        // 计算切片的高度（切片已经计算完成）
         const std::vector<float>& heights = po.m_model_height_levels;
 
-        // Tell the mesh where drain holes are. Although the points are
-        // calculated on slices, the algorithm then raycasts the points
-        // so they actually lie on the mesh.
+        // 告诉网格排水孔的位置。虽然点在切片上计算，
+        // 但算法随后对点进行射线投射，使它们实际位于网格上。
 //        po.m_supportdata->emesh.load_holes(po.transformed_drainhole_points());
 
         throw_if_canceled();
@@ -604,7 +591,7 @@ void SLAPrint::Steps::support_points(SLAPrintObject &po)
         config.minimal_distance = float(cfg.support_points_minimal_distance);
         config.head_diameter    = float(cfg.support_head_front_diameter);
 
-        // scaling for the sub operations
+        // 子操作的缩放
         double d = objectstep_scale * OBJ_STEP_LEVELS[slaposSupportPoints] / 100.0;
         double init = current_status();
 
@@ -615,13 +602,13 @@ void SLAPrint::Steps::support_points(SLAPrintObject &po)
                 report_status(current, OBJ_STEP_LABELS(slaposSupportPoints));
         };
 
-        // Construction of this object does the calculation.
+        // 此对象的构造执行计算。
         throw_if_canceled();
         sla::SupportPointGenerator auto_supports(
             po.m_supportdata->emesh, po.get_model_slices(), heights, config,
             [this]() { throw_if_canceled(); }, statuscb);
 
-        // Now let's extract the result.
+        // 现在提取结果。
         const std::vector<sla::SupportPoint>& points = auto_supports.output();
         throw_if_canceled();
         po.m_supportdata->pts = points;
@@ -629,13 +616,12 @@ void SLAPrint::Steps::support_points(SLAPrintObject &po)
         BOOST_LOG_TRIVIAL(debug) << "Automatic support points: "
                                  << po.m_supportdata->pts.size();
 
-        // Using RELOAD_SLA_SUPPORT_POINTS to tell the Plater to pass
-        // the update status to GLGizmoSlaSupports
+        // 使用 RELOAD_SLA_SUPPORT_POINTS 告诉 Plater
+        // 将更新状态传递给 GLGizmoSlaSupports
         report_status(-1, L("Generating support points"),
                       SlicingStatus::RELOAD_SLA_SUPPORT_POINTS);
     } else {
-        // There are either some points on the front-end, or the user
-        // removed them on purpose. No calculation will be done.
+        // 前端有一些点，或者用户故意删除了它们。不会进行计算。
         po.m_supportdata->pts = po.transformed_support_points();
     }
 }
@@ -649,8 +635,7 @@ void SLAPrint::Steps::support_tree(SLAPrintObject &po)
     if (pcfg.embed_object)
         po.m_supportdata->emesh.ground_level_offset(pcfg.wall_thickness_mm);
 
-    // If the zero elevation mode is engaged, we have to filter out all the
-    // points that are on the bottom of the object
+    // 如果启用了零抬高模式，我们必须过滤掉对象底部的所有点
     if (is_zero_elevation(po.config())) {
         remove_bottom_points(po.m_supportdata->pts,
                              float(po.m_supportdata->emesh.ground_level() + EPSILON));
@@ -679,16 +664,16 @@ void SLAPrint::Steps::support_tree(SLAPrintObject &po)
 
     throw_if_canceled();
 
-    // Create the unified mesh
+    // 创建统一网格
     auto rc = SlicingStatus::RELOAD_SCENE;
 
-    // This is to prevent "Done." being displayed during merged_mesh()
+    // 这是为了防止在 merged_mesh() 期间显示"完成"
     report_status(-1, L("Visualizing supports"));
 
     BOOST_LOG_TRIVIAL(debug) << "Processed support point count "
                              << po.m_supportdata->pts.size();
 
-    // Check the mesh for later troubleshooting.
+    // 检查网格以便后续故障排除。
     if(po.support_mesh().empty())
         BOOST_LOG_TRIVIAL(warning) << "Support mesh is empty";
 
@@ -696,9 +681,7 @@ void SLAPrint::Steps::support_tree(SLAPrintObject &po)
 }
 
 void SLAPrint::Steps::generate_pad(SLAPrintObject &po) {
-    // this step can only go after the support tree has been created
-    // and before the supports had been sliced. (or the slicing has to be
-    // repeated)
+    // 此步骤只能在支撑树创建之后、支撑切片之前进行。（或者切片必须重复）
 
     if(po.m_config.pad_enable.getBool()) {
         // Get the distilled pad configuration from the config
@@ -733,15 +716,14 @@ void SLAPrint::Steps::generate_pad(SLAPrintObject &po) {
     report_status(-1, L("Visualizing supports"), SlicingStatus::RELOAD_SCENE);
 }
 
-// Slicing the support geometries similarly to the model slicing procedure.
-// If the pad had been added previously (see step "base_pool" than it will
-// be part of the slices)
+// 类似于模型切片过程对支撑几何体进行切片。
+// 如果先前的底座步骤中已添加了底座，它将作为切片的一部分
 void SLAPrint::Steps::slice_supports(SLAPrintObject &po) {
     auto& sd = po.m_supportdata;
 
     if(sd) sd->support_slices.clear();
 
-    // Don't bother if no supports and no pad is present.
+    // 如果没有支撑也没有底座，不要费心。
     if (!po.m_config.supports_enable.getBool() && !po.m_config.pad_enable.getBool())
         return;
 
@@ -759,8 +741,7 @@ void SLAPrint::Steps::slice_supports(SLAPrintObject &po) {
 
     apply_printer_corrections(po, soSupport);
 
-    // Using RELOAD_SLA_PREVIEW to tell the Plater to pass the update
-    // status to the 3D preview to load the SLA slices.
+    // 使用 RELOAD_SLA_PREVIEW 告诉 Plater 将更新状态传递给 3D 预览以加载 SLA 切片。
     report_status(-2, "", SlicingStatus::RELOAD_SLA_PREVIEW);
 }
 
@@ -828,7 +809,7 @@ void SLAPrint::Steps::initialize_printer_input()
 {
     auto &printer_input = m_print->m_printer_input;
 
-    // clear the rasterizer input
+    // 清除光栅化输入
     printer_input.clear();
 
     size_t mx = 0;
@@ -852,7 +833,7 @@ void SLAPrint::Steps::initialize_printer_input()
 
             coord_t lvlid = slicerecord.print_level() - gndlvl;
 
-            // Neat trick to round the layer levels to the grid.
+            // 将层级别四舍五入到网格的巧妙技巧。
             lvlid = eps * (lvlid / eps);
 
             auto it = std::lower_bound(printer_input.begin(),
@@ -868,8 +849,8 @@ void SLAPrint::Steps::initialize_printer_input()
     }
 }
 
-// Merging the slices from all the print objects into one slice grid and
-// calculating print statistics from the merge result.
+// 将所有打印对象的切片合并到一个切片网格中，
+// 并从合并结果计算打印统计信息。
 void SLAPrint::Steps::merge_slices_and_eval_stats() {
 
     initialize_printer_input();
@@ -1022,7 +1003,7 @@ void SLAPrint::Steps::merge_slices_and_eval_stats() {
         }
     };
 
-    // sequential version for debugging:
+    // 用于调试的顺序版本：
     // for(size_t i = 0; i < m_printer_input.size(); ++i) printlayerfn(i);
     sla::ccr::for_each(size_t(0), printer_input.size(), printlayerfn);
 
@@ -1050,14 +1031,13 @@ void SLAPrint::Steps::rasterize()
 {
     if(canceled() || !m_print->m_printer) return;
 
-    // coefficient to map the rasterization state (0-99) to the allocated
-    // portion (slot) of the process state
+    // 将光栅化状态（0-99）映射到进程状态的分配部分（插槽）的系数
     double sd = (100 - max_objstatus) / 100.0;
 
-    // slot is the portion of 100% that is realted to rasterization
+    // 插槽是与光栅化相关的100%的部分
     unsigned slot = PRINT_STEP_LEVELS[slapsRasterize];
 
-    // pst: previous state
+    // pst: 先前状态
     double pst = current_status();
 
     double increment = (slot * sd) / m_print->m_printer_input.size();

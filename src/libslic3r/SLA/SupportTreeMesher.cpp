@@ -6,20 +6,20 @@ indexed_triangle_set sphere(double rho, Portion portion, double fa) {
 
     indexed_triangle_set ret;
 
-    // prohibit close to zero radius
+    // 禁止接近零的半径
     if(rho <= 1e-6 && rho >= -1e-6) return ret;
 
     auto& vertices = ret.vertices;
     auto& facets = ret.indices;
 
-    // Algorithm:
-    // Add points one-by-one to the sphere grid and form facets using relative
-    // coordinates. Sphere is composed effectively of a mesh of stacked circles.
+    // 算法：
+    // 逐个向球体网格添加点，并使用相对坐标形成三角面。
+    // 球体实际上由堆叠圆的网格组成。
 
-    // adjust via rounding to get an even multiple for any provided angle.
+    // 通过四舍五入调整，以获得任何提供角度的偶数倍。
     double angle = (2 * PI / floor(2*PI / fa) );
 
-    // Ring to be scaled to generate the steps of the sphere
+    // 要缩放的环，用于生成球体的步进
     std::vector<double> ring;
 
     for (double i = 0; i < 2*PI; i+=angle) ring.emplace_back(i);
@@ -30,17 +30,17 @@ indexed_triangle_set sphere(double rho, Portion portion, double fa) {
     const size_t steps = ring.size();
     const double increment = 1.0 / double(steps);
 
-    // special case: first ring connects to 0,0,0
-    // insert and form facets.
+    // 特殊情况：第一个环连接到 0,0,0
+    // 插入并形成三角面。
     if (sbegin == 0)
         vertices.emplace_back(
             Vec3f(0.f, 0.f, float(-rho + increment * sbegin * 2. * rho)));
 
     auto id = coord_t(vertices.size());
     for (size_t i = 0; i < ring.size(); i++) {
-        // Fixed scaling
+        // 固定缩放
         const double z = -rho + increment*rho*2.0 * (sbegin + 1.0);
-        // radius of the circle for this step.
+        // 此步骤的圆的半径。
         const double r = std::sqrt(std::abs(rho*rho - z*z));
         Vec2d b = Eigen::Rotation2Dd(ring[i]) * Eigen::Vector2d(0, r);
         vertices.emplace_back(Vec3d(b(0), b(1), z).cast<float>());
@@ -51,8 +51,8 @@ indexed_triangle_set sphere(double rho, Portion portion, double fa) {
         ++id;
     }
 
-    // General case: insert and form facets for each step,
-    // joining it to the ring below it.
+    // 一般情况：为每一步插入并形成三角面，
+    // 将其连接到下方的环。
     for (size_t s = sbegin + 2; s < send - 1; s++) {
         const double z = -rho + increment * double(s * 2. * rho);
         const double r = std::sqrt(std::abs(rho*rho - z*z));
@@ -62,7 +62,7 @@ indexed_triangle_set sphere(double rho, Portion portion, double fa) {
             vertices.emplace_back(Vec3d(b(0), b(1), z).cast<float>());
             auto id_ringsize = coord_t(id - int(ring.size()));
             if (i == 0) {
-                // wrap around
+                // 环绕
                 facets.emplace_back(id - 1, id, id + coord_t(ring.size() - 1) );
                 facets.emplace_back(id - 1, id_ringsize, id);
             } else {
@@ -73,14 +73,14 @@ indexed_triangle_set sphere(double rho, Portion portion, double fa) {
         }
     }
 
-    // special case: last ring connects to 0,0,rho*2.0
-    // only form facets.
+    // 特殊情况：最后一个环连接到 0,0,rho*2.0
+    // 仅形成三角面。
     if(send >= size_t(2*PI / angle)) {
         vertices.emplace_back(0.f, 0.f, float(-rho + increment*send*2.0*rho));
         for (size_t i = 0; i < ring.size(); i++) {
             auto id_ringsize = coord_t(id - int(ring.size()));
             if (i == 0) {
-                // third vertex is on the other side of the ring.
+                // 第三个顶点在环的另一侧。
                 facets.emplace_back(id - 1, id_ringsize, id);
             } else {
                 auto ci = coord_t(id_ringsize + coord_t(i));
@@ -108,7 +108,7 @@ indexed_triangle_set cylinder(double r, double h, size_t ssteps, const Vec3d &sp
     Vec3d jp = sp;
     Vec3d endp = {sp(X), sp(Y), sp(Z) + h};
 
-    // Upper circle points
+    // 上圆点
     for(int i = 0; i < steps; ++i) {
         double phi = i*a;
         auto ex = float(endp(X) + r*std::cos(phi));
@@ -116,7 +116,7 @@ indexed_triangle_set cylinder(double r, double h, size_t ssteps, const Vec3d &sp
         points.emplace_back(ex, ey, float(endp(Z)));
     }
 
-    // Lower circle points
+    // 下圆点
     for(int i = 0; i < steps; ++i) {
         double phi = i*a;
         auto x = float(jp(X) + r*std::cos(phi));
@@ -124,7 +124,7 @@ indexed_triangle_set cylinder(double r, double h, size_t ssteps, const Vec3d &sp
         points.emplace_back(x, y, float(jp(Z)));
     }
 
-    // Now create long triangles connecting upper and lower circles
+    // 现在创建连接上下圆的长三角形
     indices.reserve(2*ssteps);
     auto offs = steps;
     for(int i = 0; i < steps - 1; ++i) {
@@ -132,14 +132,13 @@ indexed_triangle_set cylinder(double r, double h, size_t ssteps, const Vec3d &sp
         indices.emplace_back(i, offs + i + 1, i + 1);
     }
 
-    // Last triangle connecting the first and last vertices
+    // 连接第一个和最后一个顶点的最后一个三角形
     auto last = steps - 1;
     indices.emplace_back(0, last, offs);
     indices.emplace_back(last, offs + last, offs);
 
-    // According to the slicing algorithms, we need to aid them with generating
-    // a watertight body. So we create a triangle fan for the upper and lower
-    // ending of the cylinder to close the geometry.
+    // 根据切片算法，我们需要帮助它们生成水密体。
+    // 所以我们为圆柱的上下端创建三角形扇以封闭几何体。
     points.emplace_back(jp.cast<float>()); int ci = int(points.size() - 1);
     for(int i = 0; i < steps - 1; ++i)
         indices.emplace_back(i + offs + 1, i + offs, ci);
@@ -167,26 +166,23 @@ indexed_triangle_set pinhead(double r_pin,
 
     indexed_triangle_set mesh;
 
-    // We create two spheres which will be connected with a robe that fits
-    // both circles perfectly.
+    // 我们创建两个球体，它们将由一个完美贴合两个圆的连接体连接。
 
-    // Set up the model detail level
+    // 设置模型细节级别
     const double detail = 2 * PI / steps;
 
-    // We don't generate whole circles. Instead, we generate only the
-    // portions which are visible (not covered by the robe) To know the
-    // exact portion of the bottom and top circles we need to use some
-    // rules of tangent circles from which we can derive (using simple
-    // triangles the following relations:
+    // 我们不生成整个圆。相反，我们只生成可见的部分（未被连接体覆盖的部分）
+    // 要知道底部和顶部圆的确切部分，我们需要使用一些
+    // 相切圆的规则，从中我们可以推导出（使用简单的三角形）以下关系：
 
-    // The height of the whole mesh
+    // 整个网格的高度
     const double h   = r_back + r_pin + length;
     double       phi = PI / 2. - std::acos((r_back - r_pin) / h);
 
-    // To generate a whole circle we would pass a portion of (0, Pi)
-    // To generate only a half horizontal circle we can pass (0, Pi/2)
-    // The calculated phi is an offset to the half circles needed to smooth
-    // the transition from the circle to the robe geometry
+    // 要生成整个圆，我们传递 (0, Pi) 的部分
+    // 要仅生成一半水平圆，我们可以传递 (0, Pi/2)
+    // 计算出的 phi 是对半圆的偏移量，用于平滑
+    // 从圆到连接体几何的过渡
 
     auto &&s1 = sphere(r_back, make_portion(0, PI / 2 + phi), detail);
     auto &&s2 = sphere(r_pin, make_portion(PI / 2 + phi, PI), detail);

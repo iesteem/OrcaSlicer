@@ -14,7 +14,7 @@
 #include "../Exception.hpp"
 #include "../Utils.hpp"
 #include "../ExPolygon.hpp"
-//BBS: necessary header for new function
+//BBS: 新功能所需的头文件
 #include "../PrintConfig.hpp"
 #include "../Flow.hpp"
 #include "../ExtrusionEntity.hpp"
@@ -30,7 +30,7 @@ namespace FillAdaptive {
     struct Octree;
 };
 
-// Infill shall never fail, therefore the error is classified as RuntimeError, not SlicingError.
+// 填充不应失败，因此错误归类为 RuntimeError，而非 SlicingError。
 class InfillFailedException : public Slic3r::RuntimeError {
 public:
     InfillFailedException() : Slic3r::RuntimeError("Infill failed") {}
@@ -48,53 +48,53 @@ struct LockRegionParam
 struct FillParams
 {
     bool        full_infill() const { return density > 0.9999f; }
-    // Don't connect the fill lines around the inner perimeter.
+    // 不要连接内部周长周围的填充线。
     bool        dont_connect() const { return anchor_length_max < 0.05f; }
 
-    // Fill density, fraction in <0, 1>
+    // 填充密度，范围 <0, 1>
     float       density 		{ 0.f };
     int   multiline{1};
 
-    // Length of an infill anchor along the perimeter.
-    // 1000mm is roughly the maximum length line that fits into a 32bit coord_t.
+    // 沿周长的填充锚点长度。
+    // 1000mm 大致是适合 32 位 coord_t 的最大长度线。
     float       anchor_length       { 1000.f };
     float       anchor_length_max   { 1000.f };
 
-    // G-code resolution.
+    // G 代码分辨率。
     double      resolution          { 0.0125 };
 
-    // Don't adjust spacing to fill the space evenly.
+    // 不要调整间距以均匀填充空间。
     bool        dont_adjust 	{ true };
 
-    // Monotonic infill - strictly left to right for better surface quality of top infills.
+    // 单调填充 - 严格从左到右，以获得更好的顶部填充表面质量。
     bool 		monotonic		{ false };
 
-    // For Honeycomb.
-    // we were requested to complete each loop;
-    // in this case we don't try to make more continuous paths
+    // 用于蜂巢填充。
+    // 要求完成每个循环；
+    // 在这种情况下，我们不尝试制作更多连续路径
     bool        complete 		{ false };
 
-    // For Concentric infill, to switch between Classic and Arachne.
+    // 用于同心填充，在 Classic 和 Arachne 之间切换。
     bool        use_arachne{ false };
-    // Layer height for Concentric infill with Arachne.
+    // 使用 Arachne 的同心填充的层高。
     coordf_t    layer_height    { 0.f };
 
-    // For Lateral lattice
+    // 用于横向晶格
     coordf_t    lateral_lattice_angle_1    { 0.f };
     coordf_t    lateral_lattice_angle_2    { 0.f };
     InfillPattern pattern{ ipRectilinear };
 
-    // For Lateral Honeycomb
+    // 用于横向蜂巢
     float       infill_overhang_angle    { 60 };
 
     // BBS
     Flow            flow;
     ExtrusionRole   extrusion_role{ ExtrusionRole(0) };
     bool            using_internal_flow{ false };
-    //BBS: only used for new top surface pattern
+    //BBS: 仅用于新的顶面图案
     float           no_extrusion_overlap{ 0.0 };
     const           PrintRegionConfig* config{ nullptr };
-    bool            dont_sort{ false }; // do not sort the lines, just simply connect them
+    bool            dont_sort{ false }; // 不对线条排序，仅简单连接它们
     bool            can_reverse{true};
 
     float           horiz_move{0.0}; //move infill to get cross zag pattern
@@ -109,36 +109,36 @@ static_assert(IsTriviallyCopyable<FillParams>::value, "FillParams class is not P
 class Fill
 {
 public:
-    // Index of the layer.
+    // 层的索引。
     size_t      layer_id;
-    // Z coordinate of the top print surface, in unscaled coordinates
+    // 顶部打印表面的 Z 坐标，未缩放坐标
     coordf_t    z;
-    // in unscaled coordinates
+    // 未缩放坐标
     coordf_t    spacing;
-    // infill / perimeter overlap, in unscaled coordinates
+    // 填充/周长重叠，未缩放坐标
     coordf_t    overlap;
-    // in radians, ccw, 0 = East
+    // 弧度，逆时针，0 = 东
     float       angle;
-    // Orca: is_using_template_angle
+    // Orca: 是否使用模板角度
     bool        is_using_template_angle{false};
-    // In scaled coordinates. Maximum lenght of a perimeter segment connecting two infill lines.
-    // Used by the FillRectilinear2, FillGrid2, FillTriangles, FillStars and FillCubic.
-    // If left to zero, the links will not be limited.
+    // 缩放坐标。连接两条填充线的周长线段的最大长度。
+    // 由 FillRectilinear2、FillGrid2、FillTriangles、FillStars 和 FillCubic 使用。
+    // 如果为零，则链接不受限制。
     coord_t     link_max_length;
-    // In scaled coordinates. Used by the concentric infill pattern to clip the loops to create extrusion paths.
+    // 缩放坐标。由同心填充图案使用，裁剪循环以创建挤出路径。
     coord_t     loop_clipping;
-    // In scaled coordinates. Bounding box of the 2D projection of the object.
+    // 缩放坐标。物体 2D 投影的边界框。
     BoundingBox bounding_box;
 
-    // Octree builds on mesh for usage in the adaptive cubic infill
+    // 基于网格构建的八叉树，用于自适应立方体填充
     FillAdaptive::Octree* adapt_fill_octree = nullptr;
 
-    // PrintConfig and PrintObjectConfig are used by infills that use Arachne (Concentric and FillEnsuring).
-    // Orca: also used by gap fill function.
+    // PrintConfig 和 PrintObjectConfig 由使用 Arachne 的填充使用（同心和 FillEnsuring）。
+    // Orca: 也用于间隙填充功能。
     const PrintConfig       *print_config        = nullptr;
     const PrintObjectConfig *print_object_config = nullptr;
 
-    // BBS: all no overlap expolygons in same layer
+    // BBS: 同一层中所有无重叠的 expolygon
     ExPolygons  no_overlap_expolygons;
 
     static float infill_anchor;
@@ -154,23 +154,23 @@ public:
 
     void         set_bounding_box(const Slic3r::BoundingBox &bbox) { bounding_box = bbox; }
     BoundingBox  extended_object_bounding_box() const;
-    // Use bridge flow for the fill?
+    // 是否为填充使用桥接流量？
     virtual bool use_bridge_flow() const { return false; }
 
-    // Do not sort the fill lines to optimize the print head path?
+    // 是否不排序填充线以优化打印头路径？
     virtual bool no_sort() const { return false; }
 
     virtual bool is_self_crossing() = 0;
 
-    // Return true if infill has a consistent pattern between layers.
+    // 如果填充在层之间具有一致的图案，则返回 true。
     virtual bool has_consistent_pattern() const { return false; }
 
-    // Perform the fill.
+    // 执行填充。
     virtual Polylines fill_surface(const Surface *surface, const FillParams &params);
     virtual ThickPolylines fill_surface_arachne(const Surface* surface, const FillParams& params);
     virtual void set_lock_region_param(const LockRegionParam &lock_param){};
-    // BBS: this method is used to fill the ExtrusionEntityCollection.
-    // It call fill_surface by default
+    // BBS: 此方法用于填充 ExtrusionEntityCollection。
+    // 默认调用 fill_surface
     virtual void fill_surface_extrusion(const Surface *surface, const FillParams &params, ExtrusionEntitiesPtr &out);
 
 protected:
@@ -178,17 +178,17 @@ protected:
         layer_id(size_t(-1)),
         z(0.),
         spacing(0.),
-        // Infill / perimeter overlap.
+        // 填充/周长重叠。
         overlap(0.),
-        // Initial angle is undefined.
+        // 初始角度未定义。
         angle(FLT_MAX),
         link_max_length(0),
         loop_clipping(0),
-        // The initial bounding box is empty, therefore undefined.
+        // 初始边界框为空，因此未定义。
         bounding_box(Point(0, 0), Point(-1, -1))
         {}
 
-    // The expolygon may be modified by the method to avoid a copy.
+    // expolygon 可能被该方法修改以避免复制。
     virtual void    _fill_surface_single(
         const FillParams                & /* params */,
         unsigned int                      /* thickness_layers */,
@@ -196,7 +196,7 @@ protected:
         ExPolygon                         /* expolygon */,
         Polylines                       & /* polylines_out */) {}
 
-    // Used for concentric infill to generate ThickPolylines using Arachne.
+    // 用于同心填充，使用 Arachne 生成 ThickPolyline。
     virtual void _fill_surface_single(const FillParams& params,
         unsigned int                   thickness_layers,
         const std::pair<float, Point>& direction,
@@ -207,8 +207,7 @@ protected:
 
     virtual std::pair<float, Point> _infill_direction(const Surface *surface) const;
     
-    // Orca: Dedicated function to calculate gap fill lines for the provided surface, according to the print object parameters
-    // and append them to the out ExtrusionEntityCollection.
+    // Orca: 专用函数，根据打印对象参数计算提供的表面的间隙填充线，并将它们追加到输出 ExtrusionEntityCollection。
     void _create_gap_fill(const Surface* surface, const FillParams& params, ExtrusionEntityCollection* out);
 
 public:
@@ -223,7 +222,7 @@ public:
 
     static coord_t  _adjust_solid_spacing(const coord_t width, const coord_t distance);
 };
-   //Fill  Multiline 
+   //Fill 多线
    void multiline_fill(Polylines& polylines, const FillParams& params, float spacing);
 } // namespace Slic3r
 

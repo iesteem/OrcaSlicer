@@ -12,7 +12,7 @@ struct IntersectionLines {
 };
 using IntersectionsLines = std::vector<IntersectionLines>;
 
-// collect all intersecting points
+// 收集所有交点
 IntersectionsLines get_intersections(const Lines &lines);
 IntersectionsLines get_intersections(const Polygon &polygon);
 IntersectionsLines get_intersections(const Polygons &polygons);

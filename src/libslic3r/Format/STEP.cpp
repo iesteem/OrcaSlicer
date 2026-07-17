@@ -54,23 +54,23 @@ bool StepPreProcessor::preprocess(const char* path, std::string &output_path)
     std::string temp_line;
     while (std::getline(infile, temp_line)) {
         if (m_encode_type == EncodedType::UTF8) {
-            //BBS: continue to judge whether is other type
+            //BBS: 继续判断是否为其他类型
             if (isUtf8(temp_line)) {
-                //BBS: do nothing, but must be checked before checking whether is GBK
+                //BBS: 不做任何操作，但必须在检查是否为GBK之前进行检查
             }
-            //BBS: not utf8, then maybe GBK
+            //BBS: 不是utf8，则可能是GBK
             else if (isGBK(temp_line)) {
                 m_encode_type = EncodedType::GBK;
             }
-            //BBS: not UTF8 and not GBK, then maybe some kind of special encoded type which we can't handle
-            // Load the step as UTF and user will see garbage characters in slicer but we have no solution at the moment
+            //BBS: 不是UTF8也不是GBK，则可能是某种我们无法处理的特殊编码类型
+            // 以UTF格式加载step，用户将在切片器中看到乱码字符，但目前我们无法解决
             else {
                 m_encode_type = EncodedType::OTHER;
             }
         }
         if (m_encode_type == EncodedType::GBK)
-            //BBS: transform to UTF8 format if is GBK
-            //todo: use gbkToUtf8 function to replace
+            //BBS: 如果是GBK则转换为UTF8格式
+            //todo: 使用gbkToUtf8函数替换
             temp_file << decode_path(temp_line.c_str()) << std::endl;
         else
             temp_file << temp_line.c_str() << std::endl;
@@ -253,7 +253,7 @@ bool load_step(const char *path, Model *model, bool& is_cancel,
     application->NewDocument(file_after_preprocess.c_str(), document);
     STEPCAFControl_Reader reader;
     reader.SetNameMode(true);
-    //BBS: Todo, read file is slow which cause the progress_bar no update and gui no response
+    //BBS: Todo, 读取文件较慢导致进度条不更新且GUI无响应
     IFSelect_ReturnStatus stat = reader.ReadFile(file_after_preprocess.c_str());
     if (stat != IFSelect_RetDone || !reader.Transfer(document)) {
         application->Close(document);
@@ -288,7 +288,7 @@ bool load_step(const char *path, Model *model, bool& is_cancel,
     tbb::parallel_for(tbb::blocked_range<size_t>(0, namedSolids.size()), [&](const tbb::blocked_range<size_t> &range) {
         for (size_t i = range.begin(); i < range.end(); i++) {
             BRepMesh_IncrementalMesh mesh(namedSolids[i].solid, linear_defletion, false, angle_defletion, true);
-            // BBS: calculate total number of the nodes and triangles
+            // BBS: 计算节点和三角形的总数
             int aNbNodes     = 0;
             int aNbTriangles = 0;
             for (TopExp_Explorer anExpSF(namedSolids[i].solid, TopAbs_FACE); anExpSF.More(); anExpSF.Next()) {
@@ -301,7 +301,7 @@ bool load_step(const char *path, Model *model, bool& is_cancel,
             }
 
             if (aNbTriangles == 0 || aNbNodes == 0)
-                // BBS: No triangulation on the shape.
+                // BBS: 形状上没有三角剖分。
                 continue;
 
             stl[i].stats.type                = inmemory;
@@ -311,9 +311,9 @@ bool load_step(const char *path, Model *model, bool& is_cancel,
 
             std::vector<Vec3f> points;
             points.reserve(aNbNodes);
-            // BBS: count faces missing triangulation
+            // BBS: 统计缺少三角剖分的面
             Standard_Integer aNbFacesNoTri = 0;
-            // BBS: fill temporary triangulation
+            // BBS: 填充临时三角剖分
             Standard_Integer aNodeOffset    = 0;
             Standard_Integer aTriangleOffet = 0;
             for (TopExp_Explorer anExpSF(namedSolids[i].solid, TopAbs_FACE); anExpSF.More(); anExpSF.Next()) {
@@ -324,14 +324,14 @@ bool load_step(const char *path, Model *model, bool& is_cancel,
                     ++aNbFacesNoTri;
                     continue;
                 }
-                // BBS: copy nodes
+                // BBS: 复制节点
                 gp_Trsf aTrsf = aLoc.Transformation();
                 for (Standard_Integer aNodeIter = 1; aNodeIter <= aTriangulation->NbNodes(); ++aNodeIter) {
                     gp_Pnt aPnt = aTriangulation->Node(aNodeIter);
                     aPnt.Transform(aTrsf);
                     points.emplace_back(std::move(Vec3f(aPnt.X(), aPnt.Y(), aPnt.Z())));
                 }
-                // BBS: copy triangles
+                // BBS: 复制三角形
                 const TopAbs_Orientation anOrientation = anExpSF.Current().Orientation();
                 Standard_Integer anId[3] = {};
                 for (Standard_Integer aTriIter = 1; aTriIter <= aTriangulation->NbTriangles(); ++aTriIter) {
@@ -340,7 +340,7 @@ bool load_step(const char *path, Model *model, bool& is_cancel,
                     aTri.Get(anId[0], anId[1], anId[2]);
                     if (anOrientation == TopAbs_REVERSED)
                         std::swap(anId[1], anId[2]);
-                    // BBS: save triangles facets
+                    // BBS: 保存三角形面片
                     stl_facet facet;
                     facet.vertex[0] = points[anId[0] + aNodeOffset - 1].cast<float>();
                     facet.vertex[1] = points[anId[1] + aNodeOffset - 1].cast<float>();
@@ -362,7 +362,7 @@ bool load_step(const char *path, Model *model, bool& is_cancel,
 
     if (mesh_face_num != -1) {
         for (size_t i = 0; i < stl.size(); i++) {
-            // Test for overflow
+            // 测试溢出
             mesh_face_num += stl[i].stats.number_of_facets;
         }
         return true;
@@ -388,7 +388,7 @@ bool load_step(const char *path, Model *model, bool& is_cancel,
             }
         }
 
-        //BBS: maybe mesh is empty from step file. Don't add
+        //BBS: 网格可能来自step文件为空。不添加
         if (stl[i].stats.number_of_facets > 0) {
             TriangleMesh triangle_mesh;
             triangle_mesh.from_stl(stl[i]);
@@ -403,7 +403,7 @@ bool load_step(const char *path, Model *model, bool& is_cancel,
     shapeTool.reset(nullptr);
     application->Close(document);
 
-    //BBS: no valid shape from the step, delete the new object as well
+    //BBS: step中没有有效形状，同样删除新对象
     if (new_object->volumes.size() == 0) {
         model->delete_object(new_object);
         return false;

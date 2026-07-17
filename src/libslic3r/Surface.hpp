@@ -7,28 +7,27 @@
 namespace Slic3r {
 
 enum SurfaceType {
-    // Top horizontal surface, visible from the top.
+    // 顶部水平表面，从顶部可见。
     stTop,
-    // Bottom horizontal surface, visible from the bottom, printed with a normal extrusion flow.
+    // 底部水平表面，从底部可见，使用正常挤出流量打印。
     stBottom,
-    // Bottom horizontal surface, visible from the bottom, unsupported, printed with a bridging extrusion flow.
+    // 底部水平表面，从底部可见，无支撑，使用桥接挤出流量打印。
     stBottomBridge,
-    // Second bridge surface above a bottom bridge.
+    // 底部桥接上方的第二桥接表面。
     stInternalAfterExternalBridge,
-    // Normal sparse infill.
+    // 正常稀疏填充。
     stInternal,
-    // Full infill, supporting the top surfaces and/or defining the verticall wall thickness.
+    // 完全填充，支撑顶面和/或定义垂直壁厚。
     stInternalSolid,
-    // 1st layer of dense infill over sparse infill, printed with a bridging extrusion flow.
+    // 稀疏填充上的第一层致密填充，使用桥接挤出流量打印。
     stInternalBridge,
-    // 2nd layer of dense infill over sparse infill, printed with a bridging extrusion flow.
+    // 稀疏填充上的第二层致密填充，使用桥接挤出流量打印。
     stSecondInternalBridge,
-    // stInternal turns into void surfaces if the sparse infill is used for supports only,
-    // or if sparse infill layers get combined into a single layer.
+    // 如果稀疏填充仅用于支撑，或者稀疏填充层合并为单层，则stInternal变为空洞表面。
     stInternalVoid,
-    // Inner/outer perimeters.
+    // 内/外周长。
     stPerimeter,
-    // Number of SurfaceType enums.
+    // SurfaceType枚举的数量。
     stCount,
 };
 
@@ -37,9 +36,9 @@ class Surface
 public:
     SurfaceType     surface_type;
     ExPolygon       expolygon;
-    double          thickness;          // in mm
-    unsigned short  thickness_layers;   // in layers
-    double          bridge_angle;       // in radians, ccw, 0 = East, only 0+ (negative means undefined)
+    double          thickness;          // 单位 mm
+    unsigned short  thickness_layers;   // 单位 层数
+    double          bridge_angle;       // 单位 弧度，逆时针，0 = 东，仅 0+（负数表示未定义）
     unsigned short  extra_perimeters;
 
     Surface(SurfaceType _surface_type = stInternal)

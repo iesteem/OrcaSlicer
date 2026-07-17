@@ -1,4 +1,4 @@
-#include "BlacklistedLibraryCheck.hpp"
+﻿#include "BlacklistedLibraryCheck.hpp"
 
 #include <cstdio>
 #include <boost/nowide/convert.hpp>
@@ -11,7 +11,7 @@ namespace Slic3r {
 
 #ifdef  WIN32
 
-//only dll name with .dll suffix - currently case sensitive
+//仅包含 .dll 后缀的 dll 名称 - 当前区分大小写
 const std::vector<std::wstring> BlacklistedLibraryCheck::blacklist({ L"NahimicOSD.dll", L"SS2OSD.dll", L"amhook.dll", L"AMHook.dll" });
 
 bool BlacklistedLibraryCheck::get_blacklisted(std::vector<std::wstring>& names)
@@ -33,10 +33,10 @@ std::wstring BlacklistedLibraryCheck::get_blacklisted_string()
 
 bool BlacklistedLibraryCheck::perform_check()
 {   
-    // Get the pseudo-handle for the current process.
+    // 获取当前进程的伪句柄。
     HANDLE  hCurrentProcess = GetCurrentProcess();
 
-    // Get a list of all the modules in this process.
+    // 获取此进程中所有模块的列表。
     HMODULE hMods[1024];
     DWORD   cbNeeded;
     if (EnumProcessModulesEx(hCurrentProcess, hMods, sizeof(hMods), &cbNeeded, LIST_MODULES_ALL))
@@ -45,10 +45,10 @@ bool BlacklistedLibraryCheck::perform_check()
         for (unsigned int i = 0; i < cbNeeded / sizeof(HMODULE); ++ i)
         {
             wchar_t szModName[MAX_PATH];
-            // Get the full path to the module's file.
+    // 获取模块文件的完整路径。
             if (GetModuleFileNameExW(hCurrentProcess, hMods[i], szModName, MAX_PATH))
             {
-                // Add to list if blacklisted
+                // 如果被列入黑名单则添加到列表
                 if (BlacklistedLibraryCheck::is_blacklisted(szModName)) {
                     //wprintf(L"Contains library: %s\n", szModName);
                     if (std::find(m_found.begin(), m_found.end(), szModName) == m_found.end())

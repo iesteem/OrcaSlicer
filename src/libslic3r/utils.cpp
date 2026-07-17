@@ -65,8 +65,8 @@
 #include <boost/nowide/cstdlib.hpp>
 #include <boost/nowide/cstdio.hpp>
 
-// We are using quite an old TBB 2017 U7, which does not support global control API officially.
-// Before we update our build servers, let's use the old API, which is deprecated in up to date TBB.
+// 我们使用的是相当旧的TBB 2017 U7，它不正式支持全局控制API。
+// 在更新我们的构建服务器之前，让我们使用旧API，它在最新的TBB中已被弃用。
 #include <tbb/tbb.h>
 #if ! defined(TBB_VERSION_MAJOR)
     #include <tbb/version.h>

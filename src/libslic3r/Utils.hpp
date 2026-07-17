@@ -79,26 +79,26 @@ extern unsigned int level_string_to_boost(std::string level);
 extern std::string  get_string_logging_level(unsigned level);
 extern unsigned get_logging_level();
 extern void trace(unsigned int level, const char *message);
-// Format memory allocated, separate thousands by comma.
+// 格式化分配的内存，用逗号分隔千位。
 extern std::string format_memsize_MB(size_t n);
-// Return string to be added to the boost::log output to inform about the current process memory allocation.
-// The string is non-empty if the loglevel >= info (3) or ignore_loglevel==true.
-// Latter is used to get the memory info from SysInfoDialog.
+// 返回要添加到boost::log输出以告知当前进程内存分配情况的字符串。
+// 如果日志级别>= info (3)或ignore_loglevel==true，则字符串非空。
+// 后者用于从SysInfoDialog获取内存信息。
 extern std::string log_memory_info(bool ignore_loglevel = false);
 extern void disable_multi_threading();
-// Returns the size of physical memory (RAM) in bytes.
+// 返回物理内存（RAM）的大小，以字节为单位。
 extern size_t total_physical_memory();
 
-// Set a path with GUI resource files.
+// 设置GUI资源文件的路径。
 void set_var_dir(const std::string &path);
-// Return a full path to the GUI resource files.
+// 返回GUI资源文件的完整路径。
 const std::string& var_dir();
-// Return a full resource path for a file_name.
+// 返回文件名的完整资源路径。
 std::string var(const std::string &file_name);
 
-// Set a path with various static definition data (for example the initial config bundles).
+// 设置各种静态定义数据的路径（例如初始配置包）。
 void set_resources_dir(const std::string &path);
-// Return a full path to the resources directory.
+// 返回资源目录的完整路径。
 const std::string& resources_dir();
 
 //BBS: add temp dir
@@ -129,37 +129,37 @@ inline DataType round_divide(DataType dividend, DataType divisor) //!< Return di
     return (dividend + divisor / 2) / divisor;
 }
 
-// Set a path with GUI localization files.
+// 设置GUI本地化文件的路径。
 void set_local_dir(const std::string &path);
-// Return a full path to the localization directory.
+// 返回本地化目录的完整路径。
 const std::string& localization_dir();
 
-// Set a path with shapes gallery files.
+// 设置形状库文件的路径。
 void set_sys_shapes_dir(const std::string &path);
-// Return a full path to the system shapes gallery directory.
+// 返回系统形状库目录的完整路径。
 const std::string& sys_shapes_dir();
 
-// Return a full path to the custom shapes gallery directory.
+// 返回自定义形状库目录的完整路径。
 std::string custom_shapes_dir();
 
-// Set a path with shapes gallery files.
+// 设置形状库文件的路径。
 void set_custom_gcodes_dir(const std::string &path);
-// Return a full path to the system shapes gallery directory.
+// 返回系统形状库目录的完整路径。
 const std::string& custom_gcodes_dir();
 
-// Set a path with preset files.
+// 设置预设文件的路径。
 void set_data_dir(const std::string &path);
-// Return a full path to the GUI resource files.
+// 返回GUI资源文件的完整路径。
 const std::string& data_dir();
 
 // BBL: true: succeed create or dir exists; false: fail to create
 bool makedir(const std::string path);
 
-// Format an output path for debugging purposes.
-// Writes out the output path prefix to the console for the first time the function is called,
-// so the user knows where to search for the debugging output.
+// 为调试目的格式化输出路径。
+// 在首次调用函数时将输出路径前缀写入控制台，
+// 以便用户知道在哪里查找调试输出。
 std::string debug_out_path(const char *name, ...);
-// smaller level means less log. level=5 means saving all logs.
+// 较小的级别意味着较少的日志。level=5表示保存所有日志。
 void set_log_path_and_level(const std::string& file, unsigned int level);
 
 /*
@@ -167,25 +167,25 @@ void set_log_path_and_level(const std::string& file, unsigned int level);
  */
 void flush_logs();
 
-// A special type for strings encoded in the local Windows 8-bit code page.
-// This type is only needed for Perl bindings to relay to Perl that the string is raw, not UTF-8 encoded.
+// 用于在本地Windows 8位代码页中编码的字符串的特殊类型。
+// 此类型仅在Perl绑定中需要，用于向Perl传递该字符串是原始的，不是UTF-8编码的。
 typedef std::string local_encoded_string;
 
-// Returns next utf8 sequence length. =number of bytes in string, that creates together one utf-8 character. 
-// Starting at pos. ASCII characters returns 1. Works also if pos is in the middle of the sequence.
+// 返回下一个utf8序列的长度。=字符串中一起组成一个utf-8字符的字节数。
+// 从pos开始。ASCII字符返回1。如果pos在序列中间也有效。
 extern size_t get_utf8_sequence_length(const std::string& text, size_t pos = 0);
 extern size_t get_utf8_sequence_length(const char *seq, size_t size);
 
-// Convert an UTF-8 encoded string into local coding.
-// On Windows, the UTF-8 string is converted to a local 8-bit code page.
-// On OSX and Linux, this function does no conversion and returns a copy of the source string.
+// 将UTF-8编码的字符串转换为本地编码。
+// 在Windows上，UTF-8字符串被转换为本地8位代码页。
+// 在OSX和Linux上，此函数不进行转换，返回源字符串的副本。
 extern local_encoded_string encode_path(const char *src);
 extern std::string decode_path(const char *src);
 extern std::string normalize_utf8_nfc(const char *src);
 
-// Safely rename a file even if the target exists.
-// On Windows, the file explorer (or anti-virus or whatever else) often locks the file
-// for a short while, so the file may not be movable. Retry while we see recoverable errors.
+// 安全地重命名文件，即使目标文件已存在。
+// 在Windows上，文件资源管理器（或防病毒软件等）经常在短时间内锁定文件，
+// 因此文件可能无法移动。在遇到可恢复错误时重试。
 extern std::error_code rename_file(const std::string &from, const std::string &to);
 
 enum CopyFileResult {
@@ -196,7 +196,7 @@ enum CopyFileResult {
 	FAIL_CHECK_ORIGIN_NOT_OPENED,
 	FAIL_CHECK_TARGET_NOT_OPENED
 };
-// Copy a file, adjust the access attributes, so that the target is writable.
+// 复制文件，调整访问属性，使目标文件可写。
 CopyFileResult copy_file_inner(const std::string &from, const std::string &to, std::string& error_message);
 // Copy file to a temp file first, then rename it to the final file name.
 // If with_check is true, then the content of the copied file is compared to the content

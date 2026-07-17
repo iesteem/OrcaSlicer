@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿//Copyright (c) 2022 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #include <boost/log/trivial.hpp>
 #include <cassert>
@@ -67,7 +67,7 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
     ret.left_over += thickness - ret.total_thickness;
     ret.total_thickness = thickness;
     
-    // Enforce symmetry
+    // 强制对称
     if (bead_count % 2 == 1) {
         ret.toolpath_locations[bead_count / 2] = thickness / 2;
         ret.bead_widths[bead_count / 2] = thickness - optimal_thickness;
@@ -75,14 +75,14 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
     for (coord_t bead_idx = 0; bead_idx < (bead_count + 1) / 2; bead_idx++)
         ret.toolpath_locations[bead_count - 1 - bead_idx] = thickness - ret.toolpath_locations[bead_idx];
 
-    //Create a "fake" inner wall with 0 width to indicate the edge of the walled area.
-    //This wall can then be used by other structures to e.g. fill the infill area adjacent to the variable-width walls.
+    //// 创建 a "fake" inner 壁 with 0 宽度 to 指示 the 边 of the walled 面积.
+    //// 此 壁 可以 则 为 used by other structures to e.g. fill the infill 面积 adjacent to the 变量-宽度 壁.
     coord_t innermost_toolpath_location = ret.toolpath_locations[max_bead_count / 2 - 1];
     coord_t innermost_toolpath_width = ret.bead_widths[max_bead_count / 2 - 1];
     ret.toolpath_locations.insert(ret.toolpath_locations.begin() + max_bead_count / 2, innermost_toolpath_location + innermost_toolpath_width / 2);
     ret.bead_widths.insert(ret.bead_widths.begin() + max_bead_count / 2, 0);
 
-    //Symmetry on both sides. Symmetry is guaranteed since this code is stopped early if the bead_count <= max_bead_count, and never reaches this point then.
+    //// Symmetry on both sides. Symmetry 是 guaranteed since 此 code 是 stopped early 如果 the bead_count <= max_bead_count, and never reaches 此 点 则.
     const size_t opposite_bead = bead_count - (max_bead_count / 2 - 1);
     innermost_toolpath_location = ret.toolpath_locations[opposite_bead];
     innermost_toolpath_width = ret.bead_widths[opposite_bead];

@@ -36,9 +36,8 @@ unsigned int effective_layer_filament_id(const Layer &layer, unsigned int filame
     if (num_physical == 0)
         return filament_id;
 
-    // Ordinary mixed rows still print with one physical filament per layer even
-    // when region collapse is disabled, so geometry / flow decisions must use
-    // that effective physical filament to avoid per-layer thin-feature drift.
+    // 即使区域折叠被禁用，混合行仍然每层使用一种物理耗材打印，
+    // 因此几何/流量决策必须使用该有效物理耗材以避免每层薄特征漂移。
     return print->mixed_filament_manager().effective_painted_region_filament_id(filament_id,
                                                                                 num_physical,
                                                                                 int(layer.id()),

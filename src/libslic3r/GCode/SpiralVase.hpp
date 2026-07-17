@@ -25,9 +25,9 @@ public:
         m_smooth_spiral = config.spiral_mode_smooth;
     };
 
-    void 		enable(bool en) {
-   		m_transition_layer = en && ! m_enabled;
-    	m_enabled 		   = en;
+    void     enable(bool en) {
+        m_transition_layer = en && ! m_enabled;
+        m_enabled          = en;
     }
 
     std::string process_layer(const std::string &gcode, bool last_layer);
@@ -36,13 +36,13 @@ public:
     }
 private:
     const PrintConfig  &m_config;
-    GCodeReader 		m_reader;
+    GCodeReader         m_reader;
     float               m_max_xy_smoothing = 0.f;
 
-    bool 				m_enabled = false;
-    // First spiral vase layer. Layer height has to be ramped up from zero to the target layer height.
-    bool 				m_transition_layer = false;
-    // Whether to interpolate XY coordinates with the previous layer. Results in no seam at layer changes
+    bool                m_enabled = false;
+    // 第一个螺旋花瓶层。层高必须从零逐渐增加到目标层高。
+    bool                m_transition_layer = false;
+    // 是否与上一层插值XY坐标。结果是在层变化处没有接缝。
     bool                m_smooth_spiral = false;
     std::vector<SpiralPoint> * m_previous_layer;
 };

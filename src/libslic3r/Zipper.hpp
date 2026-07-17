@@ -7,10 +7,10 @@
 
 namespace Slic3r {
 
-// Class for creating zip archives.
+// 用于创建zip归档的类。
 class Zipper {
 public:
-    // Three compression levels supported
+    // 支持三种压缩级别
     enum e_compression {
         NO_COMPRESSION,
         FAST_COMPRESSION,
@@ -26,43 +26,43 @@ private:
 
 public:
 
-    // Will blow up in a runtime exception if the file cannot be created.
+    // 如果无法创建文件，将引发运行时异常。
     explicit Zipper(const std::string& zipfname,
                     e_compression level = FAST_COMPRESSION);
     ~Zipper();
 
-    // No copies allwed, this is a file resource...
+    // 不允许拷贝，这是一个文件资源...
     Zipper(const Zipper&) = delete;
     Zipper& operator=(const Zipper&) = delete;
 
-    // Moving is fine.
+    // 移动是可以的。
     // Zipper(Zipper&&) = default;
     // Zipper& operator=(Zipper&&) = default;
     // All becouse of VS2013:
     Zipper(Zipper &&m);
     Zipper& operator=(Zipper &&m);
 
-    /// Adding an entry means a file inside the new archive. Name param is the
-    /// name of the new file. To create directories, append a forward slash.
-    /// The previous entry is finished (see finish_entry)
+    /// 添加条目意味着新归档内的一个文件。Name参数是新文件的名称。
+    /// 要创建目录，请附加正斜杠。
+    /// 上一个条目已完成（参见finish_entry）
     void add_entry(const std::string& name);
 
-    /// Add a new binary file entry with an instantly given byte buffer.
-    /// This method throws exactly like finish_entry() does.
+    /// 使用即时给定的字节缓冲区添加新的二进制文件条目。
+    /// 此方法抛出的异常与finish_entry()完全相同。
     void add_entry(const std::string& name, const void* data, size_t bytes);
 
-    // Writing data to the archive works like with standard streams. The target
-    // within the zip file is the entry created with the add_entry method.
+    // 将数据写入归档的工作原理与标准流相同。zip文件中的目标
+    // 是使用add_entry方法创建的条目。
 
-    // Template taking only arithmetic values, that std::to_string can handle.
+    // 模板仅接受算术值，std::to_string可以处理这些值。
     template<class T> inline
     typename std::enable_if<std::is_arithmetic<T>::value, Zipper&>::type
     operator<<(T &&val) {
         return this->operator<<(std::to_string(std::forward<T>(val)));
     }
 
-    // Template applied only for types that std::string can handle for append
-    // and copy. This includes c style strings...
+    // 模板仅应用于std::string可以处理追加和复制的类型。
+    // 这包括C风格字符串...
     template<class T> inline
     typename std::enable_if<!std::is_arithmetic<T>::value, Zipper&>::type
     operator<<(T &&val) {
@@ -71,15 +71,12 @@ public:
         return *this;
     }
 
-    /// Finishing an entry means that subsequent writes will no longer be
-    /// appended to the previous entry. They will be written into the internal
-    /// buffer and ones an entry is added, the buffer will bind to the new entry
-    /// If the buffer was written, but no entry was added, the buffer will be
-    /// cleared after this call.
+    /// 完成条目意味着后续写入将不再追加到上一个条目。
+    /// 它们将被写入内部缓冲区，一旦添加了条目，缓冲区将绑定到新条目。
+    /// 如果缓冲区已写入但没有添加条目，则在此调用后缓冲区将被清除。
     ///
-    /// This method will throw a runtime exception if an error occures. The
-    /// entry will still be open (with the data intact) but the state of the
-    /// file is up to minz after the erroneous write.
+    /// 如果发生错误，此方法将抛出运行时异常。
+    /// 条目仍将保持打开（数据完整），但文件的状态取决于minz在错误写入后的状态。
     void finish_entry();
 
     void finalize();

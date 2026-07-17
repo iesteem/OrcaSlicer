@@ -163,13 +163,13 @@ static std::vector<SupportPointGenerator::MyLayer> make_layers(
           throw_on_cancel();
       SupportPointGenerator::MyLayer &layer_above = layers[layer_id];
       SupportPointGenerator::MyLayer &layer_below = layers[layer_id - 1];
-      //FIXME WTF?
+      //FIXME 什么鬼？
       const float layer_height = (layer_id!=0 ? heights[layer_id]-heights[layer_id-1] : heights[0]);
       const float safe_angle = 35.f * (float(M_PI)/180.f); // smaller number - less supports
       const float between_layers_offset = scaled<float>(layer_height * std::tan(safe_angle));
       const float slope_angle = 75.f * (float(M_PI)/180.f); // smaller number - less supports
       const float slope_offset = scaled<float>(layer_height * std::tan(slope_angle));
-      //FIXME This has a quadratic time complexity, it will be excessively slow for many tiny islands.
+      //FIXME 这具有二次时间复杂性，对于许多微小岛会极度缓慢。
       for (SupportPointGenerator::Structure &top : layer_above.islands) {
           for (SupportPointGenerator::Structure &bottom : layer_below.islands) {
               float overlap_area = top.overlap_area(bottom);
@@ -254,10 +254,10 @@ void SupportPointGenerator::process(const std::vector<ExPolygons>& slices, const
                 // Penalization resulting from centroid offset:
 //                  bottom.supports_force *= std::min(1.f, 1.f - std::min(1.f, (1600.f * layer_height) * centroids_dist * centroids_dist / bottom.area));
                 float &support_force = support_force_bottom[&bottom - layer_bottom->islands.data()];
-//FIXME this condition does not reflect a bifurcation into a one large island and one tiny island well, it incorrectly resets the support force to zero.
+//FIXME 此条件未能很好地反映分成一个大岛和一个小岛的分叉情况，它错误地将支撑力重置为零。
 // One should rather work with the overlap area vs overhang area.
 //                support_force *= std::min(1.f, 1.f - std::min(1.f, 0.1f * centroids_dist * centroids_dist / bottom.area));
-                // Penalization resulting from increasing polygon area:
+                // 多边形面积增大导致的惩罚：
                 support_force *= std::min(1.f, 20.f * bottom.area / top.area);
             }
         // Let's assign proper support force to each of them:
@@ -273,7 +273,7 @@ void SupportPointGenerator::process(const std::vector<ExPolygons>& slices, const
         }
         // Now iterate over all polygons and append new points if needed.
         for (Structure &s : layer_top->islands) {
-            // Penalization resulting from large diff from the last layer:
+            // 与上一层差异过大导致的惩罚：
             s.supports_force_inherited /= std::max(1.f, 0.17f * (s.overhangs_area) / s.area);
 
             add_support_points(s, point_grid);
@@ -296,15 +296,14 @@ void SupportPointGenerator::process(const std::vector<ExPolygons>& slices, const
 
 void SupportPointGenerator::add_support_points(SupportPointGenerator::Structure &s, SupportPointGenerator::PointGrid3D &grid3d)
 {
-    // Select each type of surface (overrhang, dangling, slope), derive the support
-    // force deficit for it and call uniformly conver with the right params
+    // 选择每种表面类型（悬垂、下垂、斜面），推导支撑力赤字并使用正确参数调用 uniform_cover
 
     float tp      = m_config.tear_pressure();
     float current = s.supports_force_total();
 
     if (s.islands_below.empty()) {
-        // completely new island - needs support no doubt
-        // deficit is full, there is nothing below that would hold this island
+        // 全新岛 - 无疑需要支撑
+        // 赤字是满的，下面没有任何东西可以支撑这个岛
         uniformly_cover({ *s.polygon }, s, s.area * tp, grid3d, IslandCoverageFlags(icfIsNew | icfWithBoundary) );
         return;
     }
@@ -317,8 +316,8 @@ void SupportPointGenerator::add_support_points(SupportPointGenerator::Structure 
 
     current = s.supports_force_total();
     if (! s.dangling_areas.empty()) {
-        // Let's see if there's anything that overlaps enough to need supports:
-        // What we now have in polygons needs support, regardless of what the forces are, so we can add them.
+        // 让我们看看是否有任何重叠到需要支撑的内容：
+        // 我们现在在多边形中的内容需要支撑，无论力是多少，所以我们可以添加它们。
 
         double a = std::accumulate(s.dangling_areas.begin(), s.dangling_areas.end(), 0., areafn);
         uniformly_cover(s.dangling_areas, s, a * tp - a * current * s.area, grid3d, icfWithBoundary);
@@ -567,15 +566,15 @@ void SupportPointGenerator::uniformly_cover(const ExPolygons& islands, Structure
     const size_t poisson_samples_target = size_t(ceil(support_force_deficit / m_config.support_force()));
 
     const float density_horizontal = m_config.tear_pressure() / m_config.support_force();
-    //FIXME why?
+    //FIXME 为什么？
     float poisson_radius		= std::max(m_config.minimal_distance, 1.f / (5.f * density_horizontal));
 //    const float poisson_radius     = 1.f / (15.f * density_horizontal);
     const float samples_per_mm2 = 30.f / (float(M_PI) * poisson_radius * poisson_radius);
-    // Minimum distance between samples, in 3D space.
+    // 样本之间的最小距离，以 3D 空间为单位。
 //    float min_spacing			= poisson_radius / 3.f;
     float min_spacing			= poisson_radius;
 
-    //FIXME share the random generator. The random generator may be not so cheap to initialize, also we don't want the random generator to be restarted for each polygon.
+    //FIXME 共享随机生成器。随机生成器初始化可能不便宜，而且我们不想为每个多边形重新启动随机生成器。
 
     std::vector<Vec2f> raw_samples =
         flags & icfWithBoundary ?

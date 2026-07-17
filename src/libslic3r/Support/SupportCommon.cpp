@@ -21,7 +21,7 @@
 
 // #define SLIC3R_DEBUG
 
-// Make assert active if SLIC3R_DEBUG
+// 如果定义了 SLIC3R_DEBUG，则启用断言
 #ifdef SLIC3R_DEBUG
     #define DEBUG
     #define _DEBUG
@@ -34,8 +34,8 @@
 
 namespace Slic3r {
 
-// how much we extend support around the actual contact area
-//FIXME this should be dependent on the nozzle diameter!
+// 我们在实际接触区域周围扩展多少支撑
+//FIXME 这应该取决于喷嘴直径！
 #define SUPPORT_MATERIAL_MARGIN 1.5
 
 //#define SUPPORT_SURFACES_OFFSET_PARAMETERS ClipperLib::jtMiter, 3.
@@ -49,44 +49,43 @@ void remove_bridges_from_contacts(
     float                fw, 
     Polygons            &contact_polygons)
 {
-    // compute the area of bridging perimeters
+    // 计算桥接轮廓的面积
     Polygons bridges;
     {
-        // Surface supporting this layer, expanded by 0.5 * nozzle_diameter, as we consider this kind of overhang to be sufficiently supported.
+        // 支撑该层的表面，扩展 0.5 * 喷嘴直径，因为我们认为这种悬垂已得到充分支撑。
         Polygons lower_grown_slices = expand(lower_layer.lslices,
-            //FIXME to mimic the decision in the perimeter generator, we should use half the external perimeter width.
+            //FIXME 为了模拟轮廓生成器中的决策，应使用外部轮廓宽度的一半。
             0.5f * float(scale_(print_config.nozzle_diameter.get_at(layerm.region().config().wall_filament - 1))),
             SUPPORT_SURFACES_OFFSET_PARAMETERS);
-        // Collect perimeters of this layer.
-        //FIXME split_at_first_point() could split a bridge mid-way
+        // 收集该层的轮廓。
+        //FIXME split_at_first_point() 可能会在中间分割桥接
     #if 0
         Polylines overhang_perimeters = layerm.perimeters.as_polylines();
-        // workaround for Clipper bug, see Slic3r::Polygon::clip_as_polyline()
+        // Clipper 错误的变通方法，请参阅 Slic3r::Polygon::clip_as_polyline()
         for (Polyline &polyline : overhang_perimeters)
             polyline.points[0].x += 1;
-        // Trim the perimeters of this layer by the lower layer to get the unsupported pieces of perimeters.
+        // 用下层裁剪该层的轮廓以获取未受支撑的轮廓部分。
         overhang_perimeters = diff_pl(overhang_perimeters, lower_grown_slices);
     #else
         Polylines overhang_perimeters = diff_pl(layerm.perimeters.as_polylines(), lower_grown_slices);
     #endif
         
-        // only consider straight overhangs
-        // only consider overhangs having endpoints inside layer's slices
-        // convert bridging polylines into polygons by inflating them with their thickness
-        // since we're dealing with bridges, we can't assume width is larger than spacing,
-        // so we take the largest value and also apply safety offset to be ensure no gaps
-        // are left in between
+        // 仅考虑直线悬垂
+        // 仅考虑端点位于层切片内部的悬垂
+        // 通过用厚度膨胀将桥接多段线转换为多边形
+        // 由于我们在处理桥接，不能假设宽度大于间距，
+        // 所以我们取最大值并应用安全偏移以确保没有间隙留下
         Flow perimeter_bridge_flow = layerm.bridging_flow(frPerimeter);
-        //FIXME one may want to use a maximum of bridging flow width and normal flow width, as the perimeters are calculated using the normal flow
-        // and then turned to bridging flow, thus their centerlines are derived from non-bridging flow and expanding them by a bridging flow
-        // may not expand them to the edge of their respective islands.
+        //FIXME 可能需要使用桥接流量宽度和正常流量宽度的最大值，因为轮廓是用正常流量计算的
+        // 然后转换为桥接流量，因此它们的中心线是从非桥接流量导出的，用桥接流量扩展
+        // 可能无法将它们扩展到各自岛屿的边缘。
         const float w = float(0.5 * std::max(perimeter_bridge_flow.scaled_width(), perimeter_bridge_flow.scaled_spacing())) + scaled<float>(0.001);
         for (Polyline &polyline : overhang_perimeters)
             if (polyline.is_straight()) {
-                // This is a bridge 
+                // 这是一个桥接
                 polyline.extend_start(fw);
                 polyline.extend_end(fw);
-                // Is the straight perimeter segment supported at both sides?
+                // 直线轮廓段是否在两侧都有支撑？
                 Point pts[2]       = { polyline.first_point(), polyline.last_point() };
                 bool  supported[2] = { false, false };
                 for (size_t i = 0; i < lower_layer.lslices.size() && ! (supported[0] && supported[1]); ++ i)
@@ -94,23 +93,23 @@ void remove_bridges_from_contacts(
                         if (! supported[j] && lower_layer.lslices_bboxes[i].contains(pts[j]) && lower_layer.lslices[i].contains(pts[j]))
                             supported[j] = true;
                 if (supported[0] && supported[1])
-                    // Offset a polyline into a thick line.
+                    // 将多段线偏移为粗线。
                     polygons_append(bridges, offset(polyline, w));
             }
         bridges = union_(bridges);
     }
-    // remove the entire bridges and only support the unsupported edges
-    //FIXME the brided regions are already collected as layerm.bridged. Use it?
+    // 移除整个桥接区域，仅支撑未支撑的边缘
+    //FIXME 桥接区域已被收集为 layerm.bridged。使用它？
     for (const Surface &surface : layerm.fill_surfaces.surfaces)
         if (surface.surface_type == stBottomBridge && surface.bridge_angle >= 0.0)
             polygons_append(bridges, surface.expolygon);
-    //FIXME add the gap filled areas. Extrude the gaps with a bridge flow?
-    // Remove the unsupported ends of the bridges from the bridged areas.
-    //FIXME add supports at regular intervals to support long bridges!
+    //FIXME 添加间隙填充区域。用桥接流量挤出间隙？
+    // 从桥接区域中移除桥接的未支撑端。
+    //FIXME 以固定间隔添加支撑以支撑长桥接！
     bridges = diff(bridges,
-            // Offset unsupported edges into polygons.
+            // 将未支撑边缘偏移为多边形。
             offset(layerm.unsupported_bridge_edges, scale_(SUPPORT_MATERIAL_MARGIN), SUPPORT_SURFACES_OFFSET_PARAMETERS));
-    // Remove bridged areas from the supported areas.
+    // 从支撑区域中移除桥接区域。
     contact_polygons = diff(contact_polygons, bridges, ApplySafetyOffset::Yes);
 
     #ifdef SLIC3R_DEBUG
@@ -122,23 +121,23 @@ void remove_bridges_from_contacts(
     #endif /* SLIC3R_DEBUG */
 }
 
-// Convert some of the intermediate layers into top/bottom interface layers as well as base interface layers.
+// 将部分中间层转换为顶部/底部接口层以及基础接口层。
 std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interface_layers(
     const PrintObjectConfig           &config,
     const SupportParameters           &support_params,
     const SupportGeneratorLayersPtr   &bottom_contacts,
     const SupportGeneratorLayersPtr   &top_contacts,
-    // Input / output, will be merged with output. Only provided for Organic supports.
+    // 输入/输出，将与输出合并。仅为有机支撑提供。
     SupportGeneratorLayersPtr         &top_interface_layers,
     SupportGeneratorLayersPtr         &top_base_interface_layers,
-    // Input, will be trimmed with the newly created interface layers.
+    // 输入，将用新创建的接口层修剪。
     SupportGeneratorLayersPtr         &intermediate_layers,
     SupportGeneratorLayerStorage      &layer_storage)
 {
     std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> base_and_interface_layers;
 
     if (! intermediate_layers.empty() && support_params.has_interfaces()) {
-        // For all intermediate layers, collect top contact surfaces, which are not further than support_material_interface_layers.
+        // 对于所有中间层，收集不超过 support_material_interface_layers 的顶部接触表面。
         BOOST_LOG_TRIVIAL(debug) << "PrintObjectSupportMaterial::generate_interface_layers() in parallel - start";
         const bool                 snug_supports          = support_params.support_style == smsSnug;
         const bool                 smooth_supports        = support_params.support_style != smsGrid;
@@ -151,28 +150,28 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
         const auto smoothing_distance    = support_params.support_material_interface_flow.scaled_spacing() * 1.5;
         const auto minimum_island_radius = support_params.support_material_interface_flow.scaled_spacing() / support_params.interface_density;
         const auto closing_distance      = smoothing_distance; // scaled<float>(config.support_material_closing_radius.value);
-        // Insert a new layer into base_interface_layers, if intersection with base exists.
+        // Insert a new layer into base_interface_layers, if intersection with base exists. 如果与基础相交存在，则在base_interface_layers中插入新层。
         auto insert_layer = [&layer_storage, smooth_supports, closing_distance, smoothing_distance, minimum_island_radius](
                 SupportGeneratorLayer &intermediate_layer, Polygons &bottom, Polygons &&top, SupportGeneratorLayer *top_interface_layer,
                 const Polygons *subtract, SupporLayerType type) -> SupportGeneratorLayer* {
             bool has_top_interface = top_interface_layer && ! top_interface_layer->polygons.empty();
             assert(! bottom.empty() || ! top.empty() || has_top_interface);
-            // Merge top into bottom, unite them with a safety offset.
+            // 将顶部合并到底部，用安全偏移合并它们。
             append(bottom, std::move(top));
-            // Merge top / bottom interfaces. For snug supports, merge using closing distance and regularize (close concave corners).
+            // 合并顶部/底部接口。对于贴合支撑，使用闭合距离合并并正则化（闭合凹角）。
             bottom = intersection(
                 smooth_supports ?
                     smooth_outward(closing(std::move(bottom), closing_distance + minimum_island_radius, closing_distance, SUPPORT_SURFACES_OFFSET_PARAMETERS), smoothing_distance) :
                     union_safety_offset(std::move(bottom)),
                 intermediate_layer.polygons);
             if (has_top_interface) {
-                // Don't trim the precomputed Organic supports top interface with base layer
-                // as the precomputed top interface likely expands over multiple tree tips.
+                // 不要用基础层修剪预计算的有机支撑顶部接口
+                // 因为预计算的顶部接口可能会扩展到多个树梢。
                 bottom = union_(std::move(top_interface_layer->polygons), bottom);
                 top_interface_layer->polygons.clear();
             }
             if (! bottom.empty()) {
-                //FIXME Remove non-printable tiny islands, let them be printed using the base support.
+                //FIXME 移除不可打印的微小岛屿，让它们用基础支撑打印。
                 //bottom = opening(std::move(bottom), minimum_island_radius);
                 if (! bottom.empty()) {
                     SupportGeneratorLayer &layer_new = top_interface_layer ? *top_interface_layer : layer_storage.allocate(type);
@@ -181,12 +180,12 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
                     layer_new.bottom_z   = intermediate_layer.bottom_z;
                     layer_new.height     = intermediate_layer.height;
                     layer_new.bridging   = intermediate_layer.bridging;
-                    // Subtract the interface from the base regions.
+                    // 从基础区域中减去接口区域。
                     intermediate_layer.polygons = diff(intermediate_layer.polygons, layer_new.polygons);
                     if (subtract)
-                        // Trim the base interface layer with the interface layer.
+                        // 用接口层修剪基础接口层。
                         layer_new.polygons = diff(std::move(layer_new.polygons), *subtract);
-                    //FIXME filter layer_new.polygons islands by a minimum area?
+                    //FIXME 按最小面积过滤 layer_new.polygons 岛屿？
         //                  $interface_area = [ grep abs($_->area) >= $area_threshold, @$interface_area ];
                     return &layer_new;
                 }
@@ -196,15 +195,15 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
         tbb::parallel_for(tbb::blocked_range<int>(0, int(intermediate_layers.size())),
             [&bottom_contacts, &top_contacts, &top_interface_layers, &top_base_interface_layers, &intermediate_layers, &insert_layer, &support_params,
              snug_supports, &interface_layers, &base_interface_layers](const tbb::blocked_range<int>& range) {
-                // Gather the top / bottom contact layers intersecting with num_interface_layers resp. num_interface_layers_only intermediate layers above / below
-                // this intermediate layer.
-                // Index of the first top contact layer intersecting the current intermediate layer.
+                // 收集与 num_interface_layers 或 num_interface_layers_only 相交的顶部/底部接触层
+                // 位于此中间层上方/下方的中间层。
+                // 当前中间层相交的第一个顶部接触层的索引。
                 auto idx_top_contact_first        = -1;
-                // Index of the first bottom contact layer intersecting the current intermediate layer.
+                // 当前中间层相交的第一个底部接触层的索引。
                 auto idx_bottom_contact_first     = -1;
-                // Index of the first top interface layer intersecting the current intermediate layer.
+                // 当前中间层相交的第一个顶部接口层的索引。
                 auto idx_top_interface_first      = -1;
-                // Index of the first top contact interface layer intersecting the current intermediate layer.
+                // 当前中间层相交的第一个顶部接触接口层的索引。
                 auto idx_top_base_interface_first = -1;
                 auto num_intermediate = int(intermediate_layers.size());
                 for (int idx_intermediate_layer = range.begin(); idx_intermediate_layer < range.end(); ++ idx_intermediate_layer) {
@@ -214,42 +213,42 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
                     Polygons polygons_bottom_contact_projected_interface;
                     Polygons polygons_bottom_contact_projected_base;
                     if (support_params.num_top_interface_layers > 0) {
-                        // Top Z coordinate of a slab, over which we are collecting the top / bottom contact surfaces
+                        // 一个块的顶部 Z 坐标，我们正在其上收集顶部/底部接触表面
                         coordf_t top_z              = intermediate_layers[std::min(num_intermediate - 1, idx_intermediate_layer + int(support_params.num_top_interface_layers) - 1)]->print_z;
                         coordf_t top_inteface_z     = std::numeric_limits<coordf_t>::max();
                         if (support_params.num_top_base_interface_layers > 0)
-                            // Some top base interface layers will be generated.
+                            // 将生成一些顶部基础接口层。
                             top_inteface_z = support_params.num_top_interface_layers_only() == 0 ?
-                                // Only base interface layers to generate.
+                                // 只生成基础接口层。
                                 - std::numeric_limits<coordf_t>::max() :
                                 intermediate_layers[std::min(num_intermediate - 1, idx_intermediate_layer + int(support_params.num_top_interface_layers_only()) - 1)]->print_z;
-                        // Move idx_top_contact_first up until above the current print_z.
+                        // 将 idx_top_contact_first 向上移动直到当前 print_z 之上。
                         idx_top_contact_first = idx_higher_or_equal(top_contacts, idx_top_contact_first, [&intermediate_layer](const SupportGeneratorLayer *layer){ return layer->print_z >= intermediate_layer.print_z; }); //  - EPSILON
-                        // Collect the top contact areas above this intermediate layer, below top_z.
+                        // 收集此中间层上方、top_z 下方的顶部接触区域。
                         for (int idx_top_contact = idx_top_contact_first; idx_top_contact < int(top_contacts.size()); ++ idx_top_contact) {
                             const SupportGeneratorLayer &top_contact_layer = *top_contacts[idx_top_contact];
-                            //FIXME maybe this adds one interface layer in excess?
+                            //FIXME 这可能多添加了一个接口层？
                             if (top_contact_layer.bottom_z - EPSILON > top_z)
                                 break;
                             polygons_append(top_contact_layer.bottom_z - EPSILON > top_inteface_z ? polygons_top_contact_projected_base : polygons_top_contact_projected_interface,
-                                // For snug supports, project the overhang polygons covering the whole overhang, so that they will merge without a gap with support polygons of the other layers.
-                                // For grid supports, merging of support regions will be performed by the projection into grid.
+                                // 对于贴合支撑，投影覆盖整个悬垂的悬垂多边形，以便它们将与其他层的支撑多边形无缝合并。
+                                // 对于网格支撑，支撑区域的合并将通过投影到网格执行。
                                 snug_supports ? *top_contact_layer.overhang_polygons : top_contact_layer.polygons);
                         }
                     }
                     if (support_params.num_bottom_interface_layers > 0) {
-                        // Bottom Z coordinate of a slab, over which we are collecting the top / bottom contact surfaces
+                        // 一个块的底部 Z 坐标，我们正在其上收集顶部/底部接触表面
                         coordf_t bottom_z           = intermediate_layers[std::max(0, idx_intermediate_layer - int(support_params.num_bottom_interface_layers) + 1)]->bottom_z;
                         coordf_t bottom_interface_z = - std::numeric_limits<coordf_t>::max();
                         if (support_params.num_bottom_base_interface_layers > 0)
-                            // Some bottom base interface layers will be generated.
+                            // 将生成一些底部基础接口层。
                             bottom_interface_z = support_params.num_bottom_interface_layers_only() == 0 ?
-                                // Only base interface layers to generate.
+                                // 只生成基础接口层。
                                 std::numeric_limits<coordf_t>::max() :
                                 intermediate_layers[std::max(0, idx_intermediate_layer - int(support_params.num_bottom_interface_layers_only()))]->bottom_z;
-                        // Move idx_bottom_contact_first up until touching bottom_z.
+                        // 将 idx_bottom_contact_first 向上移动直到接触 bottom_z。
                         idx_bottom_contact_first = idx_higher_or_equal(bottom_contacts, idx_bottom_contact_first, [bottom_z](const SupportGeneratorLayer *layer){ return layer->print_z >= bottom_z - EPSILON; });
-                        // Collect the top contact areas above this intermediate layer, below top_z.
+                        // 收集此中间层上方、top_z 下方的顶部接触区域。
                         for (int idx_bottom_contact = idx_bottom_contact_first; idx_bottom_contact < int(bottom_contacts.size()); ++ idx_bottom_contact) {
                             const SupportGeneratorLayer &bottom_contact_layer = *bottom_contacts[idx_bottom_contact];
                             if (bottom_contact_layer.print_z - EPSILON > intermediate_layer.bottom_z)
@@ -283,9 +282,9 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
                 }
             });
 
-        // Compress contact_out, remove the nullptr items.
-        // The parallel_for above may not have merged all the interface and base_interface layers
-        // generated by the Organic supports code, do it here.
+        // 压缩 contact_out，移除 nullptr 项。
+        // 上面的 parallel_for 可能没有合并所有由有机支撑代码生成的 interface 和 base_interface 层，
+        // 在此处执行此操作。
         auto merge_remove_empty = [](SupportGeneratorLayersPtr &in1, SupportGeneratorLayersPtr &in2) {
             auto remove_empty = [](SupportGeneratorLayersPtr &vec) {
                 vec.erase(
@@ -322,15 +321,15 @@ SupportGeneratorLayersPtr generate_raft_base(
     const SupportGeneratorLayersPtr   &base_layers,
     SupportGeneratorLayerStorage      &layer_storage)
 {
-    // If there is brim to be generated, calculate the trimming regions.
+    // 如果有裙边要生成，计算修剪区域。
     Polygons brim;
     if (object.has_brim()) {
-        // The object does not have a raft.
-        // Calculate the area covered by the brim.
+        // 物体没有筏层。
+        // 计算裙边覆盖的区域。
         const BrimType brim_type       = object.config().brim_type;
         const bool     brim_outer      = brim_type == btOuterOnly || brim_type == btOuterAndInner;
         const bool     brim_inner      = brim_type == btInnerOnly || brim_type == btOuterAndInner;
-        // BBS: the pattern of raft and brim are the same, thus the brim can be serpated by support raft.
+        // BBS: 筏层和裙边的图案相同，因此裙边可以由支撑筏层分离。
         const auto     brim_object_gap = scaled<float>(object.config().brim_object_gap.value);
         //const auto     brim_object_gap = scaled<float>(object.config().brim_object_gap.value + object.config().brim_width.value);
         for (const ExPolygon &ex : object.layers().front()->lslices) {
@@ -354,7 +353,7 @@ SupportGeneratorLayersPtr generate_raft_base(
         brim = union_(brim);
     }
 
-    // How much to inflate the support columns to be stable. This also applies to the 1st layer, if no raft layers are to be printed.
+    // 膨胀支撑柱以获得稳定性的量。如果没有要打印的筏层，这也适用于第一层。
     const float inflate_factor_fine      = float(scale_((slicing_params.raft_layers() > 1) ? 0.5 : EPSILON));
     const float inflate_factor_1st_layer = std::max(0.f, float(scale_(object.config().raft_first_layer_expansion)) - inflate_factor_fine);
     SupportGeneratorLayer       *contacts         = top_contacts         .empty() ? nullptr : top_contacts         .front();
@@ -362,16 +361,16 @@ SupportGeneratorLayersPtr generate_raft_base(
     SupportGeneratorLayer       *base_interfaces  = base_interface_layers.empty() ? nullptr : base_interface_layers.front();
     SupportGeneratorLayer       *columns_base     = base_layers          .empty() ? nullptr : base_layers          .front();
     if (contacts != nullptr && contacts->print_z > std::max(slicing_params.first_print_layer_height, slicing_params.raft_contact_top_z) + EPSILON)
-        // This is not the raft contact layer.
+        // 这不是筏层接触层。
         contacts = nullptr;
     if (interfaces != nullptr && interfaces->bottom_print_z() > slicing_params.raft_interface_top_z + EPSILON)
-        // This is not the raft column base layer.
+        // 这不是筏层柱基础层。
         interfaces = nullptr;
     if (base_interfaces != nullptr && base_interfaces->bottom_print_z() > slicing_params.raft_interface_top_z + EPSILON)
-        // This is not the raft column base layer.
+        // 这不是筏层柱基础层。
         base_interfaces = nullptr;
     if (columns_base != nullptr && columns_base->bottom_print_z() > slicing_params.raft_interface_top_z + EPSILON)
-        // This is not the raft interface layer.
+        // 这不是筏层接口层。
         columns_base = nullptr;
 
     Polygons interface_polygons;
@@ -382,7 +381,7 @@ SupportGeneratorLayersPtr generate_raft_base(
     if (base_interfaces != nullptr && ! base_interfaces->polygons.empty())
         polygons_append(interface_polygons, expand(base_interfaces->polygons, inflate_factor_fine, SUPPORT_SURFACES_OFFSET_PARAMETERS));
 
-    // Output vector.
+    // 输出向量。
     SupportGeneratorLayersPtr raft_layers;
 
     if (slicing_params.raft_layers() > 1) {
@@ -391,24 +390,24 @@ SupportGeneratorLayersPtr generate_raft_base(
         Polygons first_layer;
         if (columns_base != nullptr) {
             if (columns_base->bottom_print_z() > slicing_params.raft_interface_top_z - EPSILON) {
-                // Classic supports with colums above the raft interface.
+                // 筏层接口上方的经典支撑柱。
                 base = columns_base->polygons;
                 columns = base;
                 if (! interface_polygons.empty())
-                    // Trim the 1st layer columns with the inflated interface polygons.
+                    // 用膨胀的接口多边形修剪第一层柱。
                     columns = diff(columns, interface_polygons);
             } else {
-                // Organic supports with raft on print bed.
+                // 在打印热床上的有机支撑筏层。
                 assert(is_approx(columns_base->print_z, slicing_params.first_print_layer_height));
                 first_layer = columns_base->polygons;
             }
         }
         if (! interface_polygons.empty()) {
-            // Merge the untrimmed columns base with the expanded raft interface, to be used for the support base and interface.
+            // Merge the untrimmed columns base with the expanded raft interface, to be used for the support base and interface. 合并未修剪的柱基础与扩展的筏层接口，用于支撑基础和接口。
             base = union_(base, interface_polygons);
         }
-        // Do not add the raft contact layer, only add the raft layers below the contact layer.
-        // Insert the 1st layer.
+        // Do not add the raft contact layer, only add the raft layers below the contact layer. 不添加筏层接触层，只添加接触层下方的筏层。
+        // Insert the 1st layer. 插入第1层。
         {
             SupportGeneratorLayer &new_layer = layer_storage.allocate(slicing_params.base_raft_layers > 0 ? SupporLayerType::RaftBase : SupporLayerType::RaftInterface);
             raft_layers.push_back(&new_layer);
@@ -418,7 +417,7 @@ SupportGeneratorLayersPtr generate_raft_base(
             first_layer = union_(std::move(first_layer), base);
             new_layer.polygons = inflate_factor_1st_layer > 0 ? expand(first_layer, inflate_factor_1st_layer) : first_layer;
         }
-        // Insert the base layers.
+        // Insert the base layers. 插入基础层。
         for (size_t i = 1; i < slicing_params.base_raft_layers; ++ i) {
             coordf_t print_z = raft_layers.back()->print_z;
             SupportGeneratorLayer &new_layer  = layer_storage.allocate_unguarded(SupporLayerType::RaftBase);
@@ -428,7 +427,7 @@ SupportGeneratorLayersPtr generate_raft_base(
             new_layer.bottom_z = print_z;
             new_layer.polygons = base;
         }
-        // Insert the interface layers.
+        // Insert the interface layers. 插入接口层。
         for (size_t i = 1; i < slicing_params.interface_raft_layers; ++ i) {
             coordf_t print_z = raft_layers.back()->print_z;
             SupportGeneratorLayer &new_layer = layer_storage.allocate_unguarded(SupporLayerType::RaftInterface);
@@ -442,17 +441,17 @@ SupportGeneratorLayersPtr generate_raft_base(
         }
     } else {
         if (columns_base != nullptr) {
-            // Expand the bases of the support columns in the 1st layer.
+            // 扩展第一层中支撑柱的基础区域。
             Polygons &raft     = columns_base->polygons;
             Polygons  trimming;
-            // BBS: if first layer of support is intersected with object island, it must have the same function as brim unless in nobrim mode.
-            // brim_object_gap is changed to 0 by default, it's no longer appropriate to use it to determine the gap of first layer support.
+            // BBS: 如果支撑的第一层与物体岛屿相交，则必须具有与裙边相同的功能，除非在无裙边模式下。
+            // brim_object_gap 默认已更改为 0，不再适合用于确定第一层支撑的间隙。
             //if (object.has_brim())
             //    trimming = offset(object.layers().front()->lslices, (float)scale_(object.config().brim_object_gap.value), SUPPORT_SURFACES_OFFSET_PARAMETERS);
             //else
                 trimming = offset(object.layers().front()->lslices, (float)scale_(support_params.gap_xy_first_layer), SUPPORT_SURFACES_OFFSET_PARAMETERS);
             if (inflate_factor_1st_layer > SCALED_EPSILON) {
-                // Inflate in multiple steps to avoid leaking of the support 1st layer through object walls.
+                // Inflate in multiple steps to avoid leaking of the support 1st layer through object walls. 分多步膨胀，以避免支撑第一层通过物体壁泄漏。
                 auto  nsteps = std::max(5, int(ceil(inflate_factor_1st_layer / support_params.first_layer_flow.scaled_width())));
                 float step   = inflate_factor_1st_layer / nsteps;
                 for (int i = 0; i < nsteps; ++ i)
@@ -529,16 +528,16 @@ static inline void fill_expolygons_generate_paths(
 
 static Polylines draw_perimeters(const ExPolygon &expoly, double clip_length)
 {
-    // Draw the perimeters.
+    // 绘制轮廓。
     Polylines polylines;
     polylines.reserve(expoly.holes.size() + 1);
     for (size_t i = 0; i <= expoly.holes.size();  ++ i) {
         Polyline pl(i == 0 ? expoly.contour.points : expoly.holes[i - 1].points);
         pl.points.emplace_back(pl.points.front());
         if (i > 0)
-            // It is a hole, reverse it.
+            // 这是一个孔，反转它。
             pl.reverse();
-        // so that all contours are CCW oriented.
+        // 以使所有轮廓按逆时针方向定向。
         pl.clip_end(clip_length);
         polylines.emplace_back(std::move(pl));
     }
@@ -551,9 +550,9 @@ void tree_supports_generate_paths(
     const Flow              &flow,
     const SupportParameters &support_params)
 {
-    // Offset expolygon inside, returns number of expolygons collected (0 or 1).
-    // Vertices of output paths are marked with Z = source contour index of the expoly.
-    // Vertices at the intersection of source contours are marked with Z = -1.
+    // 向内偏移扩展多边形，返回收集的扩展多边形数量（0 或 1）。
+    // 输出路径的顶点用 Z = 扩展多边形的源轮廓索引标记。
+    // 源轮廓相交处的顶点用 Z = -1 标记。
     auto shrink_expolygon_with_contour_idx = [](const Slic3r::ExPolygon &expoly, const float delta, ClipperLib::JoinType joinType, double miterLimit, ClipperLib_Z::Paths &out) -> int
     {
         assert(delta > 0);
@@ -581,16 +580,16 @@ void tree_supports_generate_paths(
             ClipperLib::Paths contours_raw;
             co.Execute(contours_raw, - delta);
             if (contours_raw.empty())
-                // No need to try to offset the holes.
+                // 无需尝试偏移孔。
                 return 0;
             append_paths_with_z(contours_raw, 0, contours);
         }
 
         if (expoly.holes.empty()) {
-            // No need to subtract holes from the offsetted expolygon, we are done.
+            // 无需从偏移后的扩展多边形中减去孔，我们已完成。
             append(out, std::move(contours));
         } else {
-            // 2) Offset the holes one by one, collect the offsetted holes.
+            // 2) 逐个偏移孔，收集偏移后的孔。
             ClipperLib_Z::Paths holes;
             {
                 for (const Polygon &hole : expoly.holes) {
@@ -602,25 +601,25 @@ void tree_supports_generate_paths(
                     co.ShortestEdgeLength = double(delta * 0.005);
                     co.AddPath(hole.points, joinType, ClipperLib::etClosedPolygon);
                     ClipperLib::Paths out2;
-                    // Execute reorients the contours so that the outer most contour has a positive area. Thus the output
-                    // contours will be CCW oriented even though the input paths are CW oriented.
-                    // Offset is applied after contour reorientation, thus the signum of the offset value is reversed.
+                    // Execute 重新定向轮廓，使最外层的轮廓具有正面积。因此输出
+                    // 轮廓将是逆时针定向，即使输入路径是顺时针定向。
+                    // 偏移是在轮廓重新定向后应用的，因此偏移值的符号反转。
                     co.Execute(out2, delta);
                     append_paths_with_z(out2, 1 + (&hole - expoly.holes.data()), holes);
                 }
             }
 
-            // 3) Subtract holes from the contours.
+            // 3) 从轮廓中减去孔。
             if (holes.empty()) {
-                // No hole remaining after an offset. Just copy the outer contour.
+                // 偏移后没有剩余孔。只需复制外部轮廓。
                 append(out, std::move(contours));
             } else {
-                // Negative offset. There is a chance, that the offsetted hole intersects the outer contour.
-                // Subtract the offsetted holes from the offsetted contours.
+                // 负偏移。偏移后的孔有可能与外部轮廓相交。
+                // 从偏移后的轮廓中减去偏移后的孔。
                 ClipperLib_Z::Clipper clipper;
                 clipper.ZFillFunction([](const ClipperLib_Z::IntPoint &e1bot, const ClipperLib_Z::IntPoint &e1top, const ClipperLib_Z::IntPoint &e2bot, const ClipperLib_Z::IntPoint &e2top, ClipperLib_Z::IntPoint &pt) {
                         //pt.z() = std::max(std::max(e1bot.z(), e1top.z()), std::max(e2bot.z(), e2top.z()));
-                        // Just mark the intersection.
+                        // 仅标记交点。
                         pt.z() = -1;
                     });
                 clipper.AddPaths(contours, ClipperLib_Z::ptSubject, true);
@@ -630,7 +629,7 @@ void tree_supports_generate_paths(
                 if (! output.empty()) {
                     append(out, std::move(output));
                 } else {
-                    // The offsetted holes have eaten up the offsetted outer contour.
+                    // 偏移后的孔已吞噬了偏移后的外部轮廓。
                     return 0;
                 }
             }
@@ -640,7 +639,7 @@ void tree_supports_generate_paths(
     };
 
     const double spacing = flow.scaled_spacing();
-    // Clip the sheath path to avoid the extruder to get exactly on the first point of the loop.
+    // 裁剪护套路径，以避免挤出机恰好到达环的第一个点。
     const double clip_length = spacing * 0.15;
     const double anchor_length = spacing * 6.;
     ClipperLib_Z::Paths anchor_candidates;
@@ -651,9 +650,9 @@ void tree_supports_generate_paths(
             if (double area = expoly.area(); area > support_params.tree_branch_diameter_double_wall_area_scaled) {
                 BOOST_LOG_TRIVIAL(debug)<< "TreeSupports: double wall area: " << area<< " > " << support_params.tree_branch_diameter_double_wall_area_scaled;
                 eec = std::make_unique<ExtrusionEntityCollection>();
-                // Don't reorder internal / external loops of the same island, always start with the internal loop.
+                // 不要重新排序同一岛屿的内部/外部环，始终从内部环开始。
                 eec->no_sort = true;
-                // Make the tree branch stable by adding another perimeter.
+                // 通过添加另一个轮廓使树分支稳定。
                 ExPolygons level2 = offset2_ex({expoly}, -1.5 * flow.scaled_width(), 0.5 * flow.scaled_width());
                 if (level2.size() > 0) {
                     regions_to_draw_inner_wall = level2;
@@ -665,30 +664,30 @@ void tree_supports_generate_paths(
             }
         for (ExPolygon &expoly : regions_to_draw_inner_wall)
         {
-            // Try to produce one more perimeter to place the seam anchor.
-            // First genrate a 2nd perimeter loop as a source for anchor candidates.
-            // The anchor candidate points are annotated with an index of the source contour or with -1 if on intersection.
+            // Try to produce one more perimeter to place the seam anchor. 尝试再生成一个轮廓以放置接缝锚点。
+            // First genrate a 2nd perimeter loop as a source for anchor candidates. 首先生成第二个轮廓环作为锚点候选的源。
+            // The anchor candidate points are annotated with an index of the source contour or with -1 if on intersection. 锚点候选点用源轮廓的索引标记，如果在交点上则用-1标记。
             anchor_candidates.clear();
             shrink_expolygon_with_contour_idx(expoly, flow.scaled_width(), DefaultJoinType, 1.2, anchor_candidates);
-            // Orient all contours CW.
+            // Orient all contours CW. 定向所有轮廓为顺时针。
             for (auto &path : anchor_candidates)
                 if (ClipperLib_Z::Area(path) > 0) std::reverse(path.begin(), path.end());
 
-            // Draw the perimeters.
+            // Draw the perimeters. 绘制轮廓。
             Polylines polylines;
             polylines.reserve(expoly.holes.size() + 1);
             for (int idx_loop = 0; idx_loop < int(expoly.num_contours()); ++idx_loop) {
-                // Open the loop with a seam.
+                // Open the loop with a seam. 用接缝打开环路。
                 const Polygon &loop = expoly.contour_or_hole(idx_loop);
                 Polyline       pl(loop.points);
-                // Orient all contours CW, because the anchor will be added to the end of polyline while we want to start a loop with the anchor.
+                // Orient all contours CW, because the anchor will be added to the end of polyline while we want to start a loop with the anchor. 定向所有轮廓为顺时针，因为锚点将被添加到多段线的末尾，而我们希望从锚点开始环路。
                 if (idx_loop == 0)
-                    // It is an outer contour.
+                    // It is an outer contour. 它是外部轮廓。
                     pl.reverse();
                 pl.points.emplace_back(pl.points.front());
                 pl.clip_end(clip_length);
                 if (pl.size() < 2) continue;
-                // Find the foot of the seam point on anchor_candidates. Only pick an anchor point that was created by offsetting the source contour.
+                // Find the foot of the seam point on anchor_candidates. Only pick an anchor point that was created by offsetting the source contour. 在anchor_candidates上找到接缝点的垂足。只选择通过偏移源轮廓创建的锚点。
                 ClipperLib_Z::Path *closest_contour = nullptr;
                 Vec2d               closest_point;
                 int                 closest_point_idx = -1;
@@ -706,7 +705,7 @@ void tree_supports_generate_paths(
                             auto  l2 = v.squaredNorm();
                             auto  t  = std::clamp((l2 == 0) ? 0 : v.dot(w) / l2, 0., 1.);
                             if ((path[i].z() == idx_loop || t > EPSILON) && (path[j].z() == idx_loop || t < 1. - EPSILON)) {
-                                // Closest point.
+                                // Closest point. 最近点。
                                 Vec2d  fp = pi + v * t;
                                 double d2 = (fp - seam_pt).squaredNorm();
                                 if (d2 < d2min) {
@@ -720,8 +719,8 @@ void tree_supports_generate_paths(
                         }
                     }
                 if (d2min < sqr(flow.scaled_width() * 3.)) {
-                    // Try to cut an anchor from the closest_contour.
-                    // Both closest_contour and pl are CW oriented.
+                    // Try to cut an anchor from the closest_contour. 尝试从closest_contour裁剪锚点。
+                    // Both closest_contour and pl are CW oriented. closest_contour和pl都是顺时针方向的。
                     pl.points.emplace_back(closest_point.cast<coord_t>());
                     const ClipperLib_Z::Path &path             = *closest_contour;
                     double                    remaining_length = anchor_length - (seam_pt - closest_point).norm();
@@ -732,10 +731,10 @@ void tree_supports_generate_paths(
                     Vec2d                     v = pj - pi;
                     double                    l = v.norm();
                     if (remaining_length < (1. - closest_point_t) * l) {
-                        // Just trim the current line.
+                        // Just trim the current line. 只需裁剪当前线。
                         pl.points.emplace_back((closest_point + v * (remaining_length / l)).cast<coord_t>());
                     } else {
-                        // Take the rest of the current line, continue with the other lines.
+                        // Take the rest of the current line, continue with the other lines. 取当前线的剩余部分，继续处理其他线。
                         pl.points.emplace_back(path[j].x(), path[j].y());
                         pi = pj;
                         for (i = j; path[i].z() == idx_loop && remaining_length > 0; i = j, pi = pj) {
@@ -744,7 +743,7 @@ void tree_supports_generate_paths(
                             v  = pj - pi;
                             l  = v.norm();
                             if (i == closest_point_idx) {
-                                // Back at the first segment. Most likely this should not happen and we may end the anchor.
+                                // Back at the first segment. Most likely this should not happen and we may end the anchor. 回到第一个线段。很可能这不应该发生，我们可能结束锚点。
                                 break;
                             }
                             if (remaining_length <= l) {
@@ -756,7 +755,7 @@ void tree_supports_generate_paths(
                         }
                     }
                 }
-                // Start with the anchor.
+                // Start with the anchor. 从锚点开始。
                 pl.reverse();
                 polylines.emplace_back(std::move(pl));
             }
@@ -803,11 +802,11 @@ void fill_expolygons_with_sheath_generate_paths(
     fill_params.dont_adjust = true;
 
     const double spacing = flow.scaled_spacing();
-    // Clip the sheath path to avoid the extruder to get exactly on the first point of the loop.
+    // 裁剪护套路径，以避免挤出机恰好到达环的第一个点。
     const double clip_length = spacing * 0.15;
 
     for (ExPolygon &expoly : closing_ex(polygons, float(SCALED_EPSILON), float(SCALED_EPSILON + 0.5*flow.scaled_width()))) {
-        // Don't reorder the skirt and its infills.
+        // Don't reorder the skirt and its infills. 不要重新排序裙边及其填充。
         std::unique_ptr<ExtrusionEntityCollection> eec;
         if (no_sort) {
             eec = std::make_unique<ExtrusionEntityCollection>();
@@ -815,14 +814,14 @@ void fill_expolygons_with_sheath_generate_paths(
         }
         ExtrusionEntitiesPtr &out = no_sort ? eec->entities : dst;
         extrusion_entities_append_paths(out, draw_perimeters(expoly, clip_length), ExtrusionRole::erSupportMaterial, flow.mm3_per_mm(), flow.width(), flow.height());
-        // Fill in the rest.
+        // Fill in the rest. 填充剩余部分。
         fill_expolygons_generate_paths(out, offset_ex(expoly, float(-0.4 * spacing)), filler, fill_params, density, role, flow);
         if (no_sort && ! eec->empty())
             dst.emplace_back(eec.release());
     }
 }
 
-// Support layers, partially processed.
+// 支撑层，已部分处理。
 struct SupportGeneratorLayerExtruded
 {
     SupportGeneratorLayerExtruded& operator=(SupportGeneratorLayerExtruded &&rhs) {
@@ -852,13 +851,13 @@ struct SupportGeneratorLayerExtruded
             this->layer->bridging == other.layer->bridging;
     }
 
-    // Merge regions, perform boolean union over the merged polygons.
+    // Merge regions, perform boolean union over the merged polygons. 合并区域，对合并后的多边形执行布尔并集运算。
     void merge(SupportGeneratorLayerExtruded &&other) {
         assert(this->could_merge(other));
         // 1) Merge the rest polygons to extrude, if there are any.
         if (other.m_polygons_to_extrude != nullptr) {
             if (m_polygons_to_extrude == nullptr) {
-                // This layer has no extrusions generated yet, if it has no m_polygons_to_extrude (its area to extrude was not reduced yet).
+                // This layer has no extrusions generated yet, if it has no m_polygons_to_extrude (its area to extrude was not reduced yet). 如果此层没有m_polygons_to_extrude（其要挤出的区域尚未减少），则尚未生成挤出物。
                 assert(this->extrusions.empty());
                 m_polygons_to_extrude = std::make_unique<Polygons>(this->layer->polygons);
             }
@@ -867,7 +866,7 @@ struct SupportGeneratorLayerExtruded
             other.m_polygons_to_extrude.reset();
         } else if (m_polygons_to_extrude != nullptr) {
             assert(other.m_polygons_to_extrude == nullptr);
-            // The other layer has no extrusions generated yet, if it has no m_polygons_to_extrude (its area to extrude was not reduced yet).
+            // The other layer has no extrusions generated yet, if it has no m_polygons_to_extrude (its area to extrude was not reduced yet). 另一层如果也没有m_polygons_to_extrude（其要挤出的区域尚未减少），则尚未生成挤出物。
             assert(other.extrusions.empty());
             Slic3r::polygons_append(*m_polygons_to_extrude, other.layer->polygons);
             *m_polygons_to_extrude = union_safety_offset(*m_polygons_to_extrude);

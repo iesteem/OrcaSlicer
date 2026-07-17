@@ -1,7 +1,7 @@
-// Calculate extents of the extrusions assigned to Print / PrintObject.
-// The extents are used for assessing collisions of the print with the priming towers,
-// to decide whether to pause the print after the priming towers are extruded
-// to let the operator remove them from the print bed.
+// 计算分配给Print / PrintObject的挤出范围。
+// 这些范围用于评估打印与初始塔的碰撞，
+// 以决定是否在初始塔挤出后暂停打印，
+// 让操作员将其从打印床上移除。
 
 #include "../BoundingBox.hpp"
 #include "../ExtrusionEntity.hpp"
@@ -35,7 +35,7 @@ static inline BoundingBoxf extrusionentity_extents(const ExtrusionPath &extrusio
     if (! empty(bbox)) {
         bboxf.min = unscale(bbox.min);
         bboxf.max = unscale(bbox.max);
-		bboxf.defined = true;
+        bboxf.defined = true;
     }
     return bboxf;
 }
@@ -49,8 +49,8 @@ static inline BoundingBoxf extrusionentity_extents(const ExtrusionLoop &extrusio
     if (! empty(bbox)) {
         bboxf.min = unscale(bbox.min);
         bboxf.max = unscale(bbox.max);
-		bboxf.defined = true;
-	}
+        bboxf.defined = true;
+    }
     return bboxf;
 }
 
@@ -63,8 +63,8 @@ static inline BoundingBoxf extrusionentity_extents(const ExtrusionMultiPath &ext
     if (! empty(bbox)) {
         bboxf.min = unscale(bbox.min);
         bboxf.max = unscale(bbox.max);
-		bboxf.defined = true;
-	}
+        bboxf.defined = true;
+    }
     return bboxf;
 }
 
@@ -94,13 +94,13 @@ static BoundingBoxf extrusionentity_extents(const ExtrusionEntity *extrusion_ent
     auto *extrusion_entity_collection = dynamic_cast<const ExtrusionEntityCollection*>(extrusion_entity);
     if (extrusion_entity_collection != nullptr)
         return extrusionentity_extents(*extrusion_entity_collection);
-    throw Slic3r::RuntimeError("Unexpected extrusion_entity type in extrusionentity_extents()");
+    throw Slic3r::RuntimeError("extrusionentity_extents()中出现意外的extrusion_entity类型");
     return BoundingBoxf();
 }
 
 BoundingBoxf get_print_extrusions_extents(const Print &print)
 {
-    //BBS: usage of m_brim are deleted, the bbx of skrit is always larger than that of brim 
+    //BBS: m_brim的使用已被删除，skirt的bbx始终大于brim的bbx
     BoundingBoxf bbox(extrusionentity_extents(print.skirt()));
     return bbox;
 }
@@ -115,7 +115,7 @@ BoundingBoxf get_print_object_extrusions_extents(const PrintObject &print_object
         for (const LayerRegion *layerm : layer->regions()) {
             bbox_this.merge(extrusionentity_extents(layerm->perimeters));
             for (const ExtrusionEntity *ee : layerm->fills.entities)
-                // fill represents infill extrusions of a single island.
+                // fill表示单个岛的填充挤出。
                 bbox_this.merge(extrusionentity_extents(*dynamic_cast<const ExtrusionEntityCollection*>(ee)));
         }
         const SupportLayer *support_layer = dynamic_cast<const SupportLayer*>(layer);
@@ -131,12 +131,12 @@ BoundingBoxf get_print_object_extrusions_extents(const PrintObject &print_object
     return bbox;
 }
 
-// Returns a bounding box of a projection of the wipe tower for the layers <= max_print_z.
-// The projection does not contain the priming regions.
+// 返回z <= max_print_z层擦拭塔挤出投影的边界框。
+// 投影不包含初始区域。
 BoundingBoxf get_wipe_tower_extrusions_extents(const Print &print, const coordf_t max_print_z)
 {
-    // Wipe tower extrusions are saved as if the tower was at the origin with no rotation
-    // We need to get position and angle of the wipe tower to transform them to actual position.
+    // 擦拭塔挤出被保存，如同塔在原点且没有旋转。
+    // 我们需要获取擦拭塔的位置和角度以将其转换到实际位置。
     int plate_idx = print.get_plate_index();
     Vec3d plate_origin = print.get_plate_origin();
     double wipe_tower_x = print.config().wipe_tower_x.get_at(plate_idx) + plate_origin(0);
@@ -165,7 +165,7 @@ BoundingBoxf get_wipe_tower_extrusions_extents(const Print &print, const coordf_
     return bbox;
 }
 
-// Returns a bounding box of the wipe tower priming extrusions.
+// 返回擦拭塔初始挤出的边界框。
 BoundingBoxf get_wipe_tower_priming_extrusions_extents(const Print &print)
 {
     BoundingBoxf bbox;

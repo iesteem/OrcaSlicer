@@ -38,28 +38,28 @@ template<class L> using Scalar = typename Traits<remove_cvref_t<L>>::Scalar;
 template<class L> auto get_a(L &&l) { return Traits<remove_cvref_t<L>>::get_a(l); }
 template<class L> auto get_b(L &&l) { return Traits<remove_cvref_t<L>>::get_b(l); }
 
-// Distance to the closest point of line.
+// 到线段最近点的距离。
 template<class L>
 double distance_to_squared(const L &line, const Vec<Dim<L>, Scalar<L>> &point, Vec<Dim<L>, Scalar<L>> *nearest_point)
 {
     const Vec<Dim<L>, double>  v  = (get_b(line) - get_a(line)).template cast<double>();
     const Vec<Dim<L>, double>  va = (point  - get_a(line)).template cast<double>();
-    const double  l2 = v.squaredNorm();  // avoid a sqrt
+    const double  l2 = v.squaredNorm();  // 避免平方根运算
     if (l2 == 0.0) {
-        // a == b case
+        // a == b 的情况
         *nearest_point = get_a(line);
         return va.squaredNorm();
     }
-    // Consider the line extending the segment, parameterized as a + t (b - a).
-    // We find projection of this point onto the line.
-    // It falls where t = [(this-a) . (b-a)] / |b-a|^2
+    // 考虑延伸的线段，参数化为 a + t (b - a)。
+    // 我们找到此点到直线的投影。
+    // 投影点位于 t = [(this-a) . (b-a)] / |b-a|^2
     const double t = va.dot(v) / l2;
     if (t <= 0.0) {
-        // beyond the 'a' end of the segment
+        // 超出线段 'a' 端
         *nearest_point = get_a(line);
         return va.squaredNorm();
     } else if (t >= 1.0) {
-        // beyond the 'b' end of the segment
+        // 超出线段 'b' 端
         *nearest_point = get_b(line);
         return (point - get_b(line)).template cast<double>().squaredNorm();
     }
@@ -68,7 +68,7 @@ double distance_to_squared(const L &line, const Vec<Dim<L>, Scalar<L>> &point, V
     return (t * v - va).squaredNorm();
 }
 
-// Distance to the closest point of line.
+// 到线段最近点的距离。
 template<class L>
 double distance_to_squared(const L &line, const Vec<Dim<L>, Scalar<L>> &point)
 {
@@ -82,29 +82,29 @@ double distance_to(const L &line, const Vec<Dim<L>, Scalar<L>> &point)
     return std::sqrt(distance_to_squared(line, point));
 }
 
-// Returns a squared distance to the closest point on the infinite.
-// Returned nearest_point (and returned squared distance to this point) could be beyond the 'a' and 'b' ends of the segment.
+// 返回到无限直线上最近点的平方距离。
+// 返回的 nearest_point（以及返回到此点的平方距离）可能超出线段的 'a' 和 'b' 端。
 template<class L>
 double distance_to_infinite_squared(const L &line, const Vec<Dim<L>, Scalar<L>> &point, Vec<Dim<L>, Scalar<L>> *closest_point)
 {
     const Vec<Dim<L>, double> v  = (get_b(line) - get_a(line)).template cast<double>();
     const Vec<Dim<L>, double> va = (point - get_a(line)).template cast<double>();
-    const double              l2 = v.squaredNorm(); // avoid a sqrt
+    const double              l2 = v.squaredNorm(); // 避免平方根运算
     if (l2 == 0.) {
-        // a == b case
+        // a == b 的情况
         *closest_point = get_a(line);
         return va.squaredNorm();
     }
-    // Consider the line extending the segment, parameterized as a + t (b - a).
-    // We find projection of this point onto the line.
-    // It falls where t = [(this-a) . (b-a)] / |b-a|^2
+    // 考虑延伸的线段，参数化为 a + t (b - a)。
+    // 我们找到此点到直线的投影。
+    // 投影点位于 t = [(this-a) . (b-a)] / |b-a|^2
     const double t = va.dot(v) / l2;
     *closest_point = (get_a(line).template cast<double>() + t * v).template cast<Scalar<L>>();
     return (t * v - va).squaredNorm();
 }
 
-// Returns a squared distance to the closest point on the infinite.
-// Closest point (and returned squared distance to this point) could be beyond the 'a' and 'b' ends of the segment.
+// 返回到无限直线上最近点的平方距离。
+// 最近点（以及返回到此点的平方距离）可能超出线段的 'a' 和 'b' 端。
 template<class L>
 double distance_to_infinite_squared(const L &line, const Vec<Dim<L>, Scalar<L>> &point)
 {
@@ -112,8 +112,8 @@ double distance_to_infinite_squared(const L &line, const Vec<Dim<L>, Scalar<L>> 
     return distance_to_infinite_squared<L>(line, point, &nearest_point);
 }
 
-// Returns a distance to the closest point on the infinite.
-// Closest point (and returned squared distance to this point) could be beyond the 'a' and 'b' ends of the segment.
+// 返回到无限直线上最近点的距离。
+// 最近点（以及返回到此点的平方距离）可能超出线段的 'a' 和 'b' 端。
 template<class L>
 double distance_to_infinite(const L &line, const Vec<Dim<L>, Scalar<L>> &point)
 {
@@ -129,7 +129,7 @@ template<class L> bool intersection(const L &l1, const L &l2, Vec<Dim<L>, Scalar
     Floating      denom = cross2(v1, v2);
     if (fabs(denom) < EPSILON)
 #if 0
-        // Lines are collinear. Return true if they are coincident (overlappign).
+        // 线段共线。如果它们重合（重叠）则返回true。
         return ! (fabs(nume_a) < EPSILON && fabs(nume_b) < EPSILON);
 #else
         return false;
@@ -140,11 +140,11 @@ template<class L> bool intersection(const L &l1, const L &l2, Vec<Dim<L>, Scalar
     Floating t1     = nume_a / denom;
     Floating t2     = nume_b / denom;
     if (t1 >= 0 && t1 <= 1.0f && t2 >= 0 && t2 <= 1.0f) {
-        // Get the intersection point.
+        // 获取交点。
         (*intersection_pt) = (l1.a.template cast<Floating>() + t1 * v1).template cast<Scalar<L>>();
         return true;
     }
-    return false; // not intersecting
+    return false; // 不相交
 }
 
 } // namespace line_alg
@@ -179,16 +179,16 @@ public:
     Vector vector() const { return this->b - this->a; }
     Vector normal() const { return Vector((this->b(1) - this->a(1)), -(this->b(0) - this->a(0))); }
     bool   intersection(const Line& line, Point* intersection) const;
-    // Clip a line with a bounding box. Returns false if the line is completely outside of the bounding box.
+    // 用边界框裁剪线段。如果线段完全在边界框外部，则返回 false。
 	bool   clip_with_bbox(const BoundingBox &bbox);
-    // Extend the line from both sides by an offset.
+    // 从两侧按偏移量延长线段。
     void   extend(double offset);
 
     static inline double distance_to_squared(const Point &point, const Point &a, const Point &b) { return line_alg::distance_to_squared(Line{a, b}, Vec<2, coord_t>{point}); }
     static double distance_to(const Point &point, const Point &a, const Point &b) { return sqrt(distance_to_squared(point, a, b)); }
 
-    // Returns a distance to the closest point on the infinite.
-    // Closest point (and returned squared distance to this point) could be beyond the 'a' and 'b' ends of the segment.
+    // 返回到无限直线上最近点的距离。
+    // 最近点（以及返回到此点的平方距离）可能超出线段的 'a' 和 'b' 端。
     static inline double distance_to_infinite_squared(const Point &point, const Point &a, const Point &b) { return line_alg::distance_to_infinite_squared(Line{a, b}, Vec<2, coord_t>{point}); }
     static double distance_to_infinite(const Point &point, const Point &a, const Point &b) { return sqrt(distance_to_infinite_squared(point, a, b)); }
 
@@ -274,7 +274,7 @@ BoundingBox get_extents(const Lines &lines);
 
 } // namespace Slic3r
 
-// start Boost
+// Boost 开始
 #include <boost/polygon/polygon.hpp>
 namespace boost { namespace polygon {
     template <>
@@ -290,6 +290,6 @@ namespace boost { namespace polygon {
         }
     };
 } }
-// end Boost
+// Boost 结束
 
 #endif // slic3r_Line_hpp_

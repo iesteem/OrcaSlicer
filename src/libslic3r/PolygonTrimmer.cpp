@@ -17,16 +17,16 @@ TrimmedLoop trim_loop(const Polygon &loop, const EdgeGrid::Grid &grid)
 			Visitor(const EdgeGrid::Grid &grid, const Slic3r::Point *pt_prev, const Slic3r::Point *pt_this) : grid(grid), pt_prev(pt_prev), pt_this(pt_this) {}
 
 			bool operator()(coord_t iy, coord_t ix) {
-				// Called with a row and colum of the grid cell, which is intersected by a line.
+				// 调用时传入与线相交的网格单元的行和列。
 				auto cell_data_range = grid.cell_data_range(iy, ix);
 				for (auto it_contour_and_segment = cell_data_range.first; it_contour_and_segment != cell_data_range.second; ++ it_contour_and_segment) {
-					// End points of the line segment and their vector.
+					// 线段的端点及其向量。
 					auto segment = grid.segment(*it_contour_and_segment);
 					if (Geometry::segments_intersect(segment.first, segment.second, *pt_prev, *pt_this)) {
-						// The two segments intersect. Add them to the output.
+						// 两个线段相交。将它们添加到输出。
 					}
 				}
-				// Continue traversing the grid along the edge.
+				// 继续沿边缘遍历网格。
 				return true;
 			}
 

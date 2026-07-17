@@ -19,8 +19,7 @@ struct HollowingConfig
 
 enum HollowingFlags { hfRemoveInsideTriangles = 0x1 };
 
-// All data related to a generated mesh interior. Includes the 3D grid and mesh
-// and various metadata. No need to manipulate from outside.
+// 与生成的网格内部相关的所有数据。包括3D网格、网格及各种元数据。无需从外部操作。
 struct Interior;
 struct InteriorDeleter { void operator()(Interior *p); };
 using  InteriorPtr = std::unique_ptr<Interior, InteriorDeleter>;
@@ -74,10 +73,10 @@ InteriorPtr generate_interior(const TriangleMesh &mesh,
                               const HollowingConfig &  = {},
                               const JobController &ctl = {});
 
-// Will do the hollowing
+// 执行抽壳操作
 void hollow_mesh(TriangleMesh &mesh, const HollowingConfig &cfg, int flags = 0);
 
-// Hollowing prepared in "interior", merge with original mesh
+// 在"interior"中准备好的抽壳，与原始网格合并
 void hollow_mesh(TriangleMesh &mesh, const Interior &interior, int flags = 0);
 
 void remove_inside_triangles(TriangleMesh &mesh, const Interior &interior,

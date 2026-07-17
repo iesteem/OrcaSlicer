@@ -7,13 +7,13 @@
 namespace Slic3r {
 namespace Utils {
 
-// Should be thread safe.
+// 应为线程安全。
 time_t get_current_time_utc();
 
 enum class TimeZone { local, utc };
 enum class TimeFormat { gcode, iso8601Z };
 
-// time_t to string functions...
+// time_t到字符串的函数...
 
 std::string time2str(const time_t &t, TimeZone zone, TimeFormat fmt);
 
@@ -36,17 +36,16 @@ inline std::string local_timestamp(TimeFormat fmt = TimeFormat::gcode) {
      return time2str(get_current_time_utc(), TimeZone::local, fmt);
 }
 
-// String to time_t function. Returns time_t(-1) if fails to parse the input.
+// 字符串到time_t的函数。如果解析输入失败，则返回time_t(-1)。
 time_t str2time(const std::string &str, TimeZone zone, TimeFormat fmt);
 
 
 // /////////////////////////////////////////////////////////////////////////////
-// Utilities to convert an UTC time_t to/from an ISO8601 time format,
-// useful for putting timestamps into file and directory names.
-// Returns (time_t)-1 on error.
+// 用于在UTC time_t和ISO8601时间格式之间转换的实用程序，
+// 用于将时间戳放入文件和目录名称中。
+// 出错时返回(time_t)-1。
 
-// Use these functions to convert safely to and from the ISO8601 format on
-// all platforms
+// 使用这些函数在所有平台上安全地与ISO8601格式进行相互转换
 
 inline std::string iso_utc_timestamp(time_t t)
 {

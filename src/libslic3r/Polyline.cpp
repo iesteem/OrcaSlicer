@@ -33,9 +33,9 @@ Lines Polyline::lines() const
 
 void Polyline::reverse()
 {
-    //BBS: reverse points
+    //BBS: 反转点
     MultiPoint::reverse();
-    //BBS: reverse the fitting_result
+    //BBS: 反转拟合结果
     if (!this->fitting_result.empty()) {
         for (size_t i = 0; i < this->fitting_result.size(); i++) {
             std::swap(fitting_result[i].start_point_index, fitting_result[i].end_point_index);
@@ -48,7 +48,7 @@ void Polyline::reverse()
     }
 }
 
-// removes the given distance from the end of the polyline
+// 从多段线末端移除给定距离
 void Polyline::clip_end(double distance)
 {
     bool last_point_inserted = false;
@@ -71,27 +71,27 @@ void Polyline::clip_end(double distance)
         distance -= sqrt(lsqr);
     }
 
-    //BBS: don't need to clip fitting result if it's empty
+    //BBS: 如果拟合结果为空，则无需裁剪
     if (fitting_result.empty())
         return;
     while (!fitting_result.empty() && fitting_result.back().start_point_index >= remove_after_index)
         fitting_result.pop_back();
     if (!fitting_result.empty()) {
-        //BBS: last remaining segment is arc move, then clip the arc at last point
+        //BBS: 最后剩余的段是圆弧移动，则在最后一个点处裁剪圆弧
         if (fitting_result.back().path_type == EMovePathType::Arc_move_ccw
             || fitting_result.back().path_type == EMovePathType::Arc_move_cw) {
             if (fitting_result.back().arc_data.clip_end(this->last_point()))
-                //BBS: succeed to clip arc, then update the last point
+                //BBS: 成功裁剪圆弧，然后更新最后一个点
                 this->points.back() = fitting_result.back().arc_data.end_point;
             else
-                //BBS: Failed to clip arc, then back to linear move
+                //BBS: 裁剪圆弧失败，则回退为线性移动
                 fitting_result.back().path_type = EMovePathType::Linear_move;
         }
         fitting_result.back().end_point_index = this->points.size() - 1;
     }
 }
 
-// removes the given distance from the start of the polyline
+// 从多段线起始端移除给定距离
 void Polyline::clip_start(double distance)
 {
     this->reverse();
@@ -102,7 +102,7 @@ void Polyline::clip_start(double distance)
 
 void Polyline::extend_end(double distance)
 {
-    //BBS: append a new last point by extending the last segment by the specified length
+    //BBS: 通过将最后一段延长指定长度来追加新的最后一个点
     Vec2d v = (this->points.back() - *(this->points.end() - 2)).cast<double>().normalized();
     Point new_last_point = this->points.back() + (v * distance).cast<coord_t>();
     this->append(new_last_point);
@@ -115,8 +115,8 @@ void Polyline::extend_start(double distance)
     this->reverse();
 }
 
-/* this method returns a collection of points picked on the polygon contour
-   so that they are evenly spaced according to the input distance */
+/* 此方法返回在多边形轮廓上选取的点集合，
+   使其根据输入距离均匀分布 */
 Points Polyline::equally_spaced_points(double distance) const
 {
     Points points;
@@ -151,7 +151,7 @@ void Polyline::simplify(double tolerance)
 
 void Polyline::simplify_by_fitting_arc(double tolerance)
 {
-    //BBS: do arc fit first, then use DP simplify to handle the straight part to reduce point.
+    //BBS: 先进行圆弧拟合，然后使用 DP 简化处理直线部分以减少点数。
     ArcFitter::do_arc_fitting_and_simplify(this->points, this->fitting_result, tolerance);
 }
 
@@ -187,7 +187,7 @@ Polylines Polyline::equally_spaced_lines(double distance) const
         --it;
         len = -take;
     }
-    // add the last reminder
+    // 添加最后余下的部分
     if (line.size() == 1) {
         line.append(this->last_point());
         if(line.first_point()!=line.last_point())
@@ -197,7 +197,7 @@ Polylines Polyline::equally_spaced_lines(double distance) const
 }
 
 #if 0
-// This method simplifies all *lines* contained in the supplied area
+// 此方法简化包含在提供区域中的所有 *线条*
 template <class T>
 void Polyline::simplify_by_visibility(const T &area)
 {
@@ -224,16 +224,16 @@ void Polyline::split_at(Point &point, Polyline* p1, Polyline* p2) const
 {
     if (this->points.empty()) return;
 
-    //0 judge whether the point is on the polyline
+    //0 判断点是否在多段线上
     int index = this->find_point(point);
     if (index != -1) {
-        //BBS: the spilit point is on the polyline, then easy
+        //BBS: 分割点就在多段线上，那就简单了
         split_at_index(index, p1, p2);
         point = p1->is_valid()? p1->last_point(): p2->first_point();
         return;
     }
     
-    //1 find the line to split at
+    //1 找到要分割的线段
     size_t line_idx = 0;
     Point p = this->first_point();
     double min = (p - point).cast<double>().norm();
@@ -247,8 +247,8 @@ void Polyline::split_at(Point &point, Polyline* p1, Polyline* p2) const
         }
     }
 
-    //2 judge whether the cloest point is one vertex of polyline.
-    //  and spilit the polyline at different index
+    //2 判断最近点是否为多段线的一个顶点。
+    //  并在不同索引处分割多段线
     index = this->find_point(p);
     if (index != -1)
     {
@@ -279,7 +279,7 @@ bool Polyline::split_at_index(const size_t index, Polyline* p1, Polyline* p2) co
         p2->append(this->last_point());
         *p1 = *this;
     } else {
-        //BBS: spilit first part
+        //BBS: 分割第一部分
         p1->clear();
         p1->points.reserve(index + 1);
         p1->points.insert(p1->begin(), this->begin(), this->begin() + index + 1);
@@ -313,7 +313,7 @@ bool Polyline::split_at_length(const double length, Polyline* p1, Polyline* p2) 
         p2->append(this->last_point());
         *p1 = *this;
     } else {
-        // 1 find the line to split at
+        // 1 找到要分割的线段
         size_t line_idx = 0;
         double acc_length = 0;
         Point p = this->first_point();
@@ -329,8 +329,8 @@ bool Polyline::split_at_length(const double length, Polyline* p1, Polyline* p2) 
             line_idx++;
         }
 
-        //2 judge whether the cloest point is one vertex of polyline.
-        //  and spilit the polyline at different index
+        //2 判断最近点是否为多段线的一个顶点。
+        //  并在不同索引处分割多段线
         int index = this->find_point(p);
         if (index != -1) {
             this->split_at_index(index, p1, p2);
@@ -347,9 +347,8 @@ bool Polyline::split_at_length(const double length, Polyline* p1, Polyline* p2) 
 
 bool Polyline::is_straight() const
 {
-    // Check that each segment's direction is equal to the line connecting
-    // first point and last point. (Checking each line against the previous
-    // one would cause the error to accumulate.)
+    // 检查每个线段的方向是否等于连接第一个点和最后一个点的直线方向。
+    // （逐段检查会导致误差累积。）
     double dir = Line(this->first_point(), this->last_point()).direction();
     for (const auto &line: this->lines())
         if (! line.parallel_to(dir))
@@ -365,7 +364,7 @@ void Polyline::append(const Polyline &src)
         this->points = src.points;
         this->fitting_result = src.fitting_result;
     } else {
-        //BBS: append the first point to create connection first, update the fitting date as well
+        //BBS: 先追加第一个点以创建连接，同时更新拟合数据
         this->append(src.points[0]);
         //BBS: append a polyline which has fitting data to a polyline without fitting data.
         //Then create a fake fitting data first, so that we can keep the fitting data in last polyline
@@ -373,9 +372,9 @@ void Polyline::append(const Polyline &src)
             !src.fitting_result.empty()) {
             this->fitting_result.emplace_back(PathFittingData{ 0, this->points.size() - 1, EMovePathType::Linear_move, ArcSegment() });
         }
-        //BBS: then append the remain points
+        //BBS: 然后追加剩余的点
         MultiPoint::append(src.points.begin() + 1, src.points.end());
-        //BBS: finally append the fitting data
+        //BBS: 最后追加拟合数据
         append_fitting_result_after_append_polyline(src);
     }
 }
@@ -388,7 +387,7 @@ void Polyline::append(Polyline &&src)
         this->points = std::move(src.points);
         this->fitting_result = std::move(src.fitting_result);
     } else {
-        //BBS: append the first point to create connection first, update the fitting date as well
+        //BBS: 先追加第一个点以创建连接，同时更新拟合数据
         this->append(src.points[0]);
         //BBS: append a polyline which has fitting data to a polyline without fitting data.
         //Then create a fake fitting data first, so that we can keep the fitting data in last polyline
@@ -396,9 +395,9 @@ void Polyline::append(Polyline &&src)
             !src.fitting_result.empty()) {
             this->fitting_result.emplace_back(PathFittingData{ 0, this->points.size() - 1, EMovePathType::Linear_move, ArcSegment() });
         }
-        //BBS: then append the remain points
+        //BBS: 然后追加剩余的点
         MultiPoint::append(src.points.begin() + 1, src.points.end());
-        //BBS: finally append the fitting data
+        //BBS: 最后追加拟合数据
         append_fitting_result_after_append_polyline(src);
         src.points.clear();
         src.fitting_result.clear();
@@ -421,7 +420,7 @@ void Polyline::append_fitting_result_after_append_points() {
 void Polyline::append_fitting_result_after_append_polyline(const Polyline& src)
 {
     if (!this->fitting_result.empty()) {
-        //BBS: offset and save the fitting_result from src polyline
+        //BBS: 偏移并保存来自 src 多段线的拟合结果
         if (!src.fitting_result.empty()) {
             size_t old_size = this->fitting_result.size();
             size_t index_offset = this->fitting_result.back().end_point_index;
@@ -431,7 +430,7 @@ void Polyline::append_fitting_result_after_append_polyline(const Polyline& src)
                 this->fitting_result[i].end_point_index += index_offset;
             }
         } else {
-            //BBS: the append polyline has no fitting data, then append as linear move directly
+            //BBS: 追加的多段线没有拟合数据，则直接作为线性移动追加
             size_t new_start = this->fitting_result.back().end_point_index;
             size_t new_end = this->size() - 1;
             if (new_start != new_end)
@@ -452,9 +451,9 @@ bool Polyline::split_fitting_result_before_index(const size_t index, Point& new_
     data.clear();
     new_endpoint = this->points[index];
     if (!this->fitting_result.empty()) {
-        //BBS: max size
+        //BBS: 最大大小
         data.reserve(this->fitting_result.size());
-        //BBS: save fitting result before index
+        //BBS: 保存索引之前的拟合结果
         for (size_t i = 0; i < this->fitting_result.size(); i++)
         {
             if (this->fitting_result[i].start_point_index < index)
@@ -464,13 +463,13 @@ bool Polyline::split_fitting_result_before_index(const size_t index, Point& new_
         }
 
         if (!data.empty()) {
-            //BBS: need to clip the arc and generate new end point
+            //BBS: 需要裁剪圆弧并生成新的端点
             if (data.back().is_arc_move() && data.back().end_point_index > index) {
                 if (!data.back().arc_data.clip_end(this->points[index]))
-                    //BBS: failed to clip arc, then return to be linear move
+                    //BBS: 裁剪圆弧失败，则回退为线性移动
                     data.back().path_type = EMovePathType::Linear_move;
                 else
-                    //BBS: succeed to clip arc, then update and return the new end point
+                    //BBS: 成功裁剪圆弧，然后更新并返回新端点
                     new_endpoint = data.back().arc_data.end_point;
             }
             data.back().end_point_index = index;
@@ -500,7 +499,7 @@ bool Polyline::split_fitting_result_after_index(const size_t index, Point& new_s
                     //BBS: need to clip the arc and generate new start point
                     if (data.front().is_arc_move() && data.front().start_point_index < index) {
                         if (!data.front().arc_data.clip_start(this->points[index]))
-                            //BBS: failed to clip arc, then return to be linear move
+                            //BBS: 裁剪圆弧失败，则回退为线性移动
                             data.front().path_type = EMovePathType::Linear_move;
                         else
                             //BBS: succeed to clip arc, then update and return the new start point
@@ -553,7 +552,7 @@ bool remove_same_neighbor(Polylines &polylines){
     bool exist = false;
     for (Polyline &polyline : polylines)
         exist |= remove_same_neighbor(polyline);
-    // remove empty polylines
+    // 移除空多段线
     polylines.erase(std::remove_if(polylines.begin(), polylines.end(), [](const Polyline &p) { return p.points.size() <= 1; }), polylines.end());
     return exist;
 }

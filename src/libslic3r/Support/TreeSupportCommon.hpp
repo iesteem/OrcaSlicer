@@ -1,10 +1,10 @@
-// Tree supports by Thomas Rahm, losely based on Tree Supports by CuraEngine.
-// Original source of Thomas Rahm's tree supports:
+// 树状支撑由Thomas Rahm编写，大致基于CuraEngine的Tree Supports。
+// Thomas Rahm树状支撑的原始来源：
 // https://github.com/ThomasRahm/CuraEngine
 //
-// Original CuraEngine copyright:
+// 原始CuraEngine版权：
 // Copyright (c) 2021 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// CuraEngine根据AGPLv3或更高版本条款发布。
 
 #ifndef slic3r_TreeSupportCommon_hpp
 #define slic3r_TreeSupportCommon_hpp
@@ -17,7 +17,7 @@
 
 namespace Slic3r
 {
-    // The number of vertices in each circle.
+    // 每个圆的顶点数。
     static constexpr const size_t SUPPORT_TREE_CIRCLE_RESOLUTION = 25;
 namespace TreeSupport3D
 {
@@ -94,7 +94,7 @@ struct TreeSupportMeshGroupSettings {
     }
 
 /*********************************************************************/
-/* Print parameters, not support specific:                           */
+/* 打印参数，非支撑特定：                                              */
 /*********************************************************************/
     coord_t                         layer_height                            { scaled<coord_t>(0.15) };
     // Maximum Deviation (meshfix_maximum_deviation)
@@ -108,7 +108,7 @@ struct TreeSupportMeshGroupSettings {
     coord_t                         min_feature_size                        { scaled<coord_t>(0.1) };
 
 /*********************************************************************/
-/* General support parameters:                                       */
+/* 通用支撑参数：                                                      */
 /*********************************************************************/
 
     // Support Overhang Angle
@@ -197,7 +197,7 @@ struct TreeSupportMeshGroupSettings {
     coord_t                         support_offset                          { scaled<coord_t>(0.) };
 
 /*********************************************************************/
-/* Parameters for the Cura tree supports implementation:             */
+/* Cura树状支撑实现的参数：                                             */
 /*********************************************************************/
 
     // Tree Support Maximum Branch Angle
@@ -219,7 +219,7 @@ struct TreeSupportMeshGroupSettings {
     coord_t                         support_tree_branch_diameter            { scaled<coord_t>(2.) };
 
 /*********************************************************************/
-/* Parameters new to the Thomas Rahm's tree supports implementation: */
+/* Thomas Rahm树状支撑实现的新参数：                                    */
 /*********************************************************************/
 
     // Tree Support Preferred Branch Angle
@@ -259,7 +259,7 @@ struct TreeSupportMeshGroupSettings {
 };
 
 /*!
- * \brief This struct contains settings used in the tree support. Thanks to this most functions do not need to know of meshes etc. Also makes the code shorter.
+ * \brief 此结构包含树状支撑中使用的设置。因此大多数函数无需了解网格等细节，也使代码更简洁。
  */
 struct TreeSupportSettings
 {
@@ -353,43 +353,43 @@ public:
         }
     }
 
-    // some static variables dependent on other meshes that are not currently processed.
-    // Has to be static because TreeSupportConfig will be used in TreeModelVolumes as this reduces redundancy.
+    // 一些依赖于其他未处理网格的静态变量。
+    // 必须是静态的，因为TreeSupportConfig将在TreeModelVolumes中使用，这减少了冗余。
     inline static bool soluble = false;
     /*!
-     * \brief Width of a single line of support.
+     * \brief 单条支撑线的宽度。
      */
     coord_t support_line_width;
     /*!
-     * \brief Height of a single layer
+     * \brief 单层高度
      */
     coord_t layer_height;
     /*!
-     * \brief Radius of a branch when it has left the tip.
+     * \brief 分支离开尖端时的半径。
      */
     coord_t branch_radius;
     /*!
-     * \brief smallest allowed radius, required to ensure that even at DTT 0 every circle will still be printed
+     * \brief 最小允许半径，确保即使在DTT 0时每个圆仍能被打印
      */
     coord_t min_radius;
     /*!
-     * \brief How far an influence area may move outward every layer at most.
+     * \brief 影响区域每层最多可向外移动的距离。
      */
     coord_t maximum_move_distance;
     /*!
-     * \brief How far every influence area will move outward every layer if possible.
+     * \brief 每个影响区域在可能时每层向外移动的距离。
      */
     coord_t maximum_move_distance_slow;
     /*!
-     * \brief Amount of bottom layers. 0 if disabled.
+     * \brief 底部层数。禁用时为0。
      */
     size_t support_bottom_layers;
     /*!
-     * \brief Amount of effectiveDTT increases are required to reach branch radius.
+     * \brief 达到分支半径所需的有效DTT增量数。
      */
     size_t tip_layers;
     /*!
-     * \brief How much a branch radius increases with each layer to guarantee the prescribed tree widening.
+     * \brief 分支半径每层增加的量，以保证规定的树状加宽。
      */
     double branch_radius_increase_per_layer;
     /*!

@@ -139,22 +139,22 @@ bool get_svg_profile(const char *path, std::vector<Element_Info> &element_infos,
     for (NSVGshape *shape = svg_data->shapes; shape; shape = shape->next) {
         char *      id     = shape->id;
 
-        int interpolation_precision = 10;  // Number of interpolation points
+        int interpolation_precision = 10;  // 插值点数
         float step = 1.0f / float(interpolation_precision - 1);
 
-        // get the path point
-        std::vector<std::vector<std::vector<Point_2D>>> all_path_points;  // paths<profiles<curves<points>>>
+        // 获取路径点
+        std::vector<std::vector<std::vector<Point_2D>>> all_path_points;  // 路径<轮廓<曲线<点>>>
         for (NSVGpath *path = shape->paths; path; path = path->next) {
             std::vector<std::vector<Point_2D>> profile_points;
             int index = 0;
             for (int i = 0; i < path->npts - 1; i += 3) {
                 float *            p = &path->pts[i * 2];
                 float              a = 0.0f;
-                std::vector<Point_2D> curve_points;  // points on a curve
+                std::vector<Point_2D> curve_points;  // 曲线上的点
                 for (int v = 0; v < interpolation_precision; v++) {
                     float pt[2];
 
-                    // get interpolation points of Bezier curve
+                    // 获取贝塞尔曲线的插值点
                     interp_v2_v2v2v2v2_cubic(pt, &p[0], &p[2], &p[4], &p[6], a);
 
                     Point_2D point(pt[0], -pt[1]);
@@ -164,7 +164,7 @@ bool get_svg_profile(const char *path, std::vector<Element_Info> &element_infos,
 
                 profile_points.push_back(curve_points);   
 
-                // keep the adjacent curves end-to-end
+                // 保持相邻曲线首尾相连
                 if (profile_points.size() > 1) {
                     profile_points[index - 1].back() = profile_points[index].front();
                 }
@@ -176,7 +176,7 @@ bool get_svg_profile(const char *path, std::vector<Element_Info> &element_infos,
                 all_path_points.push_back(profile_points);
         }
 
-        // remove duplicate points and ensure the profile is closed
+        // 移除重复点并确保轮廓闭合
         std::vector<std::vector<std::pair<gp_Pnt, gp_Pnt>>> path_line_points;
         for (auto profile_points : all_path_points) {
             std::vector<std::pair<gp_Pnt, gp_Pnt>> profile_line_points;
@@ -194,7 +194,7 @@ bool get_svg_profile(const char *path, std::vector<Element_Info> &element_infos,
             if (profile_line_points.empty())
                 continue;
 
-            // keep the start and end points of profile connected
+            // 保持轮廓的起点和终点连接
             if (shape->fill.gradient != nullptr)
                 profile_line_points.back().second = profile_line_points[0].first;
             
@@ -254,7 +254,7 @@ bool get_svg_profile(const char *path, std::vector<Element_Info> &element_infos,
             path_line_points = new_path_line_points;
         }
 
-        // generate all profile curves
+        // 生成所有轮廓曲线
         std::vector<TopoDS_Wire> wires;
         int index = 0;
         double                   max_area = 0;
@@ -308,10 +308,10 @@ bool load_svg(const char *path, Model *model, std::string &message)
 
     std::vector<stl_file> stl;
     stl.resize(namedSolids.size());
-    // todo: zhimin, Can be accelerated in parallel with tbb 
+    // todo: zhimin, 可以使用tbb并行加速
     for (size_t i = 0 ; i < namedSolids.size(); i++) {
         BRepMesh_IncrementalMesh mesh(namedSolids[i].shape, STEP_TRANS_CHORD_ERROR, false, STEP_TRANS_ANGLE_RES, true);
-        // BBS: calculate total number of the nodes and triangles
+        // BBS: 计算节点和三角形的总数
         int aNbNodes     = 0;
         int aNbTriangles = 0;
         for (TopExp_Explorer anExpSF(namedSolids[i].shape, TopAbs_FACE); anExpSF.More(); anExpSF.Next()) {
@@ -324,7 +324,7 @@ bool load_svg(const char *path, Model *model, std::string &message)
         }
 
         if (aNbTriangles == 0 || aNbNodes == 0)
-            // BBS: No triangulation on the shape.
+            // BBS: 形状上没有三角剖分。
             continue;
 
         stl[i].stats.type                = inmemory;
@@ -334,9 +334,9 @@ bool load_svg(const char *path, Model *model, std::string &message)
 
         std::vector<Vec3f> points;
         points.reserve(aNbNodes);
-        // BBS: count faces missing triangulation
+        // BBS: 统计缺少三角剖分的面
         Standard_Integer aNbFacesNoTri = 0;
-        // BBS: fill temporary triangulation
+        // BBS: 填充临时三角剖分
         Standard_Integer aNodeOffset    = 0;
         Standard_Integer aTriangleOffet = 0;
         for (TopExp_Explorer anExpSF(namedSolids[i].shape, TopAbs_FACE); anExpSF.More(); anExpSF.Next()) {
@@ -347,14 +347,14 @@ bool load_svg(const char *path, Model *model, std::string &message)
                 ++aNbFacesNoTri;
                 continue;
             }
-            // BBS: copy nodes
+            // BBS: 复制节点
             gp_Trsf aTrsf = aLoc.Transformation();
             for (Standard_Integer aNodeIter = 1; aNodeIter <= aTriangulation->NbNodes(); ++aNodeIter) {
                 gp_Pnt aPnt = aTriangulation->Node(aNodeIter);
                 aPnt.Transform(aTrsf);
                 points.emplace_back(std::move(Vec3f(aPnt.X(), aPnt.Y(), aPnt.Z())));
             }
-            // BBS: copy triangles
+            // BBS: 复制三角形
             const TopAbs_Orientation anOrientation = anExpSF.Current().Orientation();
             Standard_Integer         anId[3];
             for (Standard_Integer aTriIter = 1; aTriIter <= aTriangulation->NbTriangles(); ++aTriIter) {
@@ -362,7 +362,7 @@ bool load_svg(const char *path, Model *model, std::string &message)
 
                 aTri.Get(anId[0], anId[1], anId[2]);
                 if (anOrientation == TopAbs_REVERSED) std::swap(anId[1], anId[2]);
-                // BBS: save triangles facets
+                // BBS: 保存三角形面片
                 stl_facet facet;
                 facet.vertex[0] = points[anId[0] + aNodeOffset - 1].cast<float>();
                 facet.vertex[1] = points[anId[1] + aNodeOffset - 1].cast<float>();
@@ -386,7 +386,7 @@ bool load_svg(const char *path, Model *model, std::string &message)
     new_object->input_file = path;
     auto stage_unit3 = stl.size() / LOAD_STEP_STAGE_UNIT_NUM + 1;
     for (size_t i = 0; i < stl.size(); i++) {
-        // BBS: maybe mesh is empty from step file. Don't add
+        // BBS: 网格可能来自step文件为空。不添加
         if (stl[i].stats.number_of_facets > 0) {
             TriangleMesh triangle_mesh;
             triangle_mesh.from_stl(stl[i]);

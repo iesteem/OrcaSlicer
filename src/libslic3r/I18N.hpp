@@ -21,8 +21,8 @@ namespace I18N {
 
 } // namespace Slic3r
 
-// When this is included from slic3r, better do not define the translation functions.
-// Macros from slic3r/GUI/I18N.hpp should be used there.
+// 当从 slic3r 包含此文件时，最好不要定义翻译函数。
+// 应使用 slic3r/GUI/I18N.hpp 中的宏。
 #ifndef SLIC3R_CURRENTLY_COMPILING_GUI_MODULE
 	#ifdef L
 	    #error L macro is defined where it shouldn't be. Didn't you include slic3r/GUI/I18N.hpp in libslic3r by mistake?

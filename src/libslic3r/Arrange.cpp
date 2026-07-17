@@ -1,4 +1,4 @@
-#include "Arrange.hpp"
+﻿#include "Arrange.hpp"
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "libslic3r.h"
@@ -90,7 +90,7 @@ void update_arrange_params(ArrangeParams& params, const DynamicPrintConfig* prin
     params.brim_skirt_distance = skirt_distance;
     params.bed_shrink_x += params.brim_skirt_distance;
     params.bed_shrink_y += params.brim_skirt_distance;
-    // for sequential print, we need to inflate the bed because clearance_radius is so large
+    // 对于顺序打印，我们需要膨胀平台，因为间隙半径很大
     if (params.is_seq_print) {
         params.bed_shrink_x -= params.clearance_radius / 2;
         params.bed_shrink_y -= params.clearance_radius / 2;

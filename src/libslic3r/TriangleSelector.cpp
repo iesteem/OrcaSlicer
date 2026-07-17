@@ -12,8 +12,8 @@
 
 namespace Slic3r {
 
-// Check if the line is whole inside the sphere, or it is partially inside (intersecting) the sphere.
-// Inspired by Christer Ericson's Real-Time Collision Detection, pp. 177-179.
+// 检查线段是否完全在球体内，或部分在球体内（与球体相交）。
+// 灵感来自 Christer Ericson 的《实时碰撞检测》第177-179页。
 static bool test_line_inside_sphere(const Vec3f &line_a, const Vec3f &line_b, const Vec3f &sphere_p, const float sphere_radius)
 {
     const float sphere_radius_sqr = Slic3r::sqr(sphere_radius);
@@ -21,11 +21,11 @@ static bool test_line_inside_sphere(const Vec3f &line_a, const Vec3f &line_b, co
     const Vec3f origins_diff      = line_a - sphere_p; // m
 
     const float m_dot_m           = origins_diff.dot(origins_diff);
-    // Check if any of the end-points of the line is inside the sphere.
+    // 检查线段的任一端点是否在球体内。
     if (m_dot_m <= sphere_radius_sqr || (line_b - sphere_p).squaredNorm() <= sphere_radius_sqr)
         return true;
 
-    // Check if the infinite line is going through the sphere.
+    // 检查无限直线是否穿过球体。
     const float n_dot_n = line_dir.dot(line_dir);
     const float m_dot_n = origins_diff.dot(line_dir);
 
@@ -34,11 +34,11 @@ static bool test_line_inside_sphere(const Vec3f &line_a, const Vec3f &line_b, co
     const float eq_c    = m_dot_m - sphere_radius_sqr;
 
     const float discr = eq_b * eq_b - eq_a * eq_c;
-    // A negative discriminant corresponds to the infinite line infinite not going through the sphere.
+    // 负判别式表示无限直线不穿过球体。
     if (discr < 0.f)
         return false;
 
-    // Check if the finite line is going through the sphere.
+    // 检查有限线段是否穿过球体。
     const float discr_sqrt = std::sqrt(discr);
     const float t1         = (-eq_b - discr_sqrt) / eq_a;
     if (0.f <= t1 && t1 <= 1.f)
@@ -51,8 +51,8 @@ static bool test_line_inside_sphere(const Vec3f &line_a, const Vec3f &line_b, co
     return false;
 }
 
-// Check if the line is whole inside the finite cylinder, or it is partially inside (intersecting) the finite cylinder.
-// Inspired by Christer Ericson's Real-Time Collision Detection, pp. 194-198.
+// 检查线段是否完全在有限圆柱体内，或部分在圆柱体内（与圆柱体相交）。
+// 灵感来自 Christer Ericson 的《实时碰撞检测》第194-198页。
 static bool test_line_inside_cylinder(const Vec3f &line_a, const Vec3f &line_b, const Vec3f &cylinder_P, const Vec3f &cylinder_Q, const float cylinder_radius)
 {
     assert(cylinder_P != cylinder_Q);
@@ -60,17 +60,17 @@ static bool test_line_inside_cylinder(const Vec3f &line_a, const Vec3f &line_b, 
     auto        is_point_inside_finite_cylinder = [&cylinder_P, &cylinder_Q, &cylinder_radius, &cylinder_dir](const Vec3f &pt) {
         const Vec3f first_center_diff  = cylinder_P - pt;
         const Vec3f second_center_diff = cylinder_Q - pt;
-        // First, check if the point pt is laying between planes defined by cylinder_p and cylinder_q.
-        // Then check if it is inside the cylinder between cylinder_p and cylinder_q.
+        // 首先，检查点pt是否位于由cylinder_p和cylinder_q定义的平面之间。
+        // 然后检查它是否在cylinder_p和cylinder_q之间的圆柱体内。
         return first_center_diff.dot(cylinder_dir) <= 0 && second_center_diff.dot(cylinder_dir) >= 0 &&
                (first_center_diff.cross(cylinder_dir).norm() / cylinder_dir.norm()) <= cylinder_radius;
     };
 
-    // Check if any of the end-points of the line is inside the cylinder.
+    // 检查线段的任一端点是否在圆柱体内。
     if (is_point_inside_finite_cylinder(line_a) || is_point_inside_finite_cylinder(line_b))
        return true;
 
-    // Check if the line is going through the cylinder.
+    // 检查线段是否穿过圆柱体。
     const Vec3f origins_diff = line_a - cylinder_P;     // m
     const Vec3f line_dir     = line_b - line_a;         // n
 
@@ -87,11 +87,11 @@ static bool test_line_inside_cylinder(const Vec3f &line_a, const Vec3f &line_b, 
     const float eq_c    = d_dot_d * (m_dot_m - Slic3r::sqr(cylinder_radius)) - m_dot_d * m_dot_d;
 
     const float discr   = eq_b * eq_b - eq_a * eq_c;
-    // A negative discriminant corresponds to the infinite line not going through the infinite cylinder.
+    // 负判别式表示无限直线不穿过无限圆柱体。
     if (discr < 0.0f)
         return false;
 
-    // Check if the finite line is going through the finite cylinder.
+    // 检查有限线段是否穿过有限圆柱体。
     const float discr_sqrt = std::sqrt(discr);
     const float t1         = (-eq_b - discr_sqrt) / eq_a;
     if (0.f <= t1 && t1 <= 1.f)
@@ -106,15 +106,15 @@ static bool test_line_inside_cylinder(const Vec3f &line_a, const Vec3f &line_b, 
     return false;
 }
 
-// Check if the line is whole inside the capsule, or it is partially inside (intersecting) the capsule.
+// 检查线段是否完全在胶囊体内，或部分在胶囊体内（与胶囊体相交）。
 static bool test_line_inside_capsule(const Vec3f &line_a, const Vec3f &line_b, const Vec3f &capsule_p, const Vec3f &capsule_q, const float capsule_radius) {
     assert(capsule_p != capsule_q);
 
-    // Check if the line intersect any of the spheres forming the capsule.
+    // 检查线段是否与构成胶囊体的任一球体相交。
     if (test_line_inside_sphere(line_a, line_b, capsule_p, capsule_radius) || test_line_inside_sphere(line_a, line_b, capsule_q, capsule_radius))
         return true;
 
-    // Check if the line intersects the cylinder between the centers of the spheres.
+    // 检查线段是否与球体中心之间的圆柱体相交。
     return test_line_inside_cylinder(line_a, line_b, capsule_p, capsule_q, capsule_radius);
 }
 
@@ -158,7 +158,7 @@ bool TriangleSelector::verify_triangle_neighbors(const Triangle &tr, const Vec3i
 }
 #endif // NDEBUG
 
-// sides_to_split==-1 : just restore previous split
+// sides_to_split==-1 : 仅恢复之前的拆分
 void TriangleSelector::Triangle::set_division(int sides_to_split, int special_side_idx)
 {
     assert(sides_to_split >= 0 && sides_to_split <= 3);
@@ -170,7 +170,7 @@ void TriangleSelector::Triangle::set_division(int sides_to_split, int special_si
 
 inline bool is_point_inside_triangle(const Vec3f &pt, const Vec3f &p1, const Vec3f &p2, const Vec3f &p3)
 {
-    // Real-time collision detection, Ericson, Chapter 3.4
+    // 实时碰撞检测，Ericson，第3.4章
     auto barycentric = [&pt, &p1, &p2, &p3]() -> Vec3f {
         std::array<Vec3f, 3> v     = {p2 - p1, p3 - p1, pt - p1};
         float                d00   = v[0].dot(v[0]);
@@ -210,8 +210,8 @@ int TriangleSelector::select_unsplit_triangle(const Vec3f &hit, int facet_idx, c
         for (int i = 0; i < num_of_children; ++i) {
             assert(i < int(tr->children.size()));
             assert(tr->children[i] < int(m_triangles.size()));
-            // Recursion, deep first search over the children of this triangle.
-            // All children of this triangle were created by splitting a single source triangle of the original mesh.
+            // 递归，深度优先搜索该三角形的子三角形。
+            // 该三角形的所有子三角形都是通过拆分原始网格的一个源三角形创建的。
 
             const std::array<int, 3> &t_vert = m_triangles[tr->children[i]].verts_idxs;
             if (is_point_inside_triangle(hit, m_vertices[t_vert[0]].v, m_vertices[t_vert[1]].v, m_vertices[t_vert[2]].v))
@@ -237,13 +237,11 @@ void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&c
 {
     assert(facet_start < m_orig_size_indices);
 
-    // Save current cursor center, squared radius and camera direction, so we don't
-    // have to pass it around.
+    // 保存当前光标中心、半径平方和相机方向，这样我们就不必到处传递它们。
     m_cursor = std::move(cursor);
 
-    // In case user changed cursor size since last time, update triangle edge limit.
-    // It is necessary to compare the internal radius in m_cursor! radius is in
-    // world coords and does not change after scaling.
+    // 如果用户自上次以来更改了光标大小，更新三角形边长限制。
+    // 必须比较m_cursor中的内部半径！半径在世界坐标中，缩放后不变。
     if (m_old_cursor_radius_sqr != m_cursor->radius_sqr) {
         // BBS: improve details for large cursor radius
         TriangleSelector::HeightRange* hr_cursor = dynamic_cast<TriangleSelector::HeightRange*>(m_cursor.get());
@@ -274,7 +272,7 @@ void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&c
         start_facets.push_back(facet_start);
     }
 
-    // Keep track of facets of the original mesh we already processed.
+    // 跟踪已经处理过的原始网格的面。
     std::vector<bool> visited(m_orig_size_indices, false);
 
     for (int i = 0; i < start_facets.size(); i++) {
@@ -282,13 +280,13 @@ void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&c
         if (visited[start_facet_id])
             continue;
 
-        // Now start with the facet the pointer points to and check all adjacent facets.
+        // 现在从指针指向的面开始，检查所有相邻的面。
         std::vector<int> facets_to_check;
         facets_to_check.reserve(16);
         facets_to_check.emplace_back(start_facet_id);
 
-        // Breadth-first search around the hit point. facets_to_check may grow significantly large.
-        // Head of the bread-first facets_to_check FIFO.
+        // 在命中点周围进行广度优先搜索。facets_to_check可能会变得非常大。
+        // 广度优先facets_to_check FIFO的头部。
         int facet_idx = 0;
         while (facet_idx < int(facets_to_check.size())) {
             int          facet = facets_to_check[facet_idx];
@@ -297,7 +295,7 @@ void TriangleSelector::select_patch(int facet_start, std::unique_ptr<Cursor> &&c
             float        world_normal_z = (normal_matrix* facet_normal).normalized().z();
             if (!visited[facet] && (highlight_by_angle_deg == 0.f || world_normal_z < highlight_angle_limit)) {
                 if (select_triangle(facet, new_state, triangle_splitting)) {
-                    // add neighboring facets to list to be processed later
+                    // 将相邻的面添加到稍后处理的列表中
                     for (int neighbor_idx : m_neighbors[facet])
                         if (neighbor_idx >= 0 && m_cursor->is_facet_visible(neighbor_idx, m_face_normals))
                             facets_to_check.push_back(neighbor_idx);
@@ -324,7 +322,7 @@ void TriangleSelector::seed_fill_select_triangles(const Vec3f &hit, int facet_st
 {
     assert(facet_start < m_orig_size_indices);
 
-    // Recompute seed fill only if the cursor is pointing on facet unselected by seed fill or a clipping plane is active.
+    // 仅当光标指向未被种子填充选择的面或裁剪平面处于活动状态时，才重新计算种子填充。
     if (int start_facet_idx = select_unsplit_triangle(hit, facet_start); start_facet_idx >= 0 && m_triangles[start_facet_idx].is_selected_by_seed_fill() && !force_reselection && !clp.is_active())
         return;
 
@@ -337,7 +335,7 @@ void TriangleSelector::seed_fill_select_triangles(const Vec3f &hit, int facet_st
     const double facet_angle_limit     = cos(Geometry::deg2rad(seed_fill_angle)) - EPSILON;
     const float  highlight_angle_limit = -cos(Geometry::deg2rad(highlight_by_angle_deg));
 
-    // Depth-first traversal of neighbors of the face hit by the ray thrown from the mouse cursor.
+    // 对鼠标光标发射的射线击中的面的相邻面进行深度优先遍历。
     while (!facet_queue.empty()) {
         int current_facet = facet_queue.front();
         facet_queue.pop();
@@ -351,18 +349,18 @@ void TriangleSelector::seed_fill_select_triangles(const Vec3f &hit, int facet_st
                     assert(split_triangle_idx < int(m_triangles[current_facet].children.size()));
                     assert(m_triangles[current_facet].children[split_triangle_idx] < int(m_triangles.size()));
                     if (int child = m_triangles[current_facet].children[split_triangle_idx]; !visited[child])
-                        // Child triangle shares normal with its parent. Select it.
+                        // 子三角形与其父三角形共享法线。选择它。
                         facet_queue.push(child);
                 }
             } else
                 m_triangles[current_facet].select_by_seed_fill();
 
             if (current_facet < m_orig_size_indices)
-                // Propagate over the original triangles.
+                // 在原始三角形上传播。
                 for (int neighbor_idx : m_neighbors[current_facet]) {
                     assert(neighbor_idx >= -1);
                     if (neighbor_idx >= 0 && !visited[neighbor_idx] && !is_facet_clipped(neighbor_idx, clp)) {
-                        // Check if neighbour_facet_idx is satisfies angle in seed_fill_angle and append it to facet_queue if it do.
+                        // 检查相邻面是否满足seed_fill_angle中的角度，如果满足则将其添加到facet_queue。
                         const Vec3f &n1 = m_face_normals[m_triangles[neighbor_idx].source_triangle];
                         const Vec3f &n2 = m_face_normals[m_triangles[current_facet].source_triangle];
                         if (std::clamp(n1.dot(n2), 0.f, 1.f) >= facet_angle_limit)
@@ -392,8 +390,8 @@ void TriangleSelector::precompute_all_neighbors_recursive(const int facet_idx, c
             for (int i = 0; i < num_of_children; ++i) {
                 assert(i < int(tr->children.size()));
                 assert(tr->children[i] < int(m_triangles.size()));
-                // Recursion, deep first search over the children of this triangle.
-                // All children of this triangle were created by splitting a single source triangle of the original mesh.
+                // 递归，深度优先搜索该三角形的子三角形。
+                // 该三角形的所有子三角形都是通过拆分原始网格的一个源三角形创建的。
                 const Vec3i32 child_neighbors = this->child_neighbors(*tr, neighbors, i);
                 this->precompute_all_neighbors_recursive(tr->children[i], child_neighbors,
                                                          this->child_neighbors_propagated(*tr, neighbors_propagated, i, child_neighbors), neighbors_out,
@@ -417,8 +415,8 @@ std::pair<std::vector<Vec3i32>, std::vector<Vec3i32>> TriangleSelector::precompu
     return std::make_pair(std::move(neighbors), std::move(neighbors_propagated));
 }
 
-// It appends all triangles that are touching the edge (vertexi, vertexj) of the triangle.
-// It doesn't append the triangles that are touching the triangle only by part of the edge that means the triangles are from lower depth.
+// 追加所有接触三角形边(vertexi, vertexj)的三角形。
+// 不追加仅通过部分边接触三角形的三角形，这意味着这些三角形来自较低深度。
 void TriangleSelector::append_touching_subtriangles(int itriangle, int vertexi, int vertexj, std::vector<int> &touching_subtriangles_out) const
 {
     if (itriangle == -1)
@@ -442,8 +440,8 @@ void TriangleSelector::append_touching_subtriangles(int itriangle, int vertexi, 
         process_subtriangle(touching.second, Partition::Second);
 }
 
-// It appends all edges that are touching the edge (vertexi, vertexj) of the triangle and are not selected by seed fill
-// It doesn't append the edges that are touching the triangle only by part of the edge that means the triangles are from lower depth.
+// 追加所有接触三角形边(vertexi, vertexj)且未被种子填充选中的边。
+// 不追加仅通过部分边接触三角形的边，这意味着这些三角形来自较低深度。
 void TriangleSelector::append_touching_edges(int itriangle, int vertexi, int vertexj, std::vector<Vec2i32> &touching_edges_out) const
 {
     if (itriangle == -1)
@@ -483,7 +481,7 @@ void TriangleSelector::bucket_fill_select_triangles(const Vec3f& hit, int facet_
 {
     int start_facet_idx = select_unsplit_triangle(hit, facet_start);
     assert(start_facet_idx != -1);
-    // Recompute bucket fill only if the cursor is pointing on facet unselected by bucket fill or a clipping plane is active.
+    // 仅当光标指向未被桶填充选择的面或裁剪平面处于活动状态时，才重新计算桶填充。
     if (start_facet_idx == -1 || (m_triangles[start_facet_idx].is_selected_by_seed_fill() && !force_reselection && !clp.is_active()))
         return;
 
@@ -496,7 +494,7 @@ void TriangleSelector::bucket_fill_select_triangles(const Vec3f& hit, int facet_
         return;
     }
 
-    // seed_fill_angle < 0.f to disable edge detection
+    // seed_fill_angle < 0.f 禁用边缘检测
     const double facet_angle_limit = (seed_fill_angle < 0.f ? -1.f : cos(Geometry::deg2rad(seed_fill_angle))) - EPSILON;
 
     auto get_all_touching_triangles = [this](int facet_idx, const Vec3i32 &neighbors, const Vec3i32 &neighbors_propagated) -> std::vector<int> {
@@ -547,11 +545,10 @@ void TriangleSelector::bucket_fill_select_triangles(const Vec3f& hit, int facet_
     }
 }
 
-// Selects either the whole triangle (discarding any children it had), or divides
-// the triangle recursively, selecting just subtriangles truly inside the circle.
-// This is done by an actual recursive call. Returns false if the triangle is
-// outside the cursor.
-// Called by select_patch() and by itself.
+// 选择整个三角形（丢弃其所有子三角形），或递归分割
+// 三角形，仅选择真正位于圆内的子三角形。
+// 通过实际的递归调用来完成。如果三角形在光标外则返回false。
+// 由select_patch()和自身调用。
 bool TriangleSelector::select_triangle(int facet_idx, EnforcerBlockerType type, bool triangle_splitting)
 {
     assert(facet_idx < int(m_triangles.size()));
@@ -565,8 +562,8 @@ bool TriangleSelector::select_triangle(int facet_idx, EnforcerBlockerType type, 
     if (! select_triangle_recursive(facet_idx, neighbors, type, triangle_splitting))
         return false;
 
-    // In case that all children are leafs and have the same state now,
-    // they may be removed and substituted by the parent triangle.
+    // 如果所有子三角形都是叶节点且现在具有相同状态，
+    // 它们可以被移除并由父三角形替代。
     remove_useless_children(facet_idx);
 
 #ifdef EXPENSIVE_DEBUG_CHECKS
@@ -575,22 +572,22 @@ bool TriangleSelector::select_triangle(int facet_idx, EnforcerBlockerType type, 
                [](const Triangle& tr) { return ! tr.valid(); }));
 #endif // EXPENSIVE_DEBUG_CHECKS
 
-    // Do garbage collection maybe?
+    // 也许需要垃圾回收？
     if (2*m_invalid_triangles > int(m_triangles.size()))
         garbage_collect();
 
     return true;
 }
 
-// Return child of itriangle at a CCW oriented side (vertexi, vertexj), either first or 2nd part.
-// If the side sharing (vertexi, vertexj) is not split, return -1.
+// 返回itriangle在CCW方向边(vertexi, vertexj)上的子三角形，第一部分或第二部分。
+// 如果共享边(vertexi, vertexj)未拆分，返回-1。
 int TriangleSelector::neighbor_child(const Triangle &tr, int vertexi, int vertexj, Partition partition) const
 {
     if (tr.number_of_split_sides() == 0)
-        // If this triangle is not split, then there is no upper / lower subtriangle sharing the edge.
+        // 如果此三角形未拆分，则没有共享该边的上/下子三角形。
         return -1;
 
-    // Find the triangle edge.
+    // 查找三角形的边。
     int edge = tr.verts_idxs[0] == vertexi ? 0 : tr.verts_idxs[1] == vertexi ? 1 : 2;
     assert(tr.verts_idxs[edge] == vertexi);
     assert(tr.verts_idxs[next_idx_modulo(edge, 3)] == vertexj);
@@ -621,8 +618,8 @@ int TriangleSelector::neighbor_child(const Triangle &tr, int vertexi, int vertex
     return tr.children[child_idx];
 }
 
-// Return child of itriangle at a CCW oriented side (vertexi, vertexj), either first or 2nd part.
-// If itriangle == -1 or if the side sharing (vertexi, vertexj) is not split, return -1.
+// 返回itriangle在CCW方向边(vertexi, vertexj)上的子三角形，第一部分或第二部分。
+// 如果itriangle == -1或共享边(vertexi, vertexj)未拆分，返回-1。
 int TriangleSelector::neighbor_child(int itriangle, int vertexi, int vertexj, Partition partition) const
 {
     return itriangle == -1 ? -1 : this->neighbor_child(m_triangles[itriangle], vertexi, vertexj, partition);
@@ -636,10 +633,10 @@ std::pair<int, int> TriangleSelector::triangle_subtriangles(int itriangle, int v
 std::pair<int, int> TriangleSelector::triangle_subtriangles(const Triangle &tr, int vertexi, int vertexj)
 {
     if (tr.number_of_split_sides() == 0)
-        // If this triangle is not split, then there is no subtriangles touching the edge.
+        // 如果此三角形未拆分，则没有接触该边的子三角形。
         return std::make_pair(-1, -1);
 
-    // Find the triangle edge.
+    // 查找三角形的边。
     int edge = tr.verts_idxs[0] == vertexi ? 0 : tr.verts_idxs[1] == vertexi ? 1 : 2;
     assert(tr.verts_idxs[edge] == vertexi);
     assert(tr.verts_idxs[next_idx_modulo(edge, 3)] == vertexj);
@@ -662,15 +659,15 @@ std::pair<int, int> TriangleSelector::triangle_subtriangles(const Triangle &tr, 
     return std::make_pair(-1, -1);
 }
 
-// Return existing midpoint of CCW oriented side (vertexi, vertexj).
-// If itriangle == -1 or if the side sharing (vertexi, vertexj) is not split, return -1.
+// 返回CCW方向边(vertexi, vertexj)的现有中点。
+// 如果itriangle == -1或共享边(vertexi, vertexj)未拆分，返回-1。
 int TriangleSelector::triangle_midpoint(const Triangle &tr, int vertexi, int vertexj) const
 {
     if (tr.number_of_split_sides() == 0)
-        // If this triangle is not split, then there is no upper / lower subtriangle sharing the edge.
+        // 如果此三角形未拆分，则没有共享该边的上/下子三角形。
         return -1;
 
-    // Find the triangle edge.
+    // 查找三角形的边。
     int edge = tr.verts_idxs[0] == vertexi ? 0 : tr.verts_idxs[1] == vertexi ? 1 : 2;
     assert(tr.verts_idxs[edge] == vertexi);
     assert(tr.verts_idxs[next_idx_modulo(edge, 3)] == vertexj);
@@ -695,8 +692,8 @@ int TriangleSelector::triangle_midpoint(const Triangle &tr, int vertexi, int ver
     }
 }
 
-// Return existing midpoint of CCW oriented side (vertexi, vertexj).
-// If itriangle == -1 or if the side sharing (vertexi, vertexj) is not split, return -1.
+// 返回CCW方向边(vertexi, vertexj)的现有中点。
+// 如果itriangle == -1或共享边(vertexi, vertexj)未拆分，返回-1。
 int TriangleSelector::triangle_midpoint(int itriangle, int vertexi, int vertexj) const
 {
     return itriangle == -1 ? -1 : this->triangle_midpoint(m_triangles[itriangle], vertexi, vertexj);
@@ -708,18 +705,18 @@ int TriangleSelector::triangle_midpoint_or_allocate(int itriangle, int vertexi, 
     if (midpoint == -1) {
         Vec3f c = 0.5f * (m_vertices[vertexi].v + m_vertices[vertexj].v);
 #ifdef EXPENSIVE_DEBUG_CHECKS
-        // Verify that the vertex is really a new one.
+        // 验证该顶点确实是新的。
         auto it = std::find_if(m_vertices.begin(), m_vertices.end(), [c](const Vertex &v) {
             return v.ref_cnt > 0 && (v.v - c).norm() < EPSILON; });
         assert(it == m_vertices.end());
 #endif // EXPENSIVE_DEBUG_CHECKS
-        // Allocate a new vertex, possibly reusing the free list.
+        // 分配新顶点，可能重用空闲列表。
         if (m_free_vertices_head == -1) {
-            // Allocate a new vertex.
+            // 分配新顶点。
             midpoint = int(m_vertices.size());
             m_vertices.emplace_back(c);
         } else {
-            // Reuse a vertex from the free list.
+            // 从空闲列表中重用顶点。
             assert(m_free_vertices_head >= -1 && m_free_vertices_head < int(m_vertices.size()));
             midpoint = m_free_vertices_head;
             memcpy(&m_free_vertices_head, &m_vertices[midpoint].v[0], sizeof(m_free_vertices_head));
@@ -739,10 +736,9 @@ int TriangleSelector::triangle_midpoint_or_allocate(int itriangle, int vertexi, 
     return midpoint;
 }
 
-// Return neighbors of ith child of a triangle given neighbors of the triangle.
-// Returns -1 if such a neighbor does not exist at all, or it does not exist
-// at the same depth as the ith child.
-// Using the same splitting strategy as TriangleSelector::split_triangle()
+// 返回给定三角形邻居的第i个子三角形的邻居。
+// 如果这样的邻居根本不存在，或与第i个子三角形不在同一深度，则返回-1。
+// 使用与TriangleSelector::split_triangle()相同的拆分策略。
 Vec3i32 TriangleSelector::child_neighbors(const Triangle &tr, const Vec3i32 &neighbors, int child_idx) const
 {
     assert(this->verify_triangle_neighbors(tr, neighbors));
@@ -828,8 +824,8 @@ Vec3i32 TriangleSelector::child_neighbors(const Triangle &tr, const Vec3i32 &nei
     return out;
 }
 
-// Return neighbors of the ith child of a triangle given neighbors of the triangle.
-// If such a neighbor doesn't exist, return the neighbor from the previous depth.
+// 返回给定三角形邻居的第i个子三角形的邻居。
+// 如果这样的邻居不存在，则返回上一深度的邻居。
 Vec3i32 TriangleSelector::child_neighbors_propagated(const Triangle &tr, const Vec3i32 &neighbors_propagated, int child_idx, const Vec3i32 &child_neighbors) const
 {
     int i = tr.special_side();
@@ -928,8 +924,8 @@ bool TriangleSelector::select_triangle_recursive(int facet_idx, const Vec3i32 &n
         // (if not already) and try selecting its children.
 
         if (! tr->is_split() && tr->get_state() == type) {
-            // This is leaf triangle that is already of correct type as a whole.
-            // No need to split, all children would end up selected anyway.
+            // 这是叶三角形，整体上已经是正确的类型。
+            // 无需拆分，所有子三角形无论如何都会被选中。
             return true;
         }
 
@@ -944,8 +940,8 @@ bool TriangleSelector::select_triangle_recursive(int facet_idx, const Vec3i32 &n
             for (int i=0; i<num_of_children; ++i) {
                 assert(i < int(tr->children.size()));
                 assert(tr->children[i] < int(m_triangles.size()));
-                // Recursion, deep first search over the children of this triangle.
-                // All children of this triangle were created by splitting a single source triangle of the original mesh.
+                // 递归，深度优先搜索该三角形的子三角形。
+                // 该三角形的所有子三角形都是通过拆分原始网格的一个源三角形创建的。
                 select_triangle_recursive(tr->children[i], this->child_neighbors(*tr, neighbors, i), type, triangle_splitting);
                 tr = &m_triangles[facet_idx]; // might have been invalidated
             }
@@ -963,12 +959,12 @@ void TriangleSelector::set_facet(int facet_idx, EnforcerBlockerType state)
     m_triangles[facet_idx].set_state(state);
 }
 
-// called by select_patch()->select_triangle()...select_triangle()
-// to decide which sides of the triangle to split and to actually split it calling set_division() and perform_split().
+// 由select_patch()->select_triangle()...select_triangle()调用
+// 决定分割三角形的哪些边，并通过调用set_division()和perform_split()实际分割它。
 void TriangleSelector::split_triangle(int facet_idx, const Vec3i32 &neighbors)
 {
     if (m_triangles[facet_idx].is_split()) {
-        // The triangle is divided already.
+        // 三角形已经分割过了。
         return;
     }
 
@@ -977,7 +973,7 @@ void TriangleSelector::split_triangle(int facet_idx, const Vec3i32 &neighbors)
 
     EnforcerBlockerType old_type = tr->get_state();
 
-    // If we got here, we are about to actually split the triangle.
+    // 如果执行到这里，我们即将实际分割三角形。
     const double limit_squared = m_edge_limit_sqr;
 
     std::array<int, 3>& facet = tr->verts_idxs;
@@ -986,8 +982,7 @@ void TriangleSelector::split_triangle(int facet_idx, const Vec3i32 &neighbors)
                                              &m_vertices[facet[2]].v};
     std::array<stl_vertex, 3> pts_transformed; // must stay in scope of pts !!!
 
-    // In case the object is non-uniformly scaled, transform the
-    // points to world coords.
+    // 如果对象非均匀缩放，则将点变换到世界坐标。
     if (! m_cursor->uniform_scaling) {
         for (size_t i=0; i<pts.size(); ++i) {
             pts_transformed[i] = m_cursor->trafo * (*pts[i]);
@@ -1013,15 +1008,14 @@ void TriangleSelector::split_triangle(int facet_idx, const Vec3i32 &neighbors)
         return;
     }
 
-    // Save how the triangle will be split. Second argument makes sense only for one
-    // or two split sides, otherwise the value is ignored.
+    // 保存三角形将如何分割。第二个参数仅对一个或两个分割边有意义，否则该值被忽略。
     tr->set_division(int(sides_to_split.size()),
         sides_to_split.size() == 2 ? side_to_keep : sides_to_split[0]);
 
     perform_split(facet_idx, neighbors, old_type);
 }
 
-// Is pointer in a triangle?
+// 指针是否在三角形内？
 bool TriangleSelector::Cursor::is_pointer_in_triangle(const Triangle &tr, const std::vector<Vertex> &vertices) const {
     const Vec3f& p1 = vertices[tr.verts_idxs[0]].v;
     const Vec3f& p2 = vertices[tr.verts_idxs[1]].v;
@@ -1029,7 +1023,7 @@ bool TriangleSelector::Cursor::is_pointer_in_triangle(const Triangle &tr, const 
     return this->is_pointer_in_triangle(p1, p2, p3);
 }
 
-// Determine whether this facet is potentially visible (still can be obscured).
+// 确定该面是否可能可见（仍可能被遮挡）。
 bool TriangleSelector::Cursor::is_facet_visible(const Cursor &cursor, int facet_idx, const std::vector<Vec3f> &face_normals)
 {
     assert(facet_idx < int(face_normals.size()));
@@ -1039,7 +1033,7 @@ bool TriangleSelector::Cursor::is_facet_visible(const Cursor &cursor, int facet_
     return n.dot(cursor.dir) < 0.f;
 }
 
-// How many vertices of a triangle are inside the circle?
+// 三角形的多少个顶点在圆内？
 int TriangleSelector::Cursor::vertices_inside(const Triangle &tr, const std::vector<Vertex> &vertices) const
 {
     int inside = 0;
@@ -1050,7 +1044,7 @@ int TriangleSelector::Cursor::vertices_inside(const Triangle &tr, const std::vec
     return inside;
 }
 
-// Is any edge inside Sphere cursor?
+// 是否有任何边在球体光标内？
 bool TriangleSelector::Sphere::is_edge_inside_cursor(const Triangle &tr, const std::vector<Vertex> &vertices) const
 {
     std::array<Vec3f, 3> pts;
@@ -1069,7 +1063,7 @@ bool TriangleSelector::Sphere::is_edge_inside_cursor(const Triangle &tr, const s
     return false;
 }
 
-// Is edge inside cursor?
+// 边是否在光标内？
 bool TriangleSelector::Circle::is_edge_inside_cursor(const Triangle &tr, const std::vector<Vertex> &vertices) const
 {
     std::array<Vec3f, 3> pts;
@@ -1087,8 +1081,7 @@ bool TriangleSelector::Circle::is_edge_inside_cursor(const Triangle &tr, const s
         float        t      = (p - a).dot(s);
         Vec3f        vector = a + t * s - p;
 
-        // vector is 3D vector from center to the intersection. What we want to
-        // measure is length of its projection onto plane perpendicular to dir.
+        // vector是从中心到交点的3D向量。我们要测量的是其在垂直于dir的平面上的投影长度。
         float dist_sqr = vector.squaredNorm() - std::pow(vector.dot(this->dir), 2.f);
         if (dist_sqr < this->radius_sqr && t >= 0.f && t <= (b - a).norm())
             return true;
@@ -1104,7 +1097,7 @@ bool TriangleSelector::HeightRange::is_pointer_in_triangle(const Vec3f& p1_, con
 
 bool TriangleSelector::HeightRange::is_mesh_point_inside(const Vec3f& point) const
 {
-    // just use 40% edge limit as tolerance
+    // 仅使用40%的边长限制作为公差
     const float tolerance = 0.02;
     const Vec3f transformed_point = trafo * point;
     float top_z = m_z_world + m_height + tolerance;
@@ -1127,7 +1120,7 @@ bool TriangleSelector::HeightRange::is_edge_inside_cursor(const Triangle& tr, co
              (pts[0].z() > top_z && pts[1].z() > top_z && pts[2].z() > top_z));
 }
 
-// Recursively remove all subtriangles.
+// 递归移除所有子三角形。
 void TriangleSelector::undivide_triangle(int facet_idx)
 {
     assert(facet_idx < int(m_triangles.size()));
@@ -1144,15 +1137,15 @@ void TriangleSelector::undivide_triangle(int facet_idx)
                 Vertex &v  = m_vertices[iv];
                 assert(v.ref_cnt > 0);
                 if (-- v.ref_cnt == 0) {
-                    // Release this vertex.
-                    // Chain released vertices into a linked list through ref_cnt.
+                    // 释放此顶点。
+                    // 通过ref_cnt将释放的顶点链接成链表。
                     assert(m_free_vertices_head >= -1 && m_free_vertices_head < int(m_vertices.size()));
                     memcpy(&m_vertices[iv].v[0], &m_free_vertices_head, sizeof(m_free_vertices_head));
                     m_free_vertices_head = iv;
                     assert(m_free_vertices_head >= -1 && m_free_vertices_head < int(m_vertices.size()));
                 }
             }
-            // Chain released triangles into a linked list through children[0].
+            // 通过children[0]将释放的三角形链接成链表。
             assert(child_tr.valid());
             child_tr.m_valid = false;
             assert(m_free_triangles_head >= -1 && m_free_triangles_head < int(m_triangles.size()));
@@ -1168,19 +1161,17 @@ void TriangleSelector::undivide_triangle(int facet_idx)
 
 void TriangleSelector::remove_useless_children(int facet_idx)
 {
-    // Check that all children are leafs of the same type. If not, try to
-    // make them (recursive call). Remove them if sucessful.
+    // 检查所有子三角形是否为相同类型的叶节点。如果不是，尝试使它们成为叶节点（递归调用）。如果成功则移除它们。
 
     assert(facet_idx < int(m_triangles.size()) && m_triangles[facet_idx].valid());
     Triangle& tr = m_triangles[facet_idx];
 
     if (! tr.is_split()) {
-        // This is a leaf, there nothing to do. This can happen during the
-        // first (non-recursive call). Shouldn't otherwise.
+        // 这是叶节点，无需执行任何操作。这在第一次（非递归调用）时可能发生。其他情况下不应该发生。
         return;
     }
 
-    // Call this for all non-leaf children.
+    // 对所有非叶子的子三角形调用此函数。
     for (int child_idx=0; child_idx<=tr.number_of_split_sides(); ++child_idx) {
         assert(child_idx < int(m_triangles.size()) && m_triangles[child_idx].valid());
         if (m_triangles[tr.children[child_idx]].is_split())
@@ -1188,7 +1179,7 @@ void TriangleSelector::remove_useless_children(int facet_idx)
     }
 
 
-    // Return if a child is not leaf or two children differ in type.
+    // 如果子三角形不是叶节点或两个子三角形类型不同，则返回。
     EnforcerBlockerType first_child_type = EnforcerBlockerType::NONE;
     for (int child_idx=0; child_idx<=tr.number_of_split_sides(); ++child_idx) {
         if (m_triangles[tr.children[child_idx]].is_split())
@@ -1206,15 +1197,14 @@ void TriangleSelector::remove_useless_children(int facet_idx)
 
 void TriangleSelector::garbage_collect()
 {
-    // First make a map from old to new triangle indices.
+    // 首先创建从旧到新的三角形索引映射。
     int new_idx = m_orig_size_indices;
     std::vector<int> new_triangle_indices(m_triangles.size(), -1);
     for (int i = m_orig_size_indices; i<int(m_triangles.size()); ++i)
         if (m_triangles[i].valid())
             new_triangle_indices[i] = new_idx ++;
 
-    // Now we know which vertices are not referenced anymore. Make a map
-    // from old idxs to new ones, like we did for triangles.
+    // 现在我们知道哪些顶点不再被引用。创建从旧索引到新索引的映射，就像我们对三角形所做的那样。
     new_idx = m_orig_size_vertices;
     std::vector<int> new_vertices_indices(m_vertices.size(), -1);
     for (int i=m_orig_size_vertices; i<int(m_vertices.size()); ++i) {
@@ -1223,7 +1213,7 @@ void TriangleSelector::garbage_collect()
             new_vertices_indices[i] = new_idx ++;
     }
 
-    // We can remove all invalid triangles and vertices that are no longer referenced.
+    // 我们可以移除所有不再被引用的无效三角形和顶点。
     m_triangles.erase(std::remove_if(m_triangles.begin()+m_orig_size_indices, m_triangles.end(),
                           [](const Triangle& tr) { return ! tr.valid(); }),
                       m_triangles.end());
@@ -1231,20 +1221,19 @@ void TriangleSelector::garbage_collect()
                           [](const Vertex& vert) { return vert.ref_cnt == 0; }),
                       m_vertices.end());
 
-    // Now go through all remaining triangles and update changed indices.
+    // 现在遍历所有剩余的三角形并更新更改的索引。
     for (Triangle& tr : m_triangles) {
         assert(tr.valid());
 
         if (tr.is_split()) {
-            // There are children. Update their indices.
+            // 有子三角形。更新它们的索引。
             for (int j=0; j<=tr.number_of_split_sides(); ++j) {
                 assert(new_triangle_indices[tr.children[j]] != -1);
                 tr.children[j] = new_triangle_indices[tr.children[j]];
             }
         }
 
-        // Update indices into m_vertices. The original vertices are never
-        // touched and need not be reindexed.
+        // 更新m_vertices的索引。原始顶点从未被触及且无需重新索引。
         for (int& idx : tr.verts_idxs) {
             if (idx >= m_orig_size_vertices) {
                 assert(new_vertices_indices[idx] != -1);
@@ -1334,13 +1323,13 @@ int TriangleSelector::push_triangle(int a, int b, int c, int source_triangle, co
     return idx;
 }
 
-// called by deserialize() and select_patch()->select_triangle()->...select_triangle()->split_triangle()
-// Split a triangle based on Triangle::number_of_split_sides() and Triangle::special_side()
-// by allocating child triangles and midpoint vertices.
-// Midpoint vertices are possibly reused by traversing children of neighbor triangles.
+// 由deserialize()和select_patch()->select_triangle()->...select_triangle()->split_triangle()调用
+// 根据Triangle::number_of_split_sides()和Triangle::special_side()分割三角形，
+// 通过分配子三角形和中点顶点。
+// 中点顶点可能通过遍历相邻三角形的子三角形来重用。
 void TriangleSelector::perform_split(int facet_idx, const Vec3i32 &neighbors, EnforcerBlockerType old_state)
 {
-    // Reserve space for the new triangles upfront, so that the reference to this triangle will not change.
+    // 预先为新三角形保留空间，以便对此三角形的引用不会改变。
     {
         size_t num_triangles_new = m_triangles.size() + m_triangles[facet_idx].number_of_split_sides() + 1;
         if (m_triangles.capacity() < num_triangles_new)
@@ -1350,7 +1339,7 @@ void TriangleSelector::perform_split(int facet_idx, const Vec3i32 &neighbors, En
     Triangle &tr = m_triangles[facet_idx];
     assert(tr.is_split());
 
-    // indices of triangle vertices
+    // 三角形顶点的索引
 #ifdef NDEBUG
     boost::container::small_vector<int, 6> verts_idxs;
 #else // NDEBUG
@@ -1519,7 +1508,7 @@ void TriangleSelector::get_facets_strict_recursive(
 
 void TriangleSelector::get_facets_split_by_tjoints(const Vec3i32 &vertices, const Vec3i32 &neighbors, std::vector<stl_triangle_vertex_indices> &out_triangles) const
 {
-// Export this triangle, but first collect the T-joint vertices along its edges.
+// 导出此三角形，但首先收集沿其边的T形接头顶点。
     Vec3i32 midpoints(
         this->triangle_midpoint(neighbors(0), vertices(1), vertices(0)),
         this->triangle_midpoint(neighbors(1), vertices(2), vertices(1)),
@@ -1527,12 +1516,12 @@ void TriangleSelector::get_facets_split_by_tjoints(const Vec3i32 &vertices, cons
     int splits = (midpoints(0) != -1) + (midpoints(1) != -1) + (midpoints(2) != -1);
     switch (splits) {
     case 0:
-        // Just emit this triangle.
+        // 直接输出此三角形。
         out_triangles.emplace_back(vertices(0), vertices(1), vertices(2));
         break;
     case 1:
     {
-        // Split to two triangles
+        // 分割成两个三角形
         int i = midpoints(0) != -1 ? 2 : midpoints(1) != -1 ? 0 : 1;
         int j = next_idx_modulo(i, 3);
         int k = next_idx_modulo(j, 3);
@@ -1552,7 +1541,7 @@ void TriangleSelector::get_facets_split_by_tjoints(const Vec3i32 &vertices, cons
     }
     case 2:
     {
-        // Split to three triangles.
+        // 分割成三个三角形。
         int i = midpoints(0) == -1 ? 2 : midpoints(1) == -1 ? 0 : 1;
         int j = next_idx_modulo(i, 3);
         int k = next_idx_modulo(j, 3);
@@ -1577,7 +1566,7 @@ void TriangleSelector::get_facets_split_by_tjoints(const Vec3i32 &vertices, cons
     }
     default:
         assert(splits == 3);
-        // Split to 4 triangles.
+        // 分割成四个三角形。
         this->get_facets_split_by_tjoints(
             { vertices(0), midpoints(0), midpoints(2) },
             { this->neighbor_child(neighbors(0), vertices(1), vertices(0), Partition::Second),
@@ -1625,8 +1614,8 @@ void TriangleSelector::get_seed_fill_contour_recursive(const int facet_idx, cons
             for (int i = 0; i < num_of_children; ++i) {
                 assert(i < int(tr->children.size()));
                 assert(tr->children[i] < int(m_triangles.size()));
-                // Recursion, deep first search over the children of this triangle.
-                // All children of this triangle were created by splitting a single source triangle of the original mesh.
+                // 递归，深度优先搜索该三角形的子三角形。
+                // 该三角形的所有子三角形都是通过拆分原始网格的一个源三角形创建的。
                 const Vec3i32 child_neighbors = this->child_neighbors(*tr, neighbors, i);
                 this->get_seed_fill_contour_recursive(tr->children[i], child_neighbors,
                                                       this->child_neighbors_propagated(*tr, neighbors_propagated, i, child_neighbors), edges_out);
@@ -1638,7 +1627,7 @@ void TriangleSelector::get_seed_fill_contour_recursive(const int facet_idx, cons
         append_touching_edges(neighbors(1), vertices(2), vertices(1), edges_out);
         append_touching_edges(neighbors(2), vertices(0), vertices(2), edges_out);
 
-        // It appends the edges that are touching the triangle only by part of the edge that means the triangles are from lower depth.
+        // 追加仅通过部分边接触三角形的边，这意味着这些三角形来自较低深度。
         for (int idx = 0; idx < 3; ++idx)
             if (int neighbor_tr_idx = neighbors_propagated(idx); neighbor_tr_idx != -1 && !m_triangles[neighbor_tr_idx].is_split() && !m_triangles[neighbor_tr_idx].is_selected_by_seed_fill())
                 edges_out.emplace_back(vertices(idx), vertices(next_idx_modulo(idx, 3)));
@@ -1646,20 +1635,18 @@ void TriangleSelector::get_seed_fill_contour_recursive(const int facet_idx, cons
 }
 
 TriangleSelector::TriangleSplittingData TriangleSelector::serialize() const {
-    // Each original triangle of the mesh is assigned a number encoding its state
-    // or how it is split. Each triangle is encoded by 4 bits (xxyy) or by
-    // 4 bits plus one or more extension nibbles:
-    // leaf triangle: xx = EnforcerBlockerType (Only values 0, 1, and 2. Value 3 is used as an indicator for additional 4 bits.), yy = 0
-    // leaf triangle: xx = 0b11, yy = 0b00, zzzz... = EnforcerBlockerType (subtracted by 3) in base-15 chunks
-    // non-leaf:      xx = special side, yy = number of split sides
-    // These are bitwise appended and formed into one 64-bit integer.
+    // 网格的每个原始三角形都被分配一个编码其状态或如何分割的数字。
+    // 每个三角形由4位(xxyy)或4位加一个或多个扩展半字节编码：
+    // 叶三角形：xx = EnforcerBlockerType（仅值0、1、2。值3用作额外4位的指示符），yy = 0
+    // 叶三角形：xx = 0b11, yy = 0b00, zzzz... = EnforcerBlockerType（减3后）以base-15块表示
+    // 非叶节点：xx = 特殊边，yy = 分割边数
+    // 这些位被逐位追加并形成一个64位整数。
 
-    // The function returns a map from original triangle indices to
-    // stream of bits encoding state and offsprings.
+    // 该函数返回从原始三角形索引到位流（编码状态和后代）的映射。
 
-    // Using an explicit function object to support recursive call of Serializer::serialize().
-    // This is cheaper than the previous implementation using a recursive call of type erased std::function.
-    // (std::function calls using a pointer, while this implementation calls directly).
+    // 使用显式函数对象来支持Serializer::serialize()的递归调用。
+    // 这比之前使用类型擦除的std::function递归调用的实现更高效。
+    // （std::function使用指针调用，而此实现直接调用）。
     struct Serializer {
         const TriangleSelector* triangle_selector;
         TriangleSplittingData data;
@@ -1667,7 +1654,7 @@ TriangleSelector::TriangleSplittingData TriangleSelector::serialize() const {
         void serialize(int facet_idx) {
             const Triangle& tr = triangle_selector->m_triangles[facet_idx];
 
-            // Always save number of split sides. It is zero for unsplit triangles.
+            // 始终保存分割边数。对于未分割的三角形为零。
             int split_sides = tr.number_of_split_sides();
             assert(split_sides >= 0 && split_sides <= 3);
 
@@ -1675,26 +1662,23 @@ TriangleSelector::TriangleSplittingData TriangleSelector::serialize() const {
             data.bitstream.push_back(split_sides & 0b10);
 
             if (split_sides) {
-                // If this triangle is split, save which side is split (in case
-                // of one split) or kept (in case of two splits). The value will
-                // be ignored for 3-side split.
+                // 如果此三角形已分割，保存哪条边被分割（如果是一条边分割）或保留（如果是两条边分割）。对于三条边分割，该值将被忽略。
                 assert(tr.is_split() && split_sides > 0);
                 assert(tr.special_side() >= 0 && tr.special_side() <= 3);
                 data.bitstream.push_back(tr.special_side() & 0b01);
                 data.bitstream.push_back(tr.special_side() & 0b10);
-                // Now save all children.
-                // Serialized in reverse order for compatibility with PrusaSlicer 2.3.1.
+                // 现在保存所有子三角形。
+                // 以相反顺序序列化，以与PrusaSlicer 2.3.1兼容。
                 for (int child_idx = split_sides; child_idx >= 0; -- child_idx)
                     this->serialize(tr.children[child_idx]);
             } else {
-                // In case this is leaf, we better save information about its state.
+                // 如果这是叶节点，我们最好保存其状态信息。
                 int n = int(tr.get_state());
                 if (n <= static_cast<size_t>(EnforcerBlockerType::ExtruderMax))
                     data.used_states[n] = true;
 
                 if (n >= 3) {
-                    // Store "11" plus one or more 4-bit chunks of (n - 3), where
-                    // 0b1111 indicates that another chunk follows.
+                    // 存储"11"加一个或多个4位块(n - 3)，其中0b1111表示还有另一个块。
                     data.bitstream.insert(data.bitstream.end(), { true, true });
                     n -= 3;
                     while (n >= 15) {
@@ -1705,8 +1689,8 @@ TriangleSelector::TriangleSplittingData TriangleSelector::serialize() const {
                     for (size_t bit_idx = 0; bit_idx < 4; ++bit_idx)
                         data.bitstream.push_back(n & (uint64_t(0b0001) << bit_idx));
                 } else {
-                    // Simple case, compatible with PrusaSlicer 2.3.1 and older for storing paint on supports and seams.
-                    // Store 2 bits of n.
+                    // 简单情况，与PrusaSlicer 2.3.1及更早版本兼容，用于存储在支撑和接缝上的涂色。
+                    // 存储n的2位。
                     data.bitstream.push_back(n & 0b01);
                     data.bitstream.push_back(n & 0b10);
                 }
@@ -1717,13 +1701,13 @@ TriangleSelector::TriangleSplittingData TriangleSelector::serialize() const {
     out.data.triangles_to_split.reserve(m_orig_size_indices);
     for (int i=0; i<m_orig_size_indices; ++i)
         if (const Triangle& tr = m_triangles[i]; tr.is_split() || tr.get_state() != EnforcerBlockerType::NONE) {
-            // Store index of the first bit assigned to ith triangle.
+            // 存储分配给第i个三角形的第一个位的索引。
             out.data.triangles_to_split.emplace_back(i, int(out.data.bitstream.size()));
-            // out the triangle bits.
+            // 输出三角形位。
             out.serialize(i);
         }
 
-    // May be stored onto Undo / Redo stack, thus conserve memory.
+    // 可能存储到撤销/重做堆栈上，因此节省内存。
     out.data.triangles_to_split.shrink_to_fit();
     out.data.bitstream.shrink_to_fit();
     return out.data;
@@ -1744,22 +1728,22 @@ void TriangleSelector::deserialize(const TriangleSplittingData& data,
             return;
         }
     }
-    // Reserve number of triangles as if each triangle was saved with 4 bits.
-    // With MMU painting this estimate may be somehow low, but better than nothing.
+    // 按照每个三角形保存4位来预留三角形数量。
+    // 对于MMU涂色，此估计可能偏低，但聊胜于无。
     m_triangles.reserve(std::max(m_mesh.its.indices.size(), data.bitstream.size() / 4));
-    // Number of triangles is twice the number of vertices on a large manifold mesh of genus zero.
-    // Here the triangles count account for both the nodes and leaves, thus the following line may overestimate.
+    // 在亏格为0的大型流形网格上，三角形数量是顶点数量的两倍。
+    // 这里三角形计数同时计入节点和叶节点，因此以下行可能会高估数量。
     m_vertices.reserve(std::max(m_mesh.its.vertices.size(), m_triangles.size() / 2));
 
-    // Vector to store all parents that have offsprings.
+    // 存储所有有后代的父节点的向量。
     struct ProcessingInfo {
         int facet_id = 0;
         Vec3i32 neighbors { -1, -1, -1 };
         int processed_children = 0;
         int total_children = 0;
     };
-    // Depth-first queue of a source mesh triangle and its childern.
-    // kept outside of the loop to avoid re-allocating inside the loop.
+    // 源网格三角形及其子节点的深度优先队列。
+    // 保持在循环外部以避免在循环内重新分配。
     std::vector<ProcessingInfo> parents;
 
     for (auto [triangle_id, ibit] : data.triangles_to_split) {
@@ -1774,12 +1758,12 @@ void TriangleSelector::deserialize(const TriangleSplittingData& data,
 
         parents.clear();
         while (true) {
-            // Read next triangle info.
+            // 读取下一个三角形信息。
             int code = next_nibble();
             int num_of_split_sides = code & 0b11;
             int num_of_children = num_of_split_sides == 0 ? 0 : num_of_split_sides + 1;
             bool is_split = num_of_children != 0;
-            // Only valid if not is_split. Value of the second nibble was subtracted by 3, so it is added back.
+            // 仅在非is_split时有效。第二个半字节的值减去了3，因此加回来。
             // auto state = is_split ? EnforcerBlockerType::NONE : EnforcerBlockerType((code & 0b1100) == 0b1100 ? next_nibble() + 3 : code >> 2);
             auto state = EnforcerBlockerType::NONE;
             //// BBS
@@ -1816,32 +1800,32 @@ void TriangleSelector::deserialize(const TriangleSplittingData& data,
                 state = EnforcerBlockerType::NONE;
             }
 
-            // Only valid if is_split.
+            // 仅在is_split时有效。
             int special_side = code >> 2;
 
-            // Take care of the first iteration separately, so handling of the others is simpler.
+            // 单独处理第一次迭代，以便使其他迭代的处理更简单。
             if (parents.empty()) {
                 if (is_split) {
-                    // root is split, add it into list of parents and split it.
-                    // then go to the next.
+                    // 根节点已分割，将其添加到父节点列表并分割它。
+                    // 然后继续下一个。
                     Vec3i32 neighbors = m_neighbors[triangle_id];
                     parents.push_back({triangle_id, neighbors, 0, num_of_children});
                     m_triangles[triangle_id].set_division(num_of_split_sides, special_side);
                     perform_split(triangle_id, neighbors, EnforcerBlockerType::NONE);
                     continue;
                 } else {
-                    // root is not split. just set the state and that's it.
+                    // 根节点未分割。只需设置状态即可。
                     m_triangles[triangle_id].set_state(state);
                     break;
                 }
             }
 
-            // This is not the first iteration. This triangle is a child of last seen parent.
+            // 这不是第一次迭代。此三角形是上一个父节点的子节点。
             assert(! parents.empty());
             assert(parents.back().processed_children < parents.back().total_children);
 
             if (ProcessingInfo& last = parents.back();  is_split) {
-                // split the triangle and save it as parent of the next ones.
+                // 分割三角形并将其保存为后续子节点的父节点。
                 const Triangle &tr = m_triangles[last.facet_id];
                 int   child_idx = last.total_children - last.processed_children - 1;
                 Vec3i32 neighbors = this->child_neighbors(tr, last.neighbors, child_idx);
@@ -1850,25 +1834,24 @@ void TriangleSelector::deserialize(const TriangleSplittingData& data,
                 perform_split(this_idx, neighbors, EnforcerBlockerType::NONE);
                 parents.push_back({this_idx, neighbors, 0, num_of_children});
             } else {
-                // this triangle belongs to last split one
+                // 此三角形属于最后一个分割的三角形
                 int child_idx = last.total_children - last.processed_children - 1;
                 m_triangles[m_triangles[last.facet_id].children[child_idx]].set_state(state);
                 ++last.processed_children;
             }
 
-            // If all children of the past parent triangle are claimed, move to grandparent.
+            // 如果前一个父三角形的所有子节点都已认领，则移动到祖父节点。
             while (parents.back().processed_children == parents.back().total_children) {
                 parents.pop_back();
 
                 if (parents.empty())
                     break;
 
-                // And increment the grandparent children counter, because
-                // we have just finished that branch and got back here.
+                // 增加祖父节点的子节点计数器，因为我们刚刚完成了该分支并返回到这里。
                 ++parents.back().processed_children;
             }
 
-            // In case we popped back the root, we should be done.
+            // 如果我们弹出回到了根节点，就应该完成了。
             if (parents.empty())
                 break;
         }
@@ -1917,10 +1900,10 @@ void TriangleSelector::TriangleSplittingData::update_used_states(const size_t bi
     }
 }
 
-// Lightweight variant of deserialization, which only tests whether a face of test_state exists.
+// 轻量级反序列化变体，仅测试是否存在test_state的面。
 bool TriangleSelector::has_facets(const TriangleSplittingData &data, const EnforcerBlockerType test_state) {
-    // Depth-first queue of a number of unvisited children.
-    // Kept outside of the loop to avoid re-allocating inside the loop.
+    // 若干未访问子节点的深度优先队列。
+    // 保持在循环外部以避免在循环内重新分配。
     std::vector<int> parents_children;
     parents_children.reserve(64);
 
@@ -1933,8 +1916,8 @@ bool TriangleSelector::has_facets(const TriangleSplittingData &data, const Enfor
                 n |= data.bitstream[ibit ++] << i;
             return n;
         };
-        // < 0 -> negative of a number of children
-        // >= 0 -> state
+        // < 0 -> 子节点数量的相反数
+        // >= 0 -> 状态
         auto num_children_or_state = [&next_nibble]() -> int {
             int code               = next_nibble();
             int num_of_split_sides = code & 0b11;
@@ -1955,23 +1938,23 @@ bool TriangleSelector::has_facets(const TriangleSplittingData &data, const Enfor
 
         int state = num_children_or_state();
         if (state < 0) {
-            // Root is split.
+            // 根节点已分割。
             parents_children.clear();
             parents_children.emplace_back(- state);
             do {
                 if (-- parents_children.back() >= 0) {
                     int state = num_children_or_state();
                     if (state < 0)
-                        // Child is split.
+                        // 子节点已分割。
                         parents_children.emplace_back(- state);
                     else if (state == int(test_state))
-                        // Child is not split and a face of test_state was found.
+                        // 子节点未分割且找到了test_state的面。
                         return true;
                 } else
                     parents_children.pop_back();
             } while (! parents_children.empty());
         } else if (state == int(test_state))
-            // Root is not split and a face of test_state was found.
+            // 根节点未分割且找到了test_state的面。
             return true;
     }
 
@@ -2021,13 +2004,12 @@ TriangleSelector::Cursor::Cursor(const Vec3f &source_, float radius_world, const
 TriangleSelector::SinglePointCursor::SinglePointCursor(const Vec3f& center_, const Vec3f& source_, float radius_world, const Transform3d& trafo_, const ClippingPlane &clipping_plane_)
     : center{center_}, Cursor(source_, radius_world, trafo_, clipping_plane_)
 {
-    // In case that the transformation is non-uniform, all checks whether
-    // something is inside the cursor should be done in world coords.
-    // Because of the center is transformed.
+    // 如果变换是非均匀的，所有关于某物是否在光标内的检查都应在世界坐标中进行。
+    // 因为中心点被变换了。
     if (!uniform_scaling)
         center = trafo * center;
 
-    // Calculate dir, in whatever coords is appropriate.
+    // 计算dir，使用适当的任何坐标。
     dir = (center - source).normalized();
 }
 
@@ -2039,17 +2021,17 @@ TriangleSelector::DoublePointCursor::DoublePointCursor(const Vec3f &first_center
         second_center = trafo * second_center_;
     }
 
-    // Calculate dir, in whatever coords is appropriate.
+    // 计算dir，使用适当的任何坐标。
     dir = (first_center - source).normalized();
 }
 
-// Returns true if clipping plane is not active or if the point not clipped by clipping plane.
+// 如果裁剪平面未激活或点未被裁剪平面裁剪，则返回true。
 inline static bool is_mesh_point_not_clipped(const Vec3f &point, const TriangleSelector::ClippingPlane &clipping_plane)
 {
     return !clipping_plane.is_active() || !clipping_plane.is_mesh_point_clipped(point);
 }
 
-// Is a point (in mesh coords) inside a Sphere cursor?
+// 点（在网格坐标中）是否在球体光标内？
 bool TriangleSelector::Sphere::is_mesh_point_inside(const Vec3f &point) const
 {
     const Vec3f transformed_point = uniform_scaling ? point : Vec3f(trafo * point);
@@ -2059,7 +2041,7 @@ bool TriangleSelector::Sphere::is_mesh_point_inside(const Vec3f &point) const
     return false;
 }
 
-// Is a point (in mesh coords) inside a Circle cursor?
+// 点（在网格坐标中）是否在圆形光标内？
 bool TriangleSelector::Circle::is_mesh_point_inside(const Vec3f &point) const
 {
     const Vec3f transformed_point = uniform_scaling ? point : Vec3f(trafo * point);
@@ -2071,7 +2053,7 @@ bool TriangleSelector::Circle::is_mesh_point_inside(const Vec3f &point) const
     return false;
 }
 
-// Is a point (in mesh coords) inside a Capsule3D cursor?
+// 点（在网格坐标中）是否在3D胶囊光标内？
 bool TriangleSelector::Capsule3D::is_mesh_point_inside(const Vec3f &point) const
 {
     const Vec3f transformed_point  = uniform_scaling ? point : Vec3f(trafo * point);
@@ -2080,8 +2062,8 @@ bool TriangleSelector::Capsule3D::is_mesh_point_inside(const Vec3f &point) const
     if (first_center_diff.squaredNorm() < this->radius_sqr || second_center_diff.squaredNorm() < this->radius_sqr)
         return is_mesh_point_not_clipped(point, clipping_plane);
 
-    // First, check if the point pt is laying between planes defined by first_center and second_center.
-    // Then check if it is inside the cylinder between first_center and second_center.
+    // 首先，检查点pt是否位于由first_center和second_center定义的平面之间。
+    // 然后检查它是否在first_center和second_center之间的圆柱体内。
     const Vec3f centers_diff = this->second_center - this->first_center;
     if (first_center_diff.dot(centers_diff) <= 0.f && second_center_diff.dot(centers_diff) >= 0.f && (first_center_diff.cross(centers_diff).norm() / centers_diff.norm()) <= this->radius)
         return is_mesh_point_not_clipped(point, clipping_plane);
@@ -2089,7 +2071,7 @@ bool TriangleSelector::Capsule3D::is_mesh_point_inside(const Vec3f &point) const
     return false;
 }
 
-// Is a point (in mesh coords) inside a Capsule2D cursor?
+// 点（在网格坐标中）是否在2D胶囊光标内？
 bool TriangleSelector::Capsule2D::is_mesh_point_inside(const Vec3f &point) const
 {
     const Vec3f transformed_point           = uniform_scaling ? point : Vec3f(trafo * point);
@@ -2106,15 +2088,15 @@ bool TriangleSelector::Capsule2D::is_mesh_point_inside(const Vec3f &point) const
     const Vec3f centers_diff           = this->second_center - this->first_center;
     const Vec3f centers_diff_projected = centers_diff - centers_diff.dot(this->dir) * this->dir;
 
-    // First, check if the point is laying between first_center and second_center.
+    // 首先，检查点是否位于first_center和second_center之间。
     if (first_center_diff_projected.dot(centers_diff_projected) <= 0.f && second_center_diff_projected.dot(centers_diff_projected) >= 0.f) {
-        // Vector in the direction of line |AD| of the rectangle that intersects the circle with the center in first_center.
+        // 与以first_center为圆心的圆相交的矩形的|AD|线方向向量。
         const Vec3f rectangle_da_dir              = centers_diff.cross(this->dir);
-        // Vector pointing from first_center to the point 'A' of the rectangle.
+        // 从first_center指向矩形点'A'的向量。
         const Vec3f first_center_rectangle_a_diff = rectangle_da_dir.normalized() * this->radius;
         const Vec3f rectangle_a                   = this->first_center - first_center_rectangle_a_diff;
         const Vec3f rectangle_d                   = this->first_center + first_center_rectangle_a_diff;
-        // Now check if the point is laying inside the rectangle between circles with centers in first_center and second_center.
+        // 现在检查点是否位于以first_center和second_center为圆心的圆之间的矩形内。
         if ((rectangle_a - transformed_point).dot(rectangle_da_dir) <= 0.f && (rectangle_d - transformed_point).dot(rectangle_da_dir) >= 0.f)
             return is_mesh_point_not_clipped(point, clipping_plane);
     }
@@ -2122,7 +2104,7 @@ bool TriangleSelector::Capsule2D::is_mesh_point_inside(const Vec3f &point) const
     return false;
 }
 
-// p1, p2, p3 are in mesh coords!
+// p1, p2, p3 在网格坐标中！
 static bool is_circle_pointer_inside_triangle(const Vec3f &p1_, const Vec3f &p2_, const Vec3f &p3_, const Vec3f &center, const Vec3f &dir, const bool uniform_scaling, const Transform3f &trafo) {
     const Vec3f& q1 = center + dir;
     const Vec3f& q2 = center - dir;
@@ -2132,7 +2114,7 @@ static bool is_circle_pointer_inside_triangle(const Vec3f &p1_, const Vec3f &p2_
         return ((b-a).cross(c-a)).dot(d-a) > 0.;
     };
 
-    // In case the object is non-uniformly scaled, do the check in world coords.
+    // 如果对象非均匀缩放，则在世界坐标中进行检查。
     const Vec3f& p1 = uniform_scaling ? p1_ : Vec3f(trafo * p1_);
     const Vec3f& p2 = uniform_scaling ? p2_ : Vec3f(trafo * p2_);
     const Vec3f& p3 = uniform_scaling ? p3_ : Vec3f(trafo * p3_);
@@ -2144,13 +2126,13 @@ static bool is_circle_pointer_inside_triangle(const Vec3f &p1_, const Vec3f &p2_
     return signed_volume_sign(q1,q2,p2,p3) == pos && signed_volume_sign(q1,q2,p3,p1) == pos;
 }
 
-// p1, p2, p3 are in mesh coords!
+// p1, p2, p3 在网格坐标中！
 bool TriangleSelector::SinglePointCursor::is_pointer_in_triangle(const Vec3f &p1_, const Vec3f &p2_, const Vec3f &p3_) const
 {
     return is_circle_pointer_inside_triangle(p1_, p2_, p3_, center, dir, uniform_scaling, trafo);
 }
 
-// p1, p2, p3 are in mesh coords!
+// p1, p2, p3 在网格坐标中！
 bool TriangleSelector::DoublePointCursor::is_pointer_in_triangle(const Vec3f &p1_, const Vec3f &p2_, const Vec3f &p3_) const
 {
     return is_circle_pointer_inside_triangle(p1_, p2_, p3_, first_center, dir, uniform_scaling, trafo) ||
@@ -2164,7 +2146,7 @@ bool line_plane_intersection(const Vec3f &line_a, const Vec3f &line_b, const Vec
     if (t_denominator == 0.f)
         return false;
 
-    // Compute 'd' in plane equation by using some point (origin) on the plane
+    // 使用平面上的某点（原点）计算平面方程中的'd'
     float plane_d = plane_normal.dot(plane_origin);
     if (float t = (plane_d - plane_normal.dot(line_a)) / t_denominator; t >= 0.f && t <= 1.f) {
         out_intersection = line_a + t * line_dir;
@@ -2193,7 +2175,7 @@ bool TriangleSelector::Capsule3D::is_edge_inside_cursor(const Triangle &tr, cons
     return false;
 }
 
-// Is edge inside cursor?
+// 边是否在光标内？
 bool TriangleSelector::Capsule2D::is_edge_inside_cursor(const Triangle &tr, const std::vector<Vertex> &vertices) const
 {
     std::array<Vec3f, 3> pts;
@@ -2204,9 +2186,9 @@ bool TriangleSelector::Capsule2D::is_edge_inside_cursor(const Triangle &tr, cons
     }
 
     const Vec3f centers_diff                  = this->second_center - this->first_center;
-    // Vector in the direction of line |AD| of the rectangle that intersects the circle with the center in first_center.
+    // 与以first_center为圆心的圆相交的矩形的|AD|线方向向量。
     const Vec3f rectangle_da_dir              = centers_diff.cross(this->dir);
-    // Vector pointing from first_center to the point 'A' of the rectangle.
+    // 从first_center指向矩形点'A'的向量。
     const Vec3f first_center_rectangle_a_diff = rectangle_da_dir.normalized() * this->radius;
     const Vec3f rectangle_a                   = this->first_center - first_center_rectangle_a_diff;
     const Vec3f rectangle_d                   = this->first_center + first_center_rectangle_a_diff;
@@ -2214,7 +2196,7 @@ bool TriangleSelector::Capsule2D::is_edge_inside_cursor(const Triangle &tr, cons
     auto edge_inside_rectangle = [&self = std::as_const(*this), &centers_diff](const Vec3f &edge_a, const Vec3f &edge_b, const Vec3f &plane_origin, const Vec3f &plane_normal) -> bool {
         Vec3f intersection(-1.f, -1.f, -1.f);
         if (line_plane_intersection(edge_a, edge_b, plane_origin, plane_normal, intersection)) {
-            // Now check if the intersection point is inside the rectangle. That means it is between 'first_center' and 'second_center', resp. between 'A' and 'B'.
+            // 现在检查交点是否在矩形内。这意味着它在'first_center'和'second_center'之间，或'A'和'B'之间。
             if (self.first_center.dot(centers_diff) <= intersection.dot(centers_diff) && intersection.dot(centers_diff) <= self.second_center.dot(centers_diff))
                 return true;
         }
@@ -2232,15 +2214,14 @@ bool TriangleSelector::Capsule2D::is_edge_inside_cursor(const Triangle &tr, cons
         Vec3f vector1 = edge_a + t1 * edge_dir_n - this->first_center;
         Vec3f vector2 = edge_a + t2 * edge_dir_n - this->second_center;
 
-        // Vectors vector1 and vector2 are 3D vector from centers to the intersections. What we want to
-        // measure is length of its projection onto plane perpendicular to dir.
+        // vector1和vector2是从中心到交点的3D向量。我们要测量的是其在垂直于dir的平面上的投影长度。
         if (float dist = vector1.squaredNorm() - std::pow(vector1.dot(this->dir), 2.f); dist < this->radius_sqr && t1 >= 0.f && t1 <= edge_dir.norm())
             return true;
 
         if (float dist = vector2.squaredNorm() - std::pow(vector2.dot(this->dir), 2.f); dist < this->radius_sqr && t2 >= 0.f && t2 <= edge_dir.norm())
             return true;
 
-        // Check if the edge is passing through the rectangle between first_center and second_center.
+        // 检查边是否穿过first_center和second_center之间的矩形。
         if (edge_inside_rectangle(edge_a, edge_b, rectangle_a, (rectangle_d - rectangle_a)) || edge_inside_rectangle(edge_a, edge_b, rectangle_d, (rectangle_a - rectangle_d)))
             return true;
     }

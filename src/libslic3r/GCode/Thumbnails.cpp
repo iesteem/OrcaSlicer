@@ -52,14 +52,14 @@ std::unique_ptr<CompressedImageBuffer> compress_thumbnail_png(const ThumbnailDat
 
 std::unique_ptr<CompressedImageBuffer> compress_thumbnail_jpg(const ThumbnailData& data)
 {
-    // Take vector of RGBA pixels and flip the image vertically
+    // 获取RGBA像素向量并垂直翻转图像
     std::vector<unsigned char> rgba_pixels(data.pixels.size());
     const unsigned int row_size = data.width * 4;
     for (unsigned int y = 0; y < data.height; ++y) {
         ::memcpy(rgba_pixels.data() + (data.height - y - 1) * row_size, data.pixels.data() + y * row_size, row_size);
     }
 
-    // Store pointers to scanlines start for later use
+    // 存储扫描线起始指针供后续使用
     std::vector<unsigned char*> rows_ptrs;
     rows_ptrs.reserve(data.height);
     for (unsigned int y = 0; y < data.height; ++y) {
@@ -89,7 +89,7 @@ std::unique_ptr<CompressedImageBuffer> compress_thumbnail_jpg(const ThumbnailDat
     jpeg_finish_compress(&info);
     jpeg_destroy_compress(&info);
 
-    // FIXME -> Add error checking
+    // FIXME -> 添加错误检查
 
     auto out = std::make_unique<CompressedJPG>();
     out->data = malloc(compressed_data_size);
@@ -106,7 +106,7 @@ std::unique_ptr<CompressedImageBuffer> compress_thumbnail_qoi(const ThumbnailDat
     desc.channels   = 4;
     desc.colorspace = QOI_SRGB;
 
-    // Take vector of RGBA pixels and flip the image vertically
+    // 获取RGBA像素向量并垂直翻转图像
     std::vector<uint8_t> rgba_pixels(data.pixels.size() * 4);
     size_t row_size = data.width * 4;
     for (size_t y = 0; y < data.height; ++ y)
@@ -127,7 +127,7 @@ std::unique_ptr<CompressedImageBuffer> compress_thumbnail_colpic(const Thumbnail
     int width = int(data.width);
     int height = int(data.height);
 
-    // Orca: cap data size to MAX_SIZE while maintaining aspect ratio
+    // Orca: 将数据大小限制为MAX_SIZE，同时保持宽高比
     if (width > MAX_SIZE || height > MAX_SIZE) {
         double aspectRatio = static_cast<double>(width) / height;
         if (aspectRatio > 1.0) {
@@ -179,7 +179,7 @@ std::unique_ptr<CompressedImageBuffer> compress_thumbnail_colpic(const Thumbnail
 
 std::unique_ptr<CompressedImageBuffer> compress_thumbnail_btt_tft(const ThumbnailData &data) {
 
-    // Take vector of RGBA pixels and flip the image vertically
+    // 获取RGBA像素向量并垂直翻转图像
     std::vector<unsigned char> rgba_pixels(data.pixels.size());
     const unsigned int row_size = data.width * 4;
     for (unsigned int y = 0; y < data.height; ++y) {
@@ -188,9 +188,9 @@ std::unique_ptr<CompressedImageBuffer> compress_thumbnail_btt_tft(const Thumbnai
 
     auto out = std::make_unique<CompressedBIQU>();
 
-    // get the output size of the data
-    // add 4 bytes to the row_size to account for end of line (\r\n)
-    // add 1 byte for the 0 of the c_str
+    // 获取数据的输出大小
+    // 向row_size添加4字节以容纳行尾(\r\n)
+    // 添加1字节用于c_str的0
     out->size = data.height * (row_size + 4) + 1;
     out->data = malloc(out->size);
 
@@ -206,21 +206,21 @@ std::unique_ptr<CompressedImageBuffer> compress_thumbnail_btt_tft(const Thumbnai
             px.b = rgba_pixels[ypos * row_size + xpos + 2];
             px.a = rgba_pixels[ypos * row_size + xpos + 3];
 
-            // calculate values for RGB with alpha
+            // 计算带alpha的RGB值
             const uint8_t rv = ((px.a * px.r) / 255);
             const uint8_t gv = ((px.a * px.g) / 255);
             const uint8_t bv = ((px.a * px.b) / 255);
 
-            // convert the RGB values to RGB565 hex that is right justified (same algorithm BTT firmware uses)
+            // 将RGB值转换为右对齐的RGB565十六进制（与BTT固件使用相同的算法）
             auto color_565 = rjust(get_hex(((rv >> 3) << 11) | ((gv >> 2) << 5) | (bv >> 3)), 4, '0');
 
-            //BTT original converter specifies these values should be '0000'
+            //BTT原始转换器规定这些值应为'0000'
             if (color_565 == "0020" || color_565 == "0841" || color_565 == "0861")
                 color_565 = "0000";
-            //add the color to the line
+            //将颜色添加到行
             line << color_565;
         }
-        // output line and end line (\r\n is important. BTT firmware requires it)
+        // 输出行并换行（\r\n很重要。BTT固件需要它）
         out_data << line.str() << "\r\n";
         line.clear();
     }
@@ -537,7 +537,7 @@ std::pair<GCodeThumbnailDefinitionsList, ThumbnailErrors> make_and_check_thumbna
 
     ThumbnailErrors errors;
 
-    // generate thumbnails data to process it
+    // 生成缩略图数据以供处理
 
     GCodeThumbnailDefinitionsList thumbnails_list;
     while (std::getline(is, point_str, ',')) {
@@ -557,7 +557,7 @@ std::pair<GCodeThumbnailDefinitionsList, ThumbnailErrors> make_and_check_thumbna
                     if (ext_str.empty())
                         ext_str = def_ext.empty() ? "PNG"sv : def_ext;
 
-                    // check validity of extention
+                    // 检查扩展名的有效性
                     boost::to_upper(ext_str);
                     if (!ConfigOptionEnum<GCodeThumbnailsFormat>::from_string(ext_str, format)) {
                         format = GCodeThumbnailsFormat::PNG;
@@ -579,10 +579,10 @@ std::pair<GCodeThumbnailDefinitionsList, ThumbnailErrors> make_and_check_thumbna
 
 std::pair<GCodeThumbnailDefinitionsList, ThumbnailErrors> make_and_check_thumbnail_list(const ConfigBase& config)
 {
-    // ??? Unit tests or command line slicing may not define "thumbnails" or "thumbnails_format".
-    // ??? If "thumbnails_format" is not defined, export to PNG.
+    // ??? 单元测试或命令行切片可能不定义"thumbnails"或"thumbnails_format"。
+    // ??? 如果未定义"thumbnails_format"，则导出为PNG。
 
-    // generate thumbnails data to process it
+    // 生成缩略图数据以供处理
 
     if (const auto thumbnails_value = config.option<ConfigOptionString>("thumbnails"))
         return make_and_check_thumbnail_list(thumbnails_value->value);
@@ -595,11 +595,11 @@ std::string get_error_string(const ThumbnailErrors& errors)
     std::string error_str;
 
     if (errors.has(ThumbnailError::InvalidVal))
-        error_str += "\n - " + Slic3r::format("Invalid input format. Expected vector of dimensions in the following format: \"%1%\"", "XxY/EXT, XxY/EXT, ...");
+        error_str += "\n - " + Slic3r::format("输入格式无效。预期以下格式的维度向量：\"%1%\"", "XxY/EXT, XxY/EXT, ...");
     if (errors.has(ThumbnailError::OutOfRange))
-        error_str += "\n - Input value is out of range";
+        error_str += "\n - 输入值超出范围";
     if (errors.has(ThumbnailError::InvalidExt))
-        error_str += "\n - Some extension in the input is invalid";
+        error_str += "\n - 输入中的某些扩展名无效";
 
     return error_str;
 }

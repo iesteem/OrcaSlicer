@@ -22,7 +22,7 @@
 #include "ShortestPath.hpp"
 #include "libslic3r/Feature/Interlocking/InterlockingGenerator.hpp"
 
-//! macro used to mark string used at localization, return same string
+//! 用于标记本地化所用字符串的宏，返回相同字符串
 #define L(s) Slic3r::I18N::translate(s)
 
 namespace Slic3r {
@@ -43,7 +43,7 @@ static void dump_surface_emboss_mixed_layer_state(
 
 LayerPtrs new_layers(
     PrintObject                 *print_object,
-    // Object layers (pairs of bottom/top Z coordinate), without the raft.
+    // 对象层（底部/顶部 Z 坐标对），不含筏层。
     const std::vector<coordf_t> &object_layers)
 {
     LayerPtrs out;
@@ -66,7 +66,7 @@ LayerPtrs new_layers(
     return out;
 }
 
-// Slice single triangle mesh.
+// 切片单个三角形网格。
 static std::vector<ExPolygons> slice_volume(
     const ModelVolume             &volume,
     const std::vector<float>      &zs,
@@ -88,8 +88,8 @@ static std::vector<ExPolygons> slice_volume(
     return layers;
 }
 
-// Slice single triangle mesh.
-// Filter the zs not inside the ranges. The ranges are closed at the bottom and open at the top, they are sorted lexicographically and non overlapping.
+// 切片单个三角形网格。
+// 过滤不在范围内的 zs。范围底部闭合、顶部开放，按字典序排序且不重叠。
 static std::vector<ExPolygons> slice_volume(
     const ModelVolume                           &volume,
     const std::vector<float>                    &z,
@@ -100,7 +100,7 @@ static std::vector<ExPolygons> slice_volume(
     std::vector<ExPolygons> out;
     if (! z.empty() && ! ranges.empty()) {
         if (ranges.size() == 1 && z.front() >= ranges.front().first && z.back() < ranges.front().second) {
-            // All layers fit into a single range.
+            // 所有层都适合单个范围。
             out = slice_volume(volume, z, params, throw_on_cancel_callback);
         } else {
             std::vector<float>                     z_filtered;
@@ -134,10 +134,10 @@ static inline bool model_volume_needs_slicing(const ModelVolume &mv)
     return type == ModelVolumeType::MODEL_PART || type == ModelVolumeType::NEGATIVE_VOLUME || type == ModelVolumeType::PARAMETER_MODIFIER;
 }
 
-// Slice printable volumes, negative volumes and modifier volumes, sorted by ModelVolume::id().
-// Apply closing radius.
-// Apply positive XY compensation to ModelVolumeType::MODEL_PART and ModelVolumeType::PARAMETER_MODIFIER, not to ModelVolumeType::NEGATIVE_VOLUME.
-// Apply contour simplification.
+// 切片可打印体积、负体积和修改器体积，按 ModelVolume::id() 排序。
+// 应用闭合半径。
+// 对 ModelVolumeType::MODEL_PART 和 ModelVolumeType::PARAMETER_MODIFIER 应用正 XY 补偿，不对 ModelVolumeType::NEGATIVE_VOLUME 应用。
+// 应用轮廓简化。
 static std::vector<VolumeSlices> slice_volumes_inner(
     const PrintConfig                                        &print_config,
     const PrintObjectConfig                                  &print_object_config,
@@ -160,8 +160,8 @@ static std::vector<VolumeSlices> slice_volumes_inner(
     params_base.closing_radius = print_object_config.slice_closing_radius.value;
     params_base.extra_offset   = 0;
     params_base.trafo          = object_trafo;
-    //BBS: 0.0025mm is safe enough to simplify the data to speed slicing up for high-resolution model.
-    //Also has on influence on arc fitting which has default resolution 0.0125mm.
+    //BBS：0.0025mm 足够安全，可以简化数据以加快高分辨率模型的切片速度。
+    //也对弧线拟合有影响，其默认分辨率为 0.0125mm。
     params_base.resolution = print_config.resolution <= 0.001 ? 0.0f : 0.0025;
     switch (print_object_config.slicing_mode.value) {
     case SlicingMode::Regular:    params_base.mode = MeshSlicingParams::SlicingMode::Regular; break;
@@ -174,8 +174,8 @@ static std::vector<VolumeSlices> slice_volumes_inner(
     // BBS
     const size_t num_extruders = print_config.filament_diameter.size();
     const bool   is_mm_painted = num_extruders > 1 && std::any_of(model_volumes.cbegin(), model_volumes.cend(), [](const ModelVolume *mv) { return mv->is_mm_painted(); });
-    // BBS: don't do size compensation when slice volume.
-    // Will handle contour and hole size compensation seperately later.
+    // BBS：切片体积时不进行尺寸补偿。
+    // 稍后将分别处理轮廓和孔尺寸补偿。
     //const auto   extra_offset  = is_mm_painted ? 0.f : std::max(0.f, float(print_object_config.xy_contour_compensation.value));
     const auto   extra_offset = 0.f;
 
@@ -190,8 +190,8 @@ static std::vector<VolumeSlices> slice_volumes_inner(
                         auto it = std::find_if(layer_range.volume_regions.begin(), layer_range.volume_regions.end(),
                             [model_volume](const auto &slice){ return model_volume == slice.model_volume; });
                         params.mode = MeshSlicingParams::SlicingMode::PositiveLargestContour;
-                        // Slice the bottom layers with SlicingMode::Regular.
-                        // This needs to be in sync with LayerRegion::make_perimeters() spiral_mode!
+                        // 使用 SlicingMode::Regular 切片底层。
+                        // 这需要与 LayerRegion::make_perimeters() 的 spiral_mode 同步！
                         const PrintRegionConfig &region_config = it->region->config();
                         params.slicing_mode_normal_below_layer = size_t(region_config.bottom_shell_layers.value);
                         for (; params.slicing_mode_normal_below_layer < zs.size() && zs[params.slicing_mode_normal_below_layer] < region_config.bottom_shell_thickness - EPSILON;
@@ -266,8 +266,8 @@ static std::vector<std::vector<ExPolygons>> slices_to_regions(
     const PrintObjectRegions                                 &print_object_regions,
     const std::vector<float>                                 &zs,
     std::vector<VolumeSlices>                               &&volume_slices,
-    // If clipping is disabled, then ExPolygons produced by different volumes will never be merged, thus they will be allowed to overlap.
-    // It is up to the model designer to handle these overlaps.
+    // 如果裁剪被禁用，则不同体积生成的 ExPolygons 永远不会合并，因此它们将被允许重叠。
+    // 由模型设计者来处理这些重叠。
     const bool                                                clip_multipart_objects,
     const std::function<void()>                              &throw_on_cancel_callback)
 {
@@ -275,7 +275,7 @@ static std::vector<std::vector<ExPolygons>> slices_to_regions(
 
     std::vector<std::vector<ExPolygons>> slices_by_region(print_object_regions.all_regions.size(), std::vector<ExPolygons>(zs.size(), ExPolygons()));
 
-    // First shuffle slices into regions if there is no overlap with another region possible, collect zs of the complex cases.
+    // 首先将切片混洗到区域中（如果不可能与另一个区域重叠的话），收集复杂情况的 zs。
     std::vector<std::pair<size_t, float>> zs_complex;
     {
         size_t z_idx = 0;
@@ -326,7 +326,7 @@ static std::vector<std::vector<ExPolygons>> slices_to_regions(
         }
     }
 
-    // Second perform region clipping and assignment in parallel.
+    // 其次，并行执行区域裁剪和分配。
     if (! zs_complex.empty()) {
         std::vector<std::vector<VolumeSlices*>> layer_ranges_regions_to_slices(print_object_regions.layer_ranges.size(), std::vector<VolumeSlices*>());
         for (const PrintObjectRegions::LayerRangeRegions &layer_range : print_object_regions.layer_ranges) {
@@ -341,17 +341,17 @@ static std::vector<std::vector<ExPolygons>> slices_to_regions(
                 (const tbb::blocked_range<size_t> &range) {
                 float z              = zs_complex[range.begin()].second;
                 auto  it_layer_range = layer_range_first(print_object_regions.layer_ranges, z);
-                // Per volume_regions slices at this Z height.
+                // 每个 volume_regions 在此 Z 高度处的切片。
                 struct RegionSlice {
                     ExPolygons  expolygons;
-                    // Identifier of this region in PrintObjectRegions::all_regions
+                    // 此区域在 PrintObjectRegions::all_regions 中的标识符
                     int         region_id;
                     ObjectID    volume_id;
                     bool operator<(const RegionSlice &rhs) const {
                         bool this_empty = this->region_id < 0 || this->expolygons.empty();
                         bool rhs_empty  = rhs.region_id < 0 || rhs.expolygons.empty();
-                        // Sort the empty items to the end of the list.
-                        // Sort by region_id & volume_id lexicographically.
+                        // 将空项排序到列表末尾。
+                        // 按 region_id 和 volume_id 按字典序排序。
                         return ! this_empty && (rhs_empty || (this->region_id < rhs.region_id || (this->region_id == rhs.region_id && volume_id < volume_id)));
                     }
                 };
@@ -421,7 +421,7 @@ static std::vector<std::vector<ExPolygons>> slices_to_regions(
                                 // Clip every non-zero region preceding it.
                                 for (int idx_region2 = 0; idx_region2 < idx_region; ++ idx_region2)
                                     if (! temp_slices[idx_region2].expolygons.empty()) {
-                                        // Skip trim_overlap for now, because it slow down the performace so much for some special cases
+                                        // 暂时跳过 trim_overlap，因为在某些特殊情况下它会严重降低性能
 #if 1
                                         if (const PrintObjectRegions::VolumeRegion& region2 = layer_range.volume_regions[idx_region2];
                                             !region2.model_volume->is_negative_volume() && overlap_in_xy(*region.bbox, *region2.bbox))
@@ -438,13 +438,13 @@ static std::vector<std::vector<ExPolygons>> slices_to_regions(
                                     }
                             }
                         }
-                    // Sort by region_id, push empty slices to the end.
+                    // 按 region_id 排序，将空切片推到最后。
                     std::sort(temp_slices.begin(), temp_slices.end());
-                    // Remove the empty slices.
+                    // 移除空切片。
                     temp_slices.erase(std::find_if(temp_slices.begin(), temp_slices.end(), [](const auto &slice) { return slice.region_id == -1 || slice.expolygons.empty(); }), temp_slices.end());
-                    // Merge slices and store them to the output.
+                    // 合并切片并存储到输出中。
                     for (int i = 0; i < int(temp_slices.size());) {
-                        // Find a range of temp_slices with the same region_id.
+                        // 找到具有相同 region_id 的 temp_slices 范围。
                         int j = i;
                         bool merged = false;
                         ExPolygons &expolygons = temp_slices[i].expolygons;
@@ -457,9 +457,8 @@ static std::vector<std::vector<ExPolygons>> slices_to_regions(
                                     merged = true;
                                 }
                             }
-                        // Don't unite the regions if ! clip_multipart_objects. In that case it is user's responsibility
-                        // to handle region overlaps. Indeed, one may intentionally let the regions overlap to produce crossing perimeters
-                        // for example.
+                        // 如果 !clip_multipart_objects，则不合并区域。在这种情况下，用户有责任
+                        // 处理区域重叠。例如，用户可能故意让区域重叠以产生交叉周长。
                         if (merged && clip_multipart_objects)
                             expolygons = closing_ex(expolygons, float(scale_(EPSILON)));
                         slices_by_region[temp_slices[i].region_id][z_idx] = std::move(expolygons);
@@ -473,11 +472,11 @@ static std::vector<std::vector<ExPolygons>> slices_to_regions(
     return slices_by_region;
 }
 
-//BBS: justify whether a volume is connected to another one
+//BBS：判断一个体积是否与另一个相连
 bool doesVolumeIntersect(VolumeSlices& vs1, VolumeSlices& vs2)
 {
     if (vs1.volume_id == vs2.volume_id) return true;
-    // two volumes in the same object should have same number of layers, otherwise the slicing is incorrect.
+    // 同一对象中的两个体积应具有相同的层数，否则切片不正确。
     if (vs1.slices.size() != vs2.slices.size()) return false;
 
     auto& vs1s = vs1.slices;
@@ -506,7 +505,7 @@ bool doesVolumeIntersect(VolumeSlices& vs1, VolumeSlices& vs2)
     return is_intersect;
 }
 
-//BBS: grouping the volumes of an object according to their connection relationship
+//BBS：根据连接关系对对象的体积进行分组
 bool groupingVolumes(std::vector<VolumeSlices> objSliceByVolume, std::vector<groupedVolumeSlices>& groups, double resolution, int firstLayerReplacedBy)
 {
     std::vector<int> groupIndex(objSliceByVolume.size(), -1);
@@ -565,7 +564,7 @@ bool groupingVolumes(std::vector<VolumeSlices> objSliceByVolume, std::vector<gro
         if (!exist) groupVector.push_back(gi);
     }
 
-    // group volumes and their slices according to the grouping Vector
+    // 根据分组向量对体积及其切片进行分组
     groups.clear();
 
     for (int gv : groupVector) {
@@ -578,7 +577,7 @@ bool groupingVolumes(std::vector<VolumeSlices> objSliceByVolume, std::vector<gro
             }
         }
 
-        // the slices of a group should be unioned
+        // 组的切片应进行并集操作
         gvs.slices = offset_ex(union_ex(gvs.slices), -offsetValue);
         for (ExPolygon& poly_ex : gvs.slices)
             poly_ex.douglas_peucker(resolution);
@@ -588,7 +587,7 @@ bool groupingVolumes(std::vector<VolumeSlices> objSliceByVolume, std::vector<gro
     return true;
 }
 
-//BBS: filter the members of "objSliceByVolume" such that only "model_part" are included
+//BBS：筛选 "objSliceByVolume" 的成员，使其仅包含 "model_part"
 std::vector<VolumeSlices> findPartVolumes(const std::vector<VolumeSlices>& objSliceByVolume, ModelVolumePtrs model_volumes) {
     std::vector<VolumeSlices> outPut;
     for (const auto& vs : objSliceByVolume) {

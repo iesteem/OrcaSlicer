@@ -20,8 +20,7 @@ EncodedRaster PNGRasterEncoder::operator()(const void *ptr, size_t w, size_t h,
     void *rawdata = tdefl_write_image_to_png_file_in_memory(
         ptr, int(w), int(h), int(num_components), &s);
     
-    // On error, data() will return an empty vector. No other info can be
-    // retrieved from miniz anyway...
+    // 出错时，data() 将返回空向量。反正也无法从 miniz 获取其他信息...
     if (rawdata == nullptr) return EncodedRaster({}, "png");
     
     auto pptr = static_cast<std::uint8_t*>(rawdata);

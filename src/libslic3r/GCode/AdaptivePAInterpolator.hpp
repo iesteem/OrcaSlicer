@@ -1,7 +1,7 @@
 // AdaptivePAInterpolator.hpp
 // Snapmaker_Orca
 //
-// Header file for the AdaptivePAInterpolator class, responsible for interpolating pressure advance (PA) values based on flow rate and acceleration using PCHIP interpolation.
+// AdaptivePAInterpolator类的头文件，负责使用PCHIP插值基于流量和加速度插值压力提前(PA)值。
 
 #ifndef ADAPTIVEPAINTERPOLATOR_HPP
 #define ADAPTIVEPAINTERPOLATOR_HPP
@@ -13,41 +13,41 @@
 
 /**
  * @class AdaptivePAInterpolator
- * @brief A class to interpolate pressure advance (PA) values based on flow rate and acceleration using Piecewise Cubic Hermite Interpolating Polynomial (PCHIP) interpolation.
+ * @brief 一个基于流量和加速度使用分段三次埃尔米特插值多项式(PCHIP)插值压力提前(PA)值的类。
  */
 class AdaptivePAInterpolator {
 public:
     /**
-     * @brief Default constructor.
+     * @brief 默认构造函数。
      */
     AdaptivePAInterpolator() : m_isInitialised(false) {}
 
     /**
-     * @brief Parses the input data and sets up the interpolators.
-     * @param data A string containing the data in CSV format (PA, flow rate, acceleration).
-     * @return 0 on success, -1 on error.
+     * @brief 解析输入数据并设置插值器。
+     * @param data 包含CSV格式数据的字符串(PA, 流量, 加速度)。
+     * @return 成功返回0，错误返回-1。
      */
     int parseAndSetData(const std::string& data);
 
     /**
-     * @brief Interpolates the PA value for the given flow rate and acceleration.
-     * @param flow_rate The flow rate at which to interpolate.
-     * @param acceleration The acceleration at which to interpolate.
-     * @return The interpolated PA value, or -1 if interpolation fails.
+     * @brief 根据给定的流量和加速度插值PA值。
+     * @param flow_rate 插值时的流量。
+     * @param acceleration 插值时的加速度。
+     * @return 插值后的PA值，如果插值失败则返回-1。
      */
     double operator()(double flow_rate, double acceleration);
-    
+
     /**
-     * @brief Returns the initialization status.
-     * @return The value of m_isInitialised.
+     * @brief 返回初始化状态。
+     * @return m_isInitialised的值。
      */
     bool isInitialised() const {
         return m_isInitialised;
     }
 
 private:
-    std::map<double, PchipInterpolatorHelper> flow_interpolators_; ///< Map each acceleration to a flow-rate-to-PA interpolator.
-    std::vector<double> accelerations_; ///< Store unique accelerations.
+    std::map<double, PchipInterpolatorHelper> flow_interpolators_; ///< 将每个加速度映射到流量-PA插值器。
+    std::vector<double> accelerations_; ///< 存储唯一的加速度值。
     bool m_isInitialised;
 };
 

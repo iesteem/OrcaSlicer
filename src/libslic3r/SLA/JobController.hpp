@@ -6,24 +6,22 @@
 
 namespace Slic3r { namespace sla {
 
-/// A Control structure for the support calculation. Consists of the status
-/// indicator callback and the stop condition predicate.
+/// 支撑计算的控制结构。包含状态指示回调函数和停止条件谓词。
 struct JobController
 {
     using StatusFn = std::function<void(unsigned, const std::string&)>;
     using StopCond = std::function<bool(void)>;
     using CancelFn = std::function<void(void)>;
     
-    // This will signal the status of the calculation to the front-end
+    // 这将向前端发送计算状态信号
     StatusFn statuscb = [](unsigned, const std::string&){};
-    
-    // Returns true if the calculation should be aborted.
+
+    // 如果计算应中止，则返回 true。
     StopCond stopcondition = [](){ return false; };
-    
-    // Similar to cancel callback. This should check the stop condition and
-    // if true, throw an appropriate exception. (TriangleMeshSlicer needs this)
-    // consider it a hard abort. stopcondition is permits the algorithm to
-    // terminate itself
+
+    // 类似于取消回调。这应检查停止条件，
+    // 如果为 true，则抛出适当的异常。（TriangleMeshSlicer 需要这个）
+    // 将其视为硬中止。stopcondition 允许算法自行终止
     CancelFn cancelfn = [](){};
 };
 

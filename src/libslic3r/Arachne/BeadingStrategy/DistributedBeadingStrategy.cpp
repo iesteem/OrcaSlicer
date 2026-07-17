@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 #include <numeric>
 #include <algorithm>
 #include <vector>
@@ -52,8 +52,8 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(const co
             const coord_t splitup_left_over_weight = to_be_divided * weight_fraction;
             const coord_t width                    = (bead_idx == bead_count - 1) ? thickness - accumulated_width : optimal_width + splitup_left_over_weight;
 
-            // Be aware that toolpath_locations is computed by dividing the width by 2, so toolpath_locations
-            // could be off by 1 because of rounding errors.
+            // 注意 toolpath_locations 是通过将宽度除以 2 计算的，因此 toolpath_locations
+            // 可能因舍入误差而偏差 1。
             if (bead_idx == 0)
                 ret.toolpath_locations.emplace_back(width / 2);
             else
@@ -91,10 +91,10 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(const co
 
 coord_t DistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
-    const coord_t naive_count        = thickness / optimal_width;               // How many lines we can fit in for sure.
-    const coord_t remainder          = thickness - naive_count * optimal_width; // Space left after fitting that many lines.
+    const coord_t naive_count        = thickness / optimal_width;               // 确定可以容纳多少条线。
+    const coord_t remainder          = thickness - naive_count * optimal_width; // 容纳那么多线后剩余的空间。
     const coord_t minimum_line_width = optimal_width * (naive_count % 2 == 1 ? wall_split_middle_threshold : wall_add_middle_threshold);
-    return naive_count + (remainder >= minimum_line_width); // If there's enough space, fit an extra one.
+    return naive_count + (remainder >= minimum_line_width); // 如果有足够空间，再容纳一条。
 }
 
 } // namespace Slic3r::Arachne

@@ -36,7 +36,7 @@ struct ThumbnailData;
 #define BBL_DESIGNER_MODEL_ID_TAG        "DesignModelId"
 
 
-//BBS: define assistant struct to store temporary variable during exporting 3mf
+//BBS: 定义辅助结构体，用于在导出3mf时存储临时变量
 class PackingTemporaryData
 {
 public:
@@ -48,7 +48,7 @@ public:
 };
 
 
-//BBS: define plate data list related structures
+//BBS: 定义plate数据列表相关结构体
 struct PlateData
 {
     PlateData(int plate_id, std::set<std::pair<int, int>> &obj_to_inst_list, bool lock_state) : plate_index(plate_id), locked(lock_state)
@@ -107,7 +107,7 @@ struct PlateData
     bool locked;
 };
 
-// BBS: encrypt
+// BBS: 加密
 enum class SaveStrategy
 {
     Default = 0,
@@ -202,7 +202,7 @@ const int IMPORT_LOAD_CONFIG            = 11;
 const int IMPORT_LOAD_MODEL_OBJECTS     = 12;
 const int IMPORT_STAGE_MAX              = 13;
 
-//BBS export 3mf progress
+//BBS 导出3mf进度
 typedef std::function<void(int export_stage, int current, int total, bool& cancel)> Export3mfProgressFn;
 typedef std::function<void(int import_stage, int current, int total, bool& cancel)> Import3mfProgressFn;
 
@@ -233,9 +233,9 @@ struct StoreParams
 };
 
 
-//BBS: add plate data list related logic
-// add restore logic
-// Load the content of a 3mf file into the given model and preset bundle.
+//BBS: 添加plate数据列表相关逻辑
+// 添加恢复逻辑
+// 将3mf文件的内容加载到给定的模型和预设包中。
 extern bool load_bbs_3mf(const char* path, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, PlateDataPtrs* plate_data_list, std::vector<Preset*>* project_presets,
         bool* is_bbl_3mf, Semver* file_version, Import3mfProgressFn proFn = nullptr, LoadStrategy strategy = LoadStrategy::Default, BBLProject *project = nullptr, int plate_id = 0);
 
@@ -245,10 +245,10 @@ extern bool load_gcode_3mf_from_stream(std::istream & data, DynamicPrintConfig* 
        Semver* file_version);
 
 
-//BBS: add plate data list related logic
-// add backup logic
-// Save the given model and the config data contained in the given Print into a 3mf file.
-// The model could be modified during the export process if meshes are not repaired or have no shared vertices
+//BBS: 添加plate数据列表相关逻辑
+// 添加备份逻辑
+// 将给定的模型和包含在给定Print中的配置数据保存到3mf文件中。
+// 在导出过程中，如果网格未修复或没有共享顶点，模型可能会被修改。
 /*
 extern bool store_bbs_3mf(const char* path,
                           Model* model,
@@ -267,7 +267,7 @@ extern bool store_bbs_3mf(StoreParams& store_params);
 
 extern void release_PlateData_list(PlateDataPtrs& plate_data_list);
 
-// backup & restore project
+// 备份和恢复项目
 
 extern void save_object_mesh(ModelObject& object);
 

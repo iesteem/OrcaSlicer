@@ -1,66 +1,66 @@
 #ifndef slic3r_enum_bitmask_hpp_
 #define slic3r_enum_bitmask_hpp_
 
-// enum_bitmask for passing a set of attributes to a function in a type safe way.
-// Adapted from https://gpfault.net/posts/typesafe-bitmasks.txt.html
-// with hints from https://www.strikerx3.dev/cpp/2019/02/27/typesafe-enum-class-bitmasks-in-cpp.html
+// enum_bitmask用于以类型安全的方式将一组属性传递给函数。
+// 改编自 https://gpfault.net/posts/typesafe-bitmasks.txt.html
+// 参考 https://www.strikerx3.dev/cpp/2019/02/27/typesafe-enum-class-bitmasks-in-cpp.html
 
 #include <type_traits>
 
 namespace Slic3r {
 
-// enum_bitmasks can only be used with enums.
+// enum_bitmasks只能用于枚举。
 template<class option_type, typename = typename std::enable_if<std::is_enum<option_type>::value>::type>
 class enum_bitmask {
-    // The type we'll use for storing the value of our bitmask should be the same as the enum's underlying type.
+    // 用于存储位掩码值的类型应与枚举的底层类型相同。
     using underlying_type = typename std::underlying_type<option_type>::type;
 
-    // This method helps us avoid having to explicitly set enum values to powers of two.
+    // 此方法帮助我们避免显式地将枚举值设置为2的幂。
     static constexpr underlying_type mask_value(option_type o) { return 1 << static_cast<underlying_type>(o); }
 
-    // Private ctor to be used internally.
+    // 内部使用的私有构造函数。
     explicit constexpr enum_bitmask(underlying_type o) : m_bits(o) {}
 
 public:
-    // Default ctor creates a bitmask with no options selected.
+    // 默认构造函数创建没有选择任何选项的位掩码。
     constexpr enum_bitmask() : m_bits(0) {}
 
-    // Creates a enum_bitmask with just one bit set.
-    // This ctor is intentionally non-explicit, to allow passing an options to a function:
+    // 创建一个只设置了一个位的enum_bitmask。
+    // 这个构造函数故意不是explicit的，以允许将选项传递给函数：
     // FunctionExpectingBitmask(Options::Opt1)
     constexpr enum_bitmask(option_type o) : m_bits(mask_value(o)) {}
 
-    // Set the bit corresponding to the given option.
+    // 设置对应于给定选项的位。
     constexpr enum_bitmask operator|(option_type t) const { return enum_bitmask(m_bits | mask_value(t)); }
 
-    // Combine with another enum_bitmask of the same type.
+    // 与另一个相同类型的enum_bitmask组合。
     constexpr enum_bitmask operator|(enum_bitmask<option_type> t) const { return enum_bitmask(m_bits | t.m_bits); }
     
-    // Set the bit corresponding to the given option.
+    // 设置对应于给定选项的位。
     constexpr void operator|=(option_type t) { m_bits = enum_bitmask(m_bits | mask_value(t)); }
 
-    // Combine with another enum_bitmask of the same type.
+    // 与另一个相同类型的enum_bitmask组合。
     constexpr void operator|=(enum_bitmask<option_type> t) { m_bits = enum_bitmask(m_bits | t.m_bits); }
 
-    // Get the value of the bit corresponding to the given option.
+    // 获取对应于给定选项的位的值。
     constexpr bool operator&(option_type t) const { return m_bits & mask_value(t); }
     constexpr bool has(option_type t) const { return m_bits & mask_value(t); }
     
     constexpr bool operator==(const enum_bitmask r) const { return m_bits == r.m_bits; }
     constexpr bool operator!=(const enum_bitmask r) const { return m_bits != r.m_bits; }
-    // For sorting by the enum values.
+    // 用于按枚举值排序。
     constexpr bool lower(const enum_bitmask r) const { return m_bits < r.m_bits; }
 
 private:
     underlying_type m_bits = 0;
 };
 
-// For enabling free functions producing enum_bitmask<> type from bit operations on enums.
+// 用于启用从枚举的位操作产生enum_bitmask<>类型的自由函数。
 template<typename Enum> struct is_enum_bitmask_type { static const bool enable = false; };
 #define ENABLE_ENUM_BITMASK_OPERATORS(x) template<> struct is_enum_bitmask_type<x> { static const bool enable = true; };
 template<class Enum> inline constexpr bool is_enum_bitmask_type_v = is_enum_bitmask_type<Enum>::enable;
 
-// Creates an enum_bitmask from two options, convenient for passing of options to a function:
+// 从两个选项创建enum_bitmask，方便将选项传递给函数：
 // FunctionExpectingBitmask(Options::Opt1 | Options::Opt2 | Options::Opt3)
 template <class option_type>
 constexpr std::enable_if_t<is_enum_bitmask_type_v<option_type>, enum_bitmask<option_type>> operator|(option_type lhs, option_type rhs) {

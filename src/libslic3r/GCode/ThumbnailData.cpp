@@ -11,7 +11,7 @@ void ThumbnailData::set(unsigned int w, unsigned int h)
     {
         width = w;
         height = h;
-        // defaults to white texture
+        // 默认为白色纹理
         pixels.clear();
         pixels = std::vector<unsigned char>(width * height * 4, 255);
     }

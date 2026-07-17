@@ -32,21 +32,21 @@ const char* GCodeReader::parse_line_internal(const char *ptr, const char *end, G
 
     assert(is_decimal_separator_point());
     
-    // command and args
+    // 命令和参数
     const char *c = ptr;
     {
         PROFILE_BLOCK(command_and_args);
-        // Skip the whitespaces.
+        // 跳过空白字符。
         command.first = skip_whitespaces(c);
-        // Skip the command.
+        // 跳过命令。
         c = command.second = skip_word(command.first);
-        // Up to the end of line or comment.
+        // 直到行尾或注释。
 		while (! is_end_of_gcode_line(*c)) {
-            // Skip whitespaces.
+            // 跳过空白字符。
             c = skip_whitespaces(c);
 			if (is_end_of_gcode_line(*c))
 				break;
-            // Check the name of the axis.
+            // 检查轴名称。
             Axis axis = NUM_AXES_WITH_UNKNOWN;
             switch (*c) {
             case 'X': axis = X; break;
@@ -60,25 +60,25 @@ const char* GCodeReader::parse_line_internal(const char *ptr, const char *end, G
             case 'P': axis = P; break;
             default:
                 if (*c >= 'A' && *c <= 'Z')
-                	// Unknown axis, but we still want to remember that such a axis was seen.
+                	// 未知轴，但我们仍然想记录看到过这样的轴。
                 	axis = UNKNOWN_AXIS;
                 break;
             }
             if (axis != NUM_AXES_WITH_UNKNOWN) {
-                // Try to parse the numeric value.
+                // 尝试解析数值。
                 double v;
                 auto [pend, ec] = fast_float::from_chars(++ c, end, v);
                 if (pend != c && is_end_of_word(*pend)) {
-                    // The axis value has been parsed correctly.
+                    // 轴值已正确解析。
                     if (axis != UNKNOWN_AXIS)
 	                    gline.m_axis[int(axis)] = float(v);
                     gline.m_mask |= 1 << int(axis);
                     c = pend;
                 } else
-                    // Skip the rest of the word.
+                    // 跳过单词的其余部分。
                     c = skip_word(c);
             } else
-                // Skip the rest of the word.
+                // 跳过单词的其余部分。
                 c = skip_word(c);
         }
     }
@@ -86,16 +86,16 @@ const char* GCodeReader::parse_line_internal(const char *ptr, const char *end, G
     if (gline.has(E) && m_config.use_relative_e_distances)
         m_position[E] = 0;
 
-    // Skip the rest of the line.
+    // 跳过行中剩余部分。
     for (; ! is_end_of_line(*c); ++ c);
 
-    // Copy the raw string including the comment, without the trailing newlines.
+    // 复制包括注释在内的原始字符串，不包括尾部换行符。
     if (c > ptr) {
         PROFILE_BLOCK(copy_raw_string);
         gline.m_raw.assign(ptr, c);
     }
 
-    // Skip the trailing newlines.
+    // 跳过尾部换行符。
 	if (*c == '\r')
 		++ c;
 	if (*c == '\n')
@@ -127,9 +127,9 @@ bool GCodeReader::parse_file_raw_internal(const std::string &filename, ParseLine
 {
     FilePtr in{ boost::nowide::fopen(filename.c_str(), "rb") };
 
-    // Read the input stream 64kB at a time, extract lines and process them.
+    // 每次读取 64kB 输入流，提取行并处理它们。
     std::vector<char> buffer(65536 * 10, 0);
-    // Line buffer.
+    // 行缓冲区。
     std::string gcode_line;
     size_t file_pos = 0;
     m_parsing = true;
@@ -141,13 +141,13 @@ bool GCodeReader::parse_file_raw_internal(const std::string &filename, ParseLine
         auto it        = buffer.begin();
         auto it_bufend = buffer.begin() + cnt_read;
         while (it != it_bufend || (eof && ! gcode_line.empty())) {
-            // Find end of line.
+            // 查找行尾。
             bool eol    = false;
             auto it_end = it;
             for (; it_end != it_bufend && ! (eol = *it_end == '\r' || *it_end == '\n'); ++ it_end)
                 if (*it_end == '\n')
                     line_end_callback(file_pos + (it_end - buffer.begin()) + 1);
-            // End of line is indicated also if end of file was reached.
+            // 如果到达文件末尾，也指示行结束。
             eol |= eof && it_end == it_bufend;
             if (eol) {
                 if (gcode_line.empty())
@@ -158,11 +158,11 @@ bool GCodeReader::parse_file_raw_internal(const std::string &filename, ParseLine
                     gcode_line.clear();
                 }
                 if (! m_parsing)
-                    // The callback wishes to exit.
+                    // 回调希望退出。
                     return true;
             } else
                 gcode_line.insert(gcode_line.end(), it, it_end);
-            // Skip EOL.
+            // 跳过行尾。
             it = it_end; 
             if (it != it_bufend && *it == '\r')
                 ++ it;
@@ -225,20 +225,20 @@ bool GCodeReader::parse_file_raw(const std::string &filename, raw_line_callback_
 bool GCodeReader::GCodeLine::has(char axis) const
 {
     const char *c = m_raw.c_str();
-    // Skip the whitespaces.
+    // 跳过空白字符。
     c = skip_whitespaces(c);
-    // Skip the command.
+    // 跳过命令。
     c = skip_word(c);
-    // Up to the end of line or comment.
+    // 直到行尾或注释。
     while (! is_end_of_gcode_line(*c)) {
         // Skip whitespaces.
         c = skip_whitespaces(c);
         if (is_end_of_gcode_line(*c))
             break;
-        // Check the name of the axis.
+        // 检查轴名称。
         if (*c == axis)
             return true;
-        // Skip the rest of the word.
+        // 跳过单词的其余部分。
         c = skip_word(c);
     }
     return false;
@@ -248,17 +248,17 @@ bool GCodeReader::GCodeLine::has_value(char axis, float &value) const
 {
     assert(is_decimal_separator_point());
     const char *c = m_raw.c_str();
-    // Skip the whitespaces.
+    // 跳过空白字符。
     c = skip_whitespaces(c);
-    // Skip the command.
+    // 跳过命令。
     c = skip_word(c);
-    // Up to the end of line or comment.
+    // 直到行尾或注释。
     while (! is_end_of_gcode_line(*c)) {
         // Skip whitespaces.
         c = skip_whitespaces(c);
         if (is_end_of_gcode_line(*c))
             break;
-        // Check the name of the axis.
+        // 检查轴名称。
         if (*c == axis) {
             // Try to parse the numeric value.
             char   *pend = nullptr;
@@ -269,7 +269,7 @@ bool GCodeReader::GCodeLine::has_value(char axis, float &value) const
                 return true;
             }
         }
-        // Skip the rest of the word.
+        // 跳过单词的其余部分。
         c = skip_word(c);
     }
     return false;

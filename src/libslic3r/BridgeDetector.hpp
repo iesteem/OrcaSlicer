@@ -1,4 +1,4 @@
-#ifndef slic3r_BridgeDetector_hpp_
+﻿#ifndef slic3r_BridgeDetector_hpp_
 #define slic3r_BridgeDetector_hpp_
 
 #include "ClipperUtils.hpp"
@@ -21,36 +21,36 @@ namespace Slic3r {
 // The bridge orientation is measured CCW from the X axis.
 class BridgeDetector {
 public:
-    // The non-grown holes.
+    // 未扩展的孔洞。
     const ExPolygons            &expolygons;
-    // In case the caller gaves us the input polygons by a value, make a copy.
+    // 如果调用者按值提供输入多边形，则进行复制。
     ExPolygons                   expolygons_owned;
-    // Lower slices, all regions.
+    // 下层切片，所有区域。
     const ExPolygons   			&lower_slices;
-    // Scaled extrusion width of the infill.
+    // 填充的缩放挤出宽度。
     coord_t                      spacing;
-    // Angle resolution for the brute force search of the best bridging angle.
+    // 暴力搜索最佳桥接角度的角度分辨率。
     double                       resolution;
-    // The final optimal angle.
+    // 最终最优角度。
     double                       angle;
     
     BridgeDetector(ExPolygon _expolygon, const ExPolygons &_lower_slices, coord_t _extrusion_width);
     BridgeDetector(const ExPolygons &_expolygons, const ExPolygons &_lower_slices, coord_t _extrusion_width);
-    // If bridge_direction_override != 0, then the angle is used instead of auto-detect.
+    // 如果 bridge_direction_override != 0，则使用该角度代替自动检测。
     bool detect_angle(double bridge_direction_override = 0.);
     Polygons coverage(double angle = -1, bool precise = true) const;
     void unsupported_edges(double angle, Polylines* unsupported) const;
     Polylines unsupported_edges(double angle = -1) const;
     
 private:
-    // Suppress warning "assignment operator could not be generated"
+    // 抑制警告 "assignment operator could not be generated"
     BridgeDetector& operator=(const BridgeDetector &);
 
     void initialize();
 
     struct BridgeDirection {
         BridgeDirection(double a = -1.) : angle(a), coverage(0.), max_length(0.), archored_percent(0.){}
-        // the best direction is the one causing most lines to be bridged (thus most coverage)
+        // 最佳方向是导致最多线条被桥接的方向（即覆盖率最大）
         bool operator<(const BridgeDirection &other) const {
             // Initial sort by coverage only - comparator must obey strict weak ordering
             return this->coverage > other.coverage;//this->archored_percent > other.archored_percent;
@@ -61,12 +61,12 @@ private:
         double archored_percent;
     };
 
-    // Get possible briging direction candidates.
+    // 获取可能的桥接方向候选。
     std::vector<double> bridge_direction_candidates() const;
 
-    // Open lines representing the supporting edges.
+    // 表示支撑边缘的开放线。
     Polylines _edges;
-    // Closed polygons representing the supporting areas.
+    // 表示支撑区域的封闭多边形。
     ExPolygons _anchor_regions;
 };
 
@@ -75,7 +75,7 @@ private:
 inline std::tuple<Vec2d, double> detect_bridging_direction(const Lines &floating_edges, const Polygons &overhang_area)
 {
     if (floating_edges.empty()) {
-        // consider this area anchored from all sides, pick bridging direction that will likely yield shortest bridges
+        // 认为此区域从所有侧面都被锚定，选择可能产生最短桥接的桥接方向
         auto [pc1, pc2] = compute_principal_components(overhang_area);
         if (pc2 == Vec2f::Zero()) { // overhang may be smaller than resolution. In this case, any direction is ok
             return {Vec2d{1.0,0.0}, 0.0};
@@ -84,7 +84,7 @@ inline std::tuple<Vec2d, double> detect_bridging_direction(const Lines &floating
         }
     }
 
-    // Overhang is not fully surrounded by anchors, in that case, find such direction that will minimize the number of bridge ends/180turns in the air
+    // 悬垂未完全被锚点包围，在这种情况下，找到能够最小化空中桥接端/180度转弯数量的方向
     std::unordered_map<double, Vec2d> directions{};
     for (const Line &l : floating_edges) {
         Vec2d normal = l.normal().cast<double>().normalized();
@@ -92,7 +92,7 @@ inline std::tuple<Vec2d, double> detect_bridging_direction(const Lines &floating
         directions.emplace(quantized_angle, normal);
     }
     std::vector<std::pair<Vec2d, double>> direction_costs{};
-    // it is acutally cost of a perpendicular bridge direction - we find the minimal cost and then return the perpendicular dir
+    // 这实际上是垂直桥接方向的成本 - 我们找到最小成本然后返回垂直方向
     for (const auto& d : directions) {
         direction_costs.emplace_back(d.second, 0.0);
     }

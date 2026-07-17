@@ -1,4 +1,4 @@
-// Polygon offsetting using Voronoi diagram prodiced by boost::polygon.
+// 使用boost::polygon生成的Voronoi图进行多边形偏移。
 
 #ifndef slic3r_VoronoiOffset_hpp_
 #define slic3r_VoronoiOffset_hpp_
@@ -32,46 +32,45 @@ inline Point&       contour_point(const VD::cell_type &cell, Lines &lines)
 inline Vec2d 		vertex_point(const VD::vertex_type &v) { return Vec2d(v.x(), v.y()); }
 inline Vec2d 		vertex_point(const VD::vertex_type *v) { return Vec2d(v->x(), v->y()); }
 
-// "Color" stored inside the boost::polygon Voronoi vertex.
+// 存储在boost::polygon Voronoi顶点中的"颜色"。
 enum class VertexCategory : unsigned char
 {
-	// Voronoi vertex is on the input contour.
-	// VD::vertex_type stores coordinates in double, though the coordinates shall match exactly
-	// with the coordinates of the input contour when converted to int32_t.
+	// Voronoi顶点位于输入轮廓上。
+	// VD::vertex_type以double存储坐标，但转换为int32_t时坐标应与输入轮廓的坐标完全匹配。
 	OnContour,
-	// Vertex is inside the CCW input contour, holes are respected.
+	// 顶点位于CCW输入轮廓内部，考虑孔洞。
 	Inside,
-	// Vertex is outside the CCW input contour, holes are respected.
+	// 顶点位于CCW输入轮廓外部，考虑孔洞。
 	Outside,
-	// Not known yet.
+	// 尚不清楚。
 	Unknown,
 };
 
-// "Color" stored inside the boost::polygon Voronoi edge.
-// The Voronoi edge as represented by boost::polygon Voronoi module is really a half-edge,
-// the half-edges are classified based on the target vertex (VD::vertex_type::vertex1())
+// 存储在boost::polygon Voronoi边中的"颜色"。
+// boost::polygon Voronoi模块表示的Voronoi边实际上是一个半边，
+// 半边根据目标顶点（VD::vertex_type::vertex1()）进行分类。
 enum class EdgeCategory : unsigned char
 {
-	// This half-edge points onto the contour, this VD::edge_type::vertex1().color() is OnContour.
+	// 此半边指向轮廓，其VD::edge_type::vertex1().color()为OnContour。
 	PointsToContour,
-	// This half-edge points inside, this VD::edge_type::vertex1().color() is Inside.
+	// 此半边指向内部，其VD::edge_type::vertex1().color()为Inside。
 	PointsInside,
-	// This half-edge points outside, this VD::edge_type::vertex1().color() is Outside.
+	// 此半边指向外部，其VD::edge_type::vertex1().color()为Outside。
 	PointsOutside,
-	// Not known yet.
+	// 尚不清楚。
 	Unknown
 };
 
-// "Color" stored inside the boost::polygon Voronoi cell.
+// 存储在boost::polygon Voronoi单元中的"颜色"。
 enum class CellCategory : unsigned char
 {
-	// This Voronoi cell is split by an input segment to two halves, one is inside, the other is outside.
+	// 此Voronoi单元被输入线段分成两半，一半在内部，一半在外部。
 	Boundary,
-	// This Voronoi cell is completely inside.
+	// 此Voronoi单元完全在内部。
 	Inside,
-	// This Voronoi cell is completely outside.
+	// 此Voronoi单元完全在外部。
 	Outside,
-	// Not known yet.
+	// 尚不清楚。
 	Unknown
 };
 
@@ -102,15 +101,14 @@ inline void 		  	set_cell_category(const VD::cell_type &v, CellCategory c)
 inline void 		  	set_cell_category(const VD::cell_type *v, CellCategory c)
 	{ v->color(static_cast<VD::cell_type::color_type>(c)); }
 
-// Mark the "Color" of VD vertices, edges and cells as Unknown.
+// 将VD顶点、边和单元的"颜色"标记为Unknown。
 void reset_inside_outside_annotations(VD &vd);
 
-// Assign "Color" to VD vertices, edges and cells signifying whether the entity is inside or outside
-// the input polygons defined by Lines.
+// 为VD顶点、边和单元分配"颜色"，表示实体位于Lines定义的输入多边形内部还是外部。
 void annotate_inside_outside(VD &vd, const Lines &lines);
 
-// Returns a signed distance to Voronoi vertices from the input polygons.
-// (negative distances inside, positive distances outside).
+// 返回从输入多边形到Voronoi顶点的有符号距离。
+// （内部为负距离，外部为正距离）。
 std::vector<double> signed_vertex_distances(const VD &vd, const Lines &lines);
 
 static inline bool edge_offset_no_intersection(const Vec2d &intersection_point)
@@ -133,11 +131,11 @@ Polygons offset(
     double                           offset_distance,
     double                           discretization_error);
 
-// Offset a polygon or a set of polygons possibly with holes by traversing a Voronoi diagram.
-// The input polygons are stored in lines and lines are referenced by vd.
-// Outer curve will be extracted for a positive offset_distance,
-// inner curve will be extracted for a negative offset_distance.
-// Circular arches will be discretized to achieve discretization_error.
+// 通过遍历Voronoi图来偏移多边形或可能带孔的多边形集合。
+// 输入多边形存储在lines中，lines由vd引用。
+// 正偏移距离将提取外曲线，
+// 负偏移距离将提取内曲线。
+// 圆弧将被离散化以达到discretization_error。
 Polygons offset(
 	const VD 		&vd, 
 	const Lines 	&lines, 

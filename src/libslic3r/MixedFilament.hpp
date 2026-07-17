@@ -15,12 +15,12 @@ class PrintObject;
 
 std::vector<int> fill_continuous_layer_range(const std::vector<int> &sorted_layers);
 
-// Represents a virtual "mixed" filament created from physical filaments
-// (layer cadence and/or same-layer interleaved stripe distribution). Display
-// colour blending uses FilamentMixer  so pair previews better
-//  match expected print mixing 
-// (for example Blue+Yellow -> Green, Red+Yellow -> Orange, Red+Blue -> Purple). 
-// Legacy RYB code is retained in source for reference only.
+// 表示由物理耗材创建的虚拟"混合"耗材
+// （层节奏和/或同层交错条纹分布）。显示
+// 颜色混合使用FilamentMixer，以便配对预览更
+// 匹配预期的打印混合效果
+// （例如蓝+黄 -> 绿，红+黄 -> 橙，红+蓝 -> 紫）。
+// 旧的RYB代码保留在源代码中仅供参考。
 struct MixedFilament
 {
     enum DistributionMode : uint8_t {
@@ -29,80 +29,75 @@ struct MixedFilament
         Simple = 2
     };
 
-    // 1-based physical filament IDs that are combined.
+    // 组合的基于1的物理耗材ID。
     unsigned int component_a = 1;
     unsigned int component_b = 2;
 
-    // Persistent row identity used to keep painted virtual-tool assignments
-    // stable even when the visible mixed-filament list is rebuilt.
+    // 持久行标识，用于在可见的混合耗材列表重建时保持绘制的虚拟工具分配的稳定性。
     uint64_t stable_id = 0;
 
-    // Layer-alternation ratio.  With ratio_a = 2, ratio_b = 1 the cycle is
-    // A, A, B, A, A, B, ...
+    // 层交替比例。当ratio_a = 2, ratio_b = 1时，循环为A, A, B, A, A, B, ...
     int ratio_a = 1;
     int ratio_b = 1;
 
-    // Blend percentage of component B in [0..100].
+    // 组分B的混合百分比，范围[0..100]。
     int mix_b_percent = 50;
 
-    // Optional manual pattern for this mixed filament.
-    // Legacy format (no '/'): each '1'-'9' char is a token.
-    //   '1'=>component_a, '2'=>component_b, '3'-'9'=>direct physical IDs.
-    // Modern format (with '/'): '/' separates tokens, multi-digit IDs supported.
-    //   e.g. "1/10/2/11/12". Comma separates per-perimeter groups.
+    // 此混合耗材的可选手动模式。
+    // 旧格式（无'/'）：每个'1'-'9'字符是一个标记。
+    //   '1'=>component_a, '2'=>component_b, '3'-'9'=>直接物理ID。
+    // 新格式（带'/'）：'/'分隔标记，支持多位数字ID。
+    //   例如 "1/10/2/11/12"。逗号分隔每个周长的组。
     std::string manual_pattern;
 
-    // Optional explicit gradient multi-color component list, encoded as
-    // compact physical filament IDs (for example "123" -> filaments 1,2,3).
-    // Interleaved stripe mode is active for gradient rows only when this list has 3+ IDs.
+    // 可选的显式渐变多色组分列表，编码为紧凑的物理耗材ID（例如"123" -> 耗材1,2,3）。
+    // 仅当此列表有3个以上ID时，渐变行的交错条纹模式才激活。
     std::string gradient_component_ids;
-    // Optional explicit multi-color weights aligned with gradient_component_ids.
-    // Compact integer list joined by '/': for example "50/25/25".
+    // 与gradient_component_ids对齐的可选显式多色权重。
+    // 用'/'连接的紧凑整数列表：例如"50/25/25"。
     std::string gradient_component_weights;
 
-    // Legacy compatibility flag from earlier prototype serialization.
+    // 来自早期原型序列化的旧兼容性标志。
     bool pointillism_all_filaments = false;
 
-    // How this mixed row is distributed:
-    // - LayerCycle: one filament per layer based on cadence.
-    // - SameLayerPointillisme: split painted masks in XY on each layer.
+    // 这个混合行的分布方式：
+    // - LayerCycle：基于节奏每层一个耗材。
+    // - SameLayerPointillisme：在每层的XY上分割绘制的遮罩。
     int distribution_mode = int(Simple);
 
-    // Optional Local-Z cap for this mixed row. 0 disables the cap.
+    // 此混合行的可选Local-Z上限。0表示禁用上限。
     int local_z_max_sublayers = 0;
 
-    static constexpr float k_default_gradient_dominant = 0.8f;  // Dominant component ratio
-    static constexpr float k_default_gradient_minority = 0.2f;  // Minority component ratio
-    static constexpr float k_min_gradient_difference   = 0.05f; // Minimum difference for valid gradient
+    static constexpr float k_default_gradient_dominant = 0.8f;  // 主要组分比例
+    static constexpr float k_default_gradient_minority = 0.2f;  // 次要组分比例
+    static constexpr float k_min_gradient_difference   = 0.05f; // 有效渐变的最小差值
     
     bool  gradient_enabled = false;
     float gradient_start = k_default_gradient_dominant;
     float gradient_end   = k_default_gradient_minority;
 
-    // Additional XY surface offsets, in mm, applied when this mixed row
-    // resolves to component A or B for an entire layer. Positive values
-    // contract inward; negative values expand outward.
+    // 以毫米为单位的附加XY表面偏移，在此混合行解析为整个层的组分A或B时应用。
+    // 正值向内收缩；负值向外扩展。
     float component_a_surface_offset = 0.f;
     float component_b_surface_offset = 0.f;
 
-    // Whether this mixed filament is enabled (available for assignment).
+    // 此混合耗材是否启用（可用于分配）。
     bool enabled = true;
 
-    // True when this mixed filament row was deleted from UI and should stay hidden.
+    // 当此混合耗材行从UI删除时应保持隐藏时为true。
     bool deleted = false;
 
-    // True when this row was user-created (custom) instead of auto-generated.
+    // 当此行是用户创建的（自定义）而不是自动生成的时为true。
     bool custom = false;
 
-    // True when this row originated from an auto-generated pair. This remains
-    // true even after editing so delete logic can keep the base auto pair
-    // tombstoned instead of letting regeneration resurrect it.
+    // 当此行源自自动生成的对时为true。即使在编辑后仍保持true，
+    // 以便删除逻辑可以保持基础自动对已删除状态，而不是让重新生成复活它。
     bool origin_auto = false;
 
-    // UI mode that created this row (-1=unknown/legacy, 0=RATIO, 1=CYCLE, 2=MATCH, 3=GRADIENT).
+    // 创建此行的UI模式（-1=未知/旧版，0=RATIO，1=CYCLE，2=MATCH，3=GRADIENT）。
     int ui_mode = -1;
 
-    // Computed display colour as "#RRGGBB".
+    // 计算出的显示颜色，格式为 "#RRGGBB"。
     std::string display_color;
 
     bool operator==(const MixedFilament &rhs) const
@@ -170,11 +165,10 @@ std::string compute_mixed_filament_display_color(const MixedFilament &entry, con
 // ---------------------------------------------------------------------------
 // MixedFilamentManager
 //
-// Owns the list of mixed filaments and provides helpers used by the slicing
-// pipeline to resolve virtual IDs back to physical extruders.
+// 拥有混合耗材列表，并提供切片管道用于将虚拟ID解析回物理挤出机的辅助函数。
 //
-// Virtual filament IDs are numbered starting at (num_physical + 1).  For a
-// 4-extruder printer the first mixed filament has ID 5, the second 6, etc.
+// 虚拟耗材ID从(num_physical + 1)开始编号。对于
+// 4挤出机打印机，第一个混合耗材的ID为5，第二个为6，依此类推。
 // ---------------------------------------------------------------------------
 class MixedFilamentManager
 {
@@ -184,97 +178,90 @@ public:
     static void set_auto_generate_enabled(bool enabled);
     static bool auto_generate_enabled();
 
-    // ---- Auto-generation ------------------------------------------------
+    // ---- 自动生成 ------------------------------------------------
 
-    // Rebuild the mixed-filament list from the current set of physical
-    // filament colours.  Generates all C(N,2) pairwise combinations.
-    // Previous ratio/enabled state is preserved when a combination still
-    // exists.
+    // 从当前物理耗材颜色集合重建混合耗材列表。生成所有C(N,2)配对组合。
+    // 当组合仍然存在时，保留先前的比例/启用状态。
     void auto_generate(const std::vector<std::string> &filament_colours);
 
-    // Remove a physical filament (1-based ID) from the mixed list.
-    // Any mixed filament that contains the removed component is deleted.
-    // Remaining component IDs are shifted down to stay aligned with physical IDs.
+    // 从混合列表中移除物理耗材（基于1的ID）。
+    // 任何包含被移除组件的混合耗材将被删除。
+    // 剩余的组件ID向下移位以保持与物理ID对齐。
     void remove_physical_filament(unsigned int deleted_filament_id);
 
-    // Add a custom mixed filament.
+    // 添加自定义混合耗材。
     void add_custom_filament(unsigned int component_a, unsigned int component_b, int mix_b_percent, const std::vector<std::string> &filament_colours);
 
-    // Remove all custom rows, keep auto-generated ones.
+    // 移除所有自定义行，保留自动生成的行。
     void clear_custom_entries();
 
-    // Clean up deleted mixed filaments from memory.
-    // This should be called after serializing to remove deleted entries that are no longer needed.
+    // 从内存中清理已删除的混合耗材。
+    // 应在序列化后调用，以移除不再需要的已删除条目。
     void cleanup_deleted_entries();
 
-    // Recompute cadence ratios from gradient settings.
-    // gradient_mode: 0 = Layer cycle weighted, 1 = Height weighted.
+    // 根据渐变设置重新计算节奏比例。
+    // gradient_mode: 0 = 层循环加权，1 = 高度加权。
     void apply_gradient_settings(int   gradient_mode,
                                  float lower_bound,
                                  float upper_bound,
                                  bool  advanced_dithering = false);
 
-    // Persist mixed rows, including auto/deleted state, into the compact
-    // project-settings string.
+    // 将混合行（包括自动/已删除状态）持久化到紧凑的项目设置字符串中。
     std::string serialize_custom_entries();
     void load_custom_entries(const std::string &serialized, const std::vector<std::string> &filament_colours);
 
-    // ---- Pattern string functions -------------------------------------------
-    // Normalize a manual mixed-pattern string into canonical form.
-    // Format: digits 1-9 for IDs 1-9, [N] for IDs >= 10, comma for group separator.
-    // Returns empty string if invalid.
+    // ---- 模式字符串函数 -------------------------------------------
+    // 将手动混合模式字符串规范化为标准形式。
+    // 格式：数字1-9表示ID 1-9，[N]表示ID >= 10，逗号作为组分隔符。
+    // 如果无效则返回空字符串。
     static std::string normalize_manual_pattern(const std::string &pattern);
     static int         mix_percent_from_manual_pattern(const std::string &pattern);
 
-    // Tokenize a single pattern group (no commas) into token strings.
-    // Handles single-digit and bracket ([N]) tokens.
+    // 将单个模式组（无逗号）分词为标记字符串。
+    // 处理单个数字和括号([N])标记。
     static std::vector<std::string> split_pattern_group_to_tokens(const std::string &group, size_t num_physical);
 
-    // Map a string token to a physical extruder ID.
-    // "1" => component_a, "2" => component_b, "3"+ => direct physical ID.
+    // 将字符串标记映射到物理挤出机ID。
+    // "1" => component_a, "2" => component_b, "3"+ => 直接物理ID。
     static unsigned int physical_filament_from_token(const std::string &token, const MixedFilament &mf, size_t num_physical);
 
-    // Split a normalized pattern string by comma into group strings.
+    // 按逗号将规范化模式字符串分割为组字符串。
     static std::vector<std::string> split_pattern_groups(const std::string &pattern);
 
-    // ---- Gradient component ID encoding / decoding ------------------------
+    // ---- 渐变组件ID编码/解码 ------------------------
 
-    // Maximum number of physical filaments supported by the encoding.
+    // 编码支持的最大物理耗材数量。
     static constexpr size_t kMaxPhysicalFilaments = 64;
 
-    // Encode filament IDs (1-based) to a compact string.
-    // Legacy format (all IDs ≤ 9):  concatenated single chars, e.g. "132".
-    // Extended format (any ID > 9): '/' separated decimals, e.g. "1/12/3".
-    // Single-ID extended uses leading '/' to disambiguate, e.g. "/12".
+    // 将耗材ID（基于1）编码为紧凑字符串。
+    // 旧格式（所有ID ≤ 9）：连接单个字符，例如 "132"。
+    // 扩展格式（任何ID > 9）：'/'分隔的十进制数，例如 "1/12/3"。
+    // 单ID扩展使用前导'/'以消除歧义，例如 "/12"。
     static std::string encode_gradient_component_ids(const std::vector<unsigned int> &ids);
 
-    // Decode a gradient_component_ids string to a vector of filament IDs (1-based).
-    // Handles both legacy and extended formats.  When num_physical > 0 each ID is
-    // validated to be ≤ num_physical.
+    // 将gradient_component_ids字符串解码为耗材ID的向量（基于1）。
+    // 处理旧格式和扩展格式。当num_physical > 0时，每个ID都验证为≤ num_physical。
     static std::vector<unsigned int> decode_gradient_component_ids(const std::string &components,
                                                                    size_t             num_physical = 0);
 
-    // Expand virtual mixed-filament IDs in a sorted/deduplicated vector into
-    // their physical component IDs (component_a, component_b, and gradient
-    // component IDs).  IDs ≤ num_physical are left unchanged.  The caller is
-    // responsible for re-sorting and re-deduplicating after the call.
+    // 将排序/去重向量中的虚拟混合耗材ID扩展为它们的物理组件ID（component_a、component_b和梯度组件ID）。
+    // ID ≤ num_physical保持不变。调用者负责在调用后重新排序和重新去重。
     void expand_virtual_extruder_ids(std::vector<int> &ids, size_t num_physical) const;
 
-    // Normalize a gradient_component_ids string to canonical form.
-    // Canonical form uses legacy encoding when all IDs ≤ 9, extended otherwise.
+    // 将gradient_component_ids字符串规范化为标准形式。
+    // 标准形式在ID均≤9时使用旧编码，否则使用扩展编码。
     static std::string normalize_gradient_component_ids(const std::string &components);
 
-    // ---- Queries --------------------------------------------------------
+    // ---- 查询 --------------------------------------------------------
 
-    // True when `filament_id` (1-based) refers to a mixed filament.
+    // 当`filament_id`（基于1）引用混合耗材时为true。
     bool is_mixed(unsigned int filament_id, size_t num_physical) const
     {
         return mixed_index_from_filament_id(filament_id, num_physical) >= 0;
     }
 
-    // Resolve a mixed filament ID to a physical extruder (1-based) for the
-    // given layer context. Returns `filament_id` unchanged when it is not a
-    // mixed filament.
+    // 将混合耗材ID解析为给定层上下文的物理挤出机（基于1）。
+    // 当不是混合耗材时，返回未更改的`filament_id`。
     unsigned int resolve(unsigned int filament_id,
                          size_t       num_physical,
                          int          layer_index,
@@ -290,10 +277,9 @@ public:
                                    float        layer_height  = 0.f,
                                    bool         force_height_weighted = false,
                                    const PrintObject* current_object = nullptr) const;
-    // Resolve the filament ID that should own painted regions on this layer.
-    // Modes that require virtual identity later in G-code generation keep the
-    // original mixed ID; ordinary mixed rows collapse to the current physical
-    // extruder so adjacent same-tool regions can merge.
+    // 解析应拥有此层上绘制区域的耗材ID。
+    // 在G-code生成后期需要虚拟身份的模式保留原始混合ID；
+    // 普通混合行折叠为当前物理挤出机，以便相邻的相同工具区域可以合并。
     unsigned int effective_painted_region_filament_id(unsigned int filament_id,
                                                       size_t       num_physical,
                                                       int          layer_index,
@@ -315,23 +301,21 @@ public:
                                                           float        layer_height  = 0.f,
                                                           bool         force_height_weighted = false) const;
 
-    // Map virtual filament ID (1-based, after physical IDs) to index into
-    // m_mixed. Virtual IDs enumerate enabled mixed rows only.
+    // 将虚拟耗材ID（基于1，物理ID之后）映射到m_mixed中的索引。虚拟ID仅枚举启用的混合行。
     int mixed_index_from_filament_id(unsigned int filament_id, size_t num_physical) const;
 
-    // Blend N colours using weighted FilamentMixer blending.
-    // color_percents: vector of (hex_color, percent) where percents sum to 100.
+    // 使用加权FilamentMixer混合N种颜色。
+    // color_percents: (hex_color, percent)的向量，其中百分比总和为100。
     static std::string blend_color_multi(
         const std::vector<std::pair<std::string, int>> &color_percents);
 
     const MixedFilament *mixed_filament_from_id(unsigned int filament_id, size_t num_physical) const;
 
-    // Get all mixed filament indices that depend on a specific physical filament (1-based ID).
-    // Returns a vector of indices into m_mixed for mixed filaments that use the physical filament
-    // as a component (either component_a, component_b, or in gradient_component_ids).
+    // 获取所有依赖于特定物理耗材（基于1的ID）的混合耗材索引。
+    // 返回m_mixed中索引的向量，用于将物理耗材作为组件（component_a、component_b或gradient_component_ids中）使用的混合耗材。
     std::vector<size_t> mixed_filaments_using_physical(unsigned int physical_filament_1based) const;
 
-    // Compute a display colour by blending two colours with FilamentMixer.
+    // 通过使用FilamentMixer混合两种颜色来计算显示颜色。
     static std::string blend_color(const std::string &color_a,
                                    const std::string &color_b,
                                    int ratio_a, int ratio_b);
@@ -347,29 +331,29 @@ public:
                                       float component_b_surface_offset,
                                       float reference_width_mm = 0.4f);
 
-    // Exposed for unit testing — pure logic helpers.
+    // 为单元测试公开——纯逻辑辅助函数。
     static int         safe_mod(int x, int m);
     static void        normalize_ratio_pair(int &a, int &b);
     static float       canonical_signed_bias_value(float component_a_surface_offset, float component_b_surface_offset);
     static std::string format_surface_offset_token(float value);
     static double      mixed_filament_reference_nozzle_mm(unsigned int component_a, unsigned int component_b, const std::vector<double> &nozzle_diameters);
 
-    // ---- Accessors ------------------------------------------------------
+    // ---- 访问器 ------------------------------------------------------
 
     const std::vector<MixedFilament> &mixed_filaments() const { return m_mixed; }
     std::vector<MixedFilament>       &mixed_filaments()       { return m_mixed; }
 
     size_t enabled_count() const;
 
-    // Total filament count = num_physical + number of *enabled* mixed filaments.
+    // 总耗材数量 = num_physical + *启用的*混合耗材数量。
     size_t total_filaments(size_t num_physical) const { return num_physical + enabled_count(); }
 
-    // Return the display colours of all enabled mixed filaments (in order).
+    // 返回所有启用的混合耗材的显示颜色（按顺序）。
     std::vector<std::string> display_colors() const;
     void set_display_context(const MixedFilamentDisplayContext &context);
 
 private:
-    // Convert a 1-based virtual ID to a 0-based index into m_mixed.
+    // 将基于1的虚拟ID转换为m_mixed中基于0的索引。
     size_t index_of(unsigned int filament_id, size_t num_physical) const
     {
         return static_cast<size_t>(filament_id - num_physical - 1);
@@ -388,12 +372,11 @@ private:
     MixedFilamentDisplayContext m_display_context;
 };
 
-// Returns true when the mixed filament represents a simple two-color gradient
-// that can be rendered as a vertical color ramp (no manual pattern, exactly 2 components).
+// 当混合耗材表示可以渲染为垂直颜色斜坡的简单双色渐变时返回true（无手动模式，恰好2个组件）。
 inline bool is_simple_gradient(const MixedFilament& mf)
 {
-    // Lightweight ID count without heap allocation.
-    // Canonical form: legacy "12" = two IDs, extended "1/12/3" = three IDs.
+    // 轻量级ID计数，无堆分配。
+    // 标准形式：旧版"12"=两个ID，扩展"1/12/3"=三个ID。
     auto count_ids = [](const std::string& s) -> size_t {
         if (s.empty()) return 0;
         if (s.find('/') != std::string::npos) {

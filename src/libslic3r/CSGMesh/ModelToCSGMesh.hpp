@@ -1,4 +1,4 @@
-#ifndef MODELTOCSGMESH_HPP
+﻿﻿#ifndef MODELTOCSGMESH_HPP
 #define MODELTOCSGMESH_HPP
 
 #include "CSGMesh.hpp"
@@ -9,8 +9,8 @@
 
 namespace Slic3r { namespace csg {
 
-// Flags to select which parts to export from Model into a csg part collection.
-// These flags can be chained with the | operator
+//// Flags to select 其 parts to export from Model into a csg part 集合.
+//// 这些 flags 可以 为 chained with the | operator
 enum ModelParts {
     mpartsPositive = 1,   // Include positive parts
     mpartsNegative = 2,   // Include negative parts
@@ -22,7 +22,7 @@ template<class OutIt>
 bool model_to_csgmesh(const ModelObject &mo,
                       const Transform3d &trafo, // Applies to all exported parts
                       OutIt              out,   // Output iterator
-                      // values of ModelParts OR-ed
+                      //// 值 of ModelParts OR-ed
                       int                parts_to_include = mpartsPositive
                       )
 {
@@ -71,18 +71,18 @@ bool model_to_csgmesh(const ModelObject &mo,
         }
     }
 
-    //if (do_drillholes) {
-    //    sla::DrainHoles drainholes = sla::transformed_drainhole_points(mo, trafo);
+    //// 如果 (do_drillholes) {
+    //// sla::DrainHoles drainholes = sla::transformed_drainhole_points(mo, trafo);
 
-    //    for (const sla::DrainHole &dhole : drainholes) {
-    //        CSGPart part{std::make_unique<const indexed_triangle_set>(
-    //                         dhole.to_mesh()),
-    //                     CSGType::Difference};
+    //// for (const sla::DrainHole &dhole : drainholes) {
+    //// CSGPart part{std::make_unique<const indexed_triangle_set>(
+    //// dhole.to_mesh()),
+    //// CSGType::差异};
 
-    //        *out = std::move(part);
-    //        ++out;
-    //    }
-    //}
+    //// *out = std::move(part);
+    //// ++out;
+    //// }
+    //// }
 
     return has_splitable_volume;
 }

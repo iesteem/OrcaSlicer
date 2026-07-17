@@ -52,21 +52,21 @@ public:
     }
     void translate(const Vec3d& displacement);
     void translate(const Transform3d& tran);
-    // Get type of this feature.
+    // 获取此特征的类型。
     SurfaceFeatureType get_type() const { return m_type; }
 
-    // For points, return the point.
+    // 对于点，返回该点。
     Vec3d get_point() const { assert(m_type == SurfaceFeatureType::Point); return m_pt1; }
-    // For edges, return start and end.
+    // 对于边，返回起点和终点。
     std::pair<Vec3d, Vec3d> get_edge() const { assert(m_type == SurfaceFeatureType::Edge); return std::make_pair(m_pt1, m_pt2); }
 
-    // For circles, return center, radius and normal.
+    // 对于圆，返回圆心、半径和法线。
     std::tuple<Vec3d, double, Vec3d> get_circle() const { assert(m_type == SurfaceFeatureType::Circle); return std::make_tuple(m_pt1, m_value, m_pt2); }
 
-    // For planes, return index into vector provided by Measuring::get_plane_triangle_indices, normal and point.
+    // 对于平面，返回由 Measuring::get_plane_triangle_indices 提供的向量索引、法线和点。
     std::tuple<int, Vec3d, Vec3d> get_plane() const { assert(m_type == SurfaceFeatureType::Plane); return std::make_tuple(int(m_value), m_pt1, m_pt2); }
 
-    // For anything, return an extra point that should also be considered a part of this.
+    // 对于任何类型，返回也应被视为其一部分的额外点。
     std::optional<Vec3d> get_extra_point() const { assert(m_type != SurfaceFeatureType::Undef); return m_pt3; }
 
     bool operator == (const SurfaceFeature& other) const {
@@ -118,25 +118,24 @@ class MeasuringImpl;
 
 class Measuring {
 public:
-    // Construct the measurement object on a given its.
+    // 在给定的 indexed_triangle_set 上构造测量对象。
     explicit Measuring(const indexed_triangle_set& its);
     ~Measuring();
 
 
-    // Given a face_idx where the mouse cursor points, return a feature that
-    // should be highlighted (if any).
+    // 给定鼠标光标指向的 face_idx，返回应高亮显示的特征（如果有）。
     std::optional<SurfaceFeature> get_feature(size_t face_idx, const Vec3d& point, const Transform3d & world_tran,bool only_select_plane) const;
 
-    // Return total number of planes.
+    // 返回平面的总数。
     int get_num_of_planes() const;
 
-    // Returns a list of triangle indices for given plane.
+    // 返回给定平面的三角形索引列表。
     const std::vector<int>& get_plane_triangle_indices(int idx) const;
 
-    // Returns the surface features of the plane with the given index
+    // 返回具有给定索引的平面的表面特征
     const std::vector<SurfaceFeature>& get_plane_features(unsigned int plane_id) const;
 
-    // Returns the mesh used for measuring
+    // 返回用于测量的网格
     const indexed_triangle_set& get_its() const;
 
 private:
@@ -179,7 +178,7 @@ struct MeasurementResult {
     }
 };
 
-// Returns distance/angle between two SurfaceFeatures.
+// 返回两个 SurfaceFeature 之间的距离/角度。
 MeasurementResult get_measurement(const SurfaceFeature& a, const SurfaceFeature& b,bool deal_circle_result =false);
 bool              can_set_xyz_distance(const SurfaceFeature &a, const SurfaceFeature &b);
 

@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #include "SkeletalTrapezoidationGraph.hpp"
 
@@ -31,7 +31,7 @@ bool STHalfEdge::canGoUp(bool strict) const
         return false;
     }
 
-    // Edge is between equidistqant verts; recurse!
+    // 边在等距顶点之间；递归！
     for (edge_t* outgoing = next; outgoing != twin; outgoing = outgoing->twin->next)
     {
         if (outgoing->canGoUp())
@@ -39,7 +39,7 @@ bool STHalfEdge::canGoUp(bool strict) const
             return true;
         }
         assert(outgoing->twin); if (!outgoing->twin) return false;
-        assert(outgoing->twin->next); if (!outgoing->twin->next) return true; // This point is on the boundary?! Should never occur
+        assert(outgoing->twin->next); if (!outgoing->twin->next) return true; // 此点在边界上？！不应发生
     }
     return false;
 }
@@ -55,7 +55,7 @@ bool STHalfEdge::isUpward() const
         return false;
     }
 
-    // Equidistant edge case:
+    // 等距边情况：
     std::optional<coord_t> forward_up_dist = this->distToGoUp();
     std::optional<coord_t> backward_up_dist = twin->distToGoUp();
     if (forward_up_dist && backward_up_dist)
@@ -72,7 +72,7 @@ bool STHalfEdge::isUpward() const
     {
         return false;
     }
-    return to->p < from->p; // Arbitrary ordering, which returns the opposite for the twin edge
+    return to->p < from->p; // 任意排序，为孪生边返回相反结果
 }
 
 std::optional<coord_t> STHalfEdge::distToGoUp() const
@@ -86,7 +86,7 @@ std::optional<coord_t> STHalfEdge::distToGoUp() const
         return std::optional<coord_t>();
     }
 
-    // Edge is between equidistqant verts; recurse!
+    // 边在等距顶点之间；递归！
     std::optional<coord_t> ret;
     for (edge_t* outgoing = next; outgoing != twin; outgoing = outgoing->twin->next)
     {
@@ -103,7 +103,7 @@ std::optional<coord_t> STHalfEdge::distToGoUp() const
             }
         }
         assert(outgoing->twin); if (!outgoing->twin) return std::optional<coord_t>();
-        assert(outgoing->twin->next); if (!outgoing->twin->next) return 0; // This point is on the boundary?! Should never occur
+        assert(outgoing->twin->next); if (!outgoing->twin->next) return 0; // 此点在边界上？！不应发生
     }
     if (ret)
     {
@@ -135,7 +135,7 @@ bool STHalfEdgeNode::isMultiIntersection()
     do
     {
         if ( ! outgoing)
-        { // This is a node on the outside
+        { // 这是一个外部节点
             return false;
         }
         if (outgoing->data.isCentral())
@@ -177,7 +177,7 @@ bool STHalfEdgeNode::isLocalMaximum(bool strict) const
         assert(edge->twin); if (!edge->twin) return false;
 
         if (!edge->twin->next)
-        { // This point is on the boundary
+        { // 此点在边界上
             return false;
         }
     } while (edge = edge->twin->next, edge != incident_edge);
@@ -254,7 +254,7 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
                 }
             }
 
-            // o-o > collapse top
+            //// o-o > collapse 顶部
             // | |
             // | |
             // | |
@@ -283,7 +283,7 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
         }
 
         //  o-o
-        //  | | > collapse sides
+        //// | | > collapse sides
         //  o o
         if ( should_collapse(quad_start->from, quad_end->to) && should_collapse(quad_start->to, quad_end->from))
         { // Collapse start and end edges and remove whole cell
@@ -308,9 +308,9 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
             safelyRemoveEdge(quad_start, edge_it, edge_it_is_updated);
             safelyRemoveEdge(quad_end, edge_it, edge_it_is_updated);
         }
-        // If only one side had collapsable length then the cell on the other side of that edge has to collapse
-        // if we would collapse that one edge then that would change the quad_start and/or quad_end of neighboring cells
-        // this is to do with the constraint that !prev == !twin.next
+        //// 如果 仅 one side had collapsable 长度 则 the cell on the other side of 该 边 有 to collapse
+        //// 如果 we 会 collapse 该 one 边 则 该 会 change the quad_start and/or quad_end of neighboring cells
+        //// 此 是 to do with the constraint 该 !prev == !twin.下一个
 
         if (!edge_it_is_updated)
         {

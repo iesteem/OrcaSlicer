@@ -18,8 +18,8 @@ using PointIndexEl = std::pair<Vec3d, unsigned>;
 class PointIndex {
     class Impl;
 
-    // We use Pimpl because it takes a long time to compile boost headers which
-    // is the engine of this class. We include it only in the cpp file.
+    // 我们使用 Pimpl，因为编译 boost 头文件需要很长时间，
+    // 而这些头文件是该类的引擎。我们仅在 cpp 文件中包含它们。
     std::unique_ptr<Impl> m_impl;
 public:
 
@@ -59,8 +59,8 @@ using BoxIndexEl = std::pair<Slic3r::BoundingBox, unsigned>;
 class BoxIndex {
     class Impl;
     
-    // We use Pimpl because it takes a long time to compile boost headers which
-    // is the engine of this class. We include it only in the cpp file.
+    // 我们使用 Pimpl，因为编译 boost 头文件需要很长时间，
+    // 而这些头文件是该类的引擎。我们仅在 cpp 文件中包含它们。
     std::unique_ptr<Impl> m_impl;
 public:
     

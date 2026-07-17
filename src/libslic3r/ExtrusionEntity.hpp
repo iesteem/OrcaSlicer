@@ -1,4 +1,4 @@
-#ifndef slic3r_ExtrusionEntity_hpp_
+﻿#ifndef slic3r_ExtrusionEntity_hpp_
 #define slic3r_ExtrusionEntity_hpp_
 
 #include "libslic3r.h"
@@ -16,7 +16,7 @@ using ExPolygons = std::vector<ExPolygon>;
 class ExtrusionEntityCollection;
 class Extruder;
 
-// Each ExtrusionRole value identifies a distinct set of { extruder, speed }
+// 每个 ExtrusionRole 值标识一个不同的集合 { 挤出机, 速度 }
 enum ExtrusionRole : uint8_t {
     erNone,
     erPerimeter,
@@ -37,17 +37,17 @@ enum ExtrusionRole : uint8_t {
     erSupportTransition,
     erWipeTower,
     erCustom,
-    // Extrusion role for a collection with multiple extrusion roles.
+    // 具有多个挤出角色的集合的挤出角色。
     erMixed,
     erCount
 };
 
-// Special flags describing loop
+// 描述循环的特殊标志
 enum ExtrusionLoopRole : uint8_t {
     elrDefault=0x0,
-    // Loop for the hole, not for the contour
+    // 孔洞的循环，不是轮廓
     elrHole=0x1,
-    // Loop that is the most closest to infill
+    // 最接近填充的循环
     elrInternal = 0x2,
     elrSkirt=0x4,
 };
@@ -112,7 +112,7 @@ public:
     virtual bool can_sort() const { return true; }//BBS: only used in ExtrusionEntityCollection
     virtual void set_reverse() {}
     virtual ExtrusionEntity* clone() const = 0;
-    // Create a new object, initialize it with this object using the move semantics.
+    // 创建新对象，使用移动语义用此对象初始化它。
     virtual ExtrusionEntity* clone_move() = 0;
     virtual ~ExtrusionEntity() {}
     virtual void reverse() = 0;
@@ -129,7 +129,7 @@ public:
         { Polygons out; this->polygons_covered_by_width(out, scaled_epsilon); return out; }
     Polygons polygons_covered_by_spacing(const float scaled_epsilon = 0.f) const
         { Polygons out; this->polygons_covered_by_spacing(out, scaled_epsilon); return out; }
-    // Minimum volumetric velocity of this extrusion entity. Used by the constant nozzle pressure algorithm.
+    // 此挤出实体的最小体积速度。用于恒定喷嘴压力算法。
     virtual double min_mm3_per_mm() const = 0;
     virtual Polyline as_polyline() const = 0;
     virtual void   collect_polylines(Polylines &dst) const = 0;
@@ -138,7 +138,7 @@ public:
     virtual double length() const = 0;
     virtual double total_volume() const = 0;
     
-    // Orca: Used for inner/outer/inner mode - classic perimeter generator
+    // Orca: 用于内/外/内模式 - 经典周长生成器
     int inset_idx = -1;
 
     static std::string role_to_string(ExtrusionRole role);
@@ -151,11 +151,11 @@ class ExtrusionPath : public ExtrusionEntity
 {
 public:
     Polyline polyline;
-    // Volumetric velocity. mm^3 of plastic per mm of linear head motion. Used by the G-code generator.
+    // 体积速度。每毫米线性头运动的塑料 mm^3。由 G 代码生成器使用。
     double mm3_per_mm;
-    // Width of the extrusion, used for visualization purposes.
+    // 挤出宽度，用于可视化目的。
     float width;
-    // Height of the extrusion, used for visualization purposes.
+    // 挤出高度，用于可视化目的。
     float height;
 
     ExtrusionPath() : mm3_per_mm(-1), width(-1), height(-1), m_role(erNone), m_no_extrusion(false) {}
@@ -231,7 +231,7 @@ public:
     }
 
 	ExtrusionEntity* clone() const override { return new ExtrusionPath(*this); }
-    // Create a new object, initialize it with this object using the move semantics.
+    // 创建新对象，使用移动语义用此对象初始化它。
 	ExtrusionEntity* clone_move() override { return new ExtrusionPath(std::move(*this)); }
     void reverse() override { this->polyline.reverse(); }
     const Point& first_point() const override { return this->polyline.points.front(); }
@@ -260,14 +260,14 @@ public:
         { Polygons out; this->polygons_covered_by_width(out, scaled_epsilon); return out; }
     Polygons polygons_covered_by_spacing(const float scaled_epsilon = 0.f) const
         { Polygons out; this->polygons_covered_by_spacing(out, scaled_epsilon); return out; }
-    // Minimum volumetric velocity of this extrusion entity. Used by the constant nozzle pressure algorithm.
+    // 此挤出实体的最小体积速度。用于恒定喷嘴压力算法。
     double min_mm3_per_mm() const override { return this->mm3_per_mm; }
     Polyline as_polyline() const override { return this->polyline; }
     void   collect_polylines(Polylines &dst) const override { if (! this->polyline.empty()) dst.emplace_back(this->polyline); }
     void   collect_points(Points &dst) const override { append(dst, this->polyline.points); }
     double total_volume() const override { return mm3_per_mm * unscale<double>(length()); }
 
-    //BBS: add new simplifing method by fitting arc
+    //BBS: 添加通过拟合圆弧进行简化的新方法
     void simplify_by_fitting_arc(double tolerance);
     //BBS:
     bool is_force_no_extrusion() const { return m_no_extrusion; }
@@ -325,14 +325,14 @@ class ExtrusionPathOriented : public ExtrusionPath
 public:
     ExtrusionPathOriented(ExtrusionRole role, double mm3_per_mm, float width, float height) : ExtrusionPath(role, mm3_per_mm, width, height) {}
     ExtrusionEntity* clone() const override { return new ExtrusionPathOriented(*this); }
-    // Create a new object, initialize it with this object using the move semantics.
+    // 创建新对象，使用移动语义用此对象初始化它。
     ExtrusionEntity* clone_move() override { return new ExtrusionPathOriented(std::move(*this)); }
     virtual bool can_reverse() const override { return false; }
 };
 
 typedef std::vector<ExtrusionPath> ExtrusionPaths;
 
-// Single continuous extrusion path, possibly with varying extrusion thickness, extrusion height or bridging / non bridging.
+// 单个连续挤出路径，可能具有变化的挤出厚度、挤出高度或桥接/非桥接。
 class ExtrusionMultiPath : public ExtrusionEntity
 {
 public:
@@ -372,7 +372,7 @@ public:
     bool can_reverse() const override { return m_can_reverse; }
     void set_reverse() override { m_can_reverse = false; }
 	ExtrusionEntity* clone() const override { return new ExtrusionMultiPath(*this); }
-    // Create a new object, initialize it with this object using the move semantics.
+    // 创建新对象，使用移动语义用此对象初始化它。
 	ExtrusionEntity* clone_move() override { return new ExtrusionMultiPath(std::move(*this)); }
     void reverse() override;
     const Point& first_point() const override { return this->paths.front().polyline.points.front(); }
@@ -392,7 +392,7 @@ public:
         { Polygons out; this->polygons_covered_by_width(out, scaled_epsilon); return out; }
     Polygons polygons_covered_by_spacing(const float scaled_epsilon = 0.f) const
         { Polygons out; this->polygons_covered_by_spacing(out, scaled_epsilon); return out; }
-    // Minimum volumetric velocity of this extrusion entity. Used by the constant nozzle pressure algorithm.
+    // 此挤出实体的最小体积速度。用于恒定喷嘴压力算法。
     double min_mm3_per_mm() const override;
     Polyline as_polyline() const override;
     void   collect_polylines(Polylines &dst) const override { Polyline pl = this->as_polyline(); if (! pl.empty()) dst.emplace_back(std::move(pl)); }
@@ -408,7 +408,7 @@ private:
     bool m_can_reverse = true;
 };
 
-// Single continuous extrusion loop, possibly with varying extrusion thickness, extrusion height or bridging / non bridging.
+// 单个连续挤出循环，可能具有变化的挤出厚度、挤出高度或桥接/非桥接。
 class ExtrusionLoop : public ExtrusionEntity
 {
 public:
@@ -439,7 +439,7 @@ public:
     bool is_loop() const override{ return true; }
     bool can_reverse() const override { return false; }
 	ExtrusionEntity* clone() const override{ return new ExtrusionLoop (*this); }
-    // Create a new object, initialize it with this object using the move semantics.
+    // 创建新对象，使用移动语义用此对象初始化它。
 	ExtrusionEntity* clone_move() override { return new ExtrusionLoop(std::move(*this)); }
     bool make_clockwise();
     bool make_counter_clockwise();
@@ -477,7 +477,7 @@ public:
         { Polygons out; this->polygons_covered_by_width(out, scaled_epsilon); return out; }
     Polygons polygons_covered_by_spacing(const float scaled_epsilon = 0.f) const
         { Polygons out; this->polygons_covered_by_spacing(out, scaled_epsilon); return out; }
-    // Minimum volumetric velocity of this extrusion entity. Used by the constant nozzle pressure algorithm.
+    // 此挤出实体的最小体积速度。用于恒定喷嘴压力算法。
     double min_mm3_per_mm() const override;
     Polyline as_polyline() const override { return this->polygon().split_at_first_point(); }
     void   collect_polylines(Polylines &dst) const override { Polyline pl = this->as_polyline(); if (! pl.empty()) dst.emplace_back(std::move(pl)); }

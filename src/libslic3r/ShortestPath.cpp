@@ -15,8 +15,8 @@
 
 namespace Slic3r {
 
-// Naive implementation of the Traveling Salesman Problem, it works by always taking the next closest neighbor.
-// This implementation will always produce valid result even if some segments cannot reverse.
+// 旅行商问题的朴素实现，通过始终选择最近的下一个邻居来工作。
+// 此实现将始终产生有效结果，即使某些线段无法反转。
 template<typename EndPointType, typename KDTreeType, typename CouldReverseFunc>
 std::vector<std::pair<size_t, bool>> chain_segments_closest_point(std::vector<EndPointType> &end_points, KDTreeType &kdtree, CouldReverseFunc &could_reverse_func, EndPointType &first_point)
 {
@@ -55,41 +55,41 @@ std::vector<std::pair<size_t, bool>> chain_segments_closest_point(std::vector<En
 	return out;
 }
 
-// Chain perimeters (always closed) and thin fills (closed or open) using a greedy algorithm.
-// Solving a Traveling Salesman Problem (TSP) with the modification, that the sites are not always points, but points and segments.
-// Solving using a greedy algorithm, where a shortest edge is added to the solution if it does not produce a bifurcation or a cycle.
-// Return index and "reversed" flag.
+// 使用贪心算法链接周长（始终闭合）和薄填充（闭合或开放）。
+// 解决旅行商问题（TSP）的变体，其中位置不总是点，而是点和线段。
+// 使用贪心算法求解，如果最短边不会产生分叉或循环，则将其添加到解中。
+// 返回索引和"反转"标志。
 // https://en.wikipedia.org/wiki/Multi-fragment_algorithm
-// The algorithm builds a tour for the traveling salesman one edge at a time and thus maintains multiple tour fragments, each of which 
-// is a simple path in the complete graph of cities. At each stage, the algorithm selects the edge of minimal cost that either creates 
-// a new fragment, extends one of the existing paths or creates a cycle of length equal to the number of cities.
+// 该算法一次为旅行商构建一条边，从而维护多个旅行片段，每个片段
+// 是完整城市图中的一条简单路径。在每个阶段，算法选择最小成本的边，该边要么创建
+// 新片段，扩展现有路径之一，要么创建长度等于城市数量的循环。
 template<typename PointType, typename SegmentEndPointFunc, bool REVERSE_COULD_FAIL, typename CouldReverseFunc>
 std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals_(SegmentEndPointFunc end_point_func, CouldReverseFunc could_reverse_func, size_t num_segments, const PointType *start_near)
 {
 	std::vector<std::pair<size_t, bool>> out;
 
 	if (num_segments == 0) {
-		// Nothing to do.
+		// 无需执行任何操作。
 	} 
 	else if (num_segments == 1)
 	{
-		// Just sort the end points so that the first point visited is closest to start_near.
+		// 对端点进行排序，使得访问的第一个点最接近start_near。
 		out.emplace_back(0, could_reverse_func(0) && start_near != nullptr && 
             (end_point_func(0, false) - *start_near).template cast<double>().squaredNorm() < (end_point_func(0, true) - *start_near).template cast<double>().squaredNorm());
 	} 
 	else
 	{
-		// End points of segments for the KD tree closest point search.
-		// A single end point is inserted into the search structure for loops, two end points are entered for open paths.
+		// KD树最近点搜索的线段端点。
+		// 对于回路，在搜索结构中插入一个端点；对于开放路径，插入两个端点。
 		struct EndPoint {
 			EndPoint(const Vec2d &pos) : pos(pos) {}
 			Vec2d     pos;
-			// Identifier of the chain, to which this end point belongs. Zero means unassigned.
+			// 此端点所属链的标识符。零表示未分配。
 			size_t    chain_id = 0;
-			// Link to the closest currently valid end point.
+			// 指向当前最近的有效端点的链接。
 			EndPoint *edge_out = nullptr;
-			// Distance to the next end point following the link.
-			// Zero value -> start of the final path.
+			// 沿着链接到下一个端点的距离。
+			// 零值 -> 最终路径的起点。
 			double    distance_out = std::numeric_limits<double>::max();
 			size_t    heap_idx = std::numeric_limits<size_t>::max();
 		};
@@ -109,14 +109,14 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 		// will remember an "equivalent" chain ID, which is the lowest ID of all the IDs in the path, and the lowest ID is equivalent to itself.
 		class EquivalentChains {
 		public:
-			// Zero'th chain ID is invalid.
+			// 第零个链ID无效。
 			EquivalentChains(size_t reserve) { m_equivalent_with.reserve(reserve); m_equivalent_with.emplace_back(0); }
-			// Generate next equivalence class.
+			// 生成下一个等价类。
 			size_t 				next() {
 				m_equivalent_with.emplace_back(++ m_last_chain_id);
 				return m_last_chain_id;
 			}
-			// Get equivalence class for chain ID.
+			// 获取链ID的等价类。
 			size_t 				operator()(size_t chain_id) {
 				if (chain_id != 0) {
 					for (size_t last = chain_id;;) {
@@ -162,12 +162,12 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 			std::vector<size_t> m_equivalent_with;
 		} equivalent_chain(num_segments);
 
-		// Find the first end point closest to start_near.
+		// 查找最接近start_near的第一个端点。
 		EndPoint *first_point = nullptr;
 		size_t    first_point_idx = std::numeric_limits<size_t>::max();
 		if (start_near != nullptr) {
             size_t idx = find_closest_point(kdtree, start_near->template cast<double>(),
-				// Don't start with a reverse segment, if flipping of the segment is not allowed.
+				// 如果不允许反转线段，则不要以反转线段开始。
 				[&could_reverse_func](size_t idx) { return (idx & 1) == 0 || could_reverse_func(idx >> 1); });
 			assert(idx < end_points.size());
 			first_point = &end_points[idx];
@@ -178,7 +178,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 		EndPoint *initial_point = first_point;
 		EndPoint *last_point = nullptr;
 
-		// Assign the closest point and distance to the end points.
+		// 为端点分配最近点和距离。
 		for (EndPoint &end_point : end_points) {
 	    	assert(end_point.edge_out == nullptr);
 	    	if (&end_point != first_point) {
@@ -291,7 +291,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 				end_point2.chain_id = chain_id;
 				assert(validate_graph_and_queue());
 				if (iter == 0) {
-					// Last iteration. There shall be exactly one or two end points waiting to be connected.
+					// 最后一次迭代。应该恰好有一或两个端点等待连接。
 					assert(queue.size() == ((first_point == nullptr) ? 2 : 1));
 					if (first_point == nullptr) {
 						first_point = queue.top();
@@ -308,7 +308,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 				// This edge forms a loop. Update end_point1 and try another one.
 				++ iter;
 				end_point1.edge_out = nullptr;
-		    	// Update edge_out and distance.
+		    	// 更新edge_out和距离。
 		    	size_t this_idx = &end_point1 - &end_points.front();
 		    	// Find the closest point to this end_point, which lies on a different extrusion path (filtered by the filter lambda).
 				size_t next_idx = find_closest_point(kdtree, end_point1.pos, [&end_points, &equivalent_chain, this_idx](size_t idx) { 
@@ -338,7 +338,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 		}
 		assert(queue.empty());
 
-		// Now interconnect pairs of segments into a chain.
+		// 现在将线段对相互连接成一条链。
 		assert(first_point != nullptr);
 		out.reserve(num_segments);
 		bool      failed = false;
@@ -362,7 +362,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 		if (REVERSE_COULD_FAIL) {
 			if (failed) {
 				if (start_near == nullptr) {
-					// We may try the reverse order.
+					// 我们可以尝试反向顺序。
 					out.clear();
 					first_point = last_point;
 					failed = false;
@@ -382,7 +382,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 				}
 			}
 			if (failed)
-				// As a last resort, try a dumb algorithm, which is not sensitive to edge reversal constraints.
+				// 作为最后手段，尝试一个简单的算法，该算法对边反转约束不敏感。
 				out = chain_segments_closest_point<EndPoint, decltype(kdtree), CouldReverseFunc>(end_points, kdtree, could_reverse_func, (initial_point != nullptr) ? *initial_point : end_points.front());
 		} else {
 			assert(! failed);
@@ -396,20 +396,20 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 template<typename QueueType, typename KDTreeType, typename ChainsType, typename EndPointType>
 void update_end_point_in_queue(QueueType &queue, const KDTreeType &kdtree, ChainsType &chains, std::vector<EndPointType> &end_points, EndPointType &end_point, size_t first_point_idx, const EndPointType *first_point)
 {
-	// Updating an end point or a 2nd from an end point.
+	// 更新端点或距端点第二个的点。
 	size_t this_idx = end_point.index(end_points);
-	// If this segment is not the starting segment, then this end point or the opposite is unconnected.
+	// 如果此线段不是起始线段，则此端点或相对的端点未连接。
 	assert(first_point_idx == this_idx || first_point_idx == (this_idx ^ 1) || end_point.chain_id == 0 || end_point.opposite(end_points).chain_id == 0);
 	end_point.edge_candidate = nullptr;
 	if (first_point_idx == this_idx || (end_point.chain_id > 0 && first_point_idx == (this_idx ^ 1)))
 	{
-		// One may never flip the 1st edge, don't try it again.
+		// 第一条边永远不能翻转，不要再尝试。
 		if (! end_point.heap_idx_invalid())
 			queue.remove(end_point.heap_idx);
 	}
 	else
 	{
-		// Update edge_candidate and distance.
+		// 更新edge_candidate和距离。
 		size_t chain1a    = end_point.chain_id;
 		size_t chain1b    = end_points[this_idx ^ 1].chain_id;
 		size_t this_chain = chains.equivalent(std::max(chain1a, chain1b));
@@ -432,7 +432,7 @@ void update_end_point_in_queue(QueueType &queue, const KDTreeType &kdtree, Chain
 	    	assert(chain2a == 0 || chain2b == 0);
 	    	size_t chain2 = chains.equivalent(std::max(chain2a, chain2b));
 	    	if (this_chain == chain2)
-	    		// Don't connect back to the same chain, don't create a loop.
+	    		// 不要连接回同一链，不要创建循环。
 	    		return this_chain == 0;
 	    	// Don't connect to a segment requiring flipping if the segment starts or ends with the first point.
 			if (chain2a > 0) {
@@ -468,32 +468,32 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 	std::vector<std::pair<size_t, bool>> out;
 
 	if (num_segments == 0) {
-		// Nothing to do.
+		// 无需执行任何操作。
 	} 
 	else if (num_segments == 1)
 	{
-		// Just sort the end points so that the first point visited is closest to start_near.
+		// 对端点进行排序，使得访问的第一个点最接近start_near。
 		out.emplace_back(0, start_near != nullptr && 
             (end_point_func(0, true) - *start_near).template cast<double>().squaredNorm() < (end_point_func(0, false) - *start_near).template cast<double>().squaredNorm());
 	} 
 	else
 	{
-		// End points of segments for the KD tree closest point search.
-		// A single end point is inserted into the search structure for loops, two end points are entered for open paths.
+		// KD树最近点搜索的线段端点。
+		// 对于回路，在搜索结构中插入一个端点；对于开放路径，插入两个端点。
 		struct EndPoint {
 			EndPoint(const Vec2d &pos) : pos(pos) {}
 			Vec2d     pos;
 
 			// Candidate for a new connection link.
 			EndPoint *edge_candidate = nullptr;
-			// Distance to the next end point following the link.
-			// Zero value -> start of the final path.
+			// 沿着链接到下一个端点的距离。
+			// 零值 -> 最终路径的起点。
 			double    distance_out = std::numeric_limits<double>::max();
 
 			size_t    heap_idx = std::numeric_limits<size_t>::max();
 			bool 	  heap_idx_invalid() const { return this->heap_idx == std::numeric_limits<size_t>::max(); }
 
-			// Identifier of the chain, to which this end point belongs. Zero means unassigned.
+			// 此端点所属链的标识符。零表示未分配。
 			size_t    chain_id = 0;
 			// Double linked chain of segment end points in current path.
 			EndPoint *edge_out = nullptr;
@@ -577,14 +577,14 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 		// Chains remember their lengths and their lengths when each segment of the chain is flipped.
 		class Chains {
 		public:
-			// Zero'th chain ID is invalid.
+			// 第零个链ID无效。
 			Chains(size_t reserve) { 
 				m_chains.reserve(reserve / 2);
-				// Indexing starts with 1.
+				// 索引从1开始。
 				m_chains.emplace_back();
 			}
 
-			// Generate next equivalence class.
+			// 生成下一个等价类。
 			size_t 				next_id() {
 				m_chains.emplace_back();
 				m_chains.back().equivalent_with = ++ m_last_chain_id;
@@ -657,7 +657,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 			size_t              m_last_chain_id = 0;
 		} chains(num_segments);
 
-		// Find the first end point closest to start_near.
+		// 查找最接近start_near的第一个端点。
 		EndPoint *first_point = nullptr;
 		size_t    first_point_idx = std::numeric_limits<size_t>::max();
 		if (start_near != nullptr) {
@@ -674,7 +674,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 		EndPoint *initial_point = first_point;
 		EndPoint *last_point = nullptr;
 
-		// Assign the closest point and distance to the end points.
+		// 为端点分配最近点和距离。
 		for (EndPoint &end_point : end_points) {
 	    	assert(end_point.edge_candidate == nullptr);
 	    	if (&end_point != first_point) {
@@ -859,7 +859,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 					chain.end->chain_id = 0;
 				if (-- num_connections_to_end == 0) {
 					assert(validate_graph_and_queue());
-					// Last iteration. There shall be exactly one or two end points waiting to be connected.
+					// 最后一次迭代。应该恰好有一或两个端点等待连接。
 					assert(queue.size() <= ((first_point == nullptr) ? 4 : 2));
 					if (first_point == nullptr) {
 						// Find the first remaining end point.
@@ -917,7 +917,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 		}
 		assert(queue.empty());
 
-		// Now interconnect pairs of segments into a chain.
+		// 现在将线段对相互连接成一条链。
 		assert(first_point != nullptr);
 		out.reserve(num_segments);
 		bool      failed = false;
@@ -941,7 +941,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 		if (REVERSE_COULD_FAIL) {
 			if (failed) {
 				if (start_near == nullptr) {
-					// We may try the reverse order.
+					// 我们可以尝试反向顺序。
 					out.clear();
 					first_point = last_point;
 					failed = false;
@@ -961,7 +961,7 @@ std::vector<std::pair<size_t, bool>> chain_segments_greedy_constrained_reversals
 				}
 			}
 			if (failed)
-				// As a last resort, try a dumb algorithm, which is not sensitive to edge reversal constraints.
+				// 作为最后手段，尝试一个简单的算法，该算法对边反转约束不敏感。
 				out = chain_segments_closest_point<EndPoint, decltype(kdtree), CouldReverseFunc>(end_points, kdtree, could_reverse_func, (initial_point != nullptr) ? *initial_point : end_points.front());
 		} else {
 			assert(! failed);

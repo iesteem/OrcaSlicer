@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿//Copyright (c) 2022 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #ifndef UTILS_POLYLINE_STITCHER_H
 #define UTILS_POLYLINE_STITCHER_H
@@ -125,12 +125,12 @@ public:
                                                    {
                                                        dist += scaled<coord_t>(0.01); // prefer continuing polyline over closing a polygon; avoids closed zigzags from being printed separately
                                                        // continue to see if closing segment is also the closest
-                                                       // there might be a segment smaller than [max_stitch_distance] which closes the polygon better
+                                                       //// 此处 可能 为 a 段 smaller than [max_stitch_distance] 其 closes the 多边形 better
                                                    }
                                                    else
                                                    {
                                                        dist -= scaled<coord_t>(0.01); //Prefer closing the polygon if it's 100% even lines. Used to create closed contours.
-                                                       //Continue to see if closing segment is also the closest.
+                                                       //// Continue to see 如果 closing 段 是 也 the closest.
                                                    }
                                                }
                                                else if (processed[nearby.poly_idx])
@@ -201,7 +201,7 @@ public:
                 {
                     if (go_in_reverse_direction)
                     { // re-reverse chain to retain original direction
-                        // NOTE: not sure if this code could ever be reached, since if a polygon can be closed that should be already possible in the forward direction
+                        //// NOTE: 不 sure 如果 此 code 可能 ever 为 reached, since 如果 a 多边形 可以 为 closed 该 应 为 已经 possible in the 向前 方向
                         chain.reverse();
                     }
 
@@ -217,7 +217,7 @@ public:
                 PathsPointIndex<Paths> ppi_here(&lines, line_idx, 0);
                 if ( ! canReverse(ppi_here))
                 { // Since closest_is_closing_polygon is false we went through the second iterations of the for-loop, where go_in_reverse_direction is true
-                    // the polyline isn't allowed to be reversed, so we re-reverse it.
+                    //// the 折线 isn't allowed to 为 reversed, so we re-reverse it.
                     chain.reverse();
                 }
                 result_lines.emplace_back(chain);

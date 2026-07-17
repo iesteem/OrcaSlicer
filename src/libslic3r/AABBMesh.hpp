@@ -7,9 +7,8 @@
 #include <libslic3r/Point.hpp>
 #include <libslic3r/TriangleMesh.hpp>
 
-// There is an implementation of a hole-aware raycaster that was eventually
-// not used in production version. It is now hidden under following define
-// for possible future use.
+// 有一个支持孔洞感知的光线投射器的实现，但最终未在生产版本中使用。
+// 它现在隐藏在以下宏定义之后，供将来可能使用。
 // #define SLIC3R_HOLE_RAYCASTER
 
 #ifdef SLIC3R_HOLE_RAYCASTER
@@ -22,20 +21,18 @@ namespace Slic3r {
 
 class TriangleMesh;
 
-// An index-triangle structure coupled with an AABB index to support ray
-// casting and other higher level operations.
+// 一个与 AABB 索引耦合的索引三角形结构，用于支持光线投射和其他高级操作。
 class AABBMesh {
     class AABBImpl;
 
     const indexed_triangle_set* m_tm;
 
     std::unique_ptr<AABBImpl> m_aabb;
-    VertexFaceIndex m_vfidx;    // vertex-face index
-    std::vector<Vec3i32> m_fnidx; // face-neighbor index
+    VertexFaceIndex m_vfidx;    // 顶点-面索引
+    std::vector<Vec3i32> m_fnidx; // 面-邻接面索引
 
 #ifdef SLIC3R_HOLE_RAYCASTER
-    // This holds a copy of holes in the mesh. Initialized externally
-    // by load_mesh setter.
+    // 保存网格中孔洞的副本。由 load_mesh 设置器在外部初始化。
     std::vector<sla::DrainHole> m_holes;
 #endif
 
@@ -43,8 +40,8 @@ class AABBMesh {
 
 public:
 
-    // calculate_epsilon ... calculate epsilon for triangle-ray intersection from an average triangle edge length.
-    // If set to false, a default epsilon is used, which works for "reasonable" meshes.
+    // calculate_epsilon ... 根据平均三角形边长计算用于三角形-光线相交的 epsilon。
+    // 如果设置为 false，则使用默认 epsilon，适用于"合理"的网格。
     explicit AABBMesh(const indexed_triangle_set &tmesh, bool calculate_epsilon = false);
     explicit AABBMesh(const TriangleMesh &mesh, bool calculate_epsilon = false);
     
@@ -61,9 +58,9 @@ public:
     const Vec3f& vertices(size_t idx) const;
     const Vec3i32& indices(size_t idx) const;
 
-    // Result of a raycast
+    // 光线投射的结果
     class hit_result {
-        // m_t holds a distance from m_source to the intersection.
+        // m_t 保存从 m_source 到交点的距离。
         double m_t = infty();
         int m_face_id = -1;
         const AABBMesh *m_mesh = nullptr;
@@ -71,12 +68,11 @@ public:
         Vec3d m_source = Vec3d::Zero();
         Vec3d m_normal = Vec3d::Zero();
         friend class AABBMesh;
-        
-        // A valid object of this class can only be obtained from
-        // IndexedMesh::query_ray_hit method.
+
+        // 此类的有效对象只能通过 IndexedMesh::query_ray_hit 方法获得。
         explicit inline hit_result(const AABBMesh& em): m_mesh(&em) {}
     public:
-        // This denotes no hit on the mesh.
+        // 表示未命中网格。
         static inline constexpr double infty() { return std::numeric_limits<double>::infinity(); }
         
         explicit inline hit_result(double val = infty()) : m_t(val) {}
@@ -100,24 +96,23 @@ public:
     };
 
 #ifdef SLIC3R_HOLE_RAYCASTER
-    // Inform the object about location of holes
-    // creates internal copy of the vector
+    // 将孔洞位置信息告知对象
+    // 创建向量的内部副本
     void load_holes(const std::vector<sla::DrainHole>& holes) {
         m_holes = holes;
     }
 
-    // Iterates over hits and holes and returns the true hit, possibly
-    // on the inside of a hole.
-    // This function is currently not used anywhere, it was written when the
-    // holes were subtracted on slices, that is, before we started using CGAL
-    // to actually cut the holes into the mesh.
+    // 遍历命中和孔洞，返回真实的命中点，可能
+    // 在孔洞内部。
+    // 此函数目前未在任何地方使用，它是在我们开始使用 CGAL
+    // 实际切割网格上的孔洞之前编写的，当时孔洞是在切片上减去的。
     hit_result filter_hits(const std::vector<AABBMesh::hit_result>& obj_hits) const;
 #endif
 
-    // Casting a ray on the mesh, returns the distance where the hit occures.
+    // 在网格上投射光线，返回命中发生处的距离。
     hit_result query_ray_hit(const Vec3d &s, const Vec3d &dir) const;
-    
-    // Casts a ray on the mesh and returns all hits
+
+    // 在网格上投射光线并返回所有命中点
     std::vector<hit_result> query_ray_hits(const Vec3d &s, const Vec3d &dir) const;
 
     double squared_distance(const Vec3d& p, int& i, Vec3d& c) const;

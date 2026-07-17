@@ -362,7 +362,7 @@ void FillTpmsFK::_fill_surface_single(const FillParams&              params,
         expolygon.rotate(-infill_angle);
 
     float density_factor = std::min(0.9f, params.density);
-    // Density adjusted to have a good %of weight.
+    // 密度调整以获得良好的重量百分比。
     const float vari_T = 4.18f * spacing * params.multiline / density_factor;
 
     BoundingBox bb      = expolygon.contour.bounding_box();
@@ -371,23 +371,23 @@ void FillTpmsFK::_fill_surface_single(const FillParams&              params,
     float       xlen    = boxsize.x();
     float       ylen    = boxsize.y();
 
-    const float delta = 0.4f; // mesh step (adjust for quality/performance)
+    const float delta = 0.4f; // 网格步长（根据质量/性能调整）
     float myperiod = 2 * PI / vari_T;
-    float c_z      = myperiod * this->z; // z height
+    float c_z      = myperiod * this->z; // z 高度
 
-    // scalar field Fischer-Koch
+    // 标量场 Fischer-Koch
     auto scalar_field = [&](float x, float y) -> float {
         const float a_x       = myperiod * x;
         const float b_y       = myperiod * y;
 
-        // Fischer - Koch S equation:
+        // Fischer - Koch S 方程：
         // cos(2x)sin(y)cos(z) + cos(2y)sin(z)cos(x) + cos(2z)sin(x)cos(y) = 0
         return cosf(2 * a_x) * sinf(b_y) * cosf(c_z)
              + cosf(2 * b_y) * sinf(c_z) * cosf(a_x) 
              + cosf(2 * c_z) * sinf(a_x) * cosf(b_y);
     };
 
-    // Mesh generation
+    // 网格生成
     std::vector<std::vector<MarchingSquares::Point>> posxy;
     int                                              i = 0, j = 0;
     for (float y = -(ylen) / 2.0f - 0.5f; y < (ylen) / 2.0f + 0.5f; y = y + delta, i++) {
@@ -418,17 +418,17 @@ void FillTpmsFK::_fill_surface_single(const FillParams&              params,
 
 
     Polylines polylines;
-    const double contour_value = 0; // offset from theoretical surface
+    const double contour_value = 0; // 与理论表面的偏移
     MarchingSquares::drawContour(contour_value, width , height , data, posxy, polylines, params);
 
-    // Apply multiline offset if needed
+    // 如果需要，应用多线偏移
     multiline_fill(polylines, params, spacing);
 
 	polylines = intersection_pl(polylines, expolygon);
 
     if (! polylines.empty()) {
-		// Remove very small bits, but be careful to not remove infill lines connecting thin walls!
-        // The infill perimeter lines should be separated by around a single infill line width.
+		// 移除非常小的片段，但注意不要移除连接薄壁的填充线！
+        // 填充周长线应间隔大约一个填充线宽。
         const double minlength = scale_(0.8 * this->spacing);
 		polylines.erase(
 			std::remove_if(polylines.begin(), polylines.end(), [minlength](const Polyline &pl) { return pl.length() < minlength; }),
@@ -436,14 +436,14 @@ void FillTpmsFK::_fill_surface_single(const FillParams&              params,
     }
 
 	if (! polylines.empty()) {
-		// connect lines
+		// 连接线
 		size_t polylines_out_first_idx = polylines_out.size();
 
         //chain_or_connect_infill(std::move(polylines), expolygon, polylines_out, this->spacing, params);
-        //chain_infill not situable for this pattern due to internal "islands", this also affect performance a lot.
+        //chain_infill 不适用于此图案，因为内部存在"孤岛"，这也会严重影响性能。
         connect_infill(std::move(polylines), expolygon, polylines_out, this->spacing, params);
 
-	    // new paths must be rotated back
+	    // 新路径必须旋转回来
         if (std::abs(infill_angle) >= EPSILON) {
 	        for (auto it = polylines_out.begin() + polylines_out_first_idx; it != polylines_out.end(); ++ it)
 	        	it->rotate(infill_angle);

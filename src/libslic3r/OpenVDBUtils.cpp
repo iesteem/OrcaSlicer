@@ -2,7 +2,7 @@
 #include "OpenVDBUtils.hpp"
 
 #ifdef _MSC_VER
-// Suppress warning C4146 in OpenVDB: unary minus operator applied to unsigned type, result still unsigned 
+// 抑制 OpenVDB 中的警告 C4146：对无符号类型应用一元负号运算符，结果仍为无符号
 #pragma warning(push)
 #pragma warning(disable : 4146)
 #endif // _MSC_VER
@@ -28,9 +28,9 @@ public:
     size_t pointCount() const   { return its.vertices.size(); }
     size_t vertexCount(size_t) const { return 3; }
 
-    // Return position pos in local grid index space for polygon n and vertex v
-    // The actual mesh will appear to openvdb as scaled uniformly by voxel_size
-    // And the voxel count per unit volume can be affected this way.
+    // 返回多边形 n 和顶点 v 在局部网格索引空间中的位置 pos
+    // 实际网格在 openvdb 中将显示为按 voxel_size 均匀缩放
+    // 每单位体积的体素计数可以这样受影响。
     void getIndexSpacePoint(size_t n, size_t v, openvdb::Vec3d& pos) const
     {
         auto vidx = size_t(its.indices[n](Eigen::Index(v)));
@@ -42,9 +42,9 @@ public:
         : its{m}, voxel_scale{voxel_sc} {};
 };
 
-// TODO: Do I need to call initialize? Seems to work without it as well but the
-// docs say it should be called ones. It does a mutex lock-unlock sequence all
-// even if was called previously.
+// TODO：我需要调用 initialize 吗？似乎没有它也能工作，但
+// 文档说应该调用一次。即使之前已经调用过，
+// 它也会执行互斥锁-解锁序列。
 openvdb::FloatGrid::Ptr mesh_to_grid(const indexed_triangle_set &    mesh,
                                      const openvdb::math::Transform &tr,
                                      float voxel_scale,

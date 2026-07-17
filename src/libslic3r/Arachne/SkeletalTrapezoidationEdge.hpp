@@ -1,10 +1,10 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿﻿//Copyright (c) 2021 Ultimaker B.V.
+//CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #ifndef SKELETAL_TRAPEZOIDATION_EDGE_H
 #define SKELETAL_TRAPEZOIDATION_EDGE_H
 
-#include <memory> // smart pointers
+#include <memory> // 智能指针
 #include <list>
 #include <vector>
 
@@ -24,9 +24,9 @@ public:
      */
     struct TransitionMiddle
     {
-        coord_t pos; // Position along edge as measure from edge.from.p
+        coord_t pos; // 沿边的位置，从 edge.from.p 开始测量
         int lower_bead_count;
-        coord_t feature_radius; // The feature radius at which this transition is placed
+        coord_t feature_radius; // 放置此过渡的特征半径
         TransitionMiddle(coord_t pos, int lower_bead_count, coord_t feature_radius)
             : pos(pos), lower_bead_count(lower_bead_count)
             , feature_radius(feature_radius)
@@ -38,9 +38,9 @@ public:
      */
     struct TransitionEnd
     {
-        coord_t pos; // Position along edge as measure from edge.from.p, where the edge is always the half edge oriented from lower to higher R
+        coord_t pos; // 沿边的位置，从 edge.from.p 开始测量，边始终是从较低R到较高R的半边方向
         int lower_bead_count;
-        bool is_lower_end; // Whether this is the ed of the transition with lower bead count
+        bool is_lower_end; // 是否是具有较低 bead 计数的过渡端
         TransitionEnd(coord_t pos, int lower_bead_count, bool is_lower_end)
             : pos(pos), lower_bead_count(lower_bead_count), is_lower_end(is_lower_end)
         {}
@@ -48,9 +48,9 @@ public:
 
     enum class EdgeType
     {
-        NORMAL = 0, // from voronoi diagram
-        EXTRA_VD = 1, // introduced to voronoi diagram in order to make the gMAT
-        TRANSITION_END = 2 // introduced to voronoi diagram in order to make the gMAT
+        NORMAL = 0, // 来自 voronoi 图
+        EXTRA_VD = 1, // 引入到 voronoi 图中以生成 gMAT
+        TRANSITION_END = 2 // 引入到 voronoi 图中以生成 gMAT
     };
     EdgeType type;
 
@@ -111,7 +111,7 @@ public:
     }
 
 private:
-    Central is_central; //! whether the edge is significant; whether the source segments have a sharp angle; -1 is unknown
+    Central is_central; //! 边是否显著；源段是否有锐角；-1 表示未知
 
     std::weak_ptr<std::list<TransitionMiddle>> transitions;
     std::weak_ptr<std::list<TransitionEnd>> transition_ends;

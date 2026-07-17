@@ -5,9 +5,9 @@
 
 namespace Slic3r{
 
-// Decimates the model by collapsing short edges. It starts with very small edges and gradually increases the collapsible length,
-// until the target triangle count is reached (the algorithm will certainly undershoot the target count, result will have less triangles than target count)
-//  The algorithm does not check for triangle flipping, disconnections, self intersections or any other degeneration that can appear during mesh processing.
+// 通过折叠短边来精简模型。从非常小的边开始，逐渐增加可折叠长度，
+// 直到达到目标三角形数量（算法肯定达不到目标数量，结果三角形的数量将少于目标数量）
+// 该算法不检查三角形翻转、断开连接、自交或在网格处理过程中可能出现的任何其他退化情况。
 void its_short_edge_collpase(indexed_triangle_set &mesh, size_t target_triangle_count);
 
 }

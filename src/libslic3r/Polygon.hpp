@@ -16,7 +16,7 @@ using Polygons          = std::vector<Polygon, PointsAllocator<Polygon>>;
 using PolygonPtrs       = std::vector<Polygon*, PointsAllocator<Polygon*>>;
 using ConstPolygonPtrs  = std::vector<const Polygon*, PointsAllocator<const Polygon*>>;
 
-// Returns true if inside. Returns border_result if on boundary.
+// 如果在内部则返回 true。如果在边界上则返回 border_result。
 bool contains(const Polygon& polygon, const Point& p, bool border_result = true);
 bool contains(const Polygons& polygons, const Point& p, bool border_result = true);
 
@@ -41,15 +41,15 @@ public:
     Point& operator[](Points::size_type idx) { return this->points[idx]; }
     const Point& operator[](Points::size_type idx) const { return this->points[idx]; }
 
-    // last point == first point for polygons
+    // 对于多边形，最后一个点 == 第一个点
     const Point& last_point() const { return this->points.front(); }
 
     double length() const;
     Lines lines() const;
     Polyline split_at_vertex(const Point &point) const;
-    // Split a closed polygon into an open polyline, with the split point duplicated at both ends.
+    // 将闭合多边形分割为开放多段线，分割点在两端重复。
     Polyline split_at_index(int index) const;
-    // Split a closed polygon into an open polyline, with the split point duplicated at both ends.
+    // 将闭合多边形分割为开放多段线，分割点在两端重复。
     Polyline split_at_first_point() const { return this->split_at_index(0); }
     Points   equally_spaced_points(double distance) const { return this->split_at_first_point().equally_spaced_points(distance); }
     
@@ -63,13 +63,13 @@ public:
     void douglas_peucker(double tolerance);
     void round_to_grid(double grid_size);
 
-    // Does an unoriented polygon contain a point?
+    // 未定向的多边形是否包含一个点？
     bool contains(const Point &point) const { return Slic3r::contains(*this, point, true); }
-    // Approximate on boundary test.
+    // 近似的边界测试。
     bool on_boundary(const Point &point, double eps) const
         { return (this->point_projection(point) - point).cast<double>().squaredNorm() < eps * eps; }
 
-    // Works on CCW polygons only, CW contour will be reoriented to CCW by Clipper's simplify_polygons()!
+    // 仅适用于 CCW 多边形，CW 轮廓将被 Clipper 的 simplify_polygons() 重新定向为 CCW！
     Polygons simplify(double tolerance) const;
     void densify(float min_length, std::vector<float>* lengths = nullptr);
     void triangulate_convex(Polygons* polygons) const;
@@ -80,12 +80,12 @@ public:
     bool intersections(const Line& line, Points* intersections) const;
     bool overlaps(const Polygons& other) const;
 
-    // Considering CCW orientation of this polygon, find all convex resp. concave points
-    // with the angle at the vertex larger than a threshold.
-    // Zero angle_threshold means to accept all convex resp. concave points.
+    // 考虑此多边形的 CCW 方向，找到所有凸点或凹点，
+    // 其顶点角度大于阈值。
+    // 零 angle_threshold 表示接受所有凸点或凹点。
     Points convex_points(double angle_threshold = 0.) const;
     Points concave_points(double angle_threshold = 0.) const;
-    // Projection of a point onto the polygon.
+    // 点到多边形上的投影。
     Point point_projection(const Point &point) const;
     std::vector<float> parameter_by_length() const;
     
@@ -105,16 +105,16 @@ BoundingBox get_extents_rotated(const Polygon &poly, double angle);
 BoundingBox get_extents_rotated(const Polygons &polygons, double angle);
 std::vector<BoundingBox> get_extents_vector(const Polygons &polygons);
 
-// Polygon must be valid (at least three points), collinear points and duplicate points removed.
+// 多边形必须有效（至少三个点），共线点和重复点已被移除。
 bool        polygon_is_convex(const Points &poly);
 inline bool polygon_is_convex(const Polygon &poly) { return polygon_is_convex(poly.points); }
 
-// Test for duplicate points. The points are copied, sorted and checked for duplicates globally.
+// 测试重复点。点被复制、排序并全局检查重复项。
 inline bool has_duplicate_points(Polygon &&poly)      { return has_duplicate_points(std::move(poly.points)); }
 inline bool has_duplicate_points(const Polygon &poly) { return has_duplicate_points(poly.points); }
 bool        has_duplicate_points(const Polygons &polys);
 
-// Return True when erase some otherwise False.
+// 当擦除一些时返回 True，否则返回 False。
 bool remove_same_neighbor(Polygon &polygon);
 bool remove_same_neighbor(Polygons &polygons);
 
@@ -135,17 +135,17 @@ inline double area(const Polygons &polys)
     return s;
 }
 
-// Remove sticks (tentacles with zero area) from the polygon.
+// 从多边形中移除细枝（零面积的触角）。
 bool remove_sticks(Polygon &poly);
 bool remove_sticks(Polygons &polys);
 
-// Remove polygons with less than 3 edges.
+// 移除边数少于 3 的多边形。
 bool remove_degenerate(Polygons &polys);
 bool remove_small(Polygons &polys, double min_area);
 void remove_collinear(Polygon &poly);
 void remove_collinear(Polygons &polys);
 
-// Append a vector of polygons at the end of another vector of polygons.
+// 将一个多边形向量追加到另一个多边形向量的末尾。
 inline void polygons_append(Polygons &dst, const Polygons &src) { dst.insert(dst.end(), src.begin(), src.end()); }
 
 inline void polygons_append(Polygons &dst, Polygons &&src) 
@@ -289,16 +289,16 @@ Polygon make_circle(double radius, double error);
 Polygon make_circle_num_segments(double radius, size_t num_segments);
 
 /// <summary>
-/// Define point laying on polygon
-/// keep index of polygon line and point coordinate
+/// 定义位于多边形上的点
+/// 保持多边形线的索引和点坐标
 /// </summary>
 struct PolygonPoint
 {
-    // index of line inside of polygon
-    // 0 .. from point polygon[0] to polygon[1]
+    // 多边形内线的索引
+    // 0 .. 从点 polygon[0] 到 polygon[1]
     size_t index;
 
-    // Point, which lay on line defined by index
+    // 位于由索引定义的线上的点
     Point point;
 };
 using PolygonPoints = std::vector<PolygonPoint>;
@@ -318,22 +318,22 @@ namespace boost { namespace polygon {
         typedef Slic3r::Points::const_iterator iterator_type;
         typedef Slic3r::Point point_type;
 
-        // Get the begin iterator
+        // 获取开始迭代器
         static inline iterator_type begin_points(const Slic3r::Polygon& t) {
             return t.points.begin();
         }
 
-        // Get the end iterator
+        // 获取结束迭代器
         static inline iterator_type end_points(const Slic3r::Polygon& t) {
             return t.points.end();
         }
 
-        // Get the number of sides of the polygon
+        // 获取多边形的边数
         static inline std::size_t size(const Slic3r::Polygon& t) {
             return t.points.size();
         }
 
-        // Get the winding direction of the polygon
+        // 获取多边形的环绕方向
         static inline winding_direction winding(const Slic3r::Polygon& /* t */) {
             return unknown_winding;
         }
@@ -341,7 +341,7 @@ namespace boost { namespace polygon {
 
     template <>
     struct polygon_mutable_traits<Slic3r::Polygon> {
-        // expects stl style iterators
+        // 期望 stl 风格的迭代器
         template <typename iT>
         static inline Slic3r::Polygon& set_points(Slic3r::Polygon& polygon, iT input_begin, iT input_end) {
             polygon.points.clear();
@@ -350,7 +350,7 @@ namespace boost { namespace polygon {
                 boost::polygon::assign(polygon.points.back(), *input_begin);
                 ++input_begin;
             }
-            // skip last point since Boost will set last point = first point
+            // 跳过最后一个点，因为 Boost 会将最后一个点设置为第一个点
             polygon.points.pop_back();
             return polygon;
         }
@@ -359,7 +359,7 @@ namespace boost { namespace polygon {
     template <>
     struct geometry_concept<Slic3r::Polygons> { typedef polygon_set_concept type; };
 
-    //next we map to the concept through traits
+    // 接下来我们通过 traits 映射到概念
     template <>
     struct polygon_set_traits<Slic3r::Polygons> {
         typedef coord_t coordinate_type;

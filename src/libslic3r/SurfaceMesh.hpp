@@ -40,7 +40,7 @@ class Vertex_index {
 public:
     Vertex_index() : m_face(Face_index(-1)), m_vertex_idx(0) {}
     bool is_invalid() const { return int(m_face) < 0; }
-    bool operator==(const Vertex_index& rhs) const = delete; // Use SurfaceMesh::is_same_vertex.
+    bool operator==(const Vertex_index& rhs) const = delete; // 使用 SurfaceMesh::is_same_vertex。
 
 private:
     Vertex_index(int face_idx, unsigned char vertex_idx) : m_face(Face_index(face_idx)), m_vertex_idx(vertex_idx) {}
@@ -117,9 +117,8 @@ public:
 
     size_t degree(Vertex_index v) const
     {
-        // In case the mesh is broken badly, the loop might end up to be infinite,
-        // never getting back to the first halfedge. Remember list of all half-edges
-        // and trip if any is encountered for the second time.
+        // 如果网格严重损坏，循环可能会变成无限循环，永远无法回到第一个半边。
+        // 记住所有半边的列表，如果第二次遇到任何半边则停止。
         Halfedge_index h_first = halfedge(v);
         boost::container::small_vector<Halfedge_index, 10> he_visited;
         Halfedge_index h = next_around_target(h_first);

@@ -11,7 +11,7 @@ namespace Slic3r { namespace sla {
 using ClusterEl = std::vector<unsigned>;
 using ClusteredPoints = std::vector<ClusterEl>;
 
-// Clustering a set of points by the given distance.
+// 根据给定距离对一组点进行聚类。
 ClusteredPoints cluster(const std::vector<unsigned>& indices,
                         std::function<Vec3d(unsigned)> pointfn,
                         double dist,
@@ -27,32 +27,28 @@ ClusteredPoints cluster(
     std::function<bool(const PointIndexEl&, const PointIndexEl&)> predicate,
     unsigned max_points);
 
-// This function returns the position of the centroid in the input 'clust'
-// vector of point indices.
+// 此函数返回输入点索引向量 'clust' 中质心的位置。
 template<class DistFn, class PointFn>
 long cluster_centroid(const ClusterEl &clust, PointFn pointfn, DistFn df)
 {
     switch(clust.size()) {
-    case 0: /* empty cluster */ return -1;
-    case 1: /* only one element */ return 0;
-    case 2: /* if two elements, there is no center */ return 0;
+    case 0: /* 空聚类 */ return -1;
+    case 1: /* 只有一个元素 */ return 0;
+    case 2: /* 如果有两个元素，则没有中心 */ return 0;
     default: ;
     }
 
-    // The function works by calculating for each point the average distance
-    // from all the other points in the cluster. We create a selector bitmask of
-    // the same size as the cluster. The bitmask will have two true bits and
-    // false bits for the rest of items and we will loop through all the
-    // permutations of the bitmask (combinations of two points). Get the
-    // distance for the two points and add the distance to the averages.
-    // The point with the smallest average than wins.
+    // 该函数通过计算每个点到聚类中所有其他点的平均距离来工作。
+    // 我们创建一个与聚类大小相同的选择器位掩码。位掩码将有两位为真，
+    // 其余项为假，我们将遍历位掩码的所有排列（两个点的组合）。
+    // 获取两个点的距离并将距离加到平均值中。
+    // 平均距离最小的点获胜。
 
-    // The complexity should be O(n^2) but we will mostly apply this function
-    // for small clusters only (cca 3 elements)
+    // 复杂度应为 O(n^2)，但我们主要将此函数仅应用于小聚类（约3个元素）
 
-    std::vector<bool> sel(clust.size(), false);   // create full zero bitmask
-    std::fill(sel.end() - 2, sel.end(), true);    // insert the two ones
-    std::vector<double> avgs(clust.size(), 0.0);  // store the average distances
+    std::vector<bool> sel(clust.size(), false);   // 创建全零位掩码
+    std::fill(sel.end() - 2, sel.end(), true);    // 插入两个1
+    std::vector<double> avgs(clust.size(), 0.0);  // 存储平均距离
 
     do {
         std::array<size_t, 2> idx;
@@ -62,16 +58,16 @@ long cluster_centroid(const ClusterEl &clust, PointFn pointfn, DistFn df)
         double d = df(pointfn(clust[idx[0]]),
                       pointfn(clust[idx[1]]));
 
-        // add the distance to the sums for both associated points
+        // 将距离加到两个关联点的总和中
         for(auto i : idx) avgs[i] += d;
 
-        // now continue with the next permutation of the bitmask with two 1s
+        // 继续处理位掩码的下一个排列（包含两个1）
     } while(std::next_permutation(sel.begin(), sel.end()));
 
-    // Divide by point size in the cluster to get the average (may be redundant)
+    // 除以聚类中的点数以获得平均值（可能冗余）
     for(auto& a : avgs) a /= clust.size();
 
-    // get the lowest average distance and return the index
+    // 获取最小的平均距离并返回索引
     auto minit = std::min_element(avgs.begin(), avgs.end());
     return long(minit - avgs.begin());
 }

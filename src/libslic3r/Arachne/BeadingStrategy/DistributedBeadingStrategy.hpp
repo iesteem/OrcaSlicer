@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+﻿// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine 根据 AGPLv3 或更高版本的条款发布。
 
 #ifndef DISTRIBUTED_BEADING_STRATEGY_H
 #define DISTRIBUTED_BEADING_STRATEGY_H
@@ -11,9 +11,7 @@ namespace Slic3r::Arachne
 {
 
 /*!
- * This beading strategy chooses a wall count that would make the line width
- * deviate the least from the optimal line width, and then distributes the lines
- * evenly among the thickness available.
+ * 此珠子策略选择使线宽偏离最佳线宽最小的壁数，然后在可用厚度中均匀分布线宽。
  */
 class DistributedBeadingStrategy : public BeadingStrategy
 {
@@ -22,7 +20,7 @@ protected:
 
 public:
     /*!
-    * \param distribution_radius the radius (in number of beads) over which to distribute the discrepancy between the feature size and the optimal thickness
+    * \param distribution_radius 分布特征尺寸与最佳厚度之间差异的半径（以珠子数量计）
     */
     DistributedBeadingStrategy(coord_t optimal_width,
                                coord_t default_transition_length,

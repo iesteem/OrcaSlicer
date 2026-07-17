@@ -46,9 +46,8 @@ static inline Vec2d mk_vec2(const voronoi_diagram<double>::vertex_type *point) {
 
 static bool vertex_equal_to_point(const Voronoi::VD::vertex_type &vertex, const Vec2d &ipt)
 {
-    // Convert ipt to doubles, force the 80bit FPU temporary to 64bit and then compare.
-    // This should work with any settings of math compiler switches and the C++ compiler
-    // shall understand the memcpies as type punning and it shall optimize them out.
+    // 将 ipt 转换为 double，强制将 80 位 FPU 临时值转换为 64 位然后进行比较。
+    // 这应该适用于任何数学编译器开关设置，并且 C++ 编译器应将 memcpy 理解为类型双关并优化掉。
     using ulp_cmp_type = boost::polygon::detail::ulp_comparison<double>;
     ulp_cmp_type         ulp_cmp;
     static constexpr int ULPS = boost::polygon::voronoi_diagram_traits<double>::vertex_equality_predicate_type::ULPS;
@@ -107,7 +106,7 @@ struct MMU_Graph
 
     void append_edge(const size_t &from_idx, const size_t &to_idx, int color = -1, ARC_TYPE type = ARC_TYPE::NON_BORDER)
     {
-        // Don't append duplicate edges between the same nodes.
+        // 不添加相同节点之间的重复边。
         for (const size_t &arc_idx : this->nodes[from_idx].arc_idxs)
             if (arcs[arc_idx].to_idx == to_idx) return;
         for (const size_t &arc_idx : this->nodes[to_idx].arc_idxs)
@@ -116,16 +115,15 @@ struct MMU_Graph
         this->nodes[from_idx].arc_idxs.push_back(this->arcs.size());
         this->arcs.push_back({from_idx, to_idx, color, type});
 
-        // Always insert only one directed arc for the input polygons.
-        // Two directed arcs in both directions are inserted if arcs aren't between points of the input polygons.
+        // 对于输入多边形始终只插入一条有向弧。
+        // 如果弧不在输入多边形的点之间，则插入双向两条有向弧。
         if (type == ARC_TYPE::NON_BORDER) {
             this->nodes[to_idx].arc_idxs.push_back(this->arcs.size());
             this->arcs.push_back({to_idx, from_idx, color, type});
         }
     }
 
-    // It assumes that between points of the input polygons is always only one directed arc,
-    // with the same direction as lines of the input polygon.
+    // 它假定输入多边形的点之间始终只有一条有向弧，方向与输入多边形的线段相同。
     [[nodiscard]] MMU_Graph::Arc get_border_arc(size_t idx) const
     {
         assert(idx < this->all_border_points);
@@ -139,7 +137,7 @@ struct MMU_Graph
         std::queue<size_t> update_queue;
         for (const MMU_Graph::Node &node : this->nodes) {
             size_t node_idx = &node - &this->nodes.front();
-            // Skip nodes that represent points of input polygons.
+            // 跳过表示输入多边形点的节点。
             if (node.arc_idxs.size() == 1 && node_idx >= this->all_border_points) update_queue.emplace(&node - &this->nodes.front());
         }
 
@@ -181,7 +179,7 @@ struct MMU_Graph
         }
     }
 
-    // Nodes 0..all_border_points are only one with are on countour. Other vertexis are consider as not on coouter. So we check if base on attach index
+    // 节点 0..all_border_points 是位于轮廓上的点。其他顶点被认为不在轮廓上。因此我们根据附加索引进行检查。
     inline bool is_vertex_on_contour(const Voronoi::VD::vertex_type *vertex) const
     {
         assert(vertex != nullptr);
@@ -198,8 +196,8 @@ struct MMU_Graph
         return this->is_vertex_on_contour(edge_iterator->vertex0()) && this->is_vertex_on_contour(edge_iterator->vertex1());
     }
 
-    // All Voronoi vertices are post-processes to merge very close vertices to single. Witch eliminates issues with intersection edges.
-    // Also, Voronoi vertices outside of the bounding of input polygons are throw away by marking them.
+    // 所有 Voronoi 顶点都经过后处理，将非常接近的顶点合并为单个。这消除了交叉边的问题。
+    // 同时，在输入多边形边界外的 Voronoi 顶点通过标记被丢弃。
     void append_voronoi_vertices(const Geometry::VoronoiDiagram &vd, const Polygons &color_poly_tmp, BoundingBox bbox)
     {
         bbox.offset(SCALED_EPSILON);
@@ -257,8 +255,8 @@ struct MMU_Graph
                     vertex.color(this->nodes_count());
                     this->nodes.push_back({vertex_point_double});
                 } else {
-                    // Boost Voronoi diagram generator sometimes creates two very closed points instead of one point.
-                    // For the example points (146872.99999999997, -146872.99999999997) and (146873, -146873), this example also included in Voronoi generator test cases.
+                    // Boost Voronoi 图生成器有时会创建两个非常接近的点而不是一个点。
+                    // 例如点 (146872.99999999997, -146872.99999999997) 和 (146873, -146873)，此示例也包含在 Voronoi 生成器测试用例中。
                     std::vector<std::pair<const CPoint *, double>> all_closes_c_points = closest_voronoi_point.find_all(vertex_point);
                     int                                            merge_to_point      = -1;
                     for (const std::pair<const CPoint *, double> &c_point : all_closes_c_points)
@@ -373,7 +371,7 @@ static std::vector<const MMU_Graph::Arc *> get_next_arc(
     std::sort(sorted_arcs.begin(), sorted_arcs.end(),
               [](std::pair<std::vector<const MMU_Graph::Arc *>, double> &l, std::pair<std::vector<const MMU_Graph::Arc *>, double> &r) -> bool { return l.second < r.second; });
 
-    // Try to return left most edge witch is unused
+    // 尝试返回未使用的最左边边缘
     for (auto &sorted_arc : sorted_arcs) {
         if (size_t arc_idx = sorted_arc.first.back() - &graph.arcs.front(); !used_arcs[arc_idx]) return sorted_arc.first;
     }
@@ -488,13 +486,13 @@ bool is_less(float left, float right, float eps = 1e-3) {
     return left + eps < right;
 }
 
-// Assumes that is at most same projected_l length or below than projection_l
+// 假定最多与 projection_l 长度相同或低于 projection_l
 static bool project_line_on_line(const Line &projection_l, const Line &projected_l, Line *new_projected)
 {
     const Vec2d  v1 = (projection_l.b - projection_l.a).cast<double>();
     const Vec2d  va = (projected_l.a - projection_l.a).cast<double>();
     const Vec2d  vb = (projected_l.b - projection_l.a).cast<double>();
-    const double l2 = v1.squaredNorm(); // avoid a sqrt
+    const double l2 = v1.squaredNorm(); // 避免平方根运算
     if (l2 == 0.0)
         return false;
     double t1 = va.dot(v1) / l2;
@@ -531,7 +529,7 @@ struct PaintedLineVisitor
 
     bool operator()(coord_t iy, coord_t ix)
     {
-        // Called with a row and column of the grid cell, which is intersected by a line.
+        // 使用网格单元的行和列调用，该网格单元被线段相交。
         auto         cell_data_range        = grid.cell_data_range(iy, ix);
         const Vec2d  v1                     = line_to_test.vector().cast<double>();
         const double v1_sqr_norm            = v1.squaredNorm();
@@ -541,17 +539,17 @@ struct PaintedLineVisitor
             const Vec2d v2                = grid_line.vector().cast<double>();
             double      heuristic_thr_sqr = Slic3r::sqr(heuristic_thr_part + grid_line.length());
 
-            // An inexpensive heuristic to test whether line_to_test and grid_line can be somewhere close enough to each other.
-            // This helps filter out cases when the following expensive calculations are useless.
+            // 一个廉价的启发式测试，检查 line_to_test 和 grid_line 是否可能足够接近。
+            // 这有助于过滤掉后续昂贵计算无用的情形。
             if ((grid_line.a - line_to_test.a).cast<double>().squaredNorm() > heuristic_thr_sqr ||
                 (grid_line.b - line_to_test.a).cast<double>().squaredNorm() > heuristic_thr_sqr ||
                 (grid_line.a - line_to_test.b).cast<double>().squaredNorm() > heuristic_thr_sqr ||
                 (grid_line.b - line_to_test.b).cast<double>().squaredNorm() > heuristic_thr_sqr)
                 continue;
 
-            // When lines have too different length, it is necessary to normalize them
+            // 当线的长度差异太大时，需要对其进行归一化
             if (Slic3r::sqr(v1.dot(v2)) > cos_threshold2 * v1_sqr_norm * v2.squaredNorm()) {
-                // The two vectors are nearly collinear (their mutual angle is lower than 30 degrees)
+                // 两个向量几乎共线（它们的夹角小于30度）
                 if (painted_lines_set.find(*it_contour_and_segment) == painted_lines_set.end()) {
                     if (grid_line.distance_to_squared(line_to_test.a) < append_threshold2 ||
                         grid_line.distance_to_squared(line_to_test.b) < append_threshold2 ||
@@ -572,7 +570,7 @@ struct PaintedLineVisitor
                 }
             }
         }
-        // Continue traversing the grid along the edge.
+        // 继续沿边缘遍历网格。
         return true;
     }
 
@@ -599,7 +597,7 @@ BoundingBox get_extents(const std::vector<ColoredLines> &colored_polygons) {
     return bbox;
 }
 
-// Flatten the vector of vectors into a vector.
+// 将向量的向量展平为单个向量。
 static inline ColoredLines to_lines(const std::vector<ColoredLines> &c_lines)
 {
     size_t n_lines = 0;
@@ -643,7 +641,7 @@ static std::vector<PaintedLine> filter_painted_lines(const Line &line_to_process
     std::vector<PaintedLine> filtered_lines;
     filtered_lines.emplace_back(painted_lines[start_idx]);
     for (size_t line_idx = start_idx + 1; line_idx <= end_idx; ++line_idx) {
-        // line_to_process is already all colored. Skip another possible duplicate coloring.
+        // line_to_process 已全部着色。跳过另一个可能的重复着色。
         if(filtered_lines.back().projected_line.b == line_to_process.b)
             break;
 
@@ -759,11 +757,11 @@ static ColoredLines colorize_line(const Line &line_to_process,
         }
     }
 
-    // If there is non-painted space, then inserts line painted by a default color.
+    // 如果有未绘制的空间，则插入由默认颜色绘制的线段。
     if (double dist_to_end = (final_lines.back().line.b - line_to_process.b).cast<double>().norm(); dist_to_end > filter_eps_value)
         final_lines.push_back({Line(final_lines.back().line.b, line_to_process.b), 0});
 
-    // Make sure all the lines are connected.
+    // 确保所有线段都已连接。
     assert(are_lines_connected(final_lines));
 
     for (size_t line_idx = 2; line_idx < final_lines.size(); ++line_idx) {
@@ -897,7 +895,7 @@ static ColoredLines colorize_contour(const EdgeGrid::Contour &contour, const std
 
     ColoredLines colorized_contour;
     if (painted_contour.empty()) {
-        // Appends contour with default color for lines before the first PaintedLine.
+        // 在第一个 PaintedLine 之前为线段附加默认颜色的轮廓。
         colorized_contour.reserve(contour.num_segments());
         for (const Line &line : contour.get_segments())
             colorized_contour.emplace_back(ColoredLine{line, 0});
@@ -915,7 +913,7 @@ static ColoredLines colorize_contour(const EdgeGrid::Contour &contour, const std
             const std::vector<PaintedLine> &painted_contour_copy = painted_contour;
             Slic3r::append(colorized_contour, colorize_line(contour.get_segment(painted_contour[prev_painted_line_idx].line_idx), prev_painted_line_idx, curr_painted_line_idx, painted_contour_copy));
 
-            // Appends contour with default color for lines between the current and the next PaintedLine.
+            // 在当前和下一个 PaintedLine 之间为线段附加默认颜色的轮廓。
             if (next_painted_line_idx < painted_contour.size())
                 for (size_t idx = painted_contour[curr_painted_line_idx].line_idx + 1; idx < painted_contour[next_painted_line_idx].line_idx; ++idx)
                     colorized_contour.emplace_back(ColoredLine{contour.get_segment(idx), 0});
@@ -924,7 +922,7 @@ static ColoredLines colorize_contour(const EdgeGrid::Contour &contour, const std
         }
     }
 
-    // Appends contour with default color for lines after the last PaintedLine.
+    // 在最后一个 PaintedLine 之后为线段附加默认颜色的轮廓。
     for (size_t idx = painted_contour.back().line_idx + 1; idx < contour.num_segments(); ++idx)
         colorized_contour.emplace_back(ColoredLine{contour.get_segment(idx), 0});
 
@@ -955,10 +953,10 @@ static std::vector<ColoredLines> colorize_contours(const std::vector<EdgeGrid::C
     return colorized_contours;
 }
 
-// Determines if the line points from the point between two contour lines is pointing inside polygon or outside.
+// 确定从两条轮廓线之间的点出发的线段是指向多边形内部还是外部。
 static inline bool points_inside(const Line &contour_first, const Line &contour_second, const Point &new_point)
 {
-    // TODO: Used in points_inside for decision if line leading thought the common point of two lines is pointing inside polygon or outside
+    // TODO: 在 points_inside 中用于判断通过两条线公共点的线段是指向多边形内部还是外部
     auto three_points_inward_normal = [](const Point &left, const Point &middle, const Point &right) -> Vec2d {
         assert(left != middle);
         assert(middle != right);
@@ -1069,9 +1067,9 @@ static double edge_length(const VD::edge_type &edge) {
     return mk_vector_vec2d(&edge).norm();
 }
 
-// Used in remove_multiple_edges_in_vertices()
-// Returns length of edge with is connected to contour. To this length is include other edges with follows it if they are almost straight (with the
-// tolerance of 15) And also if node between two subsequent edges is connected only to these two edges.
+// 在 remove_multiple_edges_in_vertices() 中使用
+// 返回连接到轮廓的边缘长度。如果后续边缘几乎笔直（容差为15度），则此长度包括跟随它的其他边缘。
+// 如果两个后续边缘之间的节点仅连接到这两个边缘，也包含在内。
 static inline double calc_total_edge_length(const VD::edge_type &starting_edge)
 {
     double               total_edge_length = edge_length(starting_edge);
@@ -1110,9 +1108,9 @@ static inline double calc_total_edge_length(const VD::edge_type &starting_edge)
     return total_edge_length;
 }
 
-// When a Voronoi vertex has more than one Voronoi edge (for example, in concave parts of a polygon),
-// we leave just one Voronoi edge in the Voronoi vertex.
-// This Voronoi edge is selected based on a heuristic.
+// 当一个 Voronoi 顶点有多个 Voronoi 边时（例如在多边形的凹部），
+// 我们在 Voronoi 顶点中只保留一条 Voronoi 边。
+// 此 Voronoi 边基于启发式算法选择。
 static void remove_multiple_edges_in_vertex(const VD::vertex_type &vertex) {
     if (non_deleted_edge_count(vertex) <= 1)
         return;
@@ -1157,7 +1155,7 @@ static void cut_segmented_layers(const std::vector<ExPolygons>        &input_exp
             const float  region_cut_width       = ((layer_idx % 2 == 0) && (interlocking_depth != 0.f)) ? interlocking_depth : cut_width;
             const size_t num_extruders_plus_one = segmented_regions[layer_idx].size();
             if (region_cut_width > 0.f) {
-                std::vector<ExPolygons> segmented_regions_cuts(num_extruders_plus_one); // Indexed by extruder_id
+                std::vector<ExPolygons> segmented_regions_cuts(num_extruders_plus_one); // 按挤出机ID索引
                 for (size_t extruder_idx = 0; extruder_idx < num_extruders_plus_one; ++extruder_idx)
                     if (const ExPolygons &ex_polygons = segmented_regions[layer_idx][extruder_idx]; !ex_polygons.empty())
                         segmented_regions_cuts[extruder_idx] = diff_ex(ex_polygons, offset_ex(input_expolygons[layer_idx], -region_cut_width));
@@ -1178,7 +1176,7 @@ static bool is_volume_sinking(const indexed_triangle_set &its, const Transform3d
 
 //#define MMU_SEGMENTATION_DEBUG_TOP_BOTTOM
 
-// Returns segmentation of top and bottom layers based on painting in segmentation gizmos.
+// 基于在分割小工具中的绘制返回顶部和底部图层的分割。
 static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_layers(const PrintObject                                               &print_object,
                                                                                       const std::vector<ExPolygons>                                   &input_expolygons,
                                                                                       const std::function<ModelVolumeFacetsInfo(const ModelVolume &)> &extract_facets_info,
@@ -1189,7 +1187,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
     const size_t num_layers    = input_expolygons.size();
     const ConstLayerPtrsAdaptor layers = print_object.layers();
 
-    // Maximum number of top / bottom layers accounts for maximum overlap of one thread group into a neighbor thread group.
+    // 最大顶部/底部图层数考虑了线程组与相邻线程组的最大重叠。
     int max_top_layers = 0;
     int max_bottom_layers = 0;
     int granularity = 1;
@@ -1200,8 +1198,8 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
         granularity       = std::max(granularity, std::max(config.top_shell_layers.value, config.bottom_shell_layers.value) - 1);
     }
 
-    // Project upwards pointing painted triangles over top surfaces,
-    // project downards pointing painted triangles over bottom surfaces.
+    // 将向上指向的绘制三角形投影到顶面上，
+    // 将向下指向的绘制三角形投影到底面上。
     std::vector<std::vector<Polygons>> top_raw(num_facets_states), bottom_raw(num_facets_states);
     std::vector<float> zs = zs_from_layers(layers);
     Transform3d        object_trafo = print_object.trafo_centered();
@@ -1272,7 +1270,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                         remove_small(raw_surfaces[extruder_idx][layer_idx], min_area);
     };
 
-    // Filter out polygons less than 0.1mm^2, because they are unprintable and causing dimples on outer primers (#7104)
+    // 过滤掉小于 0.1mm^2 的多边形，因为它们不可打印且会在外表面上造成凹坑（#7104）
     filter_out_small_polygons(top_raw, Slic3r::sqr(scale_(0.1f)));
     filter_out_small_polygons(bottom_raw, Slic3r::sqr(scale_(0.1f)));
 
@@ -1300,7 +1298,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
     }
 #endif // MM_SEGMENTATION_DEBUG_TOP_BOTTOM
 
-    // When the upper surface of an object is occluded, it should no longer be considered the upper surface
+    // 当物体的上表面被遮挡时，它不应再被视为上表面
     {
         for (size_t extruder_idx = 0; extruder_idx < num_facets_states; ++extruder_idx) {
             for (size_t layer_idx = 0; layer_idx < layers.size(); ++layer_idx) {
@@ -1326,17 +1324,17 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
     shell_triangles_by_color_top.assign(num_facets_states, std::vector<ExPolygons>(num_layers * 2));
 
     struct LayerColorStat {
-        // Number of regions for a queried color.
+        // 查询颜色的区域数量。
         int     num_regions             { 0 };
-        // Maximum perimeter extrusion width for a queried color.
+        // 查询颜色的最大周长挤出宽度。
         float   extrusion_width         { 0.f };
-        // Minimum radius of a region to be printable. Used to filter regions by morphological opening.
+        // 可打印区域的最小半径。用于通过形态学开运算过滤区域。
         float   small_region_threshold  { 0.f };
-        // Maximum number of top layers for a queried color.
+        // 查询颜色的最大顶部图层数。
         int     top_shell_layers        { 0 };
-        // Maximum number of bottom layers for a queried color.
+        // 查询颜色的最大底部图层数。
         int     bottom_shell_layers     { 0 };
-        //BBS: spacing according to width and layer height
+        //BBS: 根据宽度和层高计算间距
         float   extrusion_spacing{ 0.f };
     };
     auto layer_color_stat = [&layers = std::as_const(layers), &print_object](const size_t layer_idx, const size_t color_idx) -> LayerColorStat {
@@ -1344,10 +1342,10 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
         const Layer &layer = *layers[layer_idx];
         for (const LayerRegion *region : layer.regions())
             if (const PrintRegionConfig &config = region->region().config();
-                // color_idx == 0 means "don't know" extruder aka the underlying extruder.
-                // As this region may split existing regions, we collect statistics over all regions for color_idx == 0.
+                // color_idx == 0 表示"未知"挤出机，即底层挤出机。
+                // 由于此区域可能分割现有区域，我们为 color_idx == 0 收集所有区域的统计信息。
                 color_idx == 0 || config.wall_filament == int(color_idx)) {
-                //BBS: the extrusion line width is outer wall rather than inner wall
+                //BBS: 挤出线宽是外壁而非内壁
                 const double nozzle_diameter = print_object.print()->config().nozzle_diameter.get_at(0);
                 double outer_wall_line_width = config.get_abs_value("outer_wall_line_width", nozzle_diameter);
                 out.extrusion_width     = std::max<float>(out.extrusion_width, outer_wall_line_width);
@@ -1379,14 +1377,14 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                 LayerColorStat stat = layer_color_stat(layer_idx, color_idx);
                 if (std::vector<Polygons> &top = top_raw[color_idx]; ! top.empty() && ! top[layer_idx].empty())
                     if (ExPolygons top_ex = union_ex(top[layer_idx]); ! top_ex.empty()) {
-                        // Clean up thin projections. They are not printable anyways.
+                        // 清理薄投影。它们无论如何都不可打印。
                         top_ex = opening_ex(top_ex, stat.small_region_threshold);
                         if (! top_ex.empty()) {
                             append(triangles_by_color_top[color_idx][layer_idx + layer_idx_offset], top_ex);
                             float offset = 0.f;
                             ExPolygons layer_slices_trimmed = input_expolygons[layer_idx];
                             for (int last_idx = int(layer_idx) - 1; last_idx > std::max(int(layer_idx - stat.top_shell_layers), int(0)); --last_idx) {
-                                //BBS: offset width should be 2*spacing to avoid too narrow area which has overlap of wall line
+                                //BBS: 偏移宽度应为2*间距，以避免出现墙线重叠的过窄区域
                                 //offset -= stat.extrusion_width ;
                                 offset -= (stat.extrusion_spacing + stat.extrusion_width);
                                 layer_slices_trimmed = intersection_ex(layer_slices_trimmed, input_expolygons[last_idx]);
@@ -1399,7 +1397,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                     }
                 if (std::vector<Polygons> &bottom = bottom_raw[color_idx]; ! bottom.empty() && ! bottom[layer_idx].empty())
                     if (ExPolygons bottom_ex = union_ex(bottom[layer_idx]); ! bottom_ex.empty()) {
-                        // Clean up thin projections. They are not printable anyways.
+                        // 清理薄投影。它们无论如何都不可打印。
                         bottom_ex = opening_ex(bottom_ex, stat.small_region_threshold);
                         if (! bottom_ex.empty()) {
                             append(triangles_by_color_bottom[color_idx][layer_idx + layer_idx_offset], bottom_ex);
@@ -1441,7 +1439,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
 
             painted_exploys = union_ex(painted_exploys);
 
-            //BBS: merge the top and bottom shell layers
+            //BBS: 合并顶部和底部壳层
             for (size_t color_idx = 0; color_idx < triangles_by_color_merged.size(); ++color_idx) {
                 auto &self = triangles_by_color_merged[color_idx][layer_idx];
 
@@ -1457,7 +1455,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
                 append(self, bottom_area);
                 self = union_ex(self);
             }
-            // Trim one region by the other if some of the regions overlap.
+            // 如果某些区域重叠，则用一个区域修剪另一个区域。
             ExPolygons painted_regions;
             for (size_t color_idx = 1; color_idx < triangles_by_color_merged.size(); ++color_idx) {
                 triangles_by_color_merged[color_idx][layer_idx] = diff_ex(triangles_by_color_merged[color_idx][layer_idx], painted_regions);
@@ -1471,7 +1469,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
     return triangles_by_color_merged;
 }
 
-// For every ColoredLine in lines_colored_out, assign the index of the polygon to which belongs and also the index of this line inside of the polygon.
+// 对于 lines_colored_out 中的每个 ColoredLine，分配所属多边形的索引以及此线在多边形内的索引。
 static inline void init_polygon_indices(const MMU_Graph &graph, const std::vector<std::vector<ColoredLine>> &color_poly, std::vector<ColoredLine> &lines_colored_out)
 {
     size_t poly_idx = 0;
@@ -1531,14 +1529,13 @@ static MMU_Graph build_graph(size_t layer_idx, const std::vector<std::vector<Col
     const Points   points         = to_points(color_poly_tmp);
     const Lines    lines          = to_lines(color_poly_tmp);
 
-    // The algorithm adds edges to the graph that are between two different colors.
-    // If a polygon is colored entirely with one color, we need to add at least one edge from that polygon artificially.
-    // Adding this edge is necessary for cases where the expolygon has an outer contour colored whole with one color
-    // and a hole colored with a different color. If an edge wasn't added to the graph,
-    // the entire expolygon would be colored with single random color instead of two different.
+    // 算法将处于两种不同颜色之间的边添加到图中。
+    // 如果一个多边形完全使用一种颜色着色，我们需要人为地从该多边形添加至少一条边。
+    // 对于 expolygon 的外轮廓完全用一种颜色着色而孔洞用不同颜色着色的情况，需要添加此边。
+    // 如果没有向图添加边，整个 expolygon 将用单一随机颜色着色而不是两种不同颜色。
     std::vector<bool> force_edge_adding(color_poly.size());
 
-    // For each polygon, check if it is all colored with the same color. If it is, we need to force adding one edge to it.
+    // 对于每个多边形，检查它是否全部使用相同颜色着色。如果是，我们需要强制向它添加一条边。
     for (const std::vector<ColoredLine> &c_poly : color_poly) {
         bool force_edge = true;
         for (const ColoredLine &c_line : c_poly)
@@ -1595,8 +1592,8 @@ static MMU_Graph build_graph(size_t layer_idx, const std::vector<std::vector<Col
         if (edge_it->cell()->source_index() > edge_it->twin()->cell()->source_index() || edge_it->color()) continue;
 
         if (edge_it->is_infinite() && (edge_it->vertex0() != nullptr || edge_it->vertex1() != nullptr)) {
-            // Infinite edge is leading through a point on the counter, but there are no Voronoi vertices.
-            // So we could fix this case by computing the intersection between the contour line and infinity edge.
+            // 无限边穿过轮廓上的一个点，但没有 Voronoi 顶点。
+            // 因此我们可以通过计算轮廓线和无限边之间的交点的来修复这种情况。
             std::vector<Voronoi::Internal::point_type> samples;
             Voronoi::Internal::clip_infinite_edge(points, segments, *edge_it, bbox_dim_max, &samples);
             if (samples.empty()) continue;
@@ -1618,7 +1615,7 @@ static MMU_Graph build_graph(size_t layer_idx, const std::vector<std::vector<Col
                 }
             }
         } else if (edge_it->is_finite()) {
-            // Both points are on contour, so skip them. In cases of duplicate Voronoi vertices, skip edges between the same two points.
+            // 两个点都在轮廓上，因此跳过它们。在重复 Voronoi 顶点的情况下，跳过相同两点之间的边。
             if (graph.is_edge_connecting_two_contour_vertices(edge_it) || (edge_it->vertex0()->color() == edge_it->vertex1()->color())) continue;
 
             const Line        edge_line         = clip_finite_voronoi_edge(*edge_it, bbox_clip);
@@ -1652,7 +1649,7 @@ static MMU_Graph build_graph(size_t layer_idx, const std::vector<std::vector<Col
                     append_edge_if_intersects_with_contour(edge_it, Vertex::VERTEX1);
             } else if (graph.is_edge_attach_to_contour(edge_it)) {
                 mark_processed(edge_it);
-                // Skip edges witch connection two points on a contour
+                // 跳过连接轮廓上两点的边
                 if (graph.is_edge_connecting_two_contour_vertices(edge_it)) continue;
 
                 const size_t from_idx = edge_it->vertex0()->color();
@@ -1724,11 +1721,11 @@ static MMU_Graph build_graph(size_t layer_idx, const std::vector<std::vector<Col
     }
 
     for (auto edge_it = vd.edges().begin(); edge_it != vd.edges().end(); ++edge_it) {
-        // Skip second half-edge and processed edges
+        // 跳过第二半边和已处理的边
         if (edge_it->cell()->source_index() > edge_it->twin()->cell()->source_index() || edge_it->color()) continue;
 
         if (edge_it->is_finite() && !bool(edge_it->color()) && edge_it->vertex0()->color() < graph.nodes_count() && edge_it->vertex1()->color() < graph.nodes_count()) {
-            // Skip cases, when the edge is between two same vertices, which is in cases two near vertices were merged together.
+            // 跳过边位于两个相同顶点之间的情况，这种情况发生在两个接近的顶点被合并时。
             if (edge_it->vertex0()->color() == edge_it->vertex1()->color()) continue;
 
             size_t from_idx = edge_it->vertex0()->color();
@@ -1856,7 +1853,7 @@ static std::vector<std::vector<ExPolygons>> merge_segmented_layers(const std::ve
                     bool was_top_and_bottom_empty = segmented_regions_merged[layer_idx][extruder_id].empty();
                     append(segmented_regions_merged[layer_idx][extruder_id], top_and_bottom_layers[extruder_id][layer_idx]);
 
-                    // Remove dimples (#7235) appearing after merging side segmentation of the model with tops and bottoms painted layers.
+                    // 移除合并带有顶部和底部绘制层的模型侧面分割后出现的凹坑（#7235）。
                     if (!was_top_and_bottom_empty)
                         segmented_regions_merged[layer_idx][extruder_id] = offset2_ex(union_ex(segmented_regions_merged[layer_idx][extruder_id]), float(SCALED_EPSILON), -float(SCALED_EPSILON));
                 }
@@ -1938,7 +1935,7 @@ static void export_colorized_polygons_to_svg(const std::string &path, const std:
 }
 #endif // MM_SEGMENTATION_DEBUG_COLORIZED_POLYGONS
 
-// Check if all ColoredLine representing a single layer uses the same color.
+// 检查表示单个图层的所有 ColoredLine 是否使用相同颜色。
 static bool has_layer_only_one_color(const std::vector<ColoredLines> &colored_polygons)
 {
     assert(!colored_polygons.empty());
@@ -1976,7 +1973,7 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
     static int iRun = 0;
 #endif // MM_SEGMENTATION_DEBUG
 
-    // Merge all regions and remove small holes
+    // 合并所有区域并移除小孔洞
     BOOST_LOG_TRIVIAL(debug) << "Print object segmentation - Slices preprocessing in parallel - Begin";
     tbb::parallel_for(tbb::blocked_range<size_t>(0, num_layers), [&layers, &input_expolygons, &throw_on_cancel_callback](const tbb::blocked_range<size_t> &range) {
         for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
@@ -1985,18 +1982,18 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
             for (LayerRegion *region : layers[layer_idx]->regions())
                 for (const Surface &surface : region->slices.surfaces)
                     Slic3r::append(ex_polygons, offset_ex(surface.expolygon, float(10 * SCALED_EPSILON)));
-            // All expolygons are expanded by SCALED_EPSILON, merged, and then shrunk again by SCALED_EPSILON
-            // to ensure that very close polygons will be merged.
+            // 所有 expolygons 按 SCALED_EPSILON 扩展、合并，然后再次按 SCALED_EPSILON 收缩，
+            // 以确保非常接近的多边形将被合并。
             ex_polygons = union_ex(ex_polygons);
-            // Remove all expolygons and holes with an area less than 0.1mm^2
+            // 移除面积小于 0.1mm^2 的所有 expolygons 和孔洞
             remove_small_and_small_holes(ex_polygons, Slic3r::sqr(scale_(0.1f)));
-            // Occasionally, some input polygons contained self-intersections that caused problems with Voronoi diagrams
-            // and consequently with the extraction of colored segments by function extract_colored_segments.
-            // Calling simplify_polygons removes these self-intersections.
-            // Also, occasionally input polygons contained several points very close together (distance between points is 1 or so).
-            // Such close points sometimes caused that the Voronoi diagram has self-intersecting edges around these vertices.
-            // This consequently leads to issues with the extraction of colored segments by function extract_colored_segments.
-            // Calling expolygons_simplify fixed these issues.
+            // 偶尔，一些输入多边形包含自相交，这会导致 Voronoi 图出现问题，
+            // 进而影响 extract_colored_segments 函数提取彩色线段。
+            // 调用 simplify_polygons 可移除这些自相交。
+            // 此外，偶尔输入多边形包含几个非常接近的点（点之间距离约为1）。
+            // 这种接近的点有时会导致 Voronoi 图在这些顶点周围出现自相交边。
+            // 这进而导致 extract_colored_segments 函数提取彩色线段时出现问题。
+            // 调用 expolygons_simplify 修复了这些问题。
             input_expolygons[layer_idx] = remove_duplicates(expolygons_simplify(offset_ex(ex_polygons, -10.f * float(SCALED_EPSILON)), 5 * SCALED_EPSILON), scaled<coord_t>(0.01), PI/6);
 
 #ifdef MM_SEGMENTATION_DEBUG_INPUT
@@ -2016,12 +2013,12 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
     for (size_t layer_idx = 0; layer_idx < num_layers; ++layer_idx) {
         throw_on_cancel_callback();
         BoundingBox bbox = layer_bboxes[layer_idx];
-        // Projected triangles could, in rare cases (as in GH issue #7299), belongs to polygons printed in the previous or the next layer.
-        // Let's merge the bounding box of the current layer with bounding boxes of the previous and the next layer to ensure that
-        // every projected triangle will be inside the resulting bounding box.
+        // 在极少数情况下（如 GH issue #7299），投影的三角形可能属于上一层或下一层打印的多边形。
+        // 让我们将当前层的边界框与上一层和下一层的边界框合并，以确保
+        // 每个投影的三角形都在结果边界框内。
         if (layer_idx > 1) bbox.merge(layer_bboxes[layer_idx - 1]);
         if (layer_idx < num_layers - 1) bbox.merge(layer_bboxes[layer_idx + 1]);
-        // Projected triangles may slightly exceed the input polygons.
+        // 投影的三角形可能略微超出输入多边形。
         bbox.offset(20 * SCALED_EPSILON);
         edge_grids[layer_idx].set_bbox(bbox);
         edge_grids[layer_idx].create(input_expolygons[layer_idx], coord_t(scale_(10.)));
@@ -2053,7 +2050,7 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
                         if (is_equal(min_z, max_z))
                             continue;
 
-                        // Sort the vertices by z-axis for simplification of projected_facet on slices
+                        // 按 z 轴对顶点进行排序以简化切片上的 projected_facet
                         std::sort(facet.begin(), facet.end(), [](const Vec3f &p1, const Vec3f &p2) { return p1.z() < p2.z(); });
 
                         // Find lowest slice not below the triangle.

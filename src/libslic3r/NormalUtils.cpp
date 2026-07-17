@@ -38,7 +38,7 @@ NormalUtils::Normals NormalUtils::create_normals_average_neighbor(
             ++count[indice[i]];
         }
     }
-    // normalize to size 1
+    // 归一化到大小为 1
     for (auto &normal : normals) {
         size_t index = &normal - &normals.front();
         normal /= static_cast<float>(count[index]);
@@ -85,7 +85,7 @@ NormalUtils::Normals NormalUtils::create_normals_angle_weighted(
             count[indice[i]] += weight;
         }
     }
-    // normalize to size 1
+    // 归一化到大小为 1
     for (auto &normal : normals) {
         size_t index = &normal - &normals.front();
         normal /= count[index];
@@ -118,7 +118,7 @@ NormalUtils::Normals NormalUtils::create_normals_nelson_weighted(
             count[indice[i]] += weight;
         }
     }
-    // normalize to size 1
+    // 归一化到大小为 1
     for (auto &normal : normals) {
         size_t index = &normal - &normals.front();
         normal /= count[index];
