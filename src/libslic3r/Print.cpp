@@ -895,6 +895,20 @@ std::vector<unsigned int> Print::object_extruders() const
                 if (value > 0)
                     extruders.push_back(value - 1);
             }
+            // Height-range colour assignment stores the per-feature filament in
+            // wall/sparse/solid_infill_filament, not in "extruder". Collect them
+            // here so object_extruders() sees every filament a layer range will
+            // use, even before PrintRegions are generated during Print::apply.
+            // Without this, normalize_fdm_2() runs with a stale used_filaments
+            // count and disables the prime tower for models whose only
+            // multi-extruder signal lives in layer_config_ranges.
+            for (const char* key : { "wall_filament", "sparse_infill_filament", "solid_infill_filament" }) {
+                if (layer_range.second.has(key)) {
+                    auto value = layer_range.second.option(key)->getInt();
+                    if (value > 0)
+                        extruders.push_back(value - 1);
+                }
+            }
         }
     }
     sort_remove_duplicates(extruders);
