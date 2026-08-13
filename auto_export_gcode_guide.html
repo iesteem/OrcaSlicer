@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>--auto-export-gcode 操作说明</title>
+<style>
+  :root {
+    --bg: #fafbfc;
+    --fg: #24292e;
+    --code-bg: #f6f8fa;
+    --border: #e1e4e8;
+    --accent: #0366d6;
+    --success: #22863a;
+    --warn: #b08800;
+    --danger: #cb2431;
+    --tag-ok: #28a745;
+    --tag-fail: #cb2431;
+    --tag-skip: #6a737d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", Helvetica, Arial, sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  header {
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+  }
+  h1 {
+    margin: 0 0 8px 0;
+    color: var(--accent);
+    font-size: 28px;
+  }
+  .subtitle {
+    color: #586069;
+    font-size: 14px;
+    margin: 0;
+  }
+  h2 {
+    margin-top: 36px;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    font-size: 20px;
+    color: #1f2733;
+  }
+  h3 {
+    margin-top: 24px;
+    margin-bottom: 8px;
+    font-size: 16px;
+    color: #1f2733;
+  }
+  p { margin: 8px 0; }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 13px;
+    color: #d73a49;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 10px 0;
+  }
+  pre code {
+    background: transparent;
+    padding: 0;
+    color: var(--fg);
+  }
+  .cmd { color: #b08800; }
+  .flag { color: #0366d6; }
+  .var { color: #6f42c1; }
+  .comment { color: #6a737d; font-style: italic; }
+  .string { color: #22863a; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #f1f3f5;
+    font-weight: 600;
+  }
+  tr:nth-child(even) td { background: #fbfcfd; }
+  .callout {
+    border-left: 4px solid var(--accent);
+    background: #f1f8ff;
+    padding: 12px 16px;
+    margin: 14px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .callout-warn {
+    border-left-color: var(--warn);
+    background: #fff8e1;
+  }
+  .callout-danger {
+    border-left-color: var(--danger);
+    background: #ffeef0;
+  }
+  .callout-success {
+    border-left-color: var(--success);
+    background: #f0fff4;
+  }
+  .callout-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #1f2733;
+  }
+  .tag {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    margin-right: 4px;
+  }
+  .tag-ok { background: var(--tag-ok); }
+  .tag-fail { background: var(--tag-fail); }
+  .tag-skip { background: var(--tag-skip); }
+  .toc {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 16px 0 24px 0;
+  }
+  .toc-title {
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: #1f2733;
+  }
+  .toc ul { margin: 0; padding-left: 20px; }
+  .toc li { margin: 4px 0; }
+  .toc a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .toc a:hover { text-decoration: underline; }
+  a { color: var(--accent); }
+  .footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    color: #6a737d;
+    font-size: 13px;
+    text-align: center;
+  }
+  .file-path {
+    color: #6f42c1;
+    font-family: monospace;
+    font-size: 13px;
+  }
+  ul, ol { padding-left: 24px; }
+  li { margin: 4px 0; }
+  kbd {
+    background: #eee;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 12px;
+    font-family: monospace;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>--auto-export-gcode 操作说明</h1>
+  <p class="subtitle">Snapmaker Orca · 无界面批量切片命令行工具</p>
+</header>
+
+<div class="toc">
+  <p class="toc-title">目录</p>
+  <ul>
+    <li><a href="#overview">概述</a></li>
+    <li><a href="#quick">快速开始</a></li>
+    <li><a href="#syntax">命令语法</a></li>
+    <li><a href="#single">单文件模式</a></li>
+    <li><a href="#multi">多文件模式</a></li>
+    <li><a href="#progress">进度跟踪</a></li>
+    <li><a href="#result-json">result.json 字段说明</a></li>
+    <li><a href="#summary-json">summary.json 字段说明</a></li>
+    <li><a href="#exit-codes">退出码</a></li>
+    <li><a href="#script-example">脚本示例</a></li>
+    <li><a href="#notes">注意事项</a></li>
+    <li><a href="#faq">常见问题</a></li>
+  </ul>
+</div>
+
+<h2 id="overview">概述</h2>
+<p>
+  <code>--auto-export-gcode</code> 是 Snapmaker Orca 新增的命令行选项，
+  用于在<strong>无界面</strong>模式下批量切片 3MF 文件。它会自动加载 3MF 项目、
+  切片所有盘（plate）、导出 G-code 3MF，然后退出。
+</p>
+<p>典型用途：</p>
+<ul>
+  <li>CI/CD 流水线中的自动切片</li>
+  <li>批量切片大量 3MF 文件（一次进程调用处理多个文件，避免重复启动开销）</li>
+  <li>服务器端自动化切片任务</li>
+  <li>外部脚本需要精确的切片进度和详细结果报告</li>
+</ul>
+
+<h2 id="quick">快速开始</h2>
+<p>最简单的用法 —— 切片一个 3MF：</p>
+<pre><code><span class="var">SNAPMAKER_ORCA_ALLOW_NEWER_FILE</span>=1 snapmaker-orca \
+  <span class="flag">--auto-export-gcode</span> /tmp/out /path/to/model.3mf</code></pre>
+<p>切片两个 3MF：</p>
+<pre><code><span class="var">SNAPMAKER_ORCA_ALLOW_NEWER_FILE</span>=1 snapmaker-orca \
+  <span class="flag">--auto-export-gcode</span> /tmp/out a.3mf b.3mf</code></pre>
+
+<div class="callout callout-warn">
+  <div class="callout-title">⚠ 环境变量必需</div>
+  <p>
+    <code>SNAPMAKER_ORCA_ALLOW_NEWER_FILE=1</code> 必须设置，否则较新版本的 3MF 文件
+    会被加载校验拒绝。该变量绕过 3MF 版本兼容性检查（GUI 模式正常工作，CLI 不行）。
+  </p>
+</div>
+
+<h2 id="syntax">命令语法</h2>
+<pre><code>snapmaker-orca <span class="flag">--auto-export-gcode</span> &lt;输出目录&gt; &lt;3mf文件&gt; [&lt;3mf文件&gt; ...]</code></pre>
+
+<table>
+  <thead>
+    <tr><th>参数</th><th>说明</th><th>必填</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>--auto-export-gcode &lt;dir&gt;</code></td>
+      <td>触发自动切片模式；值为输出目录路径（不存在会自动创建）</td>
+      <td>是</td>
+    </tr>
+    <tr>
+      <td><code>&lt;3mf文件&gt;</code></td>
+      <td>一个或多个 3MF 文件路径，按顺序处理</td>
+      <td>是（至少 1 个）</td>
+    </tr>
+    <tr>
+      <td><code>SNAPMAKER_ORCA_ALLOW_NEWER_FILE=1</code></td>
+      <td>环境变量；允许加载较新版本的 3MF 文件</td>
+      <td>是</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="single">单文件模式</h2>
+<p>传入一个 3MF 文件即为单文件模式。</p>
+
+<h3>Linux / macOS</h3>
+<pre><code><span class="var">SNAPMAKER_ORCA_ALLOW_NEWER_FILE</span>=1 snapmaker-orca \
+  <span class="flag">--auto-export-gcode</span> /tmp/out /path/to/model.3mf</code></pre>
+
+<h3>Windows (Git Bash / WSL)</h3>
+<pre><code><span class="var">SNAPMAKER_ORCA_ALLOW_NEWER_FILE</span>=1 snapmaker-orca.exe \
+  <span class="flag">--auto-export-gcode</span> "C:/out" "C:/path/model.3mf"</code></pre>
+
+<h3>Windows (PowerShell)</h3>
+<pre><code><span class="cmd">$env:SNAPMAKER_ORCA_ALLOW_NEWER_FILE</span>=1
+snapmaker-orca.exe <span class="flag">--auto-export-gcode</span> "C:\out" "C:\path\model.3mf"</code></pre>
+
+<h3>Windows (CMD)</h3>
+<pre><code>set <span class="var">SNAPMAKER_ORCA_ALLOW_NEWER_FILE</span>=1
+snapmaker-orca.exe <span class="flag">--auto-export-gcode</span> "C:\out" "C:\path\model.3mf"</code></pre>
+
+<h3>输出产物</h3>
+<table>
+  <thead>
+    <tr><th>文件</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="file-path">&lt;dir&gt;/&lt;stem&gt;.gcode.3mf</span></td>
+      <td>切片结果（G-code + 模型，可直接发送到打印机）</td>
+    </tr>
+    <tr>
+      <td><span class="file-path">&lt;dir&gt;/&lt;stem&gt;.result.json</span></td>
+      <td>详细切片报告（per-plate 状态、耗时、警告、G-code 行数）</td>
+    </tr>
+  </tbody>
+</table>
+<p><code>&lt;stem&gt;</code> 是输入 3MF 文件名（不含扩展名）。</p>
+
+<h2 id="multi">多文件模式</h2>
+<p>传入多个 3MF 文件即为多文件模式。所有文件在一个进程内顺序处理：</p>
+<ol>
+  <li>加载第 1 个文件 → 切片 → 导出</li>
+  <li>清空当前项目，加载第 2 个文件 → 切片 → 导出</li>
+  <li>…依此类推</li>
+  <li>所有文件完成后写 <code>summary.json</code>，进程退出</li>
+</ol>
+
+<pre><code><span class="var">SNAPMAKER_ORCA_ALLOW_NEWER_FILE</span>=1 snapmaker-orca \
+  <span class="flag">--auto-export-gcode</span> /tmp/out a.3mf b.3mf c.3mf</code></pre>
+
+<h3>输出产物</h3>
+<table>
+  <thead>
+    <tr><th>文件</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="file-path">&lt;dir&gt;/&lt;stem1&gt;.gcode.3mf</span></td>
+      <td>第 1 个文件的切片结果</td>
+    </tr>
+    <tr>
+      <td><span class="file-path">&lt;dir&gt;/&lt;stem1&gt;.result.json</span></td>
+      <td>第 1 个文件的详细报告</td>
+    </tr>
+    <tr>
+      <td><span class="file-path">&lt;dir&gt;/&lt;stem2&gt;.gcode.3mf</span></td>
+      <td>第 2 个文件的切片结果</td>
+    </tr>
+    <tr>
+      <td><span class="file-path">&lt;dir&gt;/&lt;stem2&gt;.result.json</span></td>
+      <td>第 2 个文件的详细报告</td>
+    </tr>
+    <tr>
+      <td><span class="file-path">&lt;dir&gt;/summary.json</span></td>
+      <td><strong>仅多文件模式</strong>产生；汇总所有文件的状态</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <div class="callout-title">💡 多文件模式的优势</div>
+  <p>
+    进程启动开销约 10 秒。多文件模式下，N 个文件只需启动一次进程，
+    相比外部 shell 循环调用 N 次单文件模式，可节省大量时间。
+  </p>
+</div>
+
+<h2 id="progress">进度跟踪</h2>
+<p>切片过程中，<strong>stderr</strong> 会实时输出进度。重定向到日志文件：</p>
+<pre><code>snapmaker-orca <span class="flag">--auto-export-gcode</span> /out model.3mf 2&gt;progress.log</code></pre>
+
+<h3>输出格式</h3>
+<pre><code><span class="comment"># 切片开始</span>
+[auto-export] slicing all: file=model, plates=8
+
+<span class="comment"># 单盘进度（按 5% 粒度节流）</span>
+[auto-export] plate 1/8: 5%
+[auto-export] plate 1/8: 15%
+[auto-export] plate 1/8: 25%
+...
+[auto-export] plate 1/8: 100%
+
+<span class="comment"># 切换到下一盘</span>
+[auto-export] plate 2/8: 5%
+...
+
+<span class="comment"># 导出阶段</span>
+[auto-export] exporting: /out/model.gcode.3mf
+[auto-export] done: model (61.6s, 49878173 bytes)
+
+<span class="comment"># 多文件模式下，加载下一个文件</span>
+[auto-export] loading: /path/to/next.3mf
+
+<span class="comment"># 全部完成（仅多文件模式）</span>
+[auto-export] all files done: ok=2, failed=0</code></pre>
+
+<div class="callout">
+  <div class="callout-title">💡 实时进度解析</div>
+  <p>
+    CI/脚本可逐行读取 stderr，正则匹配 <code>plate (\d+)/(\d+): (\d+)%</code>
+    实时显示当前切片的盘序号和百分比。
+  </p>
+</div>
+
+<h2 id="result-json">result.json 字段说明</h2>
+<p>每个输入文件对应一个 <code>&lt;stem&gt;.result.json</code>：</p>
+
+<pre><code>{
+  "exit_code": 0,
+  "error": "",
+  "input_file": "C:/path/model.3mf",
+  "output_file": "C:/out/model.gcode.3mf",
+  "output_size_bytes": 49878173,
+  "total_time_sec": 61.566,
+  "plate_count": 8,
+  "sliced_plates": 8,
+  "failed_plates": 0,
+  "skipped_plates": 0,
+  "total_warnings": 8,
+  "total_estimated_print_time_sec": 139236.4,
+  "filament_used_mm": null,
+  "plates": [
+    {
+      "index": 0,
+      "status": "ok",
+      "time_sec": 44262.4,
+      "gcode_lines": 2248202,
+      "warnings": 1,
+      "filament_used_mm": null
+    }
+  ]
+}</code></pre>
+
+<table>
+  <thead>
+    <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>exit_code</code></td><td>int</td><td>0=成功；负值=失败（见<a href="#exit-codes">退出码</a>）</td></tr>
+    <tr><td><code>error</code></td><td>string</td><td>失败原因；成功时为空</td></tr>
+    <tr><td><code>input_file</code></td><td>string</td><td>输入 3MF 文件绝对路径</td></tr>
+    <tr><td><code>output_file</code></td><td>string</td><td>输出 gcode.3mf 绝对路径</td></tr>
+    <tr><td><code>output_size_bytes</code></td><td>int</td><td>输出文件字节数</td></tr>
+    <tr><td><code>total_time_sec</code></td><td>float</td><td>本次切片<strong>墙钟</strong>耗时（秒）</td></tr>
+    <tr><td><code>plate_count</code></td><td>int</td><td>3MF 文件中的总盘数</td></tr>
+    <tr><td><code>sliced_plates</code></td><td>int</td><td>成功切片的盘数</td></tr>
+    <tr><td><code>failed_plates</code></td><td>int</td><td>切片失败的盘数</td></tr>
+    <tr><td><code>skipped_plates</code></td><td>int</td><td>空盘或无模型实例而跳过的盘数</td></tr>
+    <tr><td><code>total_warnings</code></td><td>int</td><td>所有盘的切片警告总数</td></tr>
+    <tr><td><code>total_estimated_print_time_sec</code></td><td>float</td><td>所有盘预估打印时长之和（秒）</td></tr>
+    <tr><td><code>filament_used_mm</code></td><td>null</td><td>耗材长度（mm）；当前版本为 <code>null</code>，TODO v2 实现</td></tr>
+    <tr><td><code>plates</code></td><td>array</td><td>per-plate 详细信息</td></tr>
+    <tr><td><code>plates[].index</code></td><td>int</td><td>盘序号（0-based）</td></tr>
+    <tr><td><code>plates[].status</code></td><td>string</td><td>
+      <span class="tag tag-ok">ok</span>
+      <span class="tag tag-fail">failed</span>
+      <span class="tag tag-skip">skipped</span>
+    </td></tr>
+    <tr><td><code>plates[].time_sec</code></td><td>float</td><td>该盘预估打印时长（秒）</td></tr>
+    <tr><td><code>plates[].gcode_lines</code></td><td>int</td><td>该盘 G-code 总行数</td></tr>
+    <tr><td><code>plates[].warnings</code></td><td>int</td><td>该盘警告数量</td></tr>
+    <tr><td><code>plates[].filament_mm</code></td><td>null</td><td>耗材长度；当前为 <code>null</code>（TODO v2）</td></tr>
+  </tbody>
+</table>
+
+<h2 id="summary-json">summary.json 字段说明</h2>
+<p>仅多文件模式产生，汇总所有文件的处理结果：</p>
+
+<pre><code>{
+  "files_total": 2,
+  "files_ok": 2,
+  "files_failed": 0,
+  "results": [
+    {
+      "file": "C:/path/a.3mf",
+      "output": "C:/out/a.gcode.3mf",
+      "exit_code": 0,
+      "time_sec": 64.878,
+      "output_bytes": 49861355,
+      "error": ""
+    },
+    {
+      "file": "C:/path/b.3mf",
+      "output": "C:/out/b.gcode.3mf",
+      "exit_code": 0,
+      "time_sec": 181.788,
+      "output_bytes": 106108936,
+      "error": ""
+    }
+  ]
+}</code></pre>
+
+<table>
+  <thead>
+    <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>files_total</code></td><td>int</td><td>总文件数</td></tr>
+    <tr><td><code>files_ok</code></td><td>int</td><td>成功文件数</td></tr>
+    <tr><td><code>files_failed</code></td><td>int</td><td>失败文件数</td></tr>
+    <tr><td><code>results[]</code></td><td>array</td><td>每个文件的简要结果</td></tr>
+    <tr><td><code>results[].file</code></td><td>string</td><td>输入文件路径</td></tr>
+    <tr><td><code>results[].output</code></td><td>string</td><td>输出文件路径</td></tr>
+    <tr><td><code>results[].exit_code</code></td><td>int</td><td>该文件退出码</td></tr>
+    <tr><td><code>results[].time_sec</code></td><td>float</td><td>该文件墙钟耗时</td></tr>
+    <tr><td><code>results[].output_bytes</code></td><td>int</td><td>输出文件字节数</td></tr>
+    <tr><td><code>results[].error</code></td><td>string</td><td>失败原因；成功时为空</td></tr>
+  </tbody>
+</table>
+
+<h2 id="exit-codes">退出码</h2>
+<table>
+  <thead>
+    <tr><th>退出码</th><th>含义</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="tag tag-ok">0</span></td>
+      <td>全部成功</td>
+      <td>所有文件、所有盘切片+导出成功</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-fail">-1</span></td>
+      <td>切片失败</td>
+      <td>切片过程产生错误；多文件模式下任一文件失败即返回 -1</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-fail">-2</span></td>
+      <td>导出失败</td>
+      <td>切片成功但 <code>export_3mf</code> 返回非 0</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-fail">-3</span></td>
+      <td>未捕获异常</td>
+      <td>导出阶段抛出 std::exception 或未知异常</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="script-example">脚本示例</h2>
+
+<h3>Bash：切片当前目录所有 3MF 并检查结果</h3>
+<pre><code><span class="comment">#!/bin/bash</span>
+set -e
+OUT=/tmp/slice_out
+mkdir -p $OUT
+
+<span class="var">export SNAPMAKER_ORCA_ALLOW_NEWER_FILE</span>=1
+snapmaker-orca <span class="flag">--auto-export-gcode</span> $OUT *.3mf 2&gt;$OUT/progress.log
+EXIT=$?
+
+<span class="cmd">if</span> [ $EXIT -ne 0 ]; <span class="cmd">then</span>
+  <span class="cmd">echo</span> <span class="string">"切片失败，退出码 $EXIT"</span>
+  <span class="cmd">cat</span> $OUT/summary.json 2&gt;/dev/null
+  <span class="cmd">exit</span> $EXIT
+<span class="cmd">fi</span>
+
+<span class="comment"># 检查每个文件的盘切片状态</span>
+python3 -c <span class="string">"'
+import json, os
+summary = json.load(open(\"$OUT/summary.json\"))
+for r in summary[\"results\"]:
+    stem = os.path.splitext(os.path.basename(r[\"file\"]))[0]
+    j = json.load(open(f\"$OUT/{stem}.result.json\"))
+    failed = j[\"failed_plates\"] + j[\"skipped_plates\"]
+    status = \"✓\" if failed == 0 else \"✗\"
+    print(f\"{status} {j['input_file']}: ok={j['sliced_plates']}, failed={failed}, time={j['total_time_sec']:.1f}s\")
+'"</span></code></pre>
+
+<h3>Python：解析进度并实时显示</h3>
+<pre><code><span class="cmd">import</span> subprocess, re, sys
+
+cmd = [<span class="string">"snapmaker-orca"</span>, <span class="string">"--auto-export-gcode"</span>, <span class="string">"/out"</span>, <span class="string">"model.3mf"</span>]
+env = {<span class="string">"SNAPMAKER_ORCA_ALLOW_NEWER_FILE"</span>: <span class="string">"1"</span>, <span class="string">"PATH"</span>: os.environ[<span class="string">"PATH"</span>]}
+
+proc = subprocess.Popen(cmd, env=env, stderr=subprocess.PIPE, text=True)
+<span class="cmd">for</span> line <span class="cmd">in</span> proc.stderr:
+    m = re.search(<span class="string">r"plate (\d+)/(\d+): (\d+)%"</span>, line)
+    <span class="cmd">if</span> m:
+        plate, total, pct = m.groups()
+        sys.stdout.write(<span class="cmd">f</span><span class="string">"\r切片中: 盘 {plate}/{total} - {pct}%"</span>)
+        sys.stdout.flush()
+proc.wait()
+<span class="cmd">print</span>(<span class="cmd">f</span><span class="string">"\n完成，退出码 {proc.returncode}"</span>)</code></pre>
+
+<h3>PowerShell：批量切片</h3>
+<pre><code><span class="cmd">$env:SNAPMAKER_ORCA_ALLOW_NEWER_FILE</span> = 1
+$out = <span class="string">"C:\slice_out"</span>
+New-Item -ItemType Directory -Force -Path $out | Out-Null
+
+$files = Get-ChildItem -Filter *.3mf | Select-Object -ExpandProperty FullName
+<span class="cmd">&amp;</span> snapmaker-orca.exe <span class="flag">--auto-export-gcode</span> $out @files 2&gt; $out\progress.log
+
+<span class="cmd">if</span> ($LASTEXITCODE -eq 0) {
+    Write-Host <span class="string">"全部切片成功"</span> -ForegroundColor Green
+} <span class="cmd">else</span> {
+    Write-Host <span class="string">"切片失败，退出码 $LASTEXITCODE"</span> -ForegroundColor Red
+    Get-Content $out\summary.json
+}</code></pre>
+
+<h2 id="notes">注意事项</h2>
+
+<div class="callout callout-warn">
+  <div class="callout-title">⚠ 必需环境变量</div>
+  <p>
+    <code>SNAPMAKER_ORCA_ALLOW_NEWER_FILE=1</code> 必须设置，否则较新版本 3MF 文件
+    会被加载校验拒绝（出现 "File Version X.X.X.X not supported" 错误）。
+  </p>
+</div>
+
+<div class="callout callout-danger">
+  <div class="callout-title">⚠ 文件覆盖</div>
+  <p>
+    输出文件名固定为 <code>&lt;stem&gt;.gcode.3mf</code> 和 <code>&lt;stem&gt;.result.json</code>。
+    多次运行会<strong>覆盖</strong>已有产物。多文件模式下若多个 3MF 的 stem 相同（如
+    <code>dir1/model.3mf</code> 和 <code>dir2/model.3mf</code>），产物会互相覆盖。
+  </p>
+</div>
+
+<div class="callout">
+  <div class="callout-title">💡 输出目录自动创建</div>
+  <p><code>--auto-export-gcode</code> 指定的输出目录如果不存在，会自动递归创建。</p>
+</div>
+
+<div class="callout">
+  <div class="callout-title">💡 中文文件名支持</div>
+  <p>
+    完整支持 UTF-8 文件名，包括中文（如 <code>圣诞小屋模型.3mf</code>）。
+    Windows 上建议使用 PowerShell 或 Git Bash，避免 CMD 的编码问题。
+  </p>
+</div>
+
+<div class="callout">
+  <div class="callout-title">💡 filament_mm 字段</div>
+  <p>
+    当前版本 <code>filament_used_mm</code> 和 <code>plates[].filament_mm</code>
+    均为 <code>null</code>，已在 JSON 中标记 TODO。计划在 v2 实现从
+    <code>print_statistics.model_volumes_per_extruder</code> 计算每盘耗材长度。
+  </p>
+</div>
+
+<h2 id="faq">常见问题</h2>
+
+<h3>Q1：报错 "File Version X.X.X.X not supported by current cli version"</h3>
+<p>未设置环境变量。请确保运行前设置 <code>SNAPMAKER_ORCA_ALLOW_NEWER_FILE=1</code>。</p>
+
+<h3>Q2：切片过程没有任何 stdout 输出</h3>
+<p>
+  这是设计如此。进度走 <strong>stderr</strong>，stdout 默认无输出。如需查看进度，
+  请重定向 stderr：<code>2&gt;progress.log</code>。
+</p>
+
+<h3>Q3：进程跑很久后崩溃或卡住</h3>
+<p>
+  可能原因：
+</p>
+<ul>
+  <li>3MF 文件损坏（尝试用 GUI 模式打开验证）</li>
+  <li>内存不足（大模型 + 多盘，需要 8GB+ RAM）</li>
+  <li>某些盘的模型有问题（检查 <code>&lt;stem&gt;.result.json</code> 的 <code>failed_plates</code>）</li>
+</ul>
+
+<h3>Q4：如何只切片部分盘？</h3>
+<p>
+  当前版本不支持选择盘范围。所有非空盘都会被切片。
+  若需跳过空盘，留空即可（自动标记为 <code>skipped</code>）。
+</p>
+
+<h3>Q5：单文件模式为什么没有 summary.json？</h3>
+<p>
+  设计决定：单文件模式产物是 <code>&lt;stem&gt;.result.json</code>，
+  信息已完整。summary.json 仅在多文件模式（&gt;1 个输入文件）下产生。
+</p>
+
+<h3>Q6：输出文件为什么还是 3MF 不是 G-code 文本？</h3>
+<p>
+  <code>.gcode.3mf</code> 是包含 G-code 的 3MF 容器格式，是 Snapmaker 打印机的标准输入。
+  打开它可以看到内嵌的 G-code（通常在 <code>Metadata/</code> 目录下）。
+  如需纯文本 G-code，可解压 3MF 提取。
+</p>
+
+<h3>Q7：如何禁用 3MF 兼容性检查不靠环境变量？</h3>
+<p>
+  目前只能通过环境变量 <code>SNAPMAKER_ORCA_ALLOW_NEWER_FILE=1</code>。
+  该选项本身有 CLI 入口 <code>--allow-newer-file</code>，但存在参数解析限制，
+  无法直接作为命令行参数传入。环境变量是当前推荐方式。
+</p>
+
+<div class="footer">
+  <p>Snapmaker Orca · --auto-export-gcode 操作说明</p>
+  <p>文档版本：v2 · 更新日期：2026-08-13</p>
+</div>
+
+</div>
+</body>
+</html>
