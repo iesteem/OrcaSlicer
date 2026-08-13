@@ -1023,8 +1023,16 @@ void GUI_App::post_init()
                 mainframe->select_tab(size_t(MainFrame::tp3DEditor));
                 plater_->select_view_3D("3D");
                 wxArrayString input_files;
-                for (auto& file : this->init_params->input_files) {
-                    input_files.push_back(wxString::FromUTF8(file));
+                if (!this->init_params->auto_export_gcode_dir.empty()) {
+                    // Orca: in --auto-export-gcode mode, load ONLY the first
+                    // file here. The queue (set on plater below) drives loading
+                    // of subsequent files one-by-one after each export, so each
+                    // 3MF gets sliced in its own clean project state.
+                    input_files.push_back(wxString::FromUTF8(this->init_params->input_files.front()));
+                } else {
+                    for (auto& file : this->init_params->input_files) {
+                        input_files.push_back(wxString::FromUTF8(file));
+                    }
                 }
                 this->plater()->set_project_filename(_L("Untitled"));
                 this->plater()->load_files(input_files);
@@ -1040,6 +1048,20 @@ void GUI_App::post_init()
                 }
             }
         }
+    }
+
+    // Orca: --auto-export-gcode headless mode. Now that the input 3MF is loaded,
+    // arm auto-export on the plater and kick off "slice all" on the next event
+    // loop tick (giving UI/widgets a chance to settle). In multi-file mode the
+    // whole input list is passed in as a queue; only input_files[0] is loaded
+    // here, the rest are loaded one-by-one after each export completes.
+    if (!this->init_params->auto_export_gcode_dir.empty() && plater_) {
+        plater_->set_auto_export_queue(this->init_params->input_files,
+                                       this->init_params->auto_export_gcode_dir);
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", arming auto-export; scheduling slice_all via CallAfter";
+        wxTheApp->CallAfter([this]() {
+            if (this->plater()) this->plater()->trigger_auto_slice_all();
+        });
     }
 
 //#if BBL_HAS_FIRST_PAGE

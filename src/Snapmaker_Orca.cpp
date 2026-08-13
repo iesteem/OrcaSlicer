@@ -1138,7 +1138,11 @@ int CLI::run(int argc, char **argv)
     else
         downward_check = false;
 
-    bool start_gui = m_actions.empty() && !downward_check;
+    // Orca: --auto-export-gcode forces GUI mode even if other actions are present,
+    // because it needs the full GUI slicing pipeline (CLI crashes on newer 3MFs).
+    const bool has_auto_export =
+        m_config.has("auto_export_gcode") && !m_config.opt_string("auto_export_gcode").empty();
+    bool start_gui = (m_actions.empty() || has_auto_export) && !downward_check;
     if (start_gui) {
         BOOST_LOG_TRIVIAL(info) << "no action, start gui directly" << std::endl;
 #ifdef SLIC3R_GUI
@@ -1181,6 +1185,11 @@ int CLI::run(int argc, char **argv)
         }
         //BBS: remove GCodeViewer as seperate APP logic
         //params.start_as_gcodeviewer = start_as_gcodeviewer;
+
+        if (has_auto_export) {
+            params.auto_export_gcode_dir = m_config.opt_string("auto_export_gcode");
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", auto-export mode, output dir = " << params.auto_export_gcode_dir;
+        }
 
         BOOST_LOG_TRIVIAL(info) << "begin to launch Snapmaker_Orca GUI soon";
         return Slic3r::GUI::GUI_Run(params);

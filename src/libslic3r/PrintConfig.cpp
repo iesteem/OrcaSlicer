@@ -8439,6 +8439,12 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->tooltip = L("Allow 3mf with newer version to be sliced.");
     def->cli_params = "option";
     def->set_default_value(new  ConfigOptionBool(false));
+
+    def = this->add("auto_export_gcode", coString);
+    def->label = L("Auto export G-code 3MF");
+    def->tooltip = L("Run GUI headlessly: load the input 3MF, slice all plates, export gcode.3mf to this directory, and exit. Output filename = <input_filename>.gcode.3mf.");
+    def->cli_params = "output_directory";
+    def->set_default_value(new ConfigOptionString());
 }
 
 const CLIActionsConfigDef    cli_actions_config_def;

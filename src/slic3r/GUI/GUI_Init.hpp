@@ -23,6 +23,10 @@ struct GUI_InitParams
     //BBS: remove start_as_gcodeviewer logic
 	//bool	                    start_as_gcodeviewer;
 	bool                        input_gcode { false };
+
+    // Orca: when non-empty, GUI loads the input 3MF, slices all plates, exports
+    // gcode.3mf to this directory, then exits. Headless batch slicing.
+    std::string                 auto_export_gcode_dir;
 };
 
 int GUI_Run(GUI_InitParams &params);

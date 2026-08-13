@@ -990,6 +990,20 @@ private:
     // BBS: add project slice related functions
     int start_next_slice();
 
+public:
+    // Orca: headless auto-export (--auto-export-gcode). Loads already done by the
+    // time these are called; trigger_auto_slice_all kicks off "slice all";
+    // export is driven from priv::on_process_completed when is_finished && m_auto_export.
+    void set_auto_export_dir(const std::string& dir, const std::string& source_filename_stem);
+    void trigger_auto_slice_all();
+
+    // Orca: multi-file mode (--auto-export-gcode with multiple inputs). Arm a
+    // queue of 3MF paths; on each export completion, advance to the next file
+    // or exit if this was the last one.
+    void set_auto_export_queue(const std::vector<std::string>& files, const std::string& output_dir);
+
+private:
+
     void _calib_pa_pattern(const Calib_Params& params);
     void _calib_pa_pattern_gen_gcode();
     void _calib_pa_tower(const Calib_Params& params);

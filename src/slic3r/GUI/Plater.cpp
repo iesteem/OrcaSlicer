@@ -18,6 +18,8 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <cstdio>
+#include <iomanip>
 #include <numeric>
 #include <memory>
 #include <limits>
@@ -38,6 +40,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/convert.hpp>
+#include <boost/nowide/iostream.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -49,6 +52,7 @@
 #include <wx/statbox.h>
 #include <wx/statbmp.h>
 #include <wx/filedlg.h>
+#include <wx/file.h>
 #include <wx/dnd.h>
 #include <wx/progdlg.h>
 #include <wx/string.h>
@@ -9142,6 +9146,32 @@ struct Plater::priv
     //BBS: m_slice_all in .gcode.3mf file case, set true when slice all
     bool m_slice_all_only_has_gcode{ false };
 
+    // Orca: headless auto-export mode (--auto-export-gcode). When true, plater
+    // behaves like on_action_slice_all but skips user dialogs, exports the
+    // sliced result as gcode.3mf to m_auto_export_dir, then quits the app.
+    bool m_auto_export{ false };
+    std::string m_auto_export_dir;
+    std::string m_auto_export_source_filename; // stem of input 3MF, used to name output
+    // Orca: multi-file queue. When non-empty, after each file's export finishes,
+    // advance to the next entry (new_project + load_files + trigger slice_all);
+    // exit the process after the last one.
+    std::vector<fs::path> m_auto_export_queue;
+    size_t                m_auto_export_queue_idx{ 0 };
+    // Orca: per-file timing and stderr progress throttling.
+    std::chrono::steady_clock::time_point m_auto_export_per_file_start;
+    int m_auto_export_last_pct_bucket{ -1 }; // pct/5, for 5% stderr granularity
+    int m_auto_export_last_plate{ -1 };      // 1-based plate index last reported
+    // Orca: collected per-file outcomes for summary.json in multi-file mode.
+    struct AutoExportFileOutcome {
+        std::string input_file;
+        std::string output_file;
+        int         exit_code{ 0 };
+        double      time_sec{ 0.0 };
+        uint64_t    output_bytes{ 0 };
+        std::string error;
+    };
+    std::vector<AutoExportFileOutcome> m_auto_export_outcomes;
+
     bool m_need_update{false};
     //BBS: add popup object table logic
     //ObjectTableDialog* m_popup_table{ nullptr };
@@ -9450,6 +9480,21 @@ struct Plater::priv
     void on_export_began(wxCommandEvent&);
     void on_export_finished(wxCommandEvent&);
     void on_slicing_began();
+
+    // Orca: write the rich <stem>.result.json after auto-export completes.
+    void write_auto_export_result(const fs::path& result_path,
+                                  int exit_code,
+                                  const std::string& error,
+                                  const std::string& input_file,
+                                  const std::string& output_file,
+                                  uint64_t output_size_bytes,
+                                  double total_time_sec);
+
+    // Orca: after a file's export completes, either advance to the next file
+    // in the queue (new_project + load_files + CallAfter trigger slice_all),
+    // or write summary.json (multi-file) and std::exit. In single-file mode
+    // (queue empty) this just exits.
+    void advance_auto_export_queue_or_exit(int last_exit_code);
 
     void clear_warnings();
     void add_warning(const Slic3r::PrintStateBase::Warning &warning, size_t oid);
@@ -14078,6 +14123,20 @@ void Plater::priv::on_slicing_update(SlicingStatusEvent &evt)
         //slicing parallel, only update if percent is greater than before
         if (evt.status.percent > plate_list.get_curr_plate()->get_slicing_percent())
             plate_list.get_curr_plate()->update_slicing_percent(evt.status.percent);
+
+        // Orca: in headless auto-export, mirror progress to stderr at 5%
+        // granularity so external scripts/CI can follow per-plate progress.
+        if (m_auto_export) {
+            int bucket = evt.status.percent / 5;       // 5% granularity
+            int plate = m_cur_slice_plate + 1;         // 1-based
+            if (bucket != m_auto_export_last_pct_bucket || plate != m_auto_export_last_plate) {
+                m_auto_export_last_pct_bucket = bucket;
+                m_auto_export_last_plate = plate;
+                int total = (int)partplate_list.get_plate_count();
+                boost::nowide::cerr << "[auto-export] plate " << plate << "/" << total
+                                    << ": " << evt.status.percent << "%" << std::endl;
+            }
+        }
     }
 
     if (evt.status.flags & (PrintBase::SlicingStatus::RELOAD_SCENE | PrintBase::SlicingStatus::RELOAD_SLA_SUPPORT_POINTS)) {
@@ -14332,7 +14391,12 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
     if (evt.error()) {
         auto message = evt.format_error_message();
         if (evt.critical_error()) {
-            if (q->m_tracking_popup_menu) {
+            // Orca: in headless auto-export mode, suppress the error modal so
+            // the run can write result.json and exit without user interaction.
+            if (m_auto_export) {
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": [auto-export] critical slicing error: " << message.first;
+                notification_manager->set_slicing_progress_hidden();
+            } else if (q->m_tracking_popup_menu) {
                 // We don't want to pop-up a message box when tracking a pop-up menu.
                 // We postpone the error message instead.
                 q->m_tracking_popup_menu_error_message = message.first;
@@ -14478,6 +14542,89 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
             }
         }
         q->SetDropTarget(new PlaterDropTarget(*main_frame, *q));
+
+        // Orca: headless auto-export. Slice-all just finished (or errored out).
+        // Export gcode.3mf if no error, write <stem>.result.json, then advance
+        // to the next file in the queue (or exit if single-file / queue empty).
+        if (m_auto_export) {
+            std::string err_msg;
+            int exit_code = 0;
+            fs::path out_path;
+            std::string input_file_str;
+            if (!m_auto_export_queue.empty()) {
+                input_file_str = m_auto_export_queue[m_auto_export_queue_idx].string();
+            }
+            if (has_error) {
+                err_msg = evt.error() ? evt.format_error_message().first : "slicing_failed";
+                exit_code = -1;
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": auto-export aborted due to slicing error: " << err_msg;
+            } else {
+                try {
+                    fs::path out_dir(m_auto_export_dir);
+                    fs::create_directories(out_dir);
+                    std::string stem = m_auto_export_source_filename.empty()
+                        ? std::string("output") : m_auto_export_source_filename;
+                    out_path = out_dir / (stem + ".gcode.3mf");
+                    boost::nowide::cerr << "[auto-export] exporting: " << out_path.string() << std::endl;
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": auto-exporting to " << out_path.string();
+                    int r = q->export_3mf(out_path,
+                        SaveStrategy::Silence | SaveStrategy::SplitModel |
+                        SaveStrategy::WithGcode | SaveStrategy::SkipModel,
+                        PLATE_ALL_IDX);
+                    if (r != 0) {
+                        err_msg = "export_3mf_failed_code=" + std::to_string(r);
+                        exit_code = -2;
+                    }
+                } catch (const std::exception& e) {
+                    err_msg = std::string("exception:") + e.what();
+                    exit_code = -3;
+                } catch (...) {
+                    err_msg = "unknown_exception";
+                    exit_code = -3;
+                }
+            }
+
+            // Rich <stem>.result.json
+            double total_time_sec = 0.0;
+            try {
+                auto end_tp = std::chrono::steady_clock::now();
+                total_time_sec = std::chrono::duration<double>(end_tp - m_auto_export_per_file_start).count();
+            } catch (...) {}
+            uint64_t out_bytes = 0;
+            try {
+                if (!out_path.empty() && fs::exists(out_path)) {
+                    out_bytes = (uint64_t)fs::file_size(out_path);
+                }
+            } catch (...) {}
+            try {
+                fs::create_directories(m_auto_export_dir);
+                std::string stem = m_auto_export_source_filename.empty()
+                    ? std::string("output") : m_auto_export_source_filename;
+                fs::path result = fs::path(m_auto_export_dir) / (stem + ".result.json");
+                write_auto_export_result(result, exit_code, err_msg,
+                                         input_file_str, out_path.string(),
+                                         out_bytes, total_time_sec);
+            } catch (...) {}
+
+            if (exit_code == 0) {
+                boost::nowide::cerr << "[auto-export] done: " << m_auto_export_source_filename
+                                    << " (" << std::fixed << std::setprecision(1)
+                                    << total_time_sec << "s, " << out_bytes << " bytes)" << std::endl;
+            } else {
+                boost::nowide::cerr << "[auto-export] failed: " << m_auto_export_source_filename
+                                    << " code=" << exit_code << " err=" << err_msg << std::endl;
+            }
+
+            // Record outcome for summary.json in multi-file mode.
+            m_auto_export_outcomes.push_back({input_file_str, out_path.string(),
+                                              exit_code, total_time_sec, out_bytes, err_msg});
+
+            // Defer the next step so the current event handler returns cleanly.
+            const int code_for_lambda = exit_code;
+            wxGetApp().CallAfter([this, code_for_lambda]() {
+                advance_auto_export_queue_or_exit(code_for_lambda);
+            });
+        }
     }
     else
     {
@@ -20448,6 +20595,254 @@ int Plater::start_next_slice()
 }
 
 
+// Orca: headless auto-export helpers (--auto-export-gcode).
+void Plater::set_auto_export_dir(const std::string& dir, const std::string& source_filename_stem)
+{
+    p->m_auto_export = true;
+    p->m_auto_export_dir = dir;
+    p->m_auto_export_source_filename = source_filename_stem;
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": auto-export armed, dir=%1%, stem=%2%") % dir % source_filename_stem;
+}
+
+// Orca: minimal JSON string escape. Covers the typical chars that appear in
+// error messages and file paths. We deliberately hand-roll JSON instead of
+// pulling rapidjson into Plater.cpp; the schema is fixed and shallow.
+static std::string auto_export_json_escape(const std::string& s)
+{
+    std::string out;
+    out.reserve(s.size() + 8);
+    for (char c : s) {
+        switch (c) {
+            case '\\': out += "\\\\"; break;
+            case '"':  out += "\\\""; break;
+            case '\n': out += "\\n";  break;
+            case '\r': out += "\\r";  break;
+            case '\t': out += "\\t";  break;
+            default:   out.push_back(c); break;
+        }
+    }
+    return out;
+}
+
+// Orca: write a rich <stem>.result.json for the just-exported file. Iterates
+// all plates, collecting per-plate status/time/warnings/gcode_lines. Uses
+// GCodeProcessorResult at the moment when background_process is idle.
+void Plater::priv::write_auto_export_result(
+    const fs::path& result_path,
+    int exit_code,
+    const std::string& error,
+    const std::string& input_file,
+    const std::string& output_file,
+    uint64_t output_size_bytes,
+    double total_time_sec)
+{
+    auto plate_list = partplate_list.get_plate_list();
+    int total_plates = (int)plate_list.size();
+    int sliced_plates = 0, failed_plates = 0, skipped_plates = 0;
+    int total_warnings = 0;
+    double total_estimated_print_time = 0.0;
+    std::string plates_json;
+    plates_json.reserve(2048);
+    plates_json.push_back('[');
+    bool first = true;
+    for (int i = 0; i < total_plates; ++i) {
+        PartPlate* plate = plate_list[i];
+        if (!plate) continue;
+        bool valid = plate->is_slice_result_valid();
+        std::string status;
+        if (!valid) {
+            // A plate with no printable instances is "skipped" by slice_all;
+            // a plate that produced no gcode result is "failed".
+            status = plate->has_printable_instances() ? "failed" : "skipped";
+            if (status == "failed") ++failed_plates;
+            else                    ++skipped_plates;
+        } else {
+            status = "ok";
+            ++sliced_plates;
+        }
+        double plate_time = 0.0;
+        size_t gcode_lines = 0;
+        int plate_warnings = 0;
+        if (valid) {
+            if (GCodeProcessorResult* r = plate->get_slice_result()) {
+                plate_time = (double)r->print_statistics.modes[
+                    (size_t)PrintEstimatedStatistics::ETimeMode::Normal].time;
+                gcode_lines = r->lines_ends.size();
+                plate_warnings = (int)r->warnings.size();
+                total_warnings += plate_warnings;
+                total_estimated_print_time += plate_time;
+            }
+        }
+        if (!first) plates_json.push_back(',');
+        first = false;
+        plates_json += "{\"index\":";
+        plates_json += std::to_string(i);
+        plates_json += ",\"status\":\"";
+        plates_json += status;
+        plates_json += "\",\"time_sec\":";
+        // %.3f without locale surprises
+        char buf[64];
+        std::snprintf(buf, sizeof(buf), "%.3f", plate_time);
+        plates_json += buf;
+        plates_json += ",\"gcode_lines\":";
+        plates_json += std::to_string(gcode_lines);
+        plates_json += ",\"warnings\":";
+        plates_json += std::to_string(plate_warnings);
+        plates_json += ",\"filament_mm\":null}"; // TODO v2: sum filament per plate
+    }
+    plates_json.push_back(']');
+
+    std::string json;
+    json.reserve(plates_json.size() + 512);
+    json += "{\n";
+    json += "  \"exit_code\": " + std::to_string(exit_code) + ",\n";
+    json += "  \"error\": \"" + auto_export_json_escape(error) + "\",\n";
+    json += "  \"input_file\": \"" + auto_export_json_escape(input_file) + "\",\n";
+    json += "  \"output_file\": \"" + auto_export_json_escape(output_file) + "\",\n";
+    json += "  \"output_size_bytes\": " + std::to_string(output_size_bytes) + ",\n";
+    char tbuf[64];
+    std::snprintf(tbuf, sizeof(tbuf), "%.3f", total_time_sec);
+    json += "  \"total_time_sec\": " + std::string(tbuf) + ",\n";
+    json += "  \"plate_count\": " + std::to_string(total_plates) + ",\n";
+    json += "  \"sliced_plates\": " + std::to_string(sliced_plates) + ",\n";
+    json += "  \"failed_plates\": " + std::to_string(failed_plates) + ",\n";
+    json += "  \"skipped_plates\": " + std::to_string(skipped_plates) + ",\n";
+    json += "  \"total_warnings\": " + std::to_string(total_warnings) + ",\n";
+    std::snprintf(tbuf, sizeof(tbuf), "%.3f", total_estimated_print_time);
+    json += "  \"total_estimated_print_time_sec\": " + std::string(tbuf) + ",\n";
+    json += "  \"filament_used_mm\": null,\n"; // TODO v2
+    json += "  \"plates\": " + plates_json + "\n";
+    json += "}\n";
+
+    wxFile f(result_path.string(), wxFile::write);
+    if (f.IsOpened()) f.Write(json);
+}
+
+void Plater::set_auto_export_queue(const std::vector<std::string>& files, const std::string& output_dir)
+{
+    p->m_auto_export = true;
+    p->m_auto_export_dir = output_dir;
+    p->m_auto_export_queue.clear();
+    for (const auto& f : files) p->m_auto_export_queue.emplace_back(f);
+    p->m_auto_export_queue_idx = 0;
+    // Source filename stem for the first file (later ones are set as we advance).
+    if (!p->m_auto_export_queue.empty()) {
+        p->m_auto_export_source_filename = p->m_auto_export_queue.front().stem().string();
+    }
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": auto-export queue armed, dir=%1%, files=%2%") % output_dir % files.size();
+}
+
+void Plater::priv::advance_auto_export_queue_or_exit(int last_exit_code)
+{
+    // Single-file mode (no queue): exit immediately.
+    if (m_auto_export_queue.empty()) {
+        std::exit(last_exit_code);
+    }
+
+    m_auto_export_queue_idx++;
+    if (m_auto_export_queue_idx >= m_auto_export_queue.size()) {
+        // All files done: write summary.json ONLY in multi-file mode (>1 file),
+        // then exit. Single-file mode just exits and leaves <stem>.result.json.
+        int ok = 0, failed = 0;
+        for (const auto& o : m_auto_export_outcomes) {
+            if (o.exit_code == 0) ++ok; else ++failed;
+        }
+        if (m_auto_export_queue.size() > 1) {
+            try {
+                fs::path summary = fs::path(m_auto_export_dir) / "summary.json";
+                std::string json;
+                json.reserve(512 + m_auto_export_outcomes.size() * 128);
+                json += "{\n";
+                json += "  \"files_total\": " + std::to_string((int)m_auto_export_outcomes.size()) + ",\n";
+                json += "  \"files_ok\": " + std::to_string(ok) + ",\n";
+                json += "  \"files_failed\": " + std::to_string(failed) + ",\n";
+                json += "  \"results\": [\n";
+                for (size_t i = 0; i < m_auto_export_outcomes.size(); ++i) {
+                    const auto& o = m_auto_export_outcomes[i];
+                    char tbuf[64];
+                    std::snprintf(tbuf, sizeof(tbuf), "%.3f", o.time_sec);
+                    json += "    {\"file\": \"" + auto_export_json_escape(o.input_file) + "\",";
+                    json += " \"output\": \"" + auto_export_json_escape(o.output_file) + "\",";
+                    json += " \"exit_code\": " + std::to_string(o.exit_code) + ",";
+                    json += " \"time_sec\": " + std::string(tbuf) + ",";
+                    json += " \"output_bytes\": " + std::to_string(o.output_bytes) + ",";
+                    json += " \"error\": \"" + auto_export_json_escape(o.error) + "\"}";
+                    if (i + 1 < m_auto_export_outcomes.size()) json += ",";
+                    json += "\n";
+                }
+                json += "  ]\n}\n";
+                wxFile f(summary.string(), wxFile::write);
+                if (f.IsOpened()) f.Write(json);
+            } catch (...) {}
+        }
+        boost::nowide::cerr << "[auto-export] all files done: ok=" << ok
+                            << ", failed=" << failed << std::endl;
+        std::exit(failed > 0 ? -1 : 0);
+    }
+
+    // Advance to next file: clear current project, load the 3MF, trigger slice_all.
+    const fs::path& next_file = m_auto_export_queue[m_auto_export_queue_idx];
+    std::string stem = next_file.stem().string();
+    m_auto_export_source_filename = stem;
+    boost::nowide::cerr << "[auto-export] loading: " << next_file.string() << std::endl;
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": advancing to file %1%/%2%: %3%")
+        % (m_auto_export_queue_idx + 1) % m_auto_export_queue.size() % next_file.string();
+
+    q->new_project(true /*skip_confirm*/, true /*silent*/);
+    std::vector<std::string> next_files{ next_file.string() };
+    q->load_files(next_files);
+    wxTheApp->CallAfter([this]() { q->trigger_auto_slice_all(); });
+}
+
+void Plater::trigger_auto_slice_all()
+{
+    // Mirror on_action_slice_all but skip guard_before_slice_all's modal dialog.
+    const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
+    auto& print = get_partplate_list().get_current_fff_print();
+    auto print_config = print.config();
+    int numExtruders = wxGetApp().preset_bundle->filament_presets.size();
+    Model::setExtruderParams(config, numExtruders);
+    Model::setPrintSpeedTable(config, print_config);
+
+    p->m_auto_export_per_file_start = std::chrono::steady_clock::now();
+    p->m_auto_export_last_pct_bucket = -1;
+    p->m_auto_export_last_plate = -1;
+
+    if (!has_sliceable_plate_for_slice_all()) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": no sliceable plate, abort auto-export";
+        // Best-effort <stem>.result.json so external scripts can detect the failure.
+        try {
+            fs::create_directories(p->m_auto_export_dir);
+            std::string stem = p->m_auto_export_source_filename.empty()
+                ? std::string("output") : p->m_auto_export_source_filename;
+            fs::path result = fs::path(p->m_auto_export_dir) / (stem + ".result.json");
+            wxFile f(result.string(), wxFile::write);
+            if (f.IsOpened()) f.Write("{\"exit_code\":-1,\"error\":\"no_sliceable_plate\"}");
+        } catch (...) {}
+        wxGetApp().CallAfter([]() { wxGetApp().ExitMainLoop(); });
+        return;
+    }
+
+    int total_plates = (int)p->partplate_list.get_plate_count();
+    std::string stem = p->m_auto_export_source_filename.empty()
+        ? std::string("output") : p->m_auto_export_source_filename;
+    boost::nowide::cerr << "[auto-export] slicing all: file=" << stem
+                        << ", plates=" << total_plates << std::endl;
+
+    p->m_slice_all = true;
+    p->m_slice_all_only_has_gcode = false;
+    p->m_cur_slice_plate = find_next_sliceable_plate_for_slice_all(0);
+    if (p->m_cur_slice_plate < 0) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": find_next_sliceable_plate returned -1";
+        wxGetApp().CallAfter([]() { wxGetApp().ExitMainLoop(); });
+        return;
+    }
+    select_plate(p->m_cur_slice_plate);
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": starting slice_all from plate %1%") % p->m_cur_slice_plate;
+    reslice();
+}
+
+
 void Plater::reslice_SLA_supports(const ModelObject &object, bool postpone_error_messages)
 {
     reslice_SLA_until_step(slaposPad, object, postpone_error_messages);
@@ -21836,6 +22231,10 @@ bool Plater::guard_before_slice_plate()
 
 bool Plater::guard_before_slice_all()
 {
+    // Orca: skip modal guards during headless auto-export; the user cannot
+    // confirm anything and the slicing still proceeds underneath.
+    if (p->m_auto_export)
+        return true;
     sync_flow_ratio_zero_notification();
     return confirm_filament_temp_mixing_before_slice_all();
 }
