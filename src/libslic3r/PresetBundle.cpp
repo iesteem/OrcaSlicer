@@ -1226,7 +1226,8 @@ int PresetBundle::validate_presets(const std::string &file_name, DynamicPrintCon
         different_values = config.option<ConfigOptionStrings>("different_settings_to_system", true)->values;
 
     //PrinterTechnology printer_technology = Preset::printer_technology(config);
-    size_t filament_count = config.option<ConfigOptionFloats>("filament_diameter")->values.size();
+    const auto* filament_diameter_opt = config.option<ConfigOptionFloats>("filament_diameter");
+    size_t filament_count = filament_diameter_opt ? filament_diameter_opt->values.size() : 0;
     inherits_values.resize(filament_count + 2, std::string());
     different_values.resize(filament_count + 2, std::string());
     filament_preset_name.resize(filament_count, std::string());
@@ -1248,7 +1249,9 @@ int PresetBundle::validate_presets(const std::string &file_name, DynamicPrintCon
         if (!validated) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(":file_name %1%, found the filament %2% preset not inherit from system") % file_name %(index+1);
             different_gcodes.emplace(filament_preset);
-            ret = VALIDATE_PRESETS_FILAMENTS_NOT_FOUND;
+            // Preserve higher-severity return codes (PRINTER_NOT_FOUND beats FILAMENTS_NOT_FOUND).
+            if (ret == VALIDATE_PRESETS_SUCCESS)
+                ret = VALIDATE_PRESETS_FILAMENTS_NOT_FOUND;
         }
     }
 
@@ -3353,9 +3356,9 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
                 // Some system bundles only provide setting_id for filaments. Treat it as a stable fallback
                 // instead of aborting the entire vendor import and losing all dependent presets.
                 filament_id = setting_id;
-                // BOOST_LOG_TRIVIAL(warning) << __FUNCTION__
-                //                            << ": missing filament_id for " << preset_name
-                //                            << ", falling back to setting_id " << setting_id;
+                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__
+                                          << ": missing filament_id for " << preset_name
+                                          << ", falling back to setting_id " << setting_id;
             }
             //check whether it inherits other preset or not
             auto it1 = key_values.find(BBL_JSON_KEY_INHERITS);
@@ -3493,7 +3496,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
             loaded.setting_id = setting_id;
             loaded.filament_id = filament_id;
             loaded.m_from_orca_filament_lib = is_from_lib;
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << loaded.name << " load filament_id: " << filament_id;
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << " " << __LINE__ << " " << loaded.name << " filament_id: " << filament_id;
             if (presets_collection->type() == Preset::TYPE_FILAMENT) {
                 if (filament_id.empty() && "Template" != vendor_name) {
                     ++m_errors;

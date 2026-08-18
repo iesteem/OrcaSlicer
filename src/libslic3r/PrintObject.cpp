@@ -108,7 +108,7 @@ PrintObject::PrintObject(Print* print, ModelObject* model_object, const Transfor
 
 PrintObject::~PrintObject()
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": this=%1%, m_shared_object %2%")%this%m_shared_object;
+    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": this=%1%, m_shared_object %2%")%this%m_shared_object;
     if (m_shared_regions && -- m_shared_regions->m_ref_cnt == 0) delete m_shared_regions;
     clear_layers();
     clear_support_layers();
@@ -299,7 +299,7 @@ void PrintObject::make_perimeters()
         return;
 
     m_print->set_status(15, L("Generating walls"));
-    BOOST_LOG_TRIVIAL(info) << "Generating walls..." << log_memory_info();
+    BOOST_LOG_TRIVIAL(debug) << "Generating walls..." << log_memory_info();
 
     // Revert the typed slices into untyped slices.
     if (m_typed_slices) {
@@ -423,7 +423,7 @@ void PrintObject::prepare_infill()
     // Decide what surfaces are to be filled.
     // Here the stTop / stBottomBridge / stBottom infill is turned to just stInternal if zero top / bottom infill layers are configured.
     // Also tiny stInternal surfaces are turned to stInternalSolid.
-    BOOST_LOG_TRIVIAL(info) << "Preparing fill surfaces..." << log_memory_info();
+    BOOST_LOG_TRIVIAL(debug) << "Preparing fill surfaces..." << log_memory_info();
     for (auto *layer : m_layers)
         for (auto *region : layer->m_regions) {
             region->prepare_fill_surfaces();
@@ -616,6 +616,9 @@ void PrintObject::detect_overhangs_for_lift()
             {
                 for (size_t layer_id = range.begin(); layer_id < range.end(); ++layer_id) {
                     Layer& layer = *m_layers[layer_id];
+                    if (layer.lower_layer == nullptr) {
+                        continue;
+                    }
                     Layer& lower_layer = *layer.lower_layer;
 
                     ExPolygons overhangs = diff_ex(layer.lslices, offset_ex(lower_layer.lslices, scale_(min_overlap)));
@@ -644,7 +647,7 @@ void PrintObject::generate_support_material()
             SupportNecessaryType sntype = this->is_support_necessary();
 
             double duration{ std::chrono::duration_cast<second_>(clock_::now() - t0).count() };
-            BOOST_LOG_TRIVIAL(info) << std::fixed << std::setprecision(0) << "is_support_necessary takes " << duration << " secs.";
+            BOOST_LOG_TRIVIAL(debug) << std::fixed << std::setprecision(0) << "is_support_necessary takes " << duration << " secs.";
 
             if (sntype != NoNeedSupp) {
                 std::map<SupportNecessaryType, std::string> reasons = {
@@ -1296,7 +1299,7 @@ bool PrintObject::invalidate_all_steps()
 // If a part of a region is of stBottom and stTop, the stBottom wins.
 void PrintObject::detect_surfaces_type()
 {
-    BOOST_LOG_TRIVIAL(info) << "Detecting solid surfaces..." << log_memory_info();
+    BOOST_LOG_TRIVIAL(debug) << "Detecting solid surfaces..." << log_memory_info();
 
     // Interface shells: the intersecting parts are treated as self standing objects supporting each other.
     // Each of the objects will have a full number of top / bottom layers, even if these top / bottom layers
@@ -1637,7 +1640,7 @@ void PrintObject::detect_surfaces_type()
 
 void PrintObject::process_external_surfaces()
 {
-    BOOST_LOG_TRIVIAL(info) << "Processing external surfaces..." << log_memory_info();
+    BOOST_LOG_TRIVIAL(debug) << "Processing external surfaces..." << log_memory_info();
 
     // Cached surfaces covered by some extrusion, defining regions, over which the from the surfaces one layer higher are allowed to expand.
     std::vector<Polygons> surfaces_covered;
@@ -1721,7 +1724,7 @@ void PrintObject::discover_vertical_shells()
 {
     PROFILE_FUNC();
 
-    BOOST_LOG_TRIVIAL(info) << "Discovering vertical shells..." << log_memory_info();
+    BOOST_LOG_TRIVIAL(debug) << "Discovering vertical shells..." << log_memory_info();
 
     struct DiscoverVerticalShellsCacheEntry
     {
@@ -2179,7 +2182,7 @@ template<typename T> void debug_draw(std::string name, const T& a, const T& b, c
 // This method applies bridge flow to the first internal solid layer above sparse infill.
 void PrintObject::bridge_over_infill()
 {
-    BOOST_LOG_TRIVIAL(info) << "Bridge over infill - Start" << log_memory_info();
+    BOOST_LOG_TRIVIAL(debug) << "Bridge over infill - Start" << log_memory_info();
     struct CandidateSurface
     {
         CandidateSurface(const Surface     *original_surface,
@@ -2961,7 +2964,7 @@ void PrintObject::bridge_over_infill()
         }
     });
 
-    BOOST_LOG_TRIVIAL(info) << "Bridge over infill - Directions and expanded surfaces computed" << log_memory_info();
+    BOOST_LOG_TRIVIAL(debug) << "Bridge over infill - Directions and expanded surfaces computed" << log_memory_info();
 
     tbb::parallel_for(tbb::blocked_range<size_t>(0, this->layers().size()), [po = this, &surfaces_by_layer](tbb::blocked_range<size_t> r) {
         PRINT_OBJECT_TIME_LIMIT_MILLIS(PRINT_OBJECT_TIME_LIMIT_DEFAULT);
@@ -3177,7 +3180,7 @@ void PrintObject::bridge_over_infill()
     // === ORCA: End of second bridging pass =====================================================
     // ===========================================================================================
 
-    BOOST_LOG_TRIVIAL(info) << "Bridge over infill - End" << log_memory_info();
+    BOOST_LOG_TRIVIAL(debug) << "Bridge over infill - End" << log_memory_info();
 
 } // void PrintObject::bridge_over_infill()
 

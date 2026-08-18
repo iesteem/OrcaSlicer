@@ -148,8 +148,19 @@ void remove_duplicates_preserve_order(std::vector<unsigned int> &values)
 
 
 // Shortest hamilton path problem
-static std::vector<unsigned int> solve_extruder_order(const std::vector<std::vector<float>>& wipe_volumes, std::vector<unsigned int> all_extruders, std::optional<unsigned int> start_extruder_id) 
+static std::vector<unsigned int> solve_extruder_order(const std::vector<std::vector<float>>& wipe_volumes, std::vector<unsigned int> all_extruders, std::optional<unsigned int> start_extruder_id)
 {
+    // Safety: if any extruder ID exceeds wipe_volumes dimensions (due to
+    // mismatch between model filament count and printer extruder count),
+    // skip the DP optimization and return the original order unchanged.
+    // Otherwise wipe_volumes[extruder_id] below would access out of bounds.
+    if (!wipe_volumes.empty()) {
+        for (unsigned int eid : all_extruders) {
+            if (eid >= wipe_volumes.size())
+                return all_extruders;
+        }
+    }
+
     bool add_start_extruder_flag = false;
 
     if (start_extruder_id) {
@@ -1130,9 +1141,23 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume()
     if (!print_config || m_layer_tools.empty())
         return;
 
+    // Safety: if the model uses more filaments than the printer has extruders,
+    // extruder IDs in layer tools may exceed wipe_volumes dimensions.
+    // Skip reordering entirely in this case to avoid OOB access crashes.
+    const unsigned int actual_extruders = (unsigned int)print_config->filament_diameter.size();
+    if (actual_extruders == 0)
+        return;
+
     // Get wiping matrix to get number of extruders and convert vector<double> to vector<float>:
     std::vector<float> flush_matrix(cast<float>(print_config->flush_volumes_matrix.values));
     const unsigned int number_of_extruders = (unsigned int) (sqrt(flush_matrix.size()) + EPSILON);
+
+    if (actual_extruders > number_of_extruders) {
+        BOOST_LOG_TRIVIAL(warning) << "Skipping extruder order optimization: "
+            << actual_extruders << " filaments in model but only "
+            << number_of_extruders << " extruders in printer flush matrix";
+        return;
+    }
     // Extract purging volumes for each extruder pair:
     std::vector<std::vector<float>> wipe_volumes;
     if ((print_config->purge_in_prime_tower && print_config->single_extruder_multi_material) || m_is_BBL_printer) {

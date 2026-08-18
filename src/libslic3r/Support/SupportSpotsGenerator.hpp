@@ -7,6 +7,7 @@
 #include "PrintConfig.hpp"
 #include <boost/log/trivial.hpp>
 #include <cstddef>
+#include <mutex>
 #include <vector>
 
 
@@ -21,8 +22,11 @@ struct Params
         : max_acceleration(max_acceleration), raft_layers_count(raft_layers_count), brim_type(brim_type), brim_width(brim_width)
     {
         if (filament_types.size() > 1) {
-            BOOST_LOG_TRIVIAL(warning)
-                << "SupportSpotsGenerator does not currently handle different materials properly, only first will be used";
+            static std::once_flag multi_material_warned;
+            std::call_once(multi_material_warned, [] {
+                BOOST_LOG_TRIVIAL(warning)
+                    << "SupportSpotsGenerator does not currently handle different materials properly, only first will be used";
+            });
         }
         if (filament_types.empty() || filament_types[0].empty()) {
             BOOST_LOG_TRIVIAL(error) << "SupportSpotsGenerator error: empty filament_type";

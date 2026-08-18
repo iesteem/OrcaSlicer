@@ -895,6 +895,20 @@ std::vector<unsigned int> Print::object_extruders() const
                 if (value > 0)
                     extruders.push_back(value - 1);
             }
+            // Height-range colour assignment stores the per-feature filament in
+            // wall/sparse/solid_infill_filament, not in "extruder". Collect them
+            // here so object_extruders() sees every filament a layer range will
+            // use, even before PrintRegions are generated during Print::apply.
+            // Without this, normalize_fdm_2() runs with a stale used_filaments
+            // count and disables the prime tower for models whose only
+            // multi-extruder signal lives in layer_config_ranges.
+            for (const char* key : { "wall_filament", "sparse_infill_filament", "solid_infill_filament" }) {
+                if (layer_range.second.has(key)) {
+                    auto value = layer_range.second.option(key)->getInt();
+                    if (value > 0)
+                        extruders.push_back(value - 1);
+                }
+            }
         }
     }
     sort_remove_duplicates(extruders);
@@ -1659,7 +1673,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             print_object.model_object()->has_custom_layering()) {
             if (const std::vector<coordf_t> &layers = layer_height_profile(print_object_idx); ! layers.empty())
                 if (! check_object_layers_fixed(print_object.slicing_parameters(), layers))
-                    return {_u8L("Variable layer height is not supported with Organic supports.") };
+                    return {_u8L("Variable layer height is not supported with Organic supports."), nullptr, "", STRING_EXCEPT_ORGANIC_SUPPORT_VARIABLE_LAYER };
         }
 
     if (this->has_wipe_tower() && ! m_objects.empty()) {
@@ -1761,7 +1775,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                         //if (i % 2 == 0 && layer_height_profiles[tallest_object_idx][i] > layer_height_profiles[idx_object][layer_height_profiles[idx_object].size() - 2])
                         //    break;
                         if (std::abs(layer_height_profiles[idx_object][i] - layer_height_profiles[tallest_object_idx][i]) > eps)
-                            return {L("The prime tower is only supported if all objects have the same variable layer height.")};
+                            return {L("The prime tower is only supported if all objects have the same variable layer height."), nullptr, "", STRING_EXCEPT_PRIME_TOWER_VARIABLE_LAYER_HEIGHT};
                         ++i;
                     }
                 }
@@ -3143,6 +3157,16 @@ void Print::_make_wipe_tower()
 
     // BBS
     const unsigned int number_of_extruders = (unsigned int)(sqrt(flush_matrix.size()) + EPSILON);
+
+    // Safety: if the model references more filaments than the printer's
+    // flush_volumes_matrix supports, wipe tower generation will crash
+    // (ToolOrdering / WipeTower2 internally index wipe_volumes[n] by extruder
+    // ID, and extruder IDs beyond number_of_extruders cause OOB access).
+    // Detect this mismatch and skip wipe tower generation entirely.
+    // Use filament_diameter.size() which reliably reflects the actual
+    // extruder count from the project config.
+    if (number_of_extruders == 0 || m_config.filament_diameter.size() > number_of_extruders)
+        return;
     // Extract purging volumes for each extruder pair:
     std::vector<std::vector<float>> wipe_volumes;
     for (unsigned int i = 0; i<number_of_extruders; ++i)
