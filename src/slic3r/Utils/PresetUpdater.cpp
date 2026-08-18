@@ -1656,14 +1656,14 @@ Updates PresetUpdater::priv::get_printer_config_updates(bool update) const
     auto                    resc_folder   = (update ? cache_path : resc_dir_path) / "printers";
     std::string             curr_version;
     std::string             resc_version;
-    try {
-        Slic3r::load_string_file(resc_folder / "version.txt", resc_version);
-        boost::algorithm::trim(resc_version);
-    } catch (...) {}
-    try {
-        Slic3r::load_string_file(config_folder / "version.txt", curr_version);
-        boost::algorithm::trim(curr_version);
-    } catch (...) {}
+    auto resc_version_file = resc_folder / "version.txt";
+    auto curr_version_file = config_folder / "version.txt";
+    if (fs::exists(resc_version_file))
+        Slic3r::load_string_file(resc_version_file, resc_version);
+    boost::algorithm::trim(resc_version);
+    if (fs::exists(curr_version_file))
+        Slic3r::load_string_file(curr_version_file, curr_version);
+    boost::algorithm::trim(curr_version);
 
     if (!curr_version.empty()) {
         Semver curr_ver = curr_version;
