@@ -339,7 +339,11 @@ static std::string flow_ratio_zero_error_text(const Plater::FlowRatioZeroDetail&
 // its own High/Low grouping. Plates without conflicts are not shown.
 static std::string filament_temp_mixing_warning_text_slice_all(const std::vector<Plater::PlateMixingInfo>& plates)
 {
-    std::string out = tr_u8("The following plates contain mixed high and low temperature materials:");
+    std::string out = tr_u8("Detected both high and low temperature materials. "
+                            "Mixed printing may result in extruder clogging, "
+                            "nozzle damage, or layer adhesion issues.");
+    out += "\n\n";
+    out += tr_u8("The following plates contain mixed high and low temperature materials:");
     out += "\n\n";
     for (const Plater::PlateMixingInfo& info : plates)
     {
@@ -3902,6 +3906,11 @@ void Sidebar::msw_rescale()
     p->m_bpButton_ams_filament->msw_rescale();
     p->m_bpButton_set_filament->msw_rescale();
     p->m_flushing_volume_btn->Rescale();
+    // Batch-match button caches its text extent (messureSize) at creation DPI; without
+    // Rescale() the cached size goes stale after a per-monitor DPI change (e.g. moving
+    // the window to a 150% 4K screen), so render() centers the auto-rescaled font with
+    // the old-DPI metrics and the label drifts/clips.
+    p->m_btn_batch_match->Rescale();
     //BBS
     m_bed_type_list->Rescale();
     m_bed_type_list->SetMinSize({-1, 3 * wxGetApp().em_unit()});
@@ -3975,6 +3984,8 @@ void Sidebar::sys_color_changed()
     p->m_bpButton_ams_filament->msw_rescale();
     p->m_bpButton_set_filament->msw_rescale();
     p->m_flushing_volume_btn->Rescale();
+    // Keep the cached text extent in sync with the new DPI, same as above.
+    p->m_btn_batch_match->Rescale();
 
     // BBS
 #if 0
@@ -9338,10 +9349,25 @@ void Sidebar::update_nozzle_settings(bool switch_machine)
     if (!p->m_nozzle_notebook)
         return;
 
+    const DynamicPrintConfig& printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+
     // Get new nozzle count
-    auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(
-        wxGetApp().preset_bundle->printers.get_edited_preset().config.option("nozzle_diameter"));
+    auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(printer_config.option("nozzle_diameter"));
     size_t new_nozzle_count = nozzle_diameter ? nozzle_diameter->values.size() : 1;
+
+    std::string diam_str = "";
+    if (const auto* pv = printer_config.option<ConfigOptionString>("printer_variant")) // absent in bare configs
+        diam_str = pv->value;
+
+    // Visible presets for this printer_model (system + user).
+    auto diameters = wxGetApp().preset_bundle->printers.diameters_of_selected_printer();
+
+    // Record focus before DeleteAllPages destroys the focused control.
+    bool focus_was_in_notebook = false;
+    if (wxWindow* focus = wxWindow::FindFocus())
+        focus_was_in_notebook = p->m_nozzle_notebook->IsDescendant(focus);
+
+    wxWindowUpdateLocker noUpdates(p->m_nozzle_notebook);
 
     // Clear existing pages and controls
     p->m_nozzle_notebook->DeleteAllPages();
@@ -9374,16 +9400,11 @@ void Sidebar::update_nozzle_settings(bool switch_machine)
                                                 nullptr, wxCB_READONLY);
         
 
-        // Visible presets for this printer_model (system + user). Imported multi-nozzle variants are
-        // usually non-system; diameters_for_same_printer_model() only counted system and kept the combo disabled.
-        auto diameters = wxGetApp().preset_bundle->printers.diameters_of_selected_printer();
         for (auto& diameter : diameters) {
             diameter_combo->AppendString(wxString(diameter) + "mm");
         }
-        if (diameter_combo->GetCount() == 0) {
-            const auto *pv = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionString>("printer_variant");
-            if (pv)
-                diameter_combo->AppendString(wxString(pv->value) + "mm");
+        if (diameter_combo->GetCount() == 0 && !diam_str.empty()) {
+            diameter_combo->AppendString(wxString(diam_str) + "mm");
         }
         if (diameters.size() < 2) {
             diameter_combo->Enable(false);
@@ -9432,7 +9453,7 @@ void Sidebar::update_nozzle_settings(bool switch_machine)
                 return;
             }
             preset->is_visible = true; // force visible
-            
+
             for (size_t i = 0; i < p->m_nozzle_diameter_lists.size(); ++i) {
                 //set all nozzle use the diameter
                 p->m_nozzle_diameter_lists[i]->SetValue(diameter + "mm");
@@ -9442,9 +9463,7 @@ void Sidebar::update_nozzle_settings(bool switch_machine)
             // Do not event.Skip(): select_preset rebuilds nozzle UI and can destroy this combo; skipping would let sidebar treat this as bed-type combo and use-after-free.
         });
         
-        auto diam_str = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionString>("printer_variant")->value;
-        
-        diameter_combo->SetValue(diam_str + "mm");
+        diameter_combo->SetValue(diam_str.empty() ? wxString() : wxString(diam_str) + "mm");
 
         p->m_nozzle_diameter_lists.push_back(diameter_combo);
 
@@ -9490,7 +9509,8 @@ void Sidebar::update_nozzle_settings(bool switch_machine)
 
     if (switch_machine) {
         p->combo_printer->SetFocus();
-    } else {
+    } else if (focus_was_in_notebook) {
+        // The focused control was destroyed by the rebuild.
         p->combo_printer->GetParent()->SetFocus();
     }
 }
@@ -10828,6 +10848,14 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
                     q->sync_flow_ratio_zero_notification();
                     q->sync_cold_plate_notification();
                     q->select_view_3D("Preview", true);
+                    return;
+                }
+                if (q->preview_switch_triggers_slice() && !q->guard_before_slice_plate()) {
+                    // Stay on the Prepare page (as in 2.3.5): the user declined
+                    // the mixed-filament confirmation, so neither switch to
+                    // Preview nor start slicing. The MainFrame tab is already
+                    // on tpPreview at this point, switch it back first.
+                    wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
                     return;
                 }
             }
@@ -12943,6 +12971,7 @@ void Plater::priv::reset(bool apply_presets_change)
     Plater::TakeSnapshot snapshot(q, "Reset Project", UndoRedo::SnapshotType::ProjectSeparator);
 
     clear_warnings();
+    first_enter_assemble = true;
 
     set_project_filename("");
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " call set_project_filename: empty";
@@ -22643,6 +22672,23 @@ bool Plater::guard_before_slice_plate()
     sync_flow_ratio_zero_notification();
     sync_cold_plate_notification();
     return confirm_filament_temp_mixing_before_slice();
+}
+
+bool Plater::preview_switch_triggers_slice() const
+{
+    if (p->background_process.is_export_scheduled())
+        return false;
+    if (p->view3D->get_canvas3d()->check_volumes_outside_state() == ModelInstancePVS_Partly_Outside)
+        return false;
+    if (p->background_process.running() || p->m_is_slicing)
+        return false;
+
+    PartPlate* current_plate = p->partplate_list.get_curr_plate();
+    if (current_plate == nullptr)
+        return false;
+    return !p->model.objects.empty()
+        && current_plate->has_printable_instances()
+        && !current_plate->is_slice_result_valid();
 }
 
 bool Plater::guard_before_slice_all()
