@@ -3356,9 +3356,9 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
                 // Some system bundles only provide setting_id for filaments. Treat it as a stable fallback
                 // instead of aborting the entire vendor import and losing all dependent presets.
                 filament_id = setting_id;
-                // BOOST_LOG_TRIVIAL(warning) << __FUNCTION__
-                //                            << ": missing filament_id for " << preset_name
-                //                            << ", falling back to setting_id " << setting_id;
+                BOOST_LOG_TRIVIAL(debug) << __FUNCTION__
+                                          << ": missing filament_id for " << preset_name
+                                          << ", falling back to setting_id " << setting_id;
             }
             //check whether it inherits other preset or not
             auto it1 = key_values.find(BBL_JSON_KEY_INHERITS);
@@ -3496,7 +3496,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
             loaded.setting_id = setting_id;
             loaded.filament_id = filament_id;
             loaded.m_from_orca_filament_lib = is_from_lib;
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << loaded.name << " load filament_id: " << filament_id;
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << " " << __LINE__ << " " << loaded.name << " filament_id: " << filament_id;
             if (presets_collection->type() == Preset::TYPE_FILAMENT) {
                 if (filament_id.empty() && "Template" != vendor_name) {
                     ++m_errors;

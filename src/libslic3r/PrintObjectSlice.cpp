@@ -5188,7 +5188,7 @@ void apply_fuzzy_skin_segmentation(PrintObject &print_object, ThrowOnCancel thro
 // this should be idempotent
 void PrintObject::slice_volumes()
 {
-    BOOST_LOG_TRIVIAL(info) << "Slicing volumes..." << log_memory_info();
+    BOOST_LOG_TRIVIAL(debug) << "Slicing volumes..." << log_memory_info();
     const Print *print                      = this->print();
     const auto   throw_on_cancel_callback   = std::function<void()>([print](){ print->throw_if_canceled(); });
     const bool   local_z_whole_objects_enabled =
@@ -5454,7 +5454,7 @@ void PrintObject::slice_volumes()
 }
 
 void PrintObject::apply_conical_overhang() {
-    BOOST_LOG_TRIVIAL(info) << "Make overhang printable...";
+    BOOST_LOG_TRIVIAL(debug) << "Make overhang printable...";
 
     if (m_layers.empty()) {
         return;
@@ -5467,12 +5467,12 @@ void PrintObject::apply_conical_overhang() {
     const double angle_radians = conical_overhang_angle * M_PI / 180.;
     const double max_hole_area = this->config().make_overhang_printable_hole_size; // in MM^2
     const double tan_angle = tan(angle_radians); // the XY-component of the angle
-    BOOST_LOG_TRIVIAL(info) << "angle " << angle_radians << " maxHoleArea " << max_hole_area << " tan_angle "
-                            << tan_angle;
+    BOOST_LOG_TRIVIAL(debug) << "angle " << angle_radians << " maxHoleArea " << max_hole_area << " tan_angle "
+                             << tan_angle;
     const coordf_t layer_thickness = m_config.layer_height.value;
     const coordf_t max_dist_from_lower_layer = tan_angle * layer_thickness; // max dist which can be bridged, in MM
-    BOOST_LOG_TRIVIAL(info) << "layer_thickness " << layer_thickness << " max_dist_from_lower_layer "
-                            << max_dist_from_lower_layer;
+    BOOST_LOG_TRIVIAL(debug) << "layer_thickness " << layer_thickness << " max_dist_from_lower_layer "
+                             << max_dist_from_lower_layer;
 
     // Pre-scale config
     const coordf_t scaled_max_dist_from_lower_layer = -float(scale_(max_dist_from_lower_layer));
