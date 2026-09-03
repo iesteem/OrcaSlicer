@@ -44,6 +44,15 @@ ProcessorCount(NPROC)
 if (NPROC EQUAL 0)
     set(NPROC 1)
 endif ()
+# Flatpak/GitHub CI: cap per-dependency parallel jobs (each ExternalProject uses -j${NPROC}).
+if (FLATPAK)
+    if (DEFINED ENV{FLATPAK_BUILDER_N_JOBS} AND NOT "$ENV{FLATPAK_BUILDER_N_JOBS}" STREQUAL "")
+        set(NPROC "$ENV{FLATPAK_BUILDER_N_JOBS}")
+    elseif (NPROC GREATER 4)
+        set(NPROC 4)
+    endif ()
+    message(STATUS "Flatpak deps parallel jobs (NPROC): ${NPROC}")
+endif ()
 
 set(DESTDIR "${CMAKE_CURRENT_BINARY_DIR}/destdir" CACHE PATH "Destination directory")
 set(DEP_DOWNLOAD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/DL_CACHE CACHE PATH "Path for downloaded source packages.")
@@ -258,7 +267,7 @@ if(FLATPAK)
     find_package(CURL)
     find_package(JPEG)
     find_package(Freetype)
-    find_package(OpenSSL 1.1...<3.2)
+    find_package(OpenSSL 3.0...<4.0)
     find_package(CURL)
 endif()
 
@@ -304,10 +313,6 @@ include(NLopt/NLopt.cmake)
 include(libnoise/libnoise.cmake)
 
 
-# I *think* 1.1 is used for *just* md5 hashing?
-# 3.1 has everything in the right place, but the md5 funcs used are deprecated
-# a grep across the repo shows it is used for other things
-# TODO: update openssl and everything that uses <openssl/md5.h> 
 set(OPENSSL_PKG "")
 if(NOT OPENSSL_FOUND)
     include(OpenSSL/OpenSSL.cmake)
