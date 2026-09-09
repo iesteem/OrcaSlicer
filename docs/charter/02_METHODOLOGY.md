@@ -40,6 +40,9 @@
 | 配置体系 | PrintConfig 全部配置项、profile JSON（resources/profiles，约 8700 文件） | 配置项不可移除、不可改名换义；默认值变更需迁移逻辑 |
 | 用户状态 | 预设的用户新建/修改副本、机器绑定、AMS 映射、校准历史 | 宪章 P1 全程生效 |
 | 资源 | 语言包覆盖的字符串集合 | 既有翻译不得静默失效 |
+| 参数语义说明 | `doc/print_settings/`（quality/speed/strength/support/multimaterial/others 六类）、`doc/printer_settings/`、`doc/material_settings/` 中的参数文档 | 每个被文档描述的参数，其语义、取值效果与文档一致；参数行为变更必须同步修订对应文档 |
+
+**参数语义文档的地位**：`doc/`（上游 wiki 镜像）中对设置项的用户级说明，是该参数"应如何被理解与表现"的规范性来源，效力高于代码现状。转生时，凡 `doc/print_settings/` 覆盖的参数，其 UI 呈现（名称、分组、取值含义）以文档为准。
 
 ## 5. UI 一致性约定
 
