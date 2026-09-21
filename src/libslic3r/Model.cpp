@@ -3304,11 +3304,27 @@ double Model::findMaxSpeed(const ModelObject* object) {
         if (objectKey == "top_surface_speed")
             topSolidInfillSpeedObj = object->config.get().opt_float(objectKey, 0);
         if (objectKey == "support_speed")
-            supportSpeedObj = object->config.opt_float(objectKey);
+            // coFloats option: ModelConfig::opt_float() delegates to the
+            // single-arg form, whose dynamic_cast<ConfigOptionFloat*> is null
+            // for vector options. Read element 0 of the vector instead.
+            supportSpeedObj = object->config.get().opt_float(objectKey, 0);
         if (objectKey == "outer_wall_speed")
             externalPerimeterSpeedObj = object->config.get().opt_float(objectKey, 0);
-        if (objectKey == "small_perimeter_speed")
-            smallPerimeterSpeedObj = object->config.opt_float(objectKey);
+        if (objectKey == "small_perimeter_speed") {
+            // "small_perimeter_speed" is defined coFloatsOrPercents (ratio_over
+            // outer_wall_speed). The old opt_float(objectKey) did an unchecked
+            // dynamic_cast<ConfigOptionFloat*>, which returns null for the
+            // FloatsOrPercents option and crashed on deref (SEGV whenever an
+            // object carried a small_perimeter_speed override, e.g. from a
+            // STEP import). Resolve percent against the external perimeter
+            // speed, mirroring the ratio_over semantics in PrintConfig.
+            if (const auto* o = dynamic_cast<const ConfigOptionFloatsOrPercents*>(object->config.option(objectKey))) {
+                const FloatOrPercent v = o->get_at(0);
+                smallPerimeterSpeedObj = v.percent ? externalPerimeterSpeedObj * v.value / 100. : v.value;
+            } else {
+                smallPerimeterSpeedObj = object->config.opt_float(objectKey);
+            }
+        }
     }
     objMaxSpeed = std::max(perimeterSpeedObj, std::max(externalPerimeterSpeedObj, std::max(infillSpeedObj, std::max(solidInfillSpeedObj, std::max(topSolidInfillSpeedObj, std::max(supportSpeedObj, std::max(smallPerimeterSpeedObj, objMaxSpeed)))))));
     if (objMaxSpeed <= 0) objMaxSpeed = 250.;
