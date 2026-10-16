@@ -2,6 +2,7 @@
 #define slic3r_Moonraker_hpp_
 
 #include <string>
+#include <mutex>
 #include <wx/string.h>
 #include <boost/optional.hpp>
 #include <boost/asio/ip/address.hpp>
@@ -136,6 +137,8 @@ public:
 
     virtual void async_upload_camera_timelapse(const nlohmann::json& targets, std::function<void(const nlohmann::json& response)>) {}
 
+    virtual void async_upload_timelapse_instance(const nlohmann::json& targets, std::function<void(const nlohmann::json& response)>) {}
+
     virtual void async_delete_camera_timelapse(const nlohmann::json& targets, std::function<void(const nlohmann::json& response)>) {}
 
     virtual void async_get_timelapse_instance(const nlohmann::json& targets, std::function<void(const nlohmann::json& response)>) {}
@@ -158,8 +161,19 @@ protected:
     std::string m_cafile;
     bool        m_ssl_revoke_best_effort;
 
-    // Time synchronization manager
+    // Time synchronization manager.
+    // The member itself is guarded: disconnect() (any thread) resets it while
+    // Paho receive-thread callbacks and async_* APIs on arbitrary threads
+    // read it. Always access through time_sync_manager_snapshot(); never
+    // touch the member directly outside the mutex.
     std::shared_ptr<TimeSyncManager> time_sync_manager_;
+    mutable std::mutex               m_time_sync_manager_mtx;
+
+    std::shared_ptr<TimeSyncManager> time_sync_manager_snapshot() const
+    {
+        std::lock_guard<std::mutex> lock(m_time_sync_manager_mtx);
+        return time_sync_manager_;
+    }
 
     // Helper methods
     virtual void set_auth(Http &http) const;
@@ -181,11 +195,11 @@ public:
     private:
         int64_t connection_id_;
         uint32_t seq_id_low_bits_;
-        static const uint32_t MAX_SEQ_ID_INCREASED_LIMIT = 0xFFFFFFFF; // 32位掩码
+        static const uint32_t MAX_SEQ_ID_INCREASED_LIMIT = 0xFFFFFFFF; // 32-bit mask
 
         void init_connection_id() {
             seq_id_low_bits_ = 0;
-            // 获取当前时间戳并取低31位
+            // get current timestamp and take lower 31 bits
             auto now = std::chrono::system_clock::now();
             auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(
                 now.time_since_epoch()
@@ -206,9 +220,9 @@ public:
             if (connection_id_ == -1) {
                 throw std::runtime_error("Connection not initialized.");
             }
-            // 递增并限制在32位
+            // increment and wrap within 32 bits
             seq_id_low_bits_ = (seq_id_low_bits_ + 1) & MAX_SEQ_ID_INCREASED_LIMIT;
-            // 组合高31位和低32位，确保符号位为0
+            // combine upper 31 bits and lower 32 bits, sign bit stays 0
             return (connection_id_ << 32) | seq_id_low_bits_;
         }
     };
@@ -277,6 +291,8 @@ public:
     virtual void async_cancel_pull_cloud_file(std::function<void(const nlohmann::json& response)>) override;
 
     virtual void async_upload_camera_timelapse(const nlohmann::json& targets, std::function<void(const nlohmann::json& response)>) override;
+
+    virtual void async_upload_timelapse_instance(const nlohmann::json& targets, std::function<void(const nlohmann::json& response)>) override;
 
     virtual void async_delete_camera_timelapse(const nlohmann::json& targets, std::function<void(const nlohmann::json& response)>) override;
 
@@ -380,6 +396,19 @@ private:
     static TimeoutMap<int64_t, RequestCallback> m_request_cb_map;
     static std::unordered_map<std::string, std::function<void(const nlohmann::json&)>> m_status_cbs;
     static std::unordered_map<std::string, std::function<void(const nlohmann::json&)>> m_notification_cbs;
+
+    // Serializes lifecycle changes of the static MQTT clients (connect /
+    // disconnect / engine swap). Readers must copy the shared_ptr under this
+    // lock (get_mqtt_client_tls()) and use the copy, so a concurrent
+    // disconnect can never destroy a client that is still being used.
+    static std::mutex m_client_mtx;
+    // Guards m_status_cbs / m_notification_cbs: they are inserted/erased from
+    // UI threads, iterated on the Paho receive thread and cleared on disconnect.
+    static std::mutex m_cbs_mtx;
+
+    // Snapshot helpers: return a copy of the static client under the lock.
+    static std::shared_ptr<MqttClient> get_mqtt_client();
+    static std::shared_ptr<MqttClient> get_mqtt_client_tls();
 
     // MQTT topics
     static std::string m_auth_topic;

@@ -75,6 +75,7 @@ class ObjectSettings;
 class ObjectLayers;
 class ObjectList;
 class GLCanvas3D;
+class GLTexture;
 class Mouse3DController;
 class NotificationManager;
 class DailyTipsWindow;
@@ -155,9 +156,19 @@ public:
     // BBS. Add on_filaments_change() method.
     void on_filaments_change(size_t num_filaments);
     void change_filament(size_t from_id, size_t to_id);
-    void merge_mixed_filament(size_t from_id, size_t to_id);
+    void merge_mixed_filament(size_t from_id, size_t to_id,
+                              bool skip_update = false, bool skip_serialize = false);
     void add_filament();
-    void delete_filament(size_t filament_id  = size_t(-1), int replace_filament_id = -1); // 0 base, -1 means default
+    void delete_filament(size_t filament_id  = size_t(-1), int replace_filament_id = -1,
+                         bool skip_dependency_check = false,
+                         bool skip_update = false); // 0 base, -1 means default
+    // on_progress (optional) is invoked once per physical-filament deletion inside the
+    // batch loop, passing (current, total) where total = redundant physical count.
+    // Callers that show a progress dialog map (current/total) to a percentage and
+    // call progress.Update so the bar reflects real progress during the (potentially
+    // many-second) deletion loop. Default-empty: existing callers see no change.
+    void cleanup_unused_filaments_after_batch_match(const BatchMatchResult& match_result,
+                                                    std::function<void(int /*current*/, int /*total*/)> on_progress = nullptr);
     void add_custom_filament(wxColour new_col);
     void edit_filament();
 
@@ -558,7 +569,6 @@ public:
     // BBS
     void on_bed_type_change(BedType bed_type);
     bool update_filament_colors_in_full_config();
-    void config_change_notification(const DynamicPrintConfig &config, const std::string& key);
     void on_config_change(const DynamicPrintConfig &config);
     /// @brief Check whether high-temperature and low-temperature filaments are mixed on the current plate.
     /// @return True if compatible; false if high/low temperature materials are mixed.
@@ -635,6 +645,11 @@ public:
     bool sync_cold_plate_notification();
     /// Check and guard filament temp mixing before slicing current plate.
     bool guard_before_slice_plate();
+    /// Live (non-slice) warning: yellow notification when the CURRENT plate's
+    /// effective print sequence is by-object. Re-evaluated on global/per-plate
+    /// print-sequence edits, on plate switch, and on page switch (prepare
+    /// and preview both render it).
+    void sync_print_seq_warning_notification();
     /// Check and guard filament temp mixing before slicing all plates.
     bool guard_before_slice_all();
     /// @brief Show confirmation dialog for allowed high/low temperature mixing before slice.
@@ -761,7 +776,7 @@ public:
     void enable_view_toolbar(bool enable);
 #endif
 
-    bool init_collapse_toolbar();
+    bool init_collapse_toolbar(const GLTexture* shared_background_texture = nullptr);
 
     const Camera& get_camera() const;
     Camera& get_camera();
@@ -838,7 +853,27 @@ public:
 
     bool need_update() const;
     void set_need_update(bool need_update);
+    // >0 while cleanup_unused_filaments_after_batch_match is looping physical
+    // deletions: suppresses per-deletion panel rebuild + painting remap (both
+    // run once after the loop). Single source of truth — Sidebar queries this
+    // instead of keeping its own flag.
+    int  batch_physical_deletion() const;
+    void inc_batch_physical_deletion();
+    void dec_batch_physical_deletion();
     void update_title_dirty_status();
+
+    // RAII guard for batch physical deletion: bumps batch_physical_deletion()
+    // on construction, decrements on destruction. Used by the batch-match
+    // cleanup loop to skip per-deletion rebuilds/remaps; exception-safe.
+    class BatchPhysicalDeletionGuard
+    {
+        Plater &m_plater;
+    public:
+        explicit BatchPhysicalDeletionGuard(Plater &p) : m_plater(p) { m_plater.inc_batch_physical_deletion(); }
+        ~BatchPhysicalDeletionGuard() { m_plater.dec_batch_physical_deletion(); }
+        BatchPhysicalDeletionGuard(const BatchPhysicalDeletionGuard &) = delete;
+        BatchPhysicalDeletionGuard &operator=(const BatchPhysicalDeletionGuard &) = delete;
+    };
 
     // ROII wrapper for suppressing the Undo / Redo snapshot to be taken.
 	class SuppressSnapshots

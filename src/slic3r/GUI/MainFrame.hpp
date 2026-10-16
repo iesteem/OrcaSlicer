@@ -199,6 +199,9 @@ protected:
     WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) override;
 #endif
 
+    // Log and dispatch foreground/background change to Flutter subscribers
+    void NotifyActivateChange(bool active);
+
 public:
     MainFrame();
     ~MainFrame() = default;
@@ -290,10 +293,17 @@ public:
 
     bool        is_loaded() const { return m_loaded; }
     bool        is_last_input_file() const  { return !m_qs_last_input_file.IsEmpty(); }
+    // True once the close/restart path entered MainFrame::shutdown(): children
+    // must stop pumping the event loop (e.g. synchronous webview scripts whose
+    // wxYield would run the pending frame deletion mid-handler and crash).
+    bool        is_shutting_down() const { return m_shutting_down; }
     //BBS GUI refactor: remove unused layout new/dlg
     //bool        is_dlg_layout() const { return m_layout == ESettingsLayout::Dlg; }
 
     void        reslice_now();
+    // Run the slice-button action programmatically: refresh the scene, then slice
+    // the current plate or all plates according to the user's slice-mode selection.
+    void        start_slice();
     void        export_config();
     // Query user for the config file and open it.
     void        load_config_file();
@@ -405,6 +415,7 @@ public:
     SideButton* m_print_option_btn{ nullptr };
     mutable bool          m_slice_enable{ true };
     mutable bool          m_print_enable{ true };
+    bool                  m_shutting_down{ false };
     bool get_enable_slice_status();
     bool get_enable_print_status();
     //BBS

@@ -566,7 +566,7 @@ void PerimeterGenerator::split_top_surfaces(const ExPolygons &orig_polygons, ExP
     coord_t ext_perimeter_width = this->ext_perimeter_flow.scaled_width();
     coord_t ext_perimeter_spacing = this->ext_perimeter_flow.scaled_spacing();
 
-    bool has_gap_fill = this->config->gap_infill_speed.value > 0;
+    bool has_gap_fill = this->config->gap_infill_speed.values.front() > 0;
 
     // split the polygons with top/not_top
     // get the offset from solid surface anchor
@@ -1168,7 +1168,7 @@ void PerimeterGenerator::process_classic()
     // internal flow which is unrelated.
     coord_t min_spacing         = coord_t(perimeter_spacing      * (1 - INSET_OVERLAP_TOLERANCE));
     coord_t ext_min_spacing     = coord_t(ext_perimeter_spacing  * (1 - INSET_OVERLAP_TOLERANCE));
-    bool    has_gap_fill 		= this->config->gap_infill_speed.value > 0;
+    bool    has_gap_fill 		= this->config->gap_infill_speed.values.front() > 0;
 
     // BBS: this flow is for smaller external perimeter for small area
     coord_t ext_min_spacing_smaller = coord_t(ext_perimeter_spacing * (1 - SMALLER_EXT_INSET_OVERLAP_TOLERANCE));
@@ -1445,8 +1445,8 @@ void PerimeterGenerator::process_classic()
                     this->object_config->brim_type == BrimType::btOuterOnly &&
                     this->object_config->brim_width.value > 0))
                 entities.reverse();
-            // Orca: sandwich mode. Apply after 1st layer.
-            else if ((this->config->wall_sequence == WallSequence::InnerOuterInner) && layer_id > 0){
+            // Orca: sandwich mode. Apply on all layers incl.
+            else if (this->config->wall_sequence == WallSequence::InnerOuterInner){
                 entities.reverse(); // reverse all entities - order them from external to internal
                 if(entities.entities.size()>2){ // 3 walls minimum needed to do inner outer inner ordering
                     int position = 0; // index to run the re-ordering for multiple external perimeters in a single island.
@@ -1840,7 +1840,10 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                     ExPolygons bridges_temp = offset2_ex(intersection_ex(last, diff_ex(unsupported_filtered, unbridgeable), ApplySafetyOffset::Yes), -ext_perimeter_width / 4, ext_perimeter_width / 4);
                                     //remove the overhangs section from the surface polygons
                                     ExPolygons reference = last;
-                                    last = diff_ex(last, unsupported_filtered);
+                                    // When support is enabled, do not remove the bridge area from the model surface,
+                                    // so that perimeters and overhang walls can still be generated for the supported overhang.
+                                    if (!this->object_config->enable_support.value)
+                                        last = diff_ex(last, unsupported_filtered);
                                     //ExPolygons no_bridge = diff_ex(offset_ex(unbridgeable, ext_perimeter_width * 3 / 2), last);
                                     //bridges_temp = diff_ex(bridges_temp, no_bridge);
                                     coordf_t offset_to_do = bridged_infill_margin;
@@ -1881,22 +1884,36 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
 
                     if (!unsupported_filtered.empty()) {
 
-                        //add this directly to the infill list.
-                        // this will avoid to throw wrong offsets into a good polygons
-                        this->fill_surfaces->append(
-                            unsupported_filtered,
-                            stInternal);
-
-                        // store the results
-                        last = diff_ex(last, unsupported_filtered, ApplySafetyOffset::Yes);
-                        //remove "thin air" polygons (note: it assumes that all polygons below will be extruded)
-                        for (int i = 0; i < last.size(); i++) {
-                            if (intersection_ex(support, ExPolygons() = { last[i] }).empty()) {
-                                this->fill_surfaces->append(
-                                    ExPolygons() = { last[i] },
-                                    stInternal);
-                                last.erase(last.begin() + i);
-                                i--;
+                        if (!this->object_config->enable_support.value) {
+                            // Support is disabled: remove the bridge area from the model surface
+                            // to prevent unsupported perimeters, and add the full area to fill_surfaces
+                            // to ensure the gap is still filled.
+                            this->fill_surfaces->append(
+                                unsupported_filtered,
+                                stInternal);
+                            last = diff_ex(last, unsupported_filtered, ApplySafetyOffset::Yes);
+                            //remove "thin air" polygons (note: it assumes that all polygons below will be extruded)
+                            for (int i = 0; i < last.size(); i++) {
+                                if (intersection_ex(support, ExPolygons() = { last[i] }).empty()) {
+                                    this->fill_surfaces->append(
+                                        ExPolygons() = { last[i] },
+                                        stInternal);
+                                    last.erase(last.begin() + i);
+                                    i--;
+                                }
+                            }
+                        } else {
+                            // Support is enabled: keep the model surface intact so that perimeters
+                            // and overhang walls are generated normally. Shrink the bridge fill area
+                            // inward by the perimeter zone width before appending, to avoid overlap
+                            // with the perimeter walls.
+                            int wall_loops = std::max(1, this->config->wall_loops.value);
+                            coord_t perimeter_zone = ext_perimeter_width / 2
+                                + perimeter_spacing * (wall_loops - 1)
+                                + perimeter_spacing / 2;
+                            ExPolygons fill_safe = offset_ex(unsupported_filtered, -perimeter_zone);
+                            if (!fill_safe.empty()) {
+                                this->fill_surfaces->append(fill_safe, stInternal);
                             }
                         }
                     }
@@ -2351,7 +2368,7 @@ void PerimeterGenerator::process_arachne()
         }
 
        // printf("New Layer: Layer ID %d\n",layer_id); //debug - new layer
-        if (this->config->wall_sequence == WallSequence::InnerOuterInner && layer_id > 0) { // only enable inner outer inner algorithm after first layer
+        if (this->config->wall_sequence == WallSequence::InnerOuterInner) {
             if (ordered_extrusions.size() > 2) { // 3 walls minimum needed to do inner outer inner ordering
                 int position = 0; // index to run the re-ordering for multiple external perimeters in a single island.
                 int arr_i, arr_j = 0;    // indexes to run through the walls in the for loops

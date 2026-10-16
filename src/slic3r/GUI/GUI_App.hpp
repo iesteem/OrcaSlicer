@@ -251,6 +251,11 @@ public:
 private:
     bool            m_initialized { false };
     bool            m_post_initialized { false };
+    // Set when a snapmaker-orca:// URL is handed to us after launch (macOS delivers these
+    // through MacOpenURL rather than argv, so post_init cannot see them in input_files).
+    // post_init must not start a blank project in that case, or it discards the model the
+    // URL is in the middle of loading.
+    bool            m_url_open_pending { false };
     bool            m_app_conf_exists{ false };
     EAppMode        m_app_mode{ EAppMode::Editor };
     bool            m_is_recreating_gui{ false };
@@ -433,9 +438,6 @@ private:
     bool show_3d_navigator() const { return app_config->get_bool("show_3d_navigator"); }
     void toggle_show_3d_navigator() const { app_config->set_bool("show_3d_navigator", !show_3d_navigator()); }
 
-    bool show_outline() const { return app_config->get_bool("show_outline"); }
-    void toggle_show_outline() const { app_config->set_bool("show_outline", !show_outline()); }
-
     wxString get_inf_dialog_contect () {return m_info_dialog_content;};
 
     std::vector<std::string> split_str(std::string src, std::string separator);
@@ -542,8 +544,6 @@ private:
     bool            is_user_login();
 
     wxString get_international_url(const wxString& origin_url);
-    wxString flutter_web_base_url(const wxString& path);
-    wxString build_flutter_web_url(const wxString& path);
 
     // SM
     struct SMUserInfo
@@ -595,7 +595,19 @@ private:
     void            sm_request_login(bool show_user_info = false);
     void            sm_ShowUserLogin(bool show  =  true);
     void            sm_request_user_logout();
-  
+    void            start_flutter_wcp_timeout_watch();
+    void            on_flutter_wcp_received();
+    void            report_flutter_run_result_once(bool success);
+
+    // Silent login-token maintenance: the Snapmaker access token expires after
+    // ~24 h; a hidden login webview re-runs the cookie session and picks up a
+    // fresh token without user interaction.
+    void            sm_maybe_refresh_login_token();  // due-check + guards; main thread
+    void            sm_on_token_captured(std::size_t refresh_generation); // call on every token acquisition
+    void            sm_stop_silent_token_refresh();  // drop an in-flight silent refresh
+    bool            sm_is_token_refresh_current(std::size_t refresh_generation) const;
+    std::size_t     sm_token_refresh_generation() const { return m_silent_refresh_generation; }
+
     void            request_user_logout();
     int             request_user_unbind(std::string dev_id);
     std::string     handle_web_request(std::string cmd);
@@ -619,6 +631,8 @@ private:
     void            check_web_version();
     void            check_preset_version();
     void            check_new_version_sf(bool show_tips = false, bool by_user = false);
+    // Gray release: POST /config/get (snapmaker-config) first, falls back to check_new_version_sf on failure
+    void            request_version_from_config(bool show_tips = false, bool by_user = false);
     void            process_network_msg(std::string dev_id, std::string msg);
     void            enter_force_upgrade();
     void            set_skip_version(bool skip = true);
@@ -864,14 +878,35 @@ private:
     bool                    m_config_corrupted { false };
     FlutterWebCopyStatus    m_flutter_web_copy_status{ FlutterWebCopyStatus::Ok };
     bool                    m_flutter_web_copy_notified{ false };
+    bool                    m_flutter_wcp_reported{false};
+    std::unique_ptr<wxTimer> m_flutter_wcp_timeout_timer;
+    static constexpr int    FLUTTER_WCP_TIMEOUT_MS = 120 * 1000;
+    void                    on_flutter_wcp_timeout(wxTimerEvent &event);
     std::string             m_open_method;
     SMUserInfo m_login_userinfo;
+
+    // --- Silent login-token refresh bookkeeping (see sm_maybe_refresh_login_token) ---
+    static constexpr int SM_TOKEN_REFRESH_INTERVAL_H = 12;           // refresh cadence, well inside the 24 h token lifetime
+    static constexpr int SM_TOKEN_REFRESH_RETRY_MIN  = 30;           // min wait after a failed attempt
+    static constexpr int SM_TOKEN_REFRESH_TIMEOUT_S  = 120;          // give up on a single silent attempt
+    static constexpr int SM_TOKEN_CHECK_INTERVAL_MS  = 5 * 60 * 1000; // periodic due-check tick
+
+    std::chrono::system_clock::time_point m_token_last_refresh_success{};
+    std::chrono::system_clock::time_point m_token_last_refresh_attempt{};
+    std::size_t                           m_silent_refresh_generation     = 0;
+    bool     m_sm_silent_refresh_in_progress = false;
+    bool     m_sm_login_dialog_showing       = false;
+    std::unique_ptr<wxTimer>              m_token_check_timer;
+    std::unique_ptr<wxTimer>              m_silent_refresh_timeout_timer;
+    void     on_token_check_timer(wxTimerEvent &event);
+    void     on_silent_refresh_timeout(wxTimerEvent &event);
 
 public:
     std::unordered_map<void*, std::weak_ptr<SSWCP_Instance>> m_recent_file_subscribers;
     std::unordered_map<void*, std::weak_ptr<SSWCP_Instance>> m_user_login_subscribers;
     std::unordered_map<void*, std::weak_ptr<SSWCP_Instance>> m_device_card_subscribers;
     std::unordered_map<void*, std::weak_ptr<SSWCP_Instance>> m_page_state_subscribers;
+    std::unordered_map<void*, std::weak_ptr<SSWCP_Instance>> m_foreground_change_subscribers;
     std::unordered_map<void*, std::weak_ptr<SSWCP_Instance>> m_user_update_privacy_subscribers;
     struct CachePairCompare
     {
@@ -887,6 +922,8 @@ public:
     void user_login_notify(const json& res);
     void device_card_notify(const json& res);
     void page_state_notify_webview(wxWebView* webview, const std::string& state);
+    // Push foreground/background state change to all subscribed webview instances
+    void notify_foreground_change(const bool active);
     void cache_notify(const std::string& key, const json& res);
     void user_update_privacy_notify(const bool& res);
 
@@ -973,6 +1010,8 @@ DECLARE_APP(GUI_App)
 wxDECLARE_EVENT(EVT_CONNECT_LAN_MODE_PRINT, wxCommandEvent);
 
 bool is_support_filament(int extruder_id);
+bool has_filaments(const std::vector<std::string>& filament_types);
+bool check_pla_petg_support_pair(int extruder_id);
 } // namespace GUI
 } // Slic3r
 
