@@ -2611,8 +2611,18 @@ void GCode::_do_export(Print& print, GCodeOutputStream& file, ThumbnailsGenerato
     print.throw_if_canceled();
 
     m_enable_cooling_markers = true;
-    this->apply_print_config(print.config());
+    // P-35 fix: 376524d9a6 ("wall speed stuck at defaults") applied the
+    // PRE-override full_print_config snapshot AFTER print.config(), which
+    // clobbered every extruder_retract filament override (z_hop_types,
+    // retraction_length, retraction_speed, ...) that Print::apply had just
+    // merged into print.config() via m_config.apply(filament_overrides)
+    // (PrintApply.cpp). Runtime lift/retract then fell back to the machine
+    // base values — for U1 "Auto Lift" that forces SpiralLift on every
+    // layer change and sweeps the full-circle arc outside the bed.
+    // Order swapped: fill FullPrintConfig-only keys from the snapshot
+    // FIRST, then let the post-override print.config() win on overlap.
     m_config.apply(print.full_print_config(), true);
+    this->apply_print_config(print.config());
 
     // m_volumetric_speed = DoExport::autospeed_volumetric_limit(print);
     print.throw_if_canceled();
